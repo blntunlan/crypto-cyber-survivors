@@ -28,6 +28,7 @@ describe('LiquidationWarningOverlay', () => {
     // Overlay present
     const overlay = document.querySelector('.liquidation-warning-overlay');
     expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveAttribute('data-overlay-priority', 'critical');
 
     // Text not present
     expect(screen.queryByText(/LIQUIDATION IMMINENT/i)).not.toBeInTheDocument();

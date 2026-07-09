@@ -18,6 +18,7 @@ import { Z_LAYERS } from '../../constants/ZIndex';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
+import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
 import { cn } from '../../utils/classnames';
 import { OverlayChrome } from '../ui/OverlayChrome';
 import { ThemedButton } from '../themed/ThemedButton';
@@ -226,6 +227,8 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
     <AnimatePresence>
       {showScreen && (
         <motion.div
+          data-testid="cycle-decision-overlay"
+          data-overlay-priority="decision"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -236,7 +239,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
             maxWidthClassName="max-w-lg"
             title={getText('hud.cycle_complete')}
             subtitle={`${t('hud.cycle_count', { count: state.cycleNumber })} ${getText('hud.finished')}`}
-            accentColor={COLORS.ELECTRIC_BLUE}
+            accentColor={HUD_WAR_ROOM.colors.gold}
             contentClassName="space-y-6"
           >
             {/* Timer row */}
@@ -251,7 +254,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
               </span>
               <span
                 className={cn(
-                  'font-cyber text-3xl font-bold text-cyan-400',
+                  'font-cyber text-3xl font-bold text-[#D6B85C]',
                   isRetro && 'font-retro-pixel'
                 )}
               >
@@ -267,7 +270,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                     'p-4',
                     isRetro
                       ? 'border-2 border-[#39FF14]/30 bg-[#0a0a12]/80'
-                      : 'rounded-sm border border-white/10 bg-white/5'
+                      : 'border-l-2 border-white/35 py-1 pl-3'
                   )}
                 >
                   <p
@@ -292,7 +295,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                     'p-4',
                     isRetro
                       ? 'border-2 border-orange-500/50 bg-[#0a0a12]/80'
-                      : 'rounded-sm border border-orange-500/30 bg-orange-500/5'
+                      : 'border-l-2 border-[#B22222] py-1 pl-3'
                   )}
                 >
                   <p

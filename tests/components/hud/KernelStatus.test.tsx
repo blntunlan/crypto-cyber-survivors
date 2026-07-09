@@ -35,6 +35,17 @@ describe('KernelStatus Component', () => {
       expect(screen.getByText(/hud\.level_short.*5/i)).toBeInTheDocument();
     });
 
+    it('renders Operator as a transparent War Room rail', () => {
+      // @ts-expect-error: testing
+      screenService.isMobile.mockReturnValue(false);
+      render(<KernelStatus player={mockPlayer} />);
+
+      const rail = screen.getByTestId('war-room-operator');
+      expect(rail).toHaveAttribute('data-hud-tone', 'danger');
+      expect(rail).toHaveAttribute('data-hud-side', 'right');
+      expect(rail).not.toHaveClass('bg-black');
+    });
+
     it('should render stat rows for visible stats', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
@@ -63,9 +74,7 @@ describe('KernelStatus Component', () => {
     it('should calculate XP bar width correctly', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
-      const { container } = render(
-        <KernelStatus player={{ ...mockPlayer, exp: 0, nextLevelExp: 100 }} />
-      );
+      render(<KernelStatus player={{ ...mockPlayer, exp: 0, nextLevelExp: 100 }} />);
 
       // Trigger XP bar update via the new event-driven system
       act(() => {
@@ -74,7 +83,8 @@ describe('KernelStatus Component', () => {
         });
       });
 
-      const xpBarFill = container.querySelector('.bg-blue-500');
+      const xpBarFill = screen.getByTestId('war-room-xp-fill');
+      expect(xpBarFill).toHaveClass('bg-[#D6B85C]');
       expect(xpBarFill).toHaveStyle('width: 75%');
     });
   });

@@ -9,6 +9,7 @@ import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ThemedButton } from '../themed/ThemedButton';
 import { COLORS } from '../../config/Colors';
+import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
 import { cn } from '../../utils/classnames';
 
 interface ReplayOverlayProps {
@@ -61,16 +62,18 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
 
   return (
     <div
+      data-testid="replay-overlay"
+      data-overlay-priority="utility"
       className={cn(
         'absolute bottom-[calc(0.75rem+var(--sab))] left-1/2 z-[100] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2',
         isRetro
           ? 'border-2 border-[#39FF14]/40 bg-[#0a0a12]/95 font-retro-pixel'
-          : 'cyber-glass rounded-lg border border-white/10 bg-slate-950/90 font-cyber'
+          : 'border-l-2 border-[#D6B85C] bg-transparent font-cyber'
       )}
     >
       <span
         className="text-[10px] font-black uppercase tracking-[0.2em]"
-        style={{ color: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE }}
+        style={{ color: isRetro ? COLORS.NEON_GREEN : HUD_WAR_ROOM.colors.gold }}
       >
         {t('common.menu_pages.replays.playback_badge')}
       </span>
@@ -85,14 +88,16 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
       {/* Progress bar */}
       <div
         className={cn(
-          'h-1 w-14 overflow-hidden bg-slate-800 sm:w-28',
+          'h-1 w-14 overflow-hidden border border-white/20 bg-transparent sm:w-28',
           !isRetro && 'rounded-full'
         )}
       >
         <div
           ref={progressBarRef}
           className={cn('h-full w-0', !isRetro && 'rounded-full')}
-          style={{ backgroundColor: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE }}
+          style={{
+            backgroundColor: isRetro ? COLORS.NEON_GREEN : HUD_WAR_ROOM.colors.gold,
+          }}
         />
       </div>
 
@@ -105,11 +110,11 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
             onClick={() => setPlaybackSpeed(s)}
             className={cn(
               'min-h-[44px] min-w-[38px] px-2 text-[10px] font-black uppercase tracking-[0.1em] touch-manipulation active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-400',
-              !isRetro && 'border',
+              !isRetro && 'border-l-2',
               !isRetro &&
                 (speed === s
-                  ? 'border-[#B026FF]/60 bg-[#B026FF]/15 text-[#c4b5fd] shadow-[0_0_12px_rgba(176,38,255,0.25)]'
-                  : 'border-white/10 text-slate-400 hover:text-white'),
+                  ? 'border-[#D6B85C] bg-transparent text-[#D6B85C]'
+                  : 'border-white/25 text-slate-400 hover:border-white/60 hover:text-white'),
               isRetro &&
                 (speed === s
                   ? 'border-2 border-[#39FF14] text-[#39FF14]'

@@ -12,6 +12,7 @@ import {
 } from '../../types/events';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { HudGhostRail } from './HudGhostRail';
 import { LiveTicker } from '../themed/LiveTicker';
 import { ClientIndicatorService } from '../../services/indicators/ClientIndicatorService';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -158,20 +159,25 @@ const DesktopLiveFeed: React.FC<
         : 'text-slate-400';
 
   return (
-    <div className="flex min-w-[220px] flex-col gap-0 bg-transparent p-1.5 transition-[width] duration-300">
+    <HudGhostRail
+      testId="war-room-market-intel"
+      side="left"
+      tone="gold"
+      className="flex min-w-[220px] flex-col gap-0 py-1 transition-[width] duration-300"
+    >
       <div className="mb-2 flex items-center justify-between">
         <div
           className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'animate-pulse'}`}
+            className={`h-1.5 w-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
           ></span>
           {t('hud.live_feed')}
         </div>
 
         <div className="flex items-center gap-2 font-feed text-[10px] text-white">
           <span
-            className={`rounded px-1 ${marketData.leverage >= 50 ? 'animate-pulse bg-amber-500 font-black text-black shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/10 opacity-60'}`}
+            className={`border-l px-1 ${marketData.leverage >= 50 ? 'border-amber-400 font-black text-amber-300' : 'border-white/30 opacity-60'}`}
           >
             {marketData.leverage >= 50 ? 'DEGEN' : ''} {marketData.leverage}X
           </span>
@@ -321,13 +327,13 @@ const DesktopLiveFeed: React.FC<
 
         {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0) >
           0 && (
-          <div className="mt-1 animate-pulse rounded border border-amber-400/30 bg-amber-400/10 px-1 py-0.5 text-center text-[9px] font-black tracking-widest text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+          <div className="mt-1 border-l-2 border-amber-400 px-1 text-center text-[9px] font-black tracking-widest text-amber-400">
             ⚠️ {t('hud.whale_detected')} (T
             {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0)})
           </div>
         )}
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 
@@ -377,7 +383,12 @@ const MobileLiveFeed: React.FC<
   };
 
   return (
-    <div className="flex min-w-[140px] flex-col gap-0.5">
+    <HudGhostRail
+      testId="war-room-market-intel"
+      side="left"
+      tone="gold"
+      className="flex min-w-[140px] flex-col gap-0.5"
+    >
       {/* Row 1: Status header */}
       <div className="flex items-center justify-between">
         <div
@@ -397,7 +408,7 @@ const MobileLiveFeed: React.FC<
             {pairConfig.id}
           </span>
           <span
-            className={`rounded px-1 font-black ${marketData.leverage >= 50 ? 'animate-pulse bg-amber-500 text-black' : 'text-slate-500'}`}
+            className={`border-l px-1 font-black ${marketData.leverage >= 50 ? 'border-amber-400 text-amber-300' : 'border-white/30 text-slate-500'}`}
             style={{ fontSize: rfs(8) }}
           >
             {marketData.leverage >= 50 ? 'DEGEN ' : ''}
@@ -430,9 +441,9 @@ const MobileLiveFeed: React.FC<
           />
         </div>
         <div
-          className="w-fit rounded px-1.5 py-0.5 font-black leading-none"
+          className="w-fit border-l px-1.5 py-0.5 font-black leading-none"
           style={{
-            backgroundColor: `${pnlHex}22`,
+            borderColor: pnlHex,
             color: pnlHex,
             fontSize: rfs(isSmallDevice ? 10 : 12),
             fontVariantNumeric: 'tabular-nums',
@@ -459,7 +470,7 @@ const MobileLiveFeed: React.FC<
       >
         <style>{'.flex-nowrap::-webkit-scrollbar { display: none; }'}</style>
         {/* Entry pill */}
-        <div className="whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
+        <div className="whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.entry_short')} $
           {entryPrice.toLocaleString(undefined, {
             minimumFractionDigits: 0,
@@ -471,7 +482,7 @@ const MobileLiveFeed: React.FC<
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <div
-              className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getLiqColor()}`}
+              className={`whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getLiqColor()}`}
             >
               LIQ: $
               {marketData.liquidationPrice.toLocaleString(undefined, {
@@ -482,7 +493,7 @@ const MobileLiveFeed: React.FC<
           )}
 
         {/* Volatility pill */}
-        <div className="whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
+        <div className="whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.volatility_short')} X
           <LiveTicker
             id="vol-mobile"
@@ -494,7 +505,7 @@ const MobileLiveFeed: React.FC<
         {/* RSI pill */}
         {serverState && (
           <div
-            className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getRsiColor()}`}
+            className={`whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getRsiColor()}`}
           >
             RSI {Math.round(serverState.rsi)}
           </div>
@@ -503,7 +514,7 @@ const MobileLiveFeed: React.FC<
         {/* Whale indicator */}
         {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0) >
           0 && (
-          <div className="animate-pulse rounded bg-amber-500/20 px-1.5 py-0.5 font-bold text-amber-400">
+          <div className="border-l border-amber-400 px-1.5 py-0.5 font-bold text-amber-400">
             🐋 T
             {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0)}
           </div>
@@ -512,7 +523,7 @@ const MobileLiveFeed: React.FC<
         {/* Trend Indicator Mobile */}
         {clientIndicators && clientIndicators.trendDirection !== 'SIDEWAYS' && (
           <div
-            className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-bold tabular-nums ${
+            className={`whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-bold tabular-nums ${
               clientIndicators.trendDirection === 'UP'
                 ? 'text-green-400'
                 : 'text-red-400'
@@ -522,7 +533,7 @@ const MobileLiveFeed: React.FC<
           </div>
         )}
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 

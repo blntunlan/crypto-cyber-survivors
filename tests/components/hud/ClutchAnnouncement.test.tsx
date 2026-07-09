@@ -41,6 +41,16 @@ describe('ClutchAnnouncement', () => {
     expect(screen.getByText('hud.clutch')).toBeInTheDocument();
   });
 
+  it('renders modern clutch feedback as a danger event rail', () => {
+    vi.mocked(screenService.isMobile).mockReturnValue(false);
+    vi.mocked(useIsRetro).mockReturnValue(false);
+    render(<ClutchAnnouncement active={true} />);
+
+    const rail = screen.getByTestId('hud-event-rail');
+    expect(rail).toHaveAttribute('data-hud-tone', 'danger');
+    expect(rail).not.toHaveClass('bg-gradient-to-r');
+  });
+
   it('should render "CLUTCH!" and "RECOVERED" on Mobile when active is true', () => {
     vi.mocked(screenService.isMobile).mockReturnValue(true);
     vi.mocked(useIsRetro).mockReturnValue(false);
@@ -61,14 +71,14 @@ describe('ClutchAnnouncement', () => {
     expect(element).not.toHaveClass('bg-gradient-to-r');
   });
 
-  it('should apply modern styles when isRetro is false', () => {
+  it('should apply modern rail styles when isRetro is false', () => {
     vi.mocked(screenService.isMobile).mockReturnValue(false);
     vi.mocked(useIsRetro).mockReturnValue(false);
     render(<ClutchAnnouncement active={true} />);
 
     // Desktop layout
-    const element = screen.getByText('hud.clutch').parentElement;
-    expect(element).toHaveClass('bg-gradient-to-r');
-    expect(element).not.toHaveClass('rounded-none');
+    const element = screen.getByText('hud.clutch').closest('[data-hud-tone]');
+    expect(element).toHaveAttribute('data-hud-tone', 'danger');
+    expect(element).not.toHaveClass('bg-gradient-to-r');
   });
 });

@@ -119,6 +119,10 @@ describe('LeaderboardPanel', () => {
 
     // Header should be visible
     expect(screen.getByText('hud.leaderboard_title')).toBeInTheDocument();
+    expect(screen.getByTestId('leaderboard-panel')).toHaveAttribute(
+      'data-overlay-priority',
+      'utility'
+    );
 
     // Entries should appear
     await waitFor(() => {

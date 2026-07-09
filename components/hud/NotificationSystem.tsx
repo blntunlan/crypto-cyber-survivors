@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { RuntimeDiagnosticsService } from '../../services/system/RuntimeDiagnosticsService';
 import './hud-animations.css';
+import { type HudRailTone, HudEventRail } from './HudGhostRail';
 
 interface Notification {
   id: string;
@@ -22,6 +23,13 @@ const text = (value: string | string[]): string =>
 
 const MAX_VISIBLE_NOTIFICATIONS = 5;
 const DUPLICATE_NOTIFICATION_COOLDOWN_MS = 5000;
+
+const getNotificationTone = (type: Notification['type']): HudRailTone => {
+  if (type === 'success') return 'positive';
+  if (type === 'warning' || type === 'error') return 'danger';
+  if (type === 'market') return 'gold';
+  return 'neutral';
+};
 
 const NotificationSystemComponent: React.FC = () => {
   trackRender('NotificationSystem');
@@ -304,21 +312,28 @@ const NotificationSystemComponent: React.FC = () => {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }}
             className={`notification-card type-${notification.type}`}
-            style={{ borderLeft: `4px solid ${notification.color}` }}
           >
-            <div className="notification-icon">{notification.icon}</div>
-            <div className="notification-content">
-              <div className="notification-title" style={{ color: notification.color }}>
-                {notification.title}
-              </div>
-              <div className="notification-message">{notification.message}</div>
-            </div>
-            <button
-              className="notification-close"
-              onClick={() => removeNotification(notification.id)}
+            <HudEventRail
+              tone={getNotificationTone(notification.type)}
+              className="notification-rail"
             >
-              ×
-            </button>
+              <div className="notification-icon">{notification.icon}</div>
+              <div className="notification-content">
+                <div
+                  className="notification-title"
+                  style={{ color: notification.color }}
+                >
+                  {notification.title}
+                </div>
+                <div className="notification-message">{notification.message}</div>
+              </div>
+              <button
+                className="notification-close"
+                onClick={() => removeNotification(notification.id)}
+              >
+                ×
+              </button>
+            </HudEventRail>
           </motion.div>
         ))}
       </AnimatePresence>
@@ -338,29 +353,14 @@ const NotificationSystemComponent: React.FC = () => {
 
         .notification-card {
           pointer-events: auto;
-          background: rgba(15, 23, 42, 0.95);
-          backdrop-filter: blur(12px);
-          padding: 14px 18px;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
           width: 340px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          position: relative;
-          overflow: hidden;
         }
 
-        .notification-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03));
-          pointer-events: none;
+        .notification-rail {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 8px 10px;
         }
 
         .notification-icon {

@@ -7,7 +7,7 @@ import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { IconTrophy } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { audio } from '../../services/audio';
+import { audio } from '../../services/audio/AudioService';
 import { cn } from '../../utils/classnames';
 import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
 import { ComboSystem } from '../../services/combat/ComboSystem';
@@ -83,6 +83,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       title={t('common.game_over_screen.liquidated') as string}
       subtitle={t('common.session_halted') as string}
       accentColor={COLORS.CASINO_RED}
+      overlayPriority="decision"
       contentClassName="space-y-6"
     >
       {isNewHighScore && (
@@ -155,7 +156,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               'space-y-3 p-4',
               isRetro
                 ? 'border-2 border-yellow-500/50 bg-[#0a0a12]/80'
-                : 'rounded-sm border border-yellow-500/20 bg-yellow-500/5'
+                : 'border-l-2 border-yellow-500/70 py-1 pl-3'
             )}
           >
             <div className="flex items-center justify-between gap-3">
@@ -252,7 +253,7 @@ const StatItem: React.FC<StatItemProps> = ({ label, value, color, sizes, isRetro
       'space-y-2 p-4',
       isRetro
         ? 'border-2 border-[#39FF14]/30 bg-[#0a0a12]/80'
-        : 'rounded-sm border border-white/10 bg-white/5'
+        : 'border-l-2 border-white/35 py-1 pl-3'
     )}
   >
     <p
@@ -278,7 +279,7 @@ const StatItem: React.FC<StatItemProps> = ({ label, value, color, sizes, isRetro
 );
 
 const MiniMetric: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-sm border border-white/10 bg-white/5 px-3 py-4">
+  <div className="border-l-2 border-white/35 px-3 py-2">
     <p className="font-cyber text-lg font-black text-white">{value}</p>
     <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">
       {label}

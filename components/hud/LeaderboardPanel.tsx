@@ -177,18 +177,20 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed right-4 top-20 z-[100] hidden w-72 lg:block`}>
+    <div
+      className="fixed right-4 top-20 z-[100] hidden w-72 lg:block"
+      data-testid="leaderboard-panel"
+      data-overlay-priority="utility"
+    >
       {/* Header - Glassmorphism */}
       <ThemedPanel
-        className="group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-b-none border-b-0 px-4 py-3 transition-all hover:bg-slate-900/50"
+        className="group relative flex cursor-pointer items-center justify-between overflow-hidden !rounded-none !border-x-0 !border-t-0 border-b border-[#D6B85C]/40 !bg-transparent px-4 py-3 transition-all hover:bg-white/[0.02]"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        {!isRetro && (
-          <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-yellow-400 to-transparent opacity-50" />
-        )}
+        {!isRetro && <div className="absolute left-0 top-0 h-full w-px bg-[#D6B85C]" />}
         <div className="relative z-10 flex items-center gap-2">
           <Trophy
-            className={`h-4 w-4 ${isRetro ? 'text-yellow-400' : 'animate-pulse text-yellow-400'}`}
+            className={`h-4 w-4 ${isRetro ? 'text-yellow-400' : 'text-[#D6B85C]'}`}
           />
           <ThemedText
             variant="h2"
@@ -223,16 +225,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
       {!isCollapsed && (
         <div>
           {/* ThemedPanel wrapper for correct styling of the list container */}
-          <ThemedPanel className="relative overflow-hidden rounded-t-none border-t-0 !shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
-            {!isRetro && (
-              <div
-                className="pointer-events-none absolute inset-0 opacity-[0.03]"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 2px)`,
-                  backgroundSize: '100% 2px',
-                }}
-              />
-            )}
+          <ThemedPanel className="relative !rounded-none !border-x-0 !border-y-0 !bg-transparent !shadow-none">
             {loading && entries.length === 0 ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-500" />
@@ -259,13 +252,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                         isCurrentPlayer
                           ? isRetro
                             ? 'retro-player-highlight border-l-4'
-                            : 'border-l-2 border-cyan-400 bg-cyan-500/10 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
-                          : 'hover:bg-white/[0.03]'
+                            : 'border-l-2 border-[#D6B85C] bg-transparent'
+                          : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      {!isRetro && isCurrentPlayer && (
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent" />
-                      )}
                       {/* Rank */}
                       {getRankDisplay(entry.rank!)}
 
@@ -287,7 +277,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                               isCurrentPlayer
                                 ? isRetro
                                   ? 'text-yellow-400'
-                                  : 'text-cyan-300'
+                                  : 'text-[#D6B85C]'
                                 : 'text-white'
                             }`}
                           >

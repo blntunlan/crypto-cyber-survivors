@@ -175,6 +175,18 @@ describe('BuffIndicator', () => {
     expect(slowed?.className).toContain('rose');
   });
 
+  it('renders buffs and debuffs as non-opaque tactical rails', () => {
+    render(<BuffIndicator status={GameStatus.PLAYING} />);
+
+    const buffRail = screen.getByText('Rage Mode').closest('[data-hud-tone]');
+    const debuffRail = screen.getByText('Slowed').closest('[data-hud-tone]');
+
+    expect(buffRail).toHaveAttribute('data-hud-tone', 'positive');
+    expect(debuffRail).toHaveAttribute('data-hud-tone', 'danger');
+    expect(buffRail).not.toHaveClass('bg-emerald-500/20');
+    expect(debuffRail).not.toHaveClass('bg-rose-500/20');
+  });
+
   it('should handle uninitialized BuffManager gracefully', () => {
     (BuffManager.isInitialized as any).mockReturnValue(false);
     render(<BuffIndicator status={GameStatus.PLAYING} />);

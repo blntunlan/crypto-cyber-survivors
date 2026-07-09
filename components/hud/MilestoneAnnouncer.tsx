@@ -7,6 +7,7 @@ import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { type ActiveAnnouncement } from '../../hooks/useHUDEvents';
+import { HudEventRail } from './HudGhostRail';
 
 interface MilestoneAnnouncerProps {
   announcement: ActiveAnnouncement | null;
@@ -78,7 +79,6 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
   const isDanger = kind === 'danger';
   const label = resolveLabel(t, announcement);
   const badgeColor = isDanger ? COLORS.DUMP_ORANGE : COLORS.JACKPOT_YELLOW;
-  const badgeBorder = isDanger ? COLORS.CASINO_RED : COLORS.CASINO_GOLD;
   const outDelay = displaySeconds(kind) - 0.25;
 
   return (
@@ -106,52 +106,23 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
           </div>
 
           <div className="relative mt-3 flex items-center justify-center">
-            <div
-              className={`relative flex items-center justify-center overflow-visible border-4 px-8 py-2 font-black italic ${
-                isRetro
-                  ? 'rounded-none border-double border-white shadow-[4px_4px_0_#000]'
-                  : 'rounded-sm backdrop-blur-md'
-              }`}
-              style={{
-                color: badgeColor,
-                borderColor: isRetro ? '#FFFFFF' : badgeBorder,
-                backgroundColor: isRetro ? COLORS.SLOT_BLACK : `${COLORS.SLOT_BLACK}CC`,
-                boxShadow: isRetro ? '8px 8px 0 #000' : `0 0 25px ${color}50`,
-              }}
-            >
-              {/* Retro Corner Accents */}
-              {isRetro && (
-                <>
-                  <div
-                    className="absolute -left-1 -top-1 h-2 w-2"
-                    style={{ backgroundColor: badgeColor }}
-                  />
-                  <div
-                    className="absolute -bottom-1 -right-1 h-2 w-2"
-                    style={{ backgroundColor: badgeColor }}
-                  />
-                </>
-              )}
-
-              <span className="relative z-10 text-xl tracking-widest">
+            {isRetro ? (
+              <div
+                className="relative flex items-center justify-center overflow-visible rounded-none border-4 border-double border-white px-8 py-2 font-black italic shadow-[8px_8px_0_#000]"
+                style={{ color: badgeColor, backgroundColor: COLORS.SLOT_BLACK }}
+              >
+                <span className="relative z-10 text-xl tracking-widest">
+                  {t(badgeKey(kind))}
+                </span>
+              </div>
+            ) : (
+              <HudEventRail
+                tone={isDanger ? 'danger' : 'gold'}
+                className="px-6 py-1.5 text-xl font-black italic tracking-widest"
+              >
                 {t(badgeKey(kind))}
-              </span>
-
-              {!isRetro && (
-                <div
-                  className="absolute left-1/2 top-1/2 -z-10"
-                  style={{
-                    width: '170%',
-                    height: '320%',
-                    transform: 'translate(-50%, -50%)',
-                    filter: 'blur(8px)',
-                    // Radial gradient that fades to transparent → soft halo instead
-                    // of a blurred rectangle (a solid bg + small blur reads as a box).
-                    background: `radial-gradient(ellipse at center, ${color}99 0%, ${color}40 40%, transparent 70%)`,
-                  }}
-                />
-              )}
-            </div>
+              </HudEventRail>
+            )}
           </div>
         </div>
       </div>
@@ -173,7 +144,6 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
 
   const isDanger = announcement?.kind === 'danger';
   const badgeColor = isDanger ? COLORS.DUMP_ORANGE : COLORS.JACKPOT_YELLOW;
-  const badgeBorder = isDanger ? COLORS.CASINO_RED : COLORS.CASINO_GOLD;
 
   return (
     <LazyMotion features={domAnimation}>
@@ -213,49 +183,30 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
             >
-              <div
-                className={`relative flex items-center justify-center font-black italic ${
-                  isRetro
-                    ? 'rounded-none border-4 border-white shadow-[4px_4px_0_#000]'
-                    : 'rounded-lg border-2 backdrop-blur-sm'
-                }`}
-                style={{
-                  color: badgeColor,
-                  borderColor: isRetro ? 'white' : badgeBorder,
-                  backgroundColor: isRetro
-                    ? COLORS.SLOT_BLACK
-                    : `${COLORS.SLOT_BLACK}E6`,
-                  boxShadow: isRetro
-                    ? '4px 4px 0 #000'
-                    : `0 0 15px ${announcement.color}40`,
-                  fontSize: rfs(12),
-                  padding: `${rs(6)}px ${rs(20)}px`,
-                }}
-              >
-                <span className="relative z-10 tracking-tight">
-                  {t(badgeKey(announcement.kind))}
-                </span>
-
-                {/* Decorative elements for retro */}
-                {isRetro && (
-                  <div
-                    className="absolute -left-1 -top-1 h-2 w-2"
-                    style={{ backgroundColor: badgeColor }}
-                  />
-                )}
-
-                {/* Simplified glow for mobile perf - hidden in retro */}
-                {!isRetro && (
-                  <div
-                    className="absolute -z-10 blur-xl"
-                    style={{
-                      inset: '-50% -25%',
-                      // Radial fade to transparent → soft halo, not a blurry box.
-                      background: `radial-gradient(ellipse at center, ${announcement.color}80 0%, transparent 70%)`,
-                    }}
-                  />
-                )}
-              </div>
+              {isRetro ? (
+                <div
+                  className="relative flex items-center justify-center rounded-none border-4 border-white font-black italic shadow-[4px_4px_0_#000]"
+                  style={{
+                    color: badgeColor,
+                    backgroundColor: COLORS.SLOT_BLACK,
+                    fontSize: rfs(12),
+                    padding: `${rs(6)}px ${rs(20)}px`,
+                  }}
+                >
+                  <span className="relative z-10 tracking-tight">
+                    {t(badgeKey(announcement.kind))}
+                  </span>
+                </div>
+              ) : (
+                <HudEventRail
+                  tone={isDanger ? 'danger' : 'gold'}
+                  className="px-4 py-1 text-center font-black italic"
+                >
+                  <span style={{ fontSize: rfs(12) }}>
+                    {t(badgeKey(announcement.kind))}
+                  </span>
+                </HudEventRail>
+              )}
             </m.div>
           </m.div>
         )}

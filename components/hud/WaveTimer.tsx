@@ -5,6 +5,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { EventBus } from '../../services/core/EventBus';
 import { TimeService } from '../../services/core/TimeService';
+import { HudGhostRail } from './HudGhostRail';
 
 const WAVE_TIMER_TEST_ID = 'wave-timer-text';
 
@@ -25,7 +26,12 @@ const DesktopWaveTimer: React.FC = () => {
   const accessibleLabel = `${label}: ${displayTime}`;
 
   return (
-    <div className="flex flex-col items-center">
+    <HudGhostRail
+      testId="war-room-run-timer"
+      side="center"
+      tone="gold"
+      className="flex flex-col items-center"
+    >
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">
         {label}
       </div>
@@ -39,7 +45,7 @@ const DesktopWaveTimer: React.FC = () => {
       >
         {displayTime}
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 
@@ -65,7 +71,12 @@ const MobileWaveTimer: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col items-center">
+    <HudGhostRail
+      testId="war-room-run-timer"
+      side="center"
+      tone="gold"
+      className="flex flex-col items-center"
+    >
       <div
         className={`font-black uppercase tracking-[0.2em] text-slate-500/80 transition-opacity duration-150 ${isRetro ? 'font-retro-text' : ''} ${
           isVeryNarrow ? 'invisible opacity-0' : 'opacity-100'
@@ -85,7 +96,7 @@ const MobileWaveTimer: React.FC = () => {
       >
         {displayTime}
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 

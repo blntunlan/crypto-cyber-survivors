@@ -17,6 +17,7 @@ import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import type { LiquidationWarning } from '../../services/difficulty';
 import { COLORS } from '../../config/Colors';
+import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
 import { cn } from '../../utils/classnames';
 
 interface WarningConfig {
@@ -157,6 +158,7 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
           <motion.div
             key={activeLevel}
             className="liquidation-warning-overlay"
+            data-overlay-priority="critical"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -304,32 +306,19 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                     : activeLevel === 'CRITICAL'
                       ? '1.75rem'
                       : '1.125rem',
-                  background: !isRetro ? `${COLORS.BG}B3` : undefined,
-                  border: !isRetro ? `1px solid ${config.glowColor}66` : undefined,
-                  borderRadius: !isRetro ? (isMobile ? rs(10) : 12) : undefined,
-                  boxShadow: !isRetro
-                    ? `0 10px 40px ${COLORS.BG}8C, 0 0 20px ${config.glowColor}40, inset 0 1px 0 rgba(255,255,255,0.12)`
-                    : undefined,
+                  borderLeft: !isRetro ? `2px solid ${config.color}` : undefined,
                   // Enhanced neon glow for cyberpunk desktop
                   textShadow: isRetro
                     ? `${isMobile ? rs(2) : 4}px ${isMobile ? rs(2) : 4}px 0 #000`
-                    : isMobile
-                      ? `0 0 ${rs(12)}px ${config.color}, 0 0 ${rs(24)}px ${config.color}`
-                      : `
-                      0 0 10px ${config.glowColor},
-                      0 0 20px ${config.glowColor},
-                      0 0 40px ${config.glowColor},
-                      0 0 80px ${config.glowColor}80,
-                      2px 2px 0 #000
-                    `,
+                    : HUD_WAR_ROOM.textShadow,
                   textTransform: 'uppercase',
                   letterSpacing: isMobile ? '0.1em' : '0.25em',
                   textAlign: 'center',
                   maxWidth: isMobile ? '90vw' : undefined,
                   padding: !isRetro
                     ? isMobile
-                      ? `${rs(10)}px ${rs(14)}px`
-                      : '10px 20px'
+                      ? `0 0 0 ${rs(10)}px`
+                      : '0 0 0 12px'
                     : isMobile
                       ? `0 ${rs(8)}px`
                       : undefined,
@@ -383,13 +372,11 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                       : `0 0 8px ${config.glowColor}, 0 0 16px ${config.glowColor}80`,
                   textAlign: 'center',
                   letterSpacing: isRetro ? '0.05em' : undefined,
-                  background: !isRetro ? `${COLORS.BG}8C` : undefined,
-                  border: !isRetro ? `1px solid ${config.glowColor}44` : undefined,
-                  borderRadius: !isRetro ? (isMobile ? rs(8) : 10) : undefined,
+                  borderLeft: !isRetro ? `2px solid ${config.color}` : undefined,
                   padding: !isRetro
                     ? isMobile
-                      ? `${rs(5)}px ${rs(10)}px`
-                      : '6px 12px'
+                      ? `0 0 0 ${rs(8)}px`
+                      : '0 0 0 10px'
                     : undefined,
                 }}
               >

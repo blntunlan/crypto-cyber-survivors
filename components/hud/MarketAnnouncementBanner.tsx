@@ -16,6 +16,7 @@ import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EventBus } from '../../services/core/EventBus';
 import { type MarketAnnouncementEvent } from '../../types/events';
+import { HudEventRail } from './HudGhostRail';
 
 // =============================================================================
 // TYPES
@@ -134,35 +135,22 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="flex items-center gap-2 whitespace-nowrap rounded-sm border px-4 py-2 sm:px-6 sm:py-3"
+            className="whitespace-nowrap"
             style={{
               fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              borderColor: current.color,
-              boxShadow: `0 0 20px ${current.color}40, 0 0 40px ${current.color}20, inset 0 0 15px ${current.color}10`,
-              animation: isLiquidation
-                ? 'marketAnnouncePulse 0.5s ease-in-out infinite alternate'
-                : undefined,
             }}
           >
-            {/* Icon */}
-            <span
-              className="text-lg sm:text-xl"
-              style={{ filter: `drop-shadow(0 0 4px ${current.color})` }}
+            <HudEventRail
+              tone={isLiquidation ? 'danger' : 'gold'}
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2"
             >
-              {current.icon}
-            </span>
-
-            {/* Message */}
-            <span
-              className="text-xs font-bold uppercase tracking-wider sm:text-sm"
-              style={{
-                color: current.color,
-                textShadow: `0 0 8px ${current.color}, 0 0 16px ${current.color}80`,
-              }}
-            >
-              {current.message}
-            </span>
+              <span className="text-lg sm:text-xl" style={{ color: current.color }}>
+                {current.icon}
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-white sm:text-sm">
+                {current.message}
+              </span>
+            </HudEventRail>
           </motion.div>
         )}
       </AnimatePresence>

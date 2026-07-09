@@ -53,6 +53,17 @@ describe('AchievementPopup', () => {
     expect(screen.getByText('💎')).toBeInTheDocument();
   });
 
+  it('renders the achievement as a gold event rail without a filled card', () => {
+    // @ts-expect-error testing mock
+    screenService.isMobile.mockReturnValue(false);
+    render(<AchievementPopup achievement={achievement} />);
+
+    const rail = screen.getByTestId('hud-event-rail');
+    expect(rail).toHaveAttribute('data-hud-tone', 'gold');
+    expect(rail).not.toHaveClass('bg-black');
+    expect(rail).not.toHaveClass('backdrop-blur');
+  });
+
   it('renders mobile layout when screen is mobile', () => {
     // @ts-expect-error testing mock
     screenService.isMobile.mockReturnValue(true);

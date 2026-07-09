@@ -219,7 +219,10 @@ export const GameUI: React.FC<GameUIProps> = memo(
         </div>
 
         {/* ROW 2: HUD CORE (Live Feed & Kernel Status) */}
-        <div className="mt-2 flex w-full items-start justify-between">
+        <div
+          data-testid="war-room-command-deck"
+          className="mt-2 flex w-full items-start justify-between gap-4"
+        >
           {/* Left Panel: Live Feed */}
           <div className="hud-element-left flex max-w-[55%] flex-col gap-2 lg:max-w-none">
             <LiveFeed

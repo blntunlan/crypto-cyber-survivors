@@ -43,6 +43,15 @@ describe('WaveTimer', () => {
     expect(screen.getByText('1:05')).toBeInTheDocument();
   });
 
+  it('renders the Run timer in a centered War Room rail', () => {
+    render(<WaveTimer />);
+
+    const rail = screen.getByTestId('war-room-run-timer');
+    expect(rail).toHaveAttribute('data-hud-tone', 'gold');
+    expect(rail).toHaveAttribute('data-hud-side', 'center');
+    expect(screen.getByTestId('wave-timer-text')).toHaveAttribute('aria-live', 'off');
+  });
+
   it('updates time on secondElapsed and resets on gameReset', () => {
     render(<WaveTimer />);
 

@@ -175,4 +175,14 @@ describe('GameUI', () => {
       expect(pauseWrapper?.className).toContain('relative');
     });
   });
+
+  it('groups persistent HUD data into the War Room command deck', () => {
+    render(<GameUI {...defaultProps} />);
+
+    const deck = screen.getByTestId('war-room-command-deck');
+    expect(deck).toContainElement(screen.getByTestId('live-feed'));
+    expect(deck).toContainElement(screen.getByTestId('kernel-status'));
+    expect(screen.getByTestId('wave-timer')).toBeInTheDocument();
+    expect(screen.getByTestId('account-health')).toBeInTheDocument();
+  });
 });

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { type Request, type Response, type NextFunction, type RequestHandler } from 'express';
 
 /**
  * Wraps an async route handler to catch promise rejections 

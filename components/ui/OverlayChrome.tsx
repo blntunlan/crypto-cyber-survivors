@@ -17,6 +17,7 @@ export interface OverlayChromeProps {
   className?: string;
   contentClassName?: string;
   accentColor?: string;
+  overlayPriority?: 'critical' | 'decision' | 'utility';
   zIndex?: number;
   reserveBackButtonSpace?: boolean;
 }
@@ -30,6 +31,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
   className,
   contentClassName,
   accentColor = COLORS.ELECTRIC_BLUE,
+  overlayPriority,
   zIndex,
   reserveBackButtonSpace = false,
 }) => {
@@ -47,21 +49,22 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
       style={zIndex ? { zIndex } : undefined}
     >
       <ThemedPanel
+        data-testid="overlay-chrome-surface"
+        data-overlay-style={isRetro ? undefined : 'war-room'}
+        data-overlay-priority={overlayPriority}
         className={cn(
           'relative my-auto w-full overflow-hidden p-5 sm:p-6',
           maxWidthClassName,
           !isRetro &&
-            'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]',
+            'border-x border-y-0 !border-[#D6B85C]/45 !rounded-none bg-[#090C12]/70 shadow-[0_18px_42px_rgba(0,0,0,0.45)]',
           panelClassName
         )}
       >
         {!isRetro && (
           <>
-            <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
-            <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
             <div
-              className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              style={{ boxShadow: `0 0 20px ${accentColor}40` }}
+              className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              style={{ boxShadow: `0 0 12px ${accentColor}33` }}
             />
           </>
         )}
@@ -77,12 +80,11 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
               {title && (
                 <h2
                   className={cn(
-                    isRetro
-                      ? 'font-retro-pixel text-[#FFD600]'
-                      : 'cyber-sway-text font-cyber text-white',
+                    isRetro ? 'font-retro-pixel text-[#FFD600]' : 'font-cyber',
                     sizes.heading,
                     'font-black uppercase tracking-tight'
                   )}
+                  style={isRetro ? undefined : { color: accentColor }}
                 >
                   {title}
                 </h2>
@@ -93,7 +95,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
                   className={cn(
                     isRetro
                       ? 'font-retro-pixel text-[#DCDCDC]'
-                      : 'font-cyber text-slate-500',
+                      : 'font-cyber text-slate-300',
                     sizes.tiny,
                     'uppercase tracking-[0.2em]'
                   )}

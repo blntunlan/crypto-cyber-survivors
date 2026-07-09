@@ -26,6 +26,7 @@ vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -116,6 +117,22 @@ describe('NotificationSystem', () => {
 
     expect(screen.getByText('Test Notification')).toBeInTheDocument();
     expect(screen.getByText('This is a test message')).toBeInTheDocument();
+  });
+
+  it('renders interactive notifications as non-opaque rails', async () => {
+    render(<NotificationSystem />);
+
+    await emitEvent('gameNotification', {
+      title: 'Rail Notice',
+      message: 'Readable without a card surface',
+      type: 'success',
+    });
+
+    const rail = screen.getByTestId('hud-event-rail');
+    expect(rail).toHaveAttribute('data-hud-tone', 'positive');
+    expect(rail).not.toHaveClass('bg-black');
+    expect(rail).not.toHaveClass('backdrop-blur');
+    expect(screen.getByRole('button', { name: '×' })).toBeEnabled();
   });
 
   it('responds to rsiStateChanged events', async () => {

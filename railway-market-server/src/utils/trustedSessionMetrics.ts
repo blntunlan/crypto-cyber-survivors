@@ -1,5 +1,5 @@
 import { type z } from 'zod';
-import { verifySessionSchema } from '../db/validation';
+import { type verifySessionSchema } from '../db/validation';
 
 const MIN_SESSION_SECONDS = 5;
 const MAX_SESSION_SECONDS = 86_400;

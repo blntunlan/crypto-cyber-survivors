@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { type Player } from '../../types';
-import { COLORS } from '../../constants';
+import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
 import { screenService } from '../../services/system/ScreenService';
 import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
 import { StatService } from '../../services/gameplay/StatService';
@@ -10,10 +10,13 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { LiveTicker } from '../themed/LiveTicker';
 import { EventBus } from '../../services/core/EventBus';
 import { useRef } from 'react';
+import { HudGhostRail } from './HudGhostRail';
 
 interface KernelStatusProps {
   player: Player;
 }
+
+const OPERATOR_STAT_ID_SET = new Set(HUD_WAR_ROOM.operatorStatIds);
 
 const text = (value: string | string[]): string =>
   Array.isArray(value) ? value.join(' ') : value;
@@ -22,10 +25,15 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
   return (
-    <div className="flex min-w-[220px] flex-col gap-2 bg-transparent p-3 text-right">
+    <HudGhostRail
+      testId="war-room-operator"
+      side="right"
+      tone="danger"
+      className="flex min-w-[180px] flex-col gap-2 py-1 text-right"
+    >
       <div
         className={`mb-1 text-[9px] font-black uppercase tracking-[0.2em] ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
-        style={{ color: COLORS.ELECTRIC_BLUE }}
+        style={{ color: HUD_WAR_ROOM.colors.dangerText }}
       >
         {t('hud.kernel_status')}
       </div>
@@ -37,16 +45,21 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
           {t('hud.level_short')} {player.level}
         </div>
 
-        <div
-          className={`mt-1 h-2 w-full overflow-hidden bg-slate-800 ${isRetro ? 'rounded-none border-2 border-slate-700' : 'rounded-full'}`}
-        >
+        <div className="mt-1 h-px w-full bg-white/25">
           <XpBar nextLevelExp={player.nextLevelExp} isRetro={isRetro} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-2">
         {Object.values(STAT_DEFINITIONS).map(stat => {
-          if (!stat.showInKernel) return null;
+          if (
+            !stat.showInKernel ||
+            !OPERATOR_STAT_ID_SET.has(
+              stat.id as (typeof HUD_WAR_ROOM.operatorStatIds)[number]
+            )
+          ) {
+            return null;
+          }
 
           return (
             <StatRow
@@ -59,7 +72,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
           );
         })}
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 
@@ -70,8 +83,11 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
 
   // Minimal mobile UI: Only Level + XP bar, no stat grid
   return (
-    <div
-      className="flex flex-col bg-transparent text-right"
+    <HudGhostRail
+      testId="war-room-operator"
+      side="right"
+      tone="danger"
+      className="flex flex-col text-right"
       style={{
         padding: isSmallDevice ? rs(4) : rs(6),
         gap: isSmallDevice ? rs(2) : rs(4),
@@ -100,12 +116,12 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
 
       {/* Thin XP Bar */}
       <div
-        className={`w-full overflow-hidden bg-slate-800/40 ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
+        className="w-full bg-white/20"
         style={{ height: isSmallDevice ? rs(2) : rs(3) }}
       >
         <XpBar nextLevelExp={player.nextLevelExp} isRetro={isRetro} />
       </div>
-    </div>
+    </HudGhostRail>
   );
 };
 
@@ -151,7 +167,8 @@ const XpBar: React.FC<{ nextLevelExp: number; isRetro: boolean }> = ({
   return (
     <div
       ref={barRef}
-      className={`h-full bg-blue-500 transition-all duration-100 ${isRetro ? '' : 'shadow-[0_0_8px_#3b82f6]'}`}
+      className={`h-full bg-[#D6B85C] transition-all duration-100 ${isRetro ? '' : 'shadow-[0_0_8px_#D6B85C]'}`}
+      data-testid="war-room-xp-fill"
       style={{ width: '0%' }}
     />
   );

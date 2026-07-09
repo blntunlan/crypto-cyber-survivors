@@ -72,6 +72,10 @@ describe('GameOverScreen', () => {
 
   it('should render level and final pnl', () => {
     render(<GameOverScreen {...defaultProps} />);
+    expect(screen.getByTestId('overlay-chrome-surface')).toHaveAttribute(
+      'data-overlay-priority',
+      'decision'
+    );
     // Multiple L10 elements may exist (stat + career best)
     expect(screen.getAllByText(/L10/)).toBeDefined();
     expect(screen.getByText('50.00%')).toBeDefined();

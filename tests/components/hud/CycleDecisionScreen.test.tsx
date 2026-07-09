@@ -36,6 +36,10 @@ describe('CycleDecisionScreen', () => {
     it('should become visible when controlled externally with visible=true', () => {
       render(<CycleDecisionScreen visible={true} testMode={true} />);
       expect(screen.getByText(/CYCLE COMPLETE/i)).toBeInTheDocument();
+      expect(screen.getByTestId('cycle-decision-overlay')).toHaveAttribute(
+        'data-overlay-priority',
+        'decision'
+      );
     });
 
     it('should show when cycleComplete event is emitted', async () => {

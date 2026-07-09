@@ -13,6 +13,7 @@ import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 import { screenService } from '../../services/system/ScreenService';
+import { HudGhostRail } from './HudGhostRail';
 
 interface ActiveEffect {
   id: string;
@@ -94,9 +95,9 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
         />
       ))}
       {overflowCount > 0 && (
-        <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5">
-          <span className="text-[8px] font-bold text-slate-400">+{overflowCount}</span>
-        </div>
+        <HudGhostRail side="left" tone="neutral" className="flex items-center py-0.5">
+          <span className="text-[8px] font-bold text-slate-300">+{overflowCount}</span>
+        </HudGhostRail>
       )}
     </div>
   );
@@ -126,108 +127,62 @@ const BuffItem: React.FC<BuffItemProps> = ({
   const localizedName = t(`hud.buffs.${effect.name.toLowerCase().replace(/ /g, '_')}`, {
     defaultValue: effect.name,
   });
+  const tone = isDebuff ? 'danger' : 'positive';
+  const effectColor = isDebuff ? 'text-rose-200' : 'text-emerald-200';
+  const compactClassName = isVeryNarrow
+    ? 'flex items-center gap-0.5 py-0.5 text-[10px]'
+    : 'flex items-center gap-1 py-0.5 text-xs';
 
   if (isMobile) {
-    // Ultra-compact: icon + timer only (very narrow screens <320px)
-    if (isVeryNarrow) {
-      return (
-        <div
-          className={`
-            flex items-center gap-0.5 rounded border border-white/10 px-1 py-0.5
-            ${isDebuff ? 'bg-rose-500/20' : 'bg-emerald-500/20'}
-            animate-pulse-slow
-          `}
-          title={`${localizedName} — ${effect.description}`}
+    return (
+      <div title={`${localizedName} — ${effect.description}`}>
+        <HudGhostRail
+          side="left"
+          tone={tone}
+          className={`${compactClassName} ${effectColor}`}
         >
-          <span className="text-[10px]">{effect.icon}</span>
+          <span>{effect.icon}</span>
+          {!isVeryNarrow && (
+            <span className="max-w-[48px] truncate text-[8px] font-medium">
+              {localizedName}
+            </span>
+          )}
           {remainingSeconds !== null ? (
             <span
-              className={`font-stats text-[7px] font-bold ${remainingSeconds <= 3 ? 'animate-pulse text-white' : 'opacity-90'}`}
+              className={`font-stats text-[8px] font-bold ${remainingSeconds <= 3 ? 'animate-pulse text-white' : 'opacity-90'}`}
             >
               {remainingSeconds}s
             </span>
           ) : (
-            <span className="text-[7px] font-bold text-yellow-400">∞</span>
+            <span className="text-[8px] font-bold text-yellow-400">∞</span>
           )}
-        </div>
-      );
-    }
-
-    // Mobile: icon + truncated name + timer
-    return (
-      <div
-        className={`
-          flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5
-          ${isDebuff ? 'bg-rose-500/20' : 'bg-emerald-500/20'}
-          animate-pulse-slow
-        `}
-        title={`${localizedName} — ${effect.description}`}
-      >
-        <span className="text-xs">{effect.icon}</span>
-        <span
-          className={`max-w-[48px] truncate text-[8px] font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
-        >
-          {localizedName}
-        </span>
-        {remainingSeconds !== null ? (
-          <span
-            className={`font-stats text-[8px] font-bold ${remainingSeconds <= 3 ? 'animate-pulse text-white' : 'opacity-90'}`}
-          >
-            {remainingSeconds}s
-          </span>
-        ) : (
-          <span className="text-[8px] font-bold text-yellow-400">∞</span>
-        )}
+        </HudGhostRail>
       </div>
     );
   }
 
   return (
-    <div
-      className={`
-        flex items-center gap-1 rounded-lg px-2 py-1 md:gap-2 md:px-3 md:py-1.5
-        md:backdrop-blur-md
-        ${
-          isDebuff
-            ? 'md:border md:border-rose-500/30 md:bg-rose-950/30 md:shadow-[0_0_10px_rgba(225,29,72,0.1)]'
-            : 'md:border md:border-emerald-400/30 md:bg-emerald-950/30 md:shadow-[0_0_10px_rgba(52,211,153,0.1)]'
-        }
-        animate-pulse-slow
-      `}
-      title={effect.description}
-    >
-      {/* Icon */}
-      <span className="text-base md:text-xl">{effect.icon}</span>
-
-      {/* Name */}
-      <span
-        className={`text-xs font-medium md:text-sm ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
+    <div title={effect.description}>
+      <HudGhostRail
+        side="left"
+        tone={tone}
+        className={`flex items-center gap-1 py-1 md:gap-2 md:py-1.5 ${effectColor}`}
       >
-        {localizedName}
-      </span>
-
-      {/* Duration */}
-      {remainingSeconds !== null && (
-        <span
-          className={`
-            ml-0.5 rounded px-1 py-0.5 font-stats text-[10px] md:ml-1 md:px-1.5 md:text-sm
-            ${
-              remainingSeconds <= 3
-                ? 'animate-pulse bg-rose-600/80 text-white'
-                : isDebuff
-                  ? 'bg-rose-900/40 text-rose-200'
-                  : 'bg-emerald-900/40 text-emerald-200'
-            }
-          `}
-        >
-          {remainingSeconds}s
-        </span>
-      )}
-
-      {/* Permanent indicator */}
-      {effect.isPermanent && (
-        <span className="text-[10px] text-yellow-400 md:text-xs">∞</span>
-      )}
+        <span className="text-base md:text-xl">{effect.icon}</span>
+        <span className="text-xs font-medium md:text-sm">{localizedName}</span>
+        {remainingSeconds !== null && (
+          <span
+            className={`ml-0.5 font-stats text-[10px] md:ml-1 md:text-sm ${
+              remainingSeconds <= 3 ? 'animate-pulse text-white' : ''
+            }`}
+          >
+            {remainingSeconds}s
+          </span>
+        )}
+        {effect.isPermanent && (
+          <span className="text-[10px] text-yellow-400 md:text-xs">∞</span>
+        )}
+      </HudGhostRail>
     </div>
   );
 };

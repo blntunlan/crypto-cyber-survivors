@@ -3,6 +3,7 @@ import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { HudEventRail } from './HudGhostRail';
 
 interface AchievementPopupProps {
   achievement: { name: string; icon: string; color: string } | null;
@@ -25,33 +26,51 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
         animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
       }}
     >
-      <div
-        className={`flex items-center gap-3 px-5 py-3 ${isRetro ? 'rounded-none border-4' : 'rounded-sm border-2 shadow-lg'}`}
-        style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-          borderColor: achievement.color,
-          boxShadow: isRetro ? '6px 6px 0 #000' : `0 0 15px ${achievement.color}44`,
-        }}
-      >
-        <div className="text-4xl">{achievement.icon}</div>
-        <div className="flex flex-col">
-          <span
-            className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-white' : 'text-white/70'}`}
-          >
-            {text(t('hud.achievement'))}
-          </span>
-
-          <span
-            className={`text-xl font-black italic tracking-tight ${isRetro ? 'text-shadow-retro' : ''}`}
-            style={{ color: achievement.color }}
-          >
-            {achievement.name}
-          </span>
+      {isRetro ? (
+        <div
+          className="flex items-center gap-3 rounded-none border-4 px-5 py-3"
+          style={{
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            borderColor: achievement.color,
+          }}
+        >
+          <AchievementContent
+            achievement={achievement}
+            label={text(t('hud.achievement'))}
+          />
         </div>
-      </div>
+      ) : (
+        <HudEventRail tone="gold" className="flex items-center gap-3 px-3 py-2">
+          <AchievementContent
+            achievement={achievement}
+            label={text(t('hud.achievement'))}
+          />
+        </HudEventRail>
+      )}
     </div>
   );
 };
+
+const AchievementContent: React.FC<{
+  achievement: NonNullable<AchievementPopupProps['achievement']>;
+  label: string;
+}> = ({ achievement, label }) => (
+  <>
+    <div className="text-4xl">{achievement.icon}</div>
+    <div className="flex flex-col">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+        {label}
+      </span>
+
+      <span
+        className="text-xl font-black italic tracking-tight"
+        style={{ color: achievement.color }}
+      >
+        {achievement.name}
+      </span>
+    </div>
+  </>
+);
 
 const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> = ({
   achievement,
@@ -70,35 +89,52 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
         width: rs(140),
       }}
     >
-      <div
-        className={`flex items-center border shadow-xl ${isRetro ? 'rounded-none border-2' : 'rounded-lg backdrop-blur-md'}`}
-        style={{
-          backgroundColor: isRetro ? 'black' : 'rgba(15, 23, 42, 0.95)',
-          borderColor: achievement.color,
-          boxShadow: isRetro
-            ? `${rs(4)}px ${rs(4)}px 0 #000`
-            : `0 0 10px ${achievement.color}33`,
-          padding: `${rs(6)}px ${rs(10)}px`,
-          gap: rs(8),
-        }}
-      >
-        <div style={{ fontSize: rfs(20) }}>{achievement.icon}</div>
-        <div className="flex flex-col overflow-hidden">
-          <span
-            className={`font-black uppercase tracking-widest ${isRetro ? 'text-white' : 'text-blue-400 opacity-80'} whitespace-nowrap`}
-            style={{ fontSize: rfs(7) }}
-          >
-            {text(t('hud.achievement')).toUpperCase()}
-          </span>
+      {isRetro ? (
+        <div
+          className="flex items-center rounded-none border-2"
+          style={{
+            backgroundColor: 'black',
+            borderColor: achievement.color,
+            padding: `${rs(6)}px ${rs(10)}px`,
+            gap: rs(8),
+          }}
+        >
+          <div style={{ fontSize: rfs(20) }}>{achievement.icon}</div>
+          <div className="flex flex-col overflow-hidden">
+            <span
+              className="whitespace-nowrap font-black uppercase tracking-widest text-white"
+              style={{ fontSize: rfs(7) }}
+            >
+              {text(t('hud.achievement')).toUpperCase()}
+            </span>
 
-          <span
-            className="mt-0.5 truncate font-black italic leading-none tracking-tight text-white"
-            style={{ fontSize: rfs(12) }}
-          >
-            {achievement.name}
-          </span>
+            <span
+              className="mt-0.5 truncate font-black italic leading-none tracking-tight text-white"
+              style={{ fontSize: rfs(12) }}
+            >
+              {achievement.name}
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <HudEventRail tone="gold" className="flex items-center gap-2 px-2 py-1">
+          <div style={{ fontSize: rfs(20) }}>{achievement.icon}</div>
+          <div className="flex flex-col overflow-hidden">
+            <span
+              className="whitespace-nowrap font-black uppercase tracking-widest text-white/80"
+              style={{ fontSize: rfs(7) }}
+            >
+              {text(t('hud.achievement')).toUpperCase()}
+            </span>
+            <span
+              className="mt-0.5 truncate font-black italic leading-none tracking-tight text-white"
+              style={{ fontSize: rfs(12) }}
+            >
+              {achievement.name}
+            </span>
+          </div>
+        </HudEventRail>
+      )}
     </div>
   );
 };

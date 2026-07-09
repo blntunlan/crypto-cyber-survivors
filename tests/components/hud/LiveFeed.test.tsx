@@ -121,6 +121,22 @@ describe('LiveFeed', () => {
     expect(screen.getAllByTestId('ticker-pnl')).toHaveLength(2); // pct and usd
   });
 
+  it('renders Market Intel as a transparent War Room rail', () => {
+    render(
+      <LiveFeed
+        marketData={mockMarketData}
+        entryPrice={48000}
+        priceColor="text-green-500"
+      />
+    );
+
+    const rail = screen.getByTestId('war-room-market-intel');
+    expect(rail).toHaveAttribute('data-hud-tone', 'gold');
+    expect(rail).toHaveAttribute('data-hud-side', 'left');
+    expect(rail).not.toHaveClass('bg-black');
+    expect(rail).not.toHaveClass('backdrop-blur');
+  });
+
   it('should render Mobile mode correctly', () => {
     (screenService.isMobile as any).mockReturnValue(true);
     render(
