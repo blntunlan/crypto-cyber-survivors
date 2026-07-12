@@ -64,7 +64,7 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
 
   startTutorial: () => {
     const first = TUTORIAL_STEPS[0];
-    set((_state) => ({
+    set(_state => ({
       tutorial: {
         ...DEFAULT_TUTORIAL,
         runState: 'in-progress',
