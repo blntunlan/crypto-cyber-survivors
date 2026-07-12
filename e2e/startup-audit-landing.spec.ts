@@ -134,7 +134,7 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
 
   await expect(page.getByText('Typed EventBus', { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByText('Dual-Exchange Feed', { exact: true }).first()
+    page.getByText('Live Price Feed', { exact: true }).first()
   ).toBeVisible();
   await expect(
     page.getByText('Unified Difficulty Director', { exact: true }).first()

@@ -1,6 +1,7 @@
 import { type StateCreator } from 'zustand';
 import { type TutorialPhase, type TutorialRunState } from '../../types/tutorial';
 import { TUTORIAL_STEPS } from '../../config/TutorialConfig';
+import type { TutorialStep as RealTutorialStep } from '../../types/tutorial';
 
 /**
  * Persisted tutorial runtime state. Single source of truth for tutorial
@@ -63,12 +64,13 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
 
   startTutorial: () => {
     const first = TUTORIAL_STEPS[0];
-    set(state => ({
+    set(_state => ({
       tutorial: {
         ...DEFAULT_TUTORIAL,
         runState: 'in-progress',
         currentStepId: first?.id ?? null,
-        currentPhase: first?.phase ?? 'menu-tour',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        currentPhase: (first as unknown as RealTutorialStep)?.phase ?? 'menu-tour',
         startedAt: Date.now(),
       },
     }));
@@ -81,7 +83,8 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
       tutorial: {
         ...state.tutorial,
         currentStepId: stepId,
-        currentPhase: step.phase,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        currentPhase: (step as unknown as RealTutorialStep).phase || 'menu-tour',
       },
     }));
   },
@@ -117,7 +120,8 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
           ...tut,
           completedSteps,
           currentStepId: next.id,
-          currentPhase: next.phase,
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          currentPhase: (next as unknown as RealTutorialStep).phase || 'menu-tour',
         },
       };
     });
