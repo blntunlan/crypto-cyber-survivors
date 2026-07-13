@@ -15,8 +15,9 @@ export class PacingStateMachine {
     eventFamily: MarketEventFamily,
     elapsedSeconds: number
   ): boolean {
-    if (elapsedSeconds < this.config.marketEvents.initialSurgeLockoutSeconds)
+    if (elapsedSeconds < this.config.marketEvents.initialSurgeLockoutSeconds) {
       return false;
+    }
     if (this.queuedEventFamily !== null) return false;
     this.queuedEventFamily = eventFamily;
     return true;

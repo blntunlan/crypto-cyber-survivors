@@ -214,8 +214,9 @@ export class ExperienceDirector {
   }
 
   private getUpdateDeltaSeconds(frame: DirectorInputFrame): number {
-    if (this.lastProcessedTick === null)
+    if (this.lastProcessedTick === null) {
       return Math.max(ZERO_SECONDS, frame.deltaSeconds);
+    }
     return Math.max(
       ZERO_SECONDS,
       frame.run.elapsedSeconds - this.lastUpdatedElapsedSeconds
@@ -288,10 +289,12 @@ export class ExperienceDirector {
     this.trace.reasonCodes.length = ZERO_SECONDS;
     this.trace.guardrailCodes.length = ZERO_SECONDS;
     this.trace.reasonCodes.push('FIXED_RATE_UPDATE');
-    if (this.isNewMarketEvent(frame))
+    if (this.isNewMarketEvent(frame)) {
       this.trace.reasonCodes.push('MARKET_EVENT_TRIGGER');
-    if (frame.run.isMarketStale)
+    }
+    if (frame.run.isMarketStale) {
       this.trace.reasonCodes.push('MARKET_STALE_NEUTRALIZED');
+    }
     if (isThreatTargetClamped) this.trace.guardrailCodes.push('THREAT_TARGET_MAXIMUM');
   }
 }

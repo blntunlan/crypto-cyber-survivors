@@ -62,8 +62,9 @@ const percentile = (values: readonly number[], percentileValue: number): number 
 };
 
 const measureLegacyBaseline = (): PerformanceMeasurement => {
-  for (let iteration = 0; iteration < WARMUP_ITERATIONS; iteration += 1)
+  for (let iteration = 0; iteration < WARMUP_ITERATIONS; iteration += 1) {
     runLegacyPipelineScenarios(clock);
+  }
   const heapBeforeBytes = process.memoryUsage().heapUsed;
   const elapsed: number[] = [];
   for (let iteration = 0; iteration < MEASURED_ITERATIONS; iteration += 1) {

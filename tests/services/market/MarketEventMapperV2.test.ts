@@ -30,8 +30,9 @@ const getMarketEventListener = (): MarketEventListener => {
     .mocked(EventBus.on)
     .mock.calls.find(([eventName]) => eventName === 'gameMarketEvent');
   const listener = subscription?.[1];
-  if (typeof listener !== 'function')
+  if (typeof listener !== 'function') {
     throw new Error('Market event listener was not registered');
+  }
   return listener as MarketEventListener;
 };
 

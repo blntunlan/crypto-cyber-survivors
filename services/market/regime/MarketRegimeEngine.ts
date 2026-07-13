@@ -148,8 +148,9 @@ export class MarketRegimeEngine {
       (frame.macd.histogram > 0 || frame.macd.histogram < 0);
     this.macdConfirmationCount = isConfirmedTrend ? this.macdConfirmationCount + 1 : 0;
 
-    if (this.macdConfirmationCount < this.config.regime.macdConfirmationFrames)
+    if (this.macdConfirmationCount < this.config.regime.macdConfirmationFrames) {
       return null;
+    }
 
     this.trendDirection = frame.macd.histogram > 0 ? 'UP' : 'DOWN';
     this.macdConfirmationCount = 0;
@@ -175,10 +176,12 @@ export class MarketRegimeEngine {
   private getDesiredRegime(frame: CanonicalMarketFrame): MarketRegime {
     if (frame.whaleTier === 3) return 'PANIC';
     if (this.volatilityHigh || this.volumeSurge) return 'VOLATILE';
-    if (this.trendDirection === 'UP' || this.rsiZone === 'OVERBOUGHT')
+    if (this.trendDirection === 'UP' || this.rsiZone === 'OVERBOUGHT') {
       return 'BULL_TREND';
-    if (this.trendDirection === 'DOWN' || this.rsiZone === 'OVERSOLD')
+    }
+    if (this.trendDirection === 'DOWN' || this.rsiZone === 'OVERSOLD') {
       return 'BEAR_TREND';
+    }
     return 'CALM';
   }
 
