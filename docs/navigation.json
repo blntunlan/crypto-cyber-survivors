@@ -109,6 +109,10 @@
         {
           "text": "CS-DIR-14 Release Gate Plan",
           "link": "/docs/superpowers/plans/2026-07-13-cs-dir-14-release-gate"
+        },
+        {
+          "text": "Cosmetic Identity System Design",
+          "link": "/docs/superpowers/specs/2026-07-14-cosmetic-identity-system-design"
         }
       ]
     },
