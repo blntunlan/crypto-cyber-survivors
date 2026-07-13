@@ -13,8 +13,8 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | Director Gate H | `npm run check:director-reference` | Replay, Mirror parity, 30/60/120 pacing ve performance reference geçer |
 | Market server | `cd railway-market-server && npm run validate` | Typecheck, lint ve build geçer |
 | External sign-off | [Beta External Sign-off Board](/docs/workflows/BETA_EXTERNAL_SIGNOFF_BOARD) | Tüm P0 satırları `Geçti` |
-| E2E critical | `PLAYWRIGHT_CHROME_EXECUTABLE_PATH=... npm run test:e2e:beta:critical` | Chromium ve mobile Chrome critical path geçer |
-| E2E matrix | `PLAYWRIGHT_CHROME_EXECUTABLE_PATH=... npm run test:e2e:beta:matrix` | Chromium, mobile Chrome, Firefox ve WebKit geçer |
+| E2E critical | `npm run test:e2e:beta:critical` | Chromium ve mobile Chrome critical path geçer |
+| E2E matrix | `npm run test:e2e:beta:matrix` | Chromium, mobile Chrome, Firefox ve WebKit geçer |
 | Security env | [Beta Env Guardrail](/docs/workflows/BETA_ENV_GUARDRAIL) | Railway frontend, API ve aggregator env sign-off geçer |
 
 ## Deploy Sırası

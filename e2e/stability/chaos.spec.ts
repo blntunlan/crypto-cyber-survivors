@@ -259,8 +259,7 @@ test.describe('Chaos Monkey Stability Tests', () => {
     await expect(longButton).toBeEnabled({ timeout: 30000 });
     await longButton.click();
 
-    // Verify game started
-    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
+    await expect(page.getByRole('button', { name: /Pause Game/i })).toBeVisible({
       timeout: 15000,
     });
 

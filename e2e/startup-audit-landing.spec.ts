@@ -1,6 +1,8 @@
 import { test, expect } from './test';
 import { type Page } from '@playwright/test';
 
+const LANDING_BTC_PRICE_PATTERN = /^(SYNCING|\$\d{1,3}(,\d{3})*\.\d{2})$/;
+
 const expectNoHorizontalOverflow = async (page: Page): Promise<void> => {
   const viewport = page.viewportSize();
   const metrics = await page.evaluate(() => ({
@@ -85,8 +87,7 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   ).toBeVisible();
   const btcPrice = page.getByTestId('landing-btc-price');
   await expect(btcPrice).toBeVisible();
-  await expect(btcPrice).toHaveText(/^(SYNCING|\$\d{1,3}(,\d{3})*)$/);
-  await expect(btcPrice).not.toHaveText(/\.\d{2}$/);
+  await expect(btcPrice).toHaveText(LANDING_BTC_PRICE_PATTERN);
   await expect(page.locator('.landing-forecast-bias')).toBeVisible();
   await expect(page.getByTestId('landing-feed-status')).toHaveText(
     /LIVE|SYNCING|CACHED/
@@ -134,7 +135,7 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
 
   await expect(page.getByText('Typed EventBus', { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByText('Dual-Exchange Feed', { exact: true }).first()
+    page.getByText('Live Price Feed', { exact: true }).first()
   ).toBeVisible();
   await expect(
     page.getByText('Unified Difficulty Director', { exact: true }).first()
@@ -176,11 +177,11 @@ test('landing does not present unavailable market data as demo', async ({ page }
     /LIVE|SYNCING|CACHED/
   );
   await expect(page.getByTestId('landing-btc-price')).toHaveText(
-    /^(SYNCING|\$\d{1,3}(,\d{3})*)$/
+    LANDING_BTC_PRICE_PATTERN
   );
 });
 
-test('landing market stream uses same-origin endpoint', async ({ page }) => {
+test('landing market stream uses configured aggregator endpoint', async ({ page }) => {
   await installMarketStreamRecorder(page);
   await page.goto('/?no-sw=true');
   await page.evaluate(() => {
@@ -194,7 +195,13 @@ test('landing market stream uses same-origin endpoint', async ({ page }) => {
     () =>
       (window as unknown as { __marketStreamUrls?: string[] }).__marketStreamUrls ?? []
   );
+  const streamPaths = streamUrls.map(url => {
+    const streamUrl = new URL(url, page.url());
+    return `${streamUrl.pathname}${streamUrl.search}`;
+  });
 
-  expect(streamUrls).toContain('/api/v1/market/stream?pair=BTC');
-  expect(streamUrls.every(url => url.startsWith('/api/v1/market/stream'))).toBe(true);
+  expect(streamPaths).toContain('/api/v1/market/stream?pair=BTC');
+  expect(streamPaths.every(path => path === '/api/v1/market/stream?pair=BTC')).toBe(
+    true
+  );
 });

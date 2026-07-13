@@ -14,10 +14,10 @@ Bu belge beta adayı için çalıştırılacak Playwright matrisini ve kabul kri
 | Browser matrix | `npm run test:e2e:beta:matrix` | `beta-smoke.spec.ts` için Chromium, mobile Chrome, Firefox ve WebKit |
 | Full E2E | `npm run test:e2e` | Tüm Playwright suite ve tüm projeler |
 
-Windows PowerShell local Chrome fallback:
+İlk kurulumdan veya `package-lock.json` değişikliğinden sonra browser hazırlığı:
 
 ```TERMINAL
-$env:PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"; npm run test:e2e:beta:critical
+npm run test:e2e:prepare
 ```
 
 ## Proje Matrisi
@@ -45,30 +45,30 @@ $env:PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:\Program Files\Google\Chrome\Applicati
 - Critical path beta adayı her build için yeşil olmalı.
 - Quality path release candidate freeze öncesi yeşil olmalı.
 - Browser matrix beta açılışı öncesi en az bir kez yeşil olmalı.
-- Firefox/WebKit browser binary eksikse sonuç bloklu kabul edilir; `npx playwright install firefox webkit` sonrası tekrar koşulur.
+- Browser binary eksikse sonuç bloklu kabul edilir; `npm run test:e2e:prepare` sonrası tekrar koşulur.
 - Gerçek cihaz mobil ve 5 dakikalık FPS profili bu matrisin dışında P0 manuel sign-off olarak kalır.
 
 ## Local Runner Notları
 
-- `PLAYWRIGHT_CHROME_EXECUTABLE_PATH` sadece `chromium` ve `mobile-chrome` projelerine uygulanır.
-- Firefox ve WebKit projeleri Playwright-managed browser binary ister.
-- Browser kurulumu takılırsa kalan `playwright install` süreçleri kapatılır, `C:\Users\bulen\AppData\Local\ms-playwright` altındaki eksik `firefox-1509` veya `webkit-2248` cache dizini temizlenir ve kurulum tekrar denenir.
+- Chromium, Firefox ve WebKit projeleri aynı repo sürümüne ait Playwright-managed browser binary kullanır.
+- Sistem Chrome `executablePath` fallback'ı kullanılmaz; Playwright/browser revision eşleşmesi korunur.
+- Browser hazırlığı install sonrası her browser için headless launch smoke çalıştırır ve varsayılan olarak 20 dakikada sonlanır.
 
 ## Browser Binary Remediation
 
 | Adım | Komut / Kontrol | Kabul |
 |---|---|---|
-| Version doğrula | `npx playwright --version` | Repo Playwright sürümüyle uyumlu |
-| Cache kontrolü | `Test-Path "$env:LOCALAPPDATA\ms-playwright\firefox-1509\firefox\firefox.exe"` | `True` |
-| Cache kontrolü | `Test-Path "$env:LOCALAPPDATA\ms-playwright\webkit-2248\Playwright.exe"` | `True` |
-| Retry install | `npx playwright install firefox webkit` | Timeout olmadan tamamlanır |
-| Matrix retry | `PLAYWRIGHT_CHROME_EXECUTABLE_PATH=... npm run test:e2e:beta:matrix` | Chromium, mobile Chrome, Firefox ve WebKit yeşil |
+| Version doğrula | `npx playwright --version` | `1.60.0` veya üstü; repo exact sürümü kullanılır |
+| Cache kontrolü | `npx playwright install --list` | Repo sürümünün browser revision'ları listelenir |
+| Prepare | `npm run test:e2e:prepare` | Install ve üç browser launch smoke tamamlanır |
+| Launch debug | `$env:DEBUG="pw:browser"; npm run test:e2e:prepare` | Browser launch ayrıntısı görünür |
+| Matrix retry | `npm run test:e2e:beta:matrix` | Chromium, mobile Chrome, Firefox ve WebKit yeşil |
 
 ## Binary Blokaj Kuralları
 
-- `firefox.exe` veya `Playwright.exe` yoksa Firefox/WebKit sonucu test failure değil environment blocker olarak kaydedilir.
-- `npx playwright install firefox webkit` 15 dakika içinde tamamlanmazsa aynı oturumda tekrar döngüye sokulmaz.
-- Eksik cache temizliği yalnızca `%LOCALAPPDATA%\ms-playwright` altında doğrulanan Playwright browser dizinlerine uygulanır.
+- Browser hazırlığı geçmezse suite çalıştırılmaz; hata environment blocker olarak kaydedilir.
+- `PLAYWRIGHT_INSTALL_TIMEOUT_MS` yalnız gerektiğinde varsayılan 20 dakikalık sınırı değiştirmek için kullanılır.
+- Browser revision klasörleri elle indirilmez veya açılmaz; exact Playwright sürümü ve CLI yönetimi korunur.
 - Blokaj kapatılmadan önce matrix tamamı yeniden koşulmalı; Chromium/mobile Chrome geçişi tek başına browser matrix maddesini kapatmaz.
 
 ## Kanıt Kaydı

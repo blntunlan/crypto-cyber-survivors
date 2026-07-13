@@ -168,6 +168,38 @@
       return jsonResponse({ wallet: { balance: 1337 } });
     }
 
+    if (pathname.includes('/api/v1/economy/cash-out/quote')) {
+      const issuedAtSeconds = Math.floor(Date.now() / 1000);
+      return jsonResponse({
+        quote: {
+          quoteId: `e2e-quote-${Date.now()}`,
+          canonicalSequence: 1,
+          rewardPoints: 100,
+          issuedAtSeconds,
+          expiresAtSeconds: issuedAtSeconds + 30,
+        },
+        signature: 'e2e-cash-out-signature',
+        shouldForceRecovery: false,
+        safeExitOnly: false,
+      });
+    }
+
+    if (pathname.includes('/api/v1/economy/cash-out/decision')) {
+      return jsonResponse({
+        state: 'settled',
+        rewardPoints: 100,
+        greedDelta: 1,
+      });
+    }
+
+    if (pathname.includes('/api/v1/economy/cash-out/failure')) {
+      return jsonResponse({
+        state: 'failed',
+        primaryRewardPoints: 0,
+        shards: 0,
+      });
+    }
+
     if (pathname.includes('/api/v1/wallet/balance')) {
       return jsonResponse({ balance: 1337 });
     }

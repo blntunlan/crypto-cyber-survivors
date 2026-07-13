@@ -85,23 +85,13 @@ test.describe('HUD Elements E2E', () => {
       // KernelStatus: shows stat labels from registry (Desktop only)
       await expect(page.locator('text=/DMG/i').first()).toBeVisible();
     } else {
-      // Mobile HUD uses compact labels; verify persistent health/status anchors.
       const overlay = page.locator('#game-ui-overlay');
-      await expect(overlay.getByText(/^(LV|LVL|LEVEL)$/i).first()).toBeVisible();
-      await expect(overlay.getByText(/^Active$/i).first()).toBeVisible();
-      await expect(
-        overlay
-          .getByText(
-            /^(EQUITY SECURE|MARGIN CAUTION|MARGIN PRESSURE|LIQUIDATION RISK)$/i
-          )
-          .first()
-      ).toBeVisible();
+      await expect(overlay.getByTestId('war-room-command-deck')).toBeVisible();
+      await expect(overlay.getByTestId('war-room-hp-rail')).toBeVisible();
     }
   });
 
-  test('should verify Combo Panel on feedback trigger', async ({ page }) => {
-    // We need streak >= 5 for panel to show.
-    // Emitting real events via EventBus is most reliable for the full flow
+  test('should update combo state on enemy kill feedback', async ({ page }) => {
     await page.evaluate(() => {
       for (let i = 0; i < 6; i++) {
         window.EventBus!.emit('enemyKilled', {
@@ -112,14 +102,8 @@ test.describe('HUD Elements E2E', () => {
       }
     });
 
-    // Combo panel should become visible (it lerps in, so we wait)
-    const comboStreak = page.locator('#combo-streak-count');
-    await expect(comboStreak).toBeVisible({ timeout: 10 * 1000 });
     await expect
-      .poll(async () => {
-        const raw = await comboStreak.textContent();
-        return Number.parseInt(raw ?? '0', 10);
-      })
+      .poll(() => page.evaluate(() => window.ComboSystem?.getKillStreak() ?? 0))
       .toBeGreaterThanOrEqual(6);
   });
 

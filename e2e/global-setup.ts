@@ -11,21 +11,23 @@ async function globalSetup(config: FullConfig) {
     throw new Error('No projects found in Playwright config');
   }
   const { baseURL, storageState } = project.use;
-  const browser = await chromium.launch({
-    executablePath: process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH,
-  });
+  const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.addInitScript({ path: runtimeMocksPath });
 
   await page.goto(baseURL as string, {
-    waitUntil: 'domcontentloaded',
-    timeout: 120_000,
+    waitUntil: 'commit',
+    timeout: 30_000,
   });
   await page.evaluate(() => {
     localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');
     localStorage.setItem('game_lang', 'en'); // Default to English for tests
+  });
+  await page.locator('#root > *').first().waitFor({
+    state: 'visible',
+    timeout: 150_000,
   });
 
   await page.context().storageState({ path: storageState as string });

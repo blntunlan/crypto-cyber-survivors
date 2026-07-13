@@ -4,9 +4,8 @@ import { goToMainMenuFromHub } from './support/game-helpers';
 /**
  * @deprecated AI Director V2: Wave system removed
  *
- * These tests now verify that the system shows a static "Active" phase
- * instead of cycling through wave phases. The difficulty is now driven
- * by market conditions rather than time-based waves.
+ * These tests verify that the debug contract reports a static "Active"
+ * phase instead of cycling through time-based wave phases.
  */
 test.describe('Difficulty System (AI Director V2)', () => {
   test.beforeEach(async ({ page }) => {
@@ -34,58 +33,41 @@ test.describe('Difficulty System (AI Director V2)', () => {
     await goToMainMenuFromHub(page);
   });
 
-  test('should display static "Active" phase (AI Director V2)', async ({ page }) => {
-    // Start game
+  test('should report static "Active" phase (AI Director V2)', async ({ page }) => {
     await page.getByRole('button', { name: /LONG/i }).click();
+    await expect(page.getByRole('button', { name: /Pause Game/i })).toBeVisible();
 
-    // Specific locator for the phase text
-    // Note: This is hidden on mobile in AccountHealthPremium.tsx
-    const isMobile = page.viewportSize()?.width && page.viewportSize()!.width < 768;
-    if (isMobile) {
-      console.log('Skipping phase text check on mobile');
-      return;
-    }
+    await expect
+      .poll(() => page.evaluate(() => window.gameDebug.snapshot().difficulty.wavePhase))
+      .toBe('active');
 
-    const phaseValue = page.locator('span.font-black.uppercase.italic').first();
-
-    // Should always show "Active" regardless of time
-    await expect(phaseValue).toHaveText(/active/i);
-
-    // Jump forward in time - should still show "Active"
     console.log('Jumping to 50s...');
     await page.evaluate(() => window.gameDebug.timeJump(50));
-    await expect(phaseValue).toHaveText(/active/i);
+    await expect
+      .poll(() => page.evaluate(() => window.gameDebug.snapshot().difficulty.wavePhase))
+      .toBe('active');
 
-    // Jump to 150s - should still show "Active"
     console.log('Jumping to 150s...');
     await page.evaluate(() => window.gameDebug.timeJump(150));
-    await expect(phaseValue).toHaveText(/active/i);
+    await expect
+      .poll(() => page.evaluate(() => window.gameDebug.snapshot().difficulty.wavePhase))
+      .toBe('active');
 
-    // Jump to 250s - should still show "Active"
     console.log('Jumping to 250s...');
     await page.evaluate(() => window.gameDebug.timeJump(250));
-    await page.waitForTimeout(500);
-    await expect(phaseValue).toHaveText(/active/i);
+    await expect
+      .poll(() => page.evaluate(() => window.gameDebug.snapshot().difficulty.wavePhase))
+      .toBe('active');
   });
 
-  test('should show cyan color for Active phase', async ({ page }) => {
+  test('should keep gameplay active after a large time jump', async ({ page }) => {
     await page.getByRole('button', { name: /LONG/i }).click();
+    await expect(page.getByRole('button', { name: /Pause Game/i })).toBeVisible();
 
-    // Note: This is hidden on mobile in AccountHealthPremium.tsx
-    const isMobile = page.viewportSize()?.width && page.viewportSize()!.width < 768;
-    if (isMobile) {
-      console.log('Skipping color check on mobile');
-      return;
-    }
-
-    const phaseValue = page.locator('span.font-black.uppercase.italic').first();
-
-    // Active phase should always be cyan (text-cyan-400)
-    await expect(phaseValue).toHaveClass(/text-cyan-400/);
-
-    // Even after time jump, should remain cyan
     await page.evaluate(() => window.gameDebug.timeJump(250));
-    await page.waitForTimeout(500);
-    await expect(phaseValue).toHaveClass(/text-cyan-400/);
+    const snapshot = await page.evaluate(() => window.gameDebug.snapshot());
+    expect(snapshot.gameState).toBe('PLAYING');
+    expect(snapshot.difficulty.wavePhase).toBe('active');
+    expect(snapshot.difficulty.totalElapsedSeconds).toBeGreaterThanOrEqual(250);
   });
 });

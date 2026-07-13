@@ -1,14 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const chromeExecutablePath = process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH;
-const chromeLaunchOptions = chromeExecutablePath
-  ? {
-      launchOptions: {
-        executablePath: chromeExecutablePath,
-      },
-    }
-  : {};
-
 /**
  * Playwright E2E Test Configuration
  *
@@ -17,6 +8,7 @@ const chromeLaunchOptions = chromeExecutablePath
  */
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: '**/*.tmp.spec.ts',
 
   // Max time for a single test
   timeout: 90 * 1000,
@@ -70,12 +62,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], ...chromeLaunchOptions },
+      use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'], ...chromeLaunchOptions },
+      use: { ...devices['Pixel 5'] },
     },
 
     {

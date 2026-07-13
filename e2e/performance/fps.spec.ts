@@ -46,9 +46,7 @@ test.describe('Performance Metrics', () => {
     // Click to start
     await longButton.click();
 
-    // 4. Verify Game Started
-    // Wait for the game phase text or HUD to appear
-    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
+    await expect(page.getByRole('button', { name: /Pause Game/i })).toBeVisible({
       timeout: 15000,
     });
 
@@ -149,8 +147,7 @@ test.describe('Performance Metrics', () => {
     // Click to start
     await longButton.click();
 
-    // Wait for game to stabilize
-    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
+    await expect(page.getByRole('button', { name: /Pause Game/i })).toBeVisible({
       timeout: 15000,
     });
 

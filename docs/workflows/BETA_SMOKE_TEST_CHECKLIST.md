@@ -8,13 +8,7 @@ Bu belge beta açılışı öncesi çalıştırılacak minimum smoke akışları
 ## Otomasyon Komutu
 
 ```TERMINAL
-PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe" npx playwright test e2e/beta-smoke.spec.ts --project=chromium
-```
-
-Windows PowerShell kullanırken:
-
-```TERMINAL
-$env:PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"; npx playwright test e2e/beta-smoke.spec.ts --project=chromium
+npm run test:e2e:beta:critical
 ```
 
 ## Otomasyon Kapsamı
