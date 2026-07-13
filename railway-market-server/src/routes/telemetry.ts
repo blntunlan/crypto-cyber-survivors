@@ -24,6 +24,7 @@ const PRODUCT_EVENT_TYPES = new Set([
 ]);
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LOCAL_ONLY_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
 
 function asOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -31,7 +32,7 @@ function asOptionalString(value: unknown): string | null {
 
 function asOptionalUuid(value: unknown): string | null {
   const text = asOptionalString(value);
-  return text && UUID_REGEX.test(text) ? text : null;
+  return text && text !== LOCAL_ONLY_PROFILE_ID && UUID_REGEX.test(text) ? text : null;
 }
 
 function asObject(value: unknown): Record<string, unknown> {

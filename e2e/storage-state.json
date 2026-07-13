@@ -10,7 +10,7 @@
         },
         {
           "name": "ccs_benchmark_result",
-          "value": "{\"gpuScore\":1000,\"cpuScore\":1000,\"combinedScore\":1000,\"profile\":\"ULTRA\",\"deviceMemory\":16,\"hardwareConcurrency\":12,\"gpuRenderer\":\"ANGLE (AMD, AMD Radeon RX 6650 XT (0x000073EF) Direct3D11 vs_5_0 ps_5_0, D3D11)\",\"timestamp\":1783625259687,\"version\":\"1.0.0\"}"
+          "value": "{\"gpuScore\":1000,\"cpuScore\":1000,\"combinedScore\":1000,\"profile\":\"ULTRA\",\"deviceMemory\":16,\"hardwareConcurrency\":12,\"gpuRenderer\":\"ANGLE (AMD, AMD Radeon RX 6650 XT (0x000073EF) Direct3D11 vs_5_0 ps_5_0, D3D11)\",\"timestamp\":1783900758096,\"version\":\"1.0.0\"}"
         },
         {
           "name": "crypto-survivor-theme",

@@ -764,72 +764,36 @@ export const useMarketData = (
         const effectiveLiquidationPrice =
           runtimeRunConstants?.liquidationPrice ?? dynamicLiquidationPrice;
 
-        const hpPercent = (playerRef.current.hp / playerRef.current.maxHp) * 100;
-        const playerLevel = playerRef.current.level;
         const tickTimestamp = Date.now();
 
         setMarketData(prevMarketData => {
           const runtimeMode = runtimeModeRef.current;
-          const pipelineResult =
-            runtimeMode === 'runtime'
-              ? null
-              : marketPipelineRef.current.processTick({
-                  pair: expectedPair,
-                  position: currentPosition,
-                  price,
-                  volume: update.volume,
-                  timestamp: tickTimestamp,
-                  rawPnl: pnlResult.rawPnl,
-                  level: playerLevel,
-                  hpPercent,
-                  fallbackAtrPercent: prevMarketData.atrPercent ?? atrResult.atrPercent,
-                  high: update.high,
-                  low: update.low,
-                });
+          const pipelineResult = marketPipelineRef.current.processTick({
+            pair: expectedPair,
+            position: currentPosition,
+            price,
+            volume: update.volume,
+            timestamp: tickTimestamp,
+            fallbackAtrPercent: prevMarketData.atrPercent ?? atrResult.atrPercent,
+            high: update.high,
+            low: update.low,
+          });
 
-          const updateRsiState =
-            update.rsiState === 'OVERSOLD' ||
-            update.rsiState === 'OVERBOUGHT' ||
-            update.rsiState === 'NEUTRAL'
-              ? update.rsiState
-              : 'NEUTRAL';
-          const updateWhaleTier =
-            update.whaleTier === 1 || update.whaleTier === 2 || update.whaleTier === 3
-              ? update.whaleTier
-              : 0;
-          const updateAtrPercent = Number.isFinite(update.atrPercent)
-            ? update.atrPercent
-            : (prevMarketData.atrPercent ?? atrResult.atrPercent);
-          const updateNormalizedVolume = Number.isFinite(update.normalizedVolume)
-            ? update.normalizedVolume
-            : (prevMarketData.normalizedVolume ?? 0.5);
-
-          const updateRsi = Number.isFinite(Number(update.rsi))
-            ? Number(update.rsi)
-            : 50;
-          const rsi = pipelineResult?.indicators.rsi ?? updateRsi;
-          const rsiState = pipelineResult?.indicators.rsiState ?? updateRsiState;
-          const whaleTier = pipelineResult?.indicators.whaleTier ?? updateWhaleTier;
-          const atrPercent = pipelineResult?.indicators.atrPercent ?? updateAtrPercent;
-          const normalizedVolume =
-            pipelineResult?.indicators.normalizedVolume ?? updateNormalizedVolume;
-          const difficulty =
-            pipelineResult?.gameplay.totalDifficulty ?? prevMarketData.difficulty;
+          const rsi = pipelineResult.indicators.rsi;
+          const rsiState = pipelineResult.indicators.rsiState;
+          const whaleTier = pipelineResult.indicators.whaleTier;
+          const atrPercent = pipelineResult.indicators.atrPercent;
+          const normalizedVolume = pipelineResult.indicators.normalizedVolume;
+          const difficulty = prevMarketData.difficulty;
           const spawnRateMultiplier =
-            pipelineResult?.gameplay.spawnRateMultiplier ??
             (Number.isFinite(update.spawnRateMultiplier)
               ? update.spawnRateMultiplier
               : undefined) ??
             prevMarketData.spawnRateMultiplier ??
             1;
-          const enemyDamage =
-            pipelineResult?.gameplay.enemyDamage ?? prevMarketData.enemyDamage ?? 1;
-          const enemySpeed =
-            pipelineResult?.gameplay.enemySpeed ?? prevMarketData.enemySpeed ?? 1;
-          const gemValueMultiplier =
-            pipelineResult?.gameplay.gemValueMultiplier ??
-            prevMarketData.gemValueMultiplier ??
-            1;
+          const enemyDamage = prevMarketData.enemyDamage ?? 1;
+          const enemySpeed = prevMarketData.enemySpeed ?? 1;
+          const gemValueMultiplier = prevMarketData.gemValueMultiplier ?? 1;
 
           const nextData = {
             ...prevMarketData,

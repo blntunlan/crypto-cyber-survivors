@@ -1,6 +1,5 @@
 import { type IPoolManager } from '../../interfaces/IPoolManager';
 import { type Player, type Enemy } from '../../../types';
-import { DifficultyManager } from '../../gameplay/DifficultyManager';
 import { EventBus } from '../../core/EventBus';
 import { DeviceBenchmarkService } from '../../system/DeviceBenchmarkService';
 import { GAME_ENGINE } from '../../../constants';
@@ -247,7 +246,7 @@ export class CombatResolutionService {
           : GEMS.BASE_VALUE_NORMAL;
     const luckValueBonus = 1 + luck * LUCK.VALUE_BONUS_PER_LUCK;
     const rareMultiplier = isRare ? GEMS.RARE_MULTIPLIER : 1;
-    const leverageMultiplier = DifficultyManager.getXpMultiplier();
+    const leverageMultiplier = 1;
 
     // Apply elite/whale value multiplier
     const eliteMultiplier = enemy.valueMultiplier ?? 1;

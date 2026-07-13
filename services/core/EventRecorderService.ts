@@ -88,6 +88,7 @@ class EventRecorderServiceClass {
   private sessionSecret: string = ''; // Key for HMAC-like signing
   private sessionStartTime: number = 0;
   private events: ReplayEvent[] = [];
+  private eventWriteIndex = 0;
   private previousHash: string = '0';
   private sequence: number = 0;
 
@@ -134,6 +135,7 @@ class EventRecorderServiceClass {
     this.sessionSecret = sessionSecret;
     this.sessionStartTime = performance.now();
     this.events = [];
+    this.eventWriteIndex = 0;
     this.previousHash = '0';
     this.sequence = 0;
     this.stats = this.createEmptyStats();
@@ -168,12 +170,6 @@ class EventRecorderServiceClass {
       return;
     }
 
-    // Check memory limit
-    if (this.events.length >= CONFIG.MAX_EVENTS) {
-      Logger.warn('[EventRecorder] Max events reached, dropping oldest');
-      this.events.shift();
-    }
-
     const timestamp = performance.now() - this.sessionStartTime;
 
     // Compute hash synchronously for performance
@@ -196,7 +192,15 @@ class EventRecorderServiceClass {
       sequence: this.sequence,
     };
 
-    this.events.push(event);
+    if (this.events.length < CONFIG.MAX_EVENTS) {
+      this.events.push(event);
+    } else {
+      if (this.eventWriteIndex === 0) {
+        Logger.warn('[EventRecorder] Max events reached, overwriting oldest');
+      }
+      this.events[this.eventWriteIndex] = event;
+      this.eventWriteIndex = (this.eventWriteIndex + 1) % CONFIG.MAX_EVENTS;
+    }
     this.previousHash = hash;
     this.sequence++;
 
@@ -302,6 +306,7 @@ class EventRecorderServiceClass {
     this.sessionId = '';
     this.sessionStartTime = 0;
     this.events = [];
+    this.eventWriteIndex = 0;
     this.previousHash = '0';
     this.sequence = 0;
     this.stats = this.createEmptyStats();
@@ -324,7 +329,14 @@ class EventRecorderServiceClass {
    * Compress the replay data for transmission
    */
   private compressReplay(): string {
-    const jsonData = JSON.stringify(this.events);
+    const orderedEvents =
+      this.events.length === CONFIG.MAX_EVENTS && this.eventWriteIndex > 0
+        ? [
+            ...this.events.slice(this.eventWriteIndex),
+            ...this.events.slice(0, this.eventWriteIndex),
+          ]
+        : this.events;
+    const jsonData = JSON.stringify(orderedEvents);
 
     // Try to use compression if available
     if (CONFIG.ENABLE_COMPRESSION && typeof CompressionStream !== 'undefined') {

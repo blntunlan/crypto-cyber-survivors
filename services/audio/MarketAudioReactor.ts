@@ -83,6 +83,13 @@ interface PhaseAudioConfig {
   pitchOffset: number;
 }
 
+export type PresentationAmbience = {
+  favorable: number;
+  volatility: number;
+  bpm: number;
+  liquidationTension: number;
+};
+
 const DEFAULT_PHASE_CFG: PhaseAudioConfig = { scale: SCALES.NEUTRAL, pitchOffset: 0 };
 
 const PHASE_CONFIG: Record<string, PhaseAudioConfig> = {
@@ -119,6 +126,7 @@ let _compressorGain: GainNode | null = null; // output of compressor
 let _padOsc1: OscillatorNode | null = null;
 let _padOsc2: OscillatorNode | null = null;
 let _padGain: GainNode | null = null;
+let _presentationAmbience: PresentationAmbience | null = null;
 
 // ─── Helpers ─────────────────────────────────────────────────
 /** Safely disconnect an AudioNode (no-op if already disconnected) */
@@ -206,6 +214,7 @@ export const MarketAudioReactor = {
    * Gracefully fades out the pad, disconnects compressor chain.
    */
   stop(): void {
+    _presentationAmbience = null;
     if (!_state.isRunning) return;
     _state.isRunning = false;
 
@@ -230,6 +239,15 @@ export const MarketAudioReactor = {
     return _state.isRunning;
   },
 
+  /** Accepts presentation-only ambience; it cannot alter gameplay. */
+  setPresentationAmbience(ambience: PresentationAmbience): void {
+    _presentationAmbience = ambience;
+  },
+
+  clearPresentationAmbience(): void {
+    _presentationAmbience = null;
+  },
+
   // ─── Internal: Scheduler ─────────────────────────────────
 
   /**
@@ -241,9 +259,17 @@ export const MarketAudioReactor = {
     if (!context || !_state.isRunning || !_compressor) return;
 
     const mom = PriceMomentumEngine.getLatest();
-    const targetBPM = mom.suggestedBPM;
-    const intensity = mom.intensity;
-    const phase = mom.phase;
+    const presentation = _presentationAmbience;
+    const targetBPM = presentation?.bpm ?? mom.suggestedBPM;
+    const intensity = presentation?.volatility ?? mom.intensity;
+    const phase =
+      presentation === null
+        ? mom.phase
+        : presentation.liquidationTension > 0.5
+          ? 'CRASHING'
+          : presentation.favorable > 0.5
+            ? 'TRENDING'
+            : mom.phase;
 
     // Smooth BPM transitions (no sudden jumps)
     _state.currentBPM += (targetBPM - _state.currentBPM) * CFG.BPM_LERP;

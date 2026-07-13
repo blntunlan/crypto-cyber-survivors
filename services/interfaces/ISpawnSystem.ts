@@ -4,7 +4,7 @@ import { type SpawnDebugState } from '../../types/DebugState';
 
 /**
  * Interface for the Spawn System.
- * Handles entity spawning based on difficulty and market indicators.
+ * Temporary adapter for the pre-Director spawning implementation.
  */
 export interface ISpawnSystem {
   /**
@@ -22,7 +22,7 @@ export interface ISpawnSystem {
    * @param pair Current crypto pair for market indicators
    * @returns Updated internal spawn timer
    */
-  update(
+  updateLegacy(
     deltaTime: number,
     difficulty: number,
     width: number,

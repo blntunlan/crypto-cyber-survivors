@@ -82,6 +82,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
         <DragToMoveController
           onMove={handleMove}
           onDash={handleDash}
+          onDashRelease={handleDashRelease}
           showVisualFeedback={settings.showDragFeedback}
           hapticFeedback={settings.hapticFeedback}
           sensitivity={settings.sensitivity}

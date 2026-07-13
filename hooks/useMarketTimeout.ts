@@ -14,7 +14,7 @@ import { EventBus } from '../services/core/EventBus';
 import { Logger } from '../services/system/Logger';
 import { GameStateMachine } from '../services/core/GameStateMachine';
 import { GameStatus, type Player } from '../types';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 
 // Fatal disconnect threshold — game ends only after sustained disconnection
 const FATAL_DISCONNECT_THRESHOLD_MS = 30_000; // 30 seconds
@@ -93,7 +93,7 @@ export function useMarketTimeout({
               lastPriceTime: data.lastPriceTime,
               playerLevel: player.level,
               playerScore: player.score ?? 0,
-              survivalTime: DifficultyManager.getTotalElapsedSeconds(),
+              survivalTime: TimeService.getGameTimeSeconds(),
             },
           });
         });
@@ -121,7 +121,7 @@ export function useMarketTimeout({
               disconnectedDuration: disconnectDuration,
               lastPriceTime: data.lastPriceTime,
               playerLevel: player.level,
-              survivalTime: DifficultyManager.getTotalElapsedSeconds(),
+              survivalTime: TimeService.getGameTimeSeconds(),
             },
           });
         });

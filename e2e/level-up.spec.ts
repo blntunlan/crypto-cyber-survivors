@@ -34,10 +34,9 @@ test.describe('Level Up Flow', () => {
     await page.waitForTimeout(2000);
     await playButton.click();
 
-    // Verify HUD elements appear to confirm we are in-game
-    // Use a more generic selector that matches the wave phase text (ACTIVE)
-    const phaseText = page.locator('text=/ACTIVE/i').first();
-    await expect(phaseText).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('war-room-run-timer')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Trigger Level Up directly via exposed helper
 
@@ -61,8 +60,8 @@ test.describe('Level Up Flow', () => {
       timeout: 10000,
     });
 
-    // Should show 3 cards (buttons) when stopped
-    const cards = page.locator('button.group');
+    await expect(page.getByTestId('level-up-payline-cabinet')).toBeVisible();
+    const cards = page.getByTestId('level-up-reel');
     await expect(cards).toHaveCount(3);
   });
 
@@ -75,9 +74,9 @@ test.describe('Level Up Flow', () => {
     await page.waitForTimeout(2000);
     await playButton.click();
 
-    // Verify game started
-    const phaseText = page.locator('text=/ACTIVE/i').first();
-    await expect(phaseText).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('war-room-run-timer')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Trigger Level Up
     await page.evaluate(() => {
@@ -93,8 +92,7 @@ test.describe('Level Up Flow', () => {
       timeout: 10000,
     });
 
-    // Click the first card
-    const firstCard = page.locator('button.group').first();
+    const firstCard = page.getByTestId('level-up-reel').first();
     await firstCard.click();
 
     // Level up screen should disappear

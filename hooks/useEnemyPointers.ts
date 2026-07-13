@@ -30,6 +30,9 @@ export function useEnemyPointers({
   pointerContainerRef,
 }: UseEnemyPointersParams): void {
   const requestRef = useRef<number | null>(null);
+  const offScreenEnemiesRef = useRef<Array<GameEnemy | null>>(
+    new Array<GameEnemy | null>(10).fill(null)
+  );
 
   useEffect(() => {
     const updatePointers = (currentTime: number) => {
@@ -42,9 +45,18 @@ export function useEnemyPointers({
         const logicalWidth = width / globalScale;
         const logicalHeight = height / globalScale;
 
-        const offScreenEnemies = enemies
-          .filter(e => e.active && (e.x < 0 || e.x > width || e.y < 0 || e.y > height))
-          .slice(0, 10);
+        const offScreenEnemies = offScreenEnemiesRef.current;
+        let offScreenCount = 0;
+        for (let i = 0; i < enemies.length && offScreenCount < 10; i++) {
+          const enemy = enemies[i];
+          if (
+            enemy?.active &&
+            (enemy.x < 0 || enemy.x > width || enemy.y < 0 || enemy.y > height)
+          ) {
+            offScreenEnemies[offScreenCount] = enemy;
+            offScreenCount++;
+          }
+        }
 
         const pointerElements = pointerContainerRef.current.children;
 
@@ -52,7 +64,7 @@ export function useEnemyPointers({
           const el = pointerElements[i] as HTMLElement | undefined;
           if (el === undefined) continue;
 
-          const enemy = offScreenEnemies[i];
+          const enemy = i < offScreenCount ? offScreenEnemies[i] : null;
           if (enemy) {
             const padding = 20;
             const cx = width / 2;

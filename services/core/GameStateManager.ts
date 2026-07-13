@@ -9,12 +9,13 @@ import { MarketPosition, type PlayerStats } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 import { EventBus } from './EventBus';
 import { ResetOrchestrator } from './ResetOrchestrator';
-import { DifficultyManager } from '../gameplay/DifficultyManager';
 import { ComboSystem } from '../combat/ComboSystem';
 import { MetricsService } from './MetricsService';
 import { GameSessionService } from '../auth/GameSessionService';
 import { EventRecorderService } from './EventRecorderService';
 import { UserSessionService } from '../auth/UserSessionService';
+import { difficultyContext } from '../difficulty/DifficultyContext';
+import { LeverageEngine } from '../gameplay/LeverageEngine';
 
 // ============================================================================
 // INITIAL STATE CONSTANTS
@@ -131,7 +132,13 @@ class GameStateManagerClass {
       ResetOrchestrator.orchestrateReset();
 
       // Apply the chosen leverage on top of the clean slate.
-      DifficultyManager.startGame(leverage);
+      LeverageEngine.setLeverage(leverage);
+      difficultyContext.updateInputs({
+        leverage,
+        level: PLAYER_DEFAULTS.level,
+        elapsedSeconds: 0,
+        pnlHistory: [],
+      });
       ComboSystem.startGame();
 
       // Emit after reset event for UI updates

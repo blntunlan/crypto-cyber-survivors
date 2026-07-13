@@ -84,7 +84,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       subtitle={t('common.session_halted') as string}
       accentColor={COLORS.CASINO_RED}
       overlayPriority="decision"
-      contentClassName="space-y-6"
+      panelClassName="flex max-h-full min-h-0 flex-col !p-3 sm:!p-6"
+      contentClassName="custom-scrollbar min-h-0 space-y-3 overflow-y-auto overscroll-contain touch-pan-y pr-1 sm:space-y-6"
     >
       {isNewHighScore && (
         <m.div
@@ -109,7 +110,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           }
           color={COLORS.CASINO_RED}
         />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <StatItem
             label={t('common.level_label', { defaultValue: 'Level' }) as string}
             value={`L${level}`}

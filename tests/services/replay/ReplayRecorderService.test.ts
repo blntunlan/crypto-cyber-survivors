@@ -100,6 +100,26 @@ describe('ReplayRecorderService', () => {
   });
 
   describe('tick — enemy frames', () => {
+    it('bounds enemy snapshot memory while preserving the full run timeline', () => {
+      ReplayRecorderService.startRecording('s1', 1, 'LONG', 'BTC');
+      const enemies: Enemy[] = [];
+      for (let i = 0; i < 200; i++) {
+        enemies.push(makeEnemy(`enemy-${i + 1}`, 'bear', i * 2, i * 3));
+      }
+
+      for (let second = 0; second < 120; second++) {
+        ReplayRecorderService.tick(1000, 100, 200, 80, 1, enemies);
+      }
+
+      const data = ReplayRecorderService.stopRecording();
+      const enemyFrames = data.enemyFrames ?? [];
+      const snapshotCount = enemyFrames.reduce((sum, frame) => sum + frame.e.length, 0);
+
+      expect(snapshotCount).toBeLessThanOrEqual(10_000);
+      expect(enemyFrames[0]?.t).toBeLessThanOrEqual(2_000);
+      expect(enemyFrames.at(-1)?.t).toBeGreaterThanOrEqual(119_000);
+    });
+
     it('should capture enemy frame every 1000ms', () => {
       ReplayRecorderService.startRecording('s1', 1, 'LONG', 'BTC');
       const enemies: Enemy[] = [

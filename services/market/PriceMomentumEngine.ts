@@ -1,8 +1,7 @@
 /**
  * PriceMomentumEngine - Real-time Price → Gameplay Feedback System
  *
- * Translates raw price ticks into IMMEDIATE gameplay effects.
- * No neural net intermediary — price moves are felt directly.
+ * Translates raw price ticks into presentation signals.
  *
  * The engine tracks:
  * - Price velocity (how fast price is moving)
@@ -10,10 +9,10 @@
  * - Momentum phase (STAGNANT → DRIFTING → TRENDING → SURGING → CRASHING)
  *
  * Each phase creates unique gameplay feel:
- * - STAGNANT: Calm, slow enemies, fewer spawns — breathing room
- * - TRENDING: Clear direction, moderate pace — flow state territory
- * - SURGING: Intense action, fast enemies — adrenaline
- * - CRASHING: Maximum chaos — screen effects, rapid spawns
+ * - STAGNANT: Calm visual and audio breathing room
+ * - TRENDING: Clear direction with moderate presentation pace
+ * - SURGING: Intense presentation and audio feedback
+ * - CRASHING: Maximum visual and audio tension
  *
  * Position-aware: LONG players benefit from price up, suffer from price down.
  *                 SHORT players are the inverse.
@@ -47,30 +46,14 @@ export const PRICE_MOMENTUM_CONFIG = {
     // Above SURGING = CRASHING
   },
 
-  // --- Phase → Gameplay Multipliers ---
+  // --- Phase → Presentation Intensity ---
   PHASE_MULTIPLIERS: {
-    STAGNANT: { speed: 0.7, spawn: 0.5, intensity: 0.1 },
-    DRIFTING: { speed: 0.9, spawn: 0.8, intensity: 0.3 },
-    TRENDING: { speed: 1.2, spawn: 1.2, intensity: 0.6 },
-    SURGING: { speed: 1.6, spawn: 2.0, intensity: 0.85 },
-    CRASHING: { speed: 2.5, spawn: 3.5, intensity: 1.0 },
+    STAGNANT: { intensity: 0.1 },
+    DRIFTING: { intensity: 0.3 },
+    TRENDING: { intensity: 0.6 },
+    SURGING: { intensity: 0.85 },
+    CRASHING: { intensity: 1.0 },
   },
-
-  // --- Position-Aware Feedback ---
-  /** Speed reduction when trade is going well (max 20%) */
-  FAVORABLE_SPEED_REDUCTION: 0.2,
-  /** Speed increase when trade is going badly (max 50%) */
-  UNFAVORABLE_SPEED_INCREASE: 0.5,
-  /** Extra gem value when trade is favorable (max 50%) */
-  FAVORABLE_GEM_BONUS: 0.5,
-  /** Gem penalty when trade is unfavorable (max 30%) */
-  UNFAVORABLE_GEM_PENALTY: 0.3,
-
-  // --- Leverage Sensitivity Amplification ---
-  /** How much leverage amplifies velocity's effect on speed */
-  LEVERAGE_SPEED_SENSITIVITY: 0.3,
-  /** How much leverage amplifies velocity's effect on spawns */
-  LEVERAGE_SPAWN_SENSITIVITY: 0.5,
 
   // --- Audio BPM Mapping ---
   /** Base BPM for music tempo (STAGNANT) */
@@ -106,12 +89,11 @@ export interface PriceMomentum {
   /** Market intensity (0-1, smooth) — for visual/audio effects */
   intensity: number;
 
-  // --- Direct Gameplay Multipliers ---
-  /** Enemy speed modifier from price momentum */
+  /** Legacy compatibility field. Always neutral; Director owns gameplay. */
   enemySpeedMod: number;
-  /** Spawn rate modifier from price momentum */
+  /** Legacy compatibility field. Always neutral; Director owns gameplay. */
   spawnRateMod: number;
-  /** Gem value modifier based on position favorability */
+  /** Legacy compatibility field. Always neutral; Director owns gameplay. */
   gemValueMod: number;
   /** Suggested music BPM */
   suggestedBPM: number;
@@ -247,36 +229,6 @@ class PriceMomentumEngineClass {
     const isFavorable =
       (this.position === 'LONG' && direction === 'up') ||
       (this.position === 'SHORT' && direction === 'down');
-    const isUnfavorable =
-      (this.position === 'LONG' && direction === 'down') ||
-      (this.position === 'SHORT' && direction === 'up');
-
-    // --- Compute direct gameplay multipliers ---
-
-    // Base multipliers from phase
-    let speedMod = phaseMultipliers.speed;
-    let spawnMod = phaseMultipliers.spawn;
-
-    // Leverage amplification
-    const leverageNorm = Math.log2(this.leverage + 1) / Math.log2(101);
-    speedMod *= 1.0 + leverageNorm * C.LEVERAGE_SPEED_SENSITIVITY;
-    spawnMod *= 1.0 + leverageNorm * C.LEVERAGE_SPAWN_SENSITIVITY;
-
-    // Position-aware adjustments
-    if (isFavorable) {
-      speedMod *= 1.0 - C.FAVORABLE_SPEED_REDUCTION * this.currentIntensity;
-    } else if (isUnfavorable) {
-      speedMod *= 1.0 + C.UNFAVORABLE_SPEED_INCREASE * this.currentIntensity;
-    }
-
-    // Gem value based on position
-    let gemMod = 1.0;
-    if (isFavorable) {
-      gemMod = 1.0 + C.FAVORABLE_GEM_BONUS * this.currentIntensity;
-    } else if (isUnfavorable) {
-      gemMod = 1.0 - C.UNFAVORABLE_GEM_PENALTY * this.currentIntensity;
-    }
-
     // BPM suggestion
     const bpmRange = C.MAX_BPM - C.BASE_BPM;
     const suggestedBPM = C.BASE_BPM + this.currentIntensity * bpmRange;
@@ -288,9 +240,9 @@ class PriceMomentumEngineClass {
     this.output.direction = direction;
     this.output.phase = phase;
     this.output.intensity = this.currentIntensity;
-    this.output.enemySpeedMod = clamp(speedMod, 0.4, 4.0);
-    this.output.spawnRateMod = clamp(spawnMod, 0.3, 5.0);
-    this.output.gemValueMod = clamp(gemMod, 0.5, 2.0);
+    this.output.enemySpeedMod = 1;
+    this.output.spawnRateMod = 1;
+    this.output.gemValueMod = 1;
     this.output.suggestedBPM = Math.round(suggestedBPM);
     this.output.isFavorable = isFavorable;
 
@@ -420,14 +372,6 @@ class PriceMomentumEngineClass {
     if (magnitude < P.SURGING) return 'SURGING';
     return 'CRASHING';
   }
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 // =============================================================================

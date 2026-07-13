@@ -8,7 +8,6 @@
 import { GameStateMachine } from '../core/GameStateMachine';
 import { TimeService } from '../core/TimeService';
 import { ComboSystem } from '../combat/ComboSystem';
-import { DifficultyManager } from '../gameplay/DifficultyManager';
 import { useGameStore } from '../../stores/gameStore';
 import {
   ParticleConfigService,
@@ -173,7 +172,7 @@ class DebugServiceClass {
       },
       difficulty: {
         wavePhase: 'active',
-        totalElapsedSeconds: DifficultyManager.getTotalElapsedSeconds(),
+        totalElapsedSeconds: TimeService.getGameTimeSeconds(),
       },
       settings: {
         graphics: storeState.graphics,

@@ -11,14 +11,16 @@ export interface MarketRuntimeConfig {
   shouldRunShadowRuntime: boolean;
 }
 
-const DEFAULT_MARKET_RUNTIME_MODE: MarketRuntimeMode = 'legacy';
+const DEFAULT_MARKET_RUNTIME_MODE: MarketRuntimeMode = 'runtime';
 
 const isMarketRuntimeMode = (value: string): value is MarketRuntimeMode => {
   return MARKET_RUNTIME_MODES.includes(value as MarketRuntimeMode);
 };
 
-export const getMarketRuntimeMode = (): MarketRuntimeMode => {
-  const rawMode = import.meta.env.VITE_MARKET_RUNTIME_MODE;
+export const resolveMarketRuntimeMode = (
+  rawMode: unknown,
+  isProduction: boolean
+): MarketRuntimeMode => {
   if (typeof rawMode !== 'string') return DEFAULT_MARKET_RUNTIME_MODE;
 
   const normalizedMode = rawMode.trim().toLowerCase();
@@ -26,8 +28,18 @@ export const getMarketRuntimeMode = (): MarketRuntimeMode => {
     return DEFAULT_MARKET_RUNTIME_MODE;
   }
 
+  if (isProduction && normalizedMode !== 'runtime') {
+    return 'runtime';
+  }
+
   return normalizedMode;
 };
+
+export const getMarketRuntimeMode = (): MarketRuntimeMode =>
+  resolveMarketRuntimeMode(
+    import.meta.env.VITE_MARKET_RUNTIME_MODE,
+    import.meta.env.PROD
+  );
 
 export const getMarketRuntimeConfig = (): MarketRuntimeConfig => {
   const mode = getMarketRuntimeMode();

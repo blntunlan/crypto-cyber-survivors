@@ -11,6 +11,8 @@ import {
   type ViewportBounds,
 } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
+import { SkinService } from '../skins/SkinService';
+import { type ResolvedSkinVisuals } from '../../types/skins';
 import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
@@ -717,6 +719,10 @@ export class EntityRenderer implements IRenderer {
     state: GameState,
     shadowsEnabled: boolean
   ): void {
+    // Resolve equipped skin visuals; player.color (Market Position) feeds
+    // every layer the skin does not override. Zero-alloc: shared struct.
+    const skin = SkinService.getVisuals(player.color);
+
     // 1. Render Dash Ghosting/Trail (Theme-aware)
     const isRetro = ThemeService.isRetro();
 
@@ -724,9 +730,8 @@ export class EntityRenderer implements IRenderer {
       const progress = i / state.dashTrail.length;
       ctx.globalAlpha = progress * 0.4;
 
-      // Use player's current color (based on Market Position) for the trail
-      // This ensures Green trail for Long, Red for Short.
-      ctx.fillStyle = player.color;
+      // Trail keeps the Market Position signal: Green for Long, Red for Short.
+      ctx.fillStyle = skin.trailColor;
 
       if (isRetro) {
         // Retro 16-bit: Pixelated square afterimage
@@ -754,19 +759,19 @@ export class EntityRenderer implements IRenderer {
 
     // 2. Dash Feedback Halo
     if (state.dashHaloOpacity > 0) {
-      this.renderPlayerHalo(ctx, player, state, shadowsEnabled);
+      this.renderPlayerHalo(ctx, player, state, shadowsEnabled, skin);
     }
 
     // 3. Main Character Body
     if (shadowsEnabled) {
       ctx.shadowBlur = 25; // Increased from 15 for enhanced visibility
-      ctx.shadowColor = player.color;
+      ctx.shadowColor = skin.glowColor;
     }
 
     if (ThemeService.isRetro()) {
-      this.renderRetroPlayer(ctx, player);
+      this.renderRetroPlayer(ctx, player, skin);
     } else {
-      this.renderCyberpunkPlayer(ctx, player, state);
+      this.renderCyberpunkPlayer(ctx, player, state, skin);
     }
 
     if (shadowsEnabled) {
@@ -781,14 +786,15 @@ export class EntityRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     player: Player,
     state: GameState,
-    shadowsEnabled: boolean
+    shadowsEnabled: boolean,
+    skin: ResolvedSkinVisuals
   ): void {
     ctx.save();
     const haloRadius = player.radius * GAME_ENGINE.PLAYER_HALO_RADIUS_MULT;
     const opac = state.dashHaloOpacity;
     const isRetro = ThemeService.isRetro();
 
-    const pColor = player.color;
+    const pColor = skin.accentColor;
     const px = Math.round(player.x);
     const py = Math.round(player.y);
 
@@ -858,14 +864,18 @@ export class EntityRenderer implements IRenderer {
   /**
    * 16-bit square player avatar.
    */
-  private renderRetroPlayer(ctx: CanvasRenderingContext2D, player: Player): void {
+  private renderRetroPlayer(
+    ctx: CanvasRenderingContext2D,
+    player: Player,
+    skin: ResolvedSkinVisuals
+  ): void {
     const size = player.radius * 2;
     const px = Math.round(player.x) - size / 2;
     const py = Math.round(player.y) - size / 2;
 
     // High-visibility outline
     ctx.lineWidth = 3;
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeStyle = skin.outlineColor;
     ctx.strokeRect(px, py, size, size);
 
     // Hurt flash effect (High-frequency blinking for first 200ms of I-frame)
@@ -874,7 +884,7 @@ export class EntityRenderer implements IRenderer {
       if (!isVisible) return;
       ctx.fillStyle = '#FFFFFF';
     } else {
-      ctx.fillStyle = player.color;
+      ctx.fillStyle = skin.bodyColor;
     }
     ctx.fillRect(px, py, size, size);
 
@@ -891,7 +901,8 @@ export class EntityRenderer implements IRenderer {
   private renderCyberpunkPlayer(
     ctx: CanvasRenderingContext2D,
     player: Player,
-    state: GameState
+    state: GameState,
+    skin: ResolvedSkinVisuals
   ): void {
     const px = Math.round(player.x);
     const py = Math.round(player.y);
@@ -906,7 +917,7 @@ export class EntityRenderer implements IRenderer {
 
     ctx.save();
     ctx.globalAlpha = 0.4 + Math.sin(pulseTime) * 0.1;
-    ctx.strokeStyle = player.color;
+    ctx.strokeStyle = skin.accentColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, outerRingRadius, 0, Math.PI * 2);
@@ -925,9 +936,9 @@ export class EntityRenderer implements IRenderer {
       0,
       glowRadius,
       [
-        { offset: 0, color: `${player.color}25` },
-        { offset: 0.5, color: `${player.color}10` },
-        { offset: 1, color: `${player.color}00` },
+        { offset: 0, color: `${skin.glowColor}25` },
+        { offset: 0.5, color: `${skin.glowColor}10` },
+        { offset: 1, color: `${skin.glowColor}00` },
       ]
     );
     ctx.fillStyle = gradient;
@@ -953,7 +964,7 @@ export class EntityRenderer implements IRenderer {
     if (player.invulnerabilityTimer > 150) {
       ctx.fillStyle = '#FFFFFF';
     } else {
-      ctx.fillStyle = player.color;
+      ctx.fillStyle = skin.bodyColor;
     }
     ctx.beginPath();
 
@@ -977,10 +988,10 @@ export class EntityRenderer implements IRenderer {
 
     ctx.fill();
 
-    // 5. White Core Highlight (makes player pop more)
+    // 5. Core Highlight (makes player pop more; skin-tinted, white default)
     ctx.save();
     ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = skin.coreColor;
     ctx.beginPath();
     ctx.arc(
       -player.radius * 0.2,
@@ -995,7 +1006,7 @@ export class EntityRenderer implements IRenderer {
     // 6. Outer Edge Highlight Ring (crisp visibility)
     ctx.save();
     ctx.globalAlpha = 0.6;
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeStyle = skin.outlineColor;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(0, 0, player.radius + 1, 0, Math.PI * 2);

@@ -109,14 +109,16 @@ export const useLerpValues = <T extends Record<string, number>>(
 ): T => {
   const { speed = 0.1, threshold = 0.001, decimals = 2 } = options;
 
-  const [displayValues, setDisplayValues] = useState<T>(targetValues);
   const currentValuesRef = useRef<T>({ ...targetValues });
   const targetValuesRef = useRef<T>({ ...targetValues });
+  const emittedValuesRef = useRef<T>({ ...targetValues });
   const rafRef = useRef<number | null>(null);
 
   // Update targets when props change
   useEffect(() => {
-    targetValuesRef.current = { ...targetValues };
+    for (const key in targetValues) {
+      targetValuesRef.current[key] = targetValues[key]!;
+    }
   }, [targetValues]);
 
   // lerp imported from utils/math.ts
@@ -124,6 +126,7 @@ export const useLerpValues = <T extends Record<string, number>>(
   // Animation loop
   useEffect(() => {
     let lastTime = performance.now();
+    const roundingFactor = 10 ** decimals;
 
     const animate = (currentTime: number) => {
       const deltaTime = currentTime - lastTime;
@@ -131,10 +134,10 @@ export const useLerpValues = <T extends Record<string, number>>(
 
       const adjustedSpeed = Math.min(1, speed * (deltaTime / 16.67));
       let hasChanges = false;
-      const newValues = { ...currentValuesRef.current };
+      const currentValues = currentValuesRef.current;
 
       for (const key in targetValuesRef.current) {
-        const current = currentValuesRef.current[key];
+        const current = currentValues[key];
         const target = targetValuesRef.current[key];
 
         if (current === undefined || target === undefined) continue;
@@ -142,36 +145,30 @@ export const useLerpValues = <T extends Record<string, number>>(
         const diff = Math.abs(target - current);
 
         if (diff > threshold) {
-          newValues[key] = lerp(current, target, adjustedSpeed) as T[Extract<
+          currentValues[key] = lerp(current, target, adjustedSpeed) as T[Extract<
             keyof T,
             string
           >];
           hasChanges = true;
         } else if (diff > 0) {
-          newValues[key] = target;
+          currentValues[key] = target;
           hasChanges = true;
         }
       }
 
       if (hasChanges) {
-        currentValuesRef.current = newValues;
-        // Round values for display
-        const roundedValues = {} as T;
-        for (const key in newValues) {
-          const val = newValues[key];
+        const emittedValues = emittedValuesRef.current;
+        for (const key in currentValues) {
+          const val = currentValues[key];
           if (val !== undefined) {
-            roundedValues[key] = Number(val.toFixed(decimals)) as T[Extract<
-              keyof T,
-              string
-            >];
+            emittedValues[key] = (Math.round(val * roundingFactor) /
+              roundingFactor) as T[Extract<keyof T, string>];
           }
         }
 
         // Performance Optimization: Emit event for direct DOM updates
         // This allows components to use refs instead of re-rendering
-        EventBus.emit('hudValuesUpdated', roundedValues as Record<string, number>);
-
-        setDisplayValues(roundedValues);
+        EventBus.emit('hudValuesUpdated', emittedValues as Record<string, number>);
       }
 
       rafRef.current = requestAnimationFrame(animate);
@@ -186,5 +183,5 @@ export const useLerpValues = <T extends Record<string, number>>(
     };
   }, [speed, threshold, decimals]);
 
-  return displayValues;
+  return targetValues;
 };

@@ -14,10 +14,9 @@ vi.mock('../../services/analytics/ErrorReporter', () => ({
   },
 }));
 
-// Mock DifficultyManager
-vi.mock('../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    getTotalElapsedSeconds: vi.fn().mockReturnValue(100),
+vi.mock('../../services/core/TimeService', () => ({
+  TimeService: {
+    getGameTimeSeconds: vi.fn().mockReturnValue(100),
   },
 }));
 

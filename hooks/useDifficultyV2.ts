@@ -1,59 +1,36 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
 import { EventBus } from '../services/core/EventBus';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import type {
   DifficultyOutputV2,
   LiquidationWarning,
 } from '../services/difficulty/types';
 
+const RUNTIME_OUTPUT: DifficultyOutputV2 = {
+  total: 1,
+  wavePhase: 'active',
+  liquidationWarning: 'NONE',
+  fovReduction: 0,
+  shockActive: false,
+  spawnRate: 1,
+  enemySpeed: 1,
+  enemyHP: 1,
+  enemyDamage: 1,
+  enemyVariety: 0,
+  chaosLevel: 0,
+  mercyFactor: 0,
+  pressureIntensity: 0,
+  whaleProbability: 0,
+  xpMultiplier: 1,
+  gemDropRate: 1,
+};
+
 export function useDifficultyV2() {
-  const [state, setState] = useState({
-    output: null as DifficultyOutputV2 | null,
+  return {
+    output: RUNTIME_OUTPUT,
     fovReduction: 0,
     shockActive: false,
     total: 1,
-  });
-
-  const rafRef = useRef<number | null>(null);
-
-  const updateState = useCallback(() => {
-    try {
-      const output = DifficultyManager.getLatestOutput();
-      if (!output) return;
-      setState(prev => {
-        if (
-          prev.fovReduction === output.fovReduction &&
-          prev.shockActive === output.shockActive &&
-          prev.total === output.total &&
-          prev.output === output
-        ) {
-          return prev;
-        }
-        return {
-          output,
-          fovReduction: output.fovReduction,
-          shockActive: output.shockActive,
-          total: output.total,
-        };
-      });
-    } catch {
-      // Context not ready
-    }
-  }, []);
-
-  useEffect(() => {
-    updateState();
-    const tick = () => {
-      updateState();
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [updateState]);
-
-  return state;
+  };
 }
 
 export function useWavePhaseChange() {}

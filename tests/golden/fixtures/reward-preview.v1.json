@@ -1,0 +1,252 @@
+{
+  "fixtureId": "reward-preview.v1",
+  "producer": "reward-preview",
+  "sourceRevision": "1ce825ab6045a63636422556a7fd5621df5a0328",
+  "payload": {
+    "outputHash": "3b1c944801e8b80856550c211192d7313a4419076d1757b8451eba27ca0eb601",
+    "results": [
+      {
+        "name": "cycle-complete",
+        "preview": {
+          "base": 240,
+          "killBonus": 250,
+          "levelBonus": 250,
+          "marketBonus": 1000,
+          "streakBonus": 25,
+          "portalBonus": 0,
+          "total": 1765,
+          "breakdown": {
+            "Survival Time": 240,
+            "Kills": 250,
+            "Level Bonus": 250,
+            "Market Profit": 1000,
+            "Kill Streak": 25,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "take-profit",
+        "preview": {
+          "base": 440,
+          "killBonus": 400,
+          "levelBonus": 350,
+          "marketBonus": 800,
+          "streakBonus": 75,
+          "portalBonus": 328,
+          "total": 2393,
+          "breakdown": {
+            "Survival Time": 440,
+            "Kills": 400,
+            "Level Bonus": 350,
+            "Market Profit": 800,
+            "Kill Streak": 75,
+            "Portal Bonus": 328
+          }
+        }
+      },
+      {
+        "name": "stop-loss",
+        "preview": {
+          "base": 0,
+          "killBonus": 200,
+          "levelBonus": 200,
+          "marketBonus": 0,
+          "streakBonus": 25,
+          "portalBonus": 0,
+          "total": 425,
+          "breakdown": {
+            "Survival Time": 0,
+            "Kills": 200,
+            "Level Bonus": 200,
+            "Market Profit": 0,
+            "Kill Streak": 25,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "flow-exit",
+        "preview": {
+          "base": 180,
+          "killBonus": 200,
+          "levelBonus": 200,
+          "marketBonus": 500,
+          "streakBonus": 25,
+          "portalBonus": 0,
+          "total": 1105,
+          "breakdown": {
+            "Survival Time": 180,
+            "Kills": 200,
+            "Level Bonus": 200,
+            "Market Profit": 500,
+            "Kill Streak": 25,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "forced-exit",
+        "preview": {
+          "base": 180,
+          "killBonus": 200,
+          "levelBonus": 200,
+          "marketBonus": 500,
+          "streakBonus": 25,
+          "portalBonus": 0,
+          "total": 1105,
+          "breakdown": {
+            "Survival Time": 180,
+            "Kills": 200,
+            "Level Bonus": 200,
+            "Market Profit": 500,
+            "Kill Streak": 25,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "death",
+        "preview": {
+          "base": 0,
+          "killBonus": 62,
+          "levelBonus": 75,
+          "marketBonus": 0,
+          "streakBonus": 0,
+          "portalBonus": 0,
+          "total": 137,
+          "breakdown": {
+            "Survival Time": 0,
+            "Kills": 62,
+            "Level Bonus": 75,
+            "Market Profit": 0,
+            "Kill Streak": 0,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "afk-death",
+        "preview": {
+          "base": 0,
+          "killBonus": 0,
+          "levelBonus": 0,
+          "marketBonus": 0,
+          "streakBonus": 0,
+          "portalBonus": 0,
+          "total": 0,
+          "breakdown": {
+            "Survival Time": 0,
+            "Kills": 0,
+            "Level Bonus": 0,
+            "Market Profit": 0,
+            "Kill Streak": 0,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "negative-input",
+        "preview": {
+          "base": 0,
+          "killBonus": 0,
+          "levelBonus": 0,
+          "marketBonus": 0,
+          "streakBonus": 0,
+          "portalBonus": 0,
+          "total": 0,
+          "breakdown": {
+            "Survival Time": 0,
+            "Kills": 0,
+            "Level Bonus": 0,
+            "Market Profit": 0,
+            "Kill Streak": 0,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "level-cap",
+        "preview": {
+          "base": 600,
+          "killBonus": 500,
+          "levelBonus": 5000,
+          "marketBonus": 1000,
+          "streakBonus": 100,
+          "portalBonus": 0,
+          "total": 7200,
+          "breakdown": {
+            "Survival Time": 600,
+            "Kills": 500,
+            "Level Bonus": 5000,
+            "Market Profit": 1000,
+            "Kill Streak": 100,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "positive-pnl",
+        "preview": {
+          "base": 480,
+          "killBonus": 450,
+          "levelBonus": 400,
+          "marketBonus": 3500,
+          "streakBonus": 100,
+          "portalBonus": 0,
+          "total": 4930,
+          "breakdown": {
+            "Survival Time": 480,
+            "Kills": 450,
+            "Level Bonus": 400,
+            "Market Profit": 3500,
+            "Kill Streak": 100,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "negative-pnl",
+        "preview": {
+          "base": 480,
+          "killBonus": 450,
+          "levelBonus": 400,
+          "marketBonus": 0,
+          "streakBonus": 100,
+          "portalBonus": 0,
+          "total": 1430,
+          "breakdown": {
+            "Survival Time": 480,
+            "Kills": 450,
+            "Level Bonus": 400,
+            "Market Profit": 0,
+            "Kill Streak": 100,
+            "Portal Bonus": 0
+          }
+        }
+      },
+      {
+        "name": "streak-cap",
+        "preview": {
+          "base": 480,
+          "killBonus": 450,
+          "levelBonus": 400,
+          "marketBonus": 1000,
+          "streakBonus": 250,
+          "portalBonus": 0,
+          "total": 2580,
+          "breakdown": {
+            "Survival Time": 480,
+            "Kills": 450,
+            "Level Bonus": 400,
+            "Market Profit": 1000,
+            "Kill Streak": 250,
+            "Portal Bonus": 0
+          }
+        }
+      }
+    ]
+  },
+  "schemaVersion": 1,
+  "contentHash": "ff4e1143918a9fd7d0c5558d23d8340b398564a4a36c043009a15aa7bfaa6d9f"
+}

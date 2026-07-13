@@ -36,12 +36,20 @@ export class RSICalculator {
   private prevAvgGain: number | null = null;
   private prevAvgLoss: number | null = null;
   private lastPrice: number | null = null;
+  private gameResetUnsubscribe: (() => void) | null = null;
 
   constructor(config: RSIConfig = DEFAULT_RSI_CONFIG) {
     this.config = config;
 
-    // Subscribe to game reset
-    EventBus.on('gameReset', () => this.reset());
+    this.gameResetUnsubscribe = EventBus.on('gameReset', () => this.reset());
+  }
+
+  dispose(): void {
+    if (!this.gameResetUnsubscribe) return;
+
+    this.gameResetUnsubscribe();
+    this.gameResetUnsubscribe = null;
+    this.reset();
   }
 
   /**

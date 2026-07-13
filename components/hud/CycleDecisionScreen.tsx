@@ -13,7 +13,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
 import { EventBus } from '../../services/core/EventBus';
-import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useIsRetro } from '../../contexts/useTheme';
@@ -180,7 +179,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
         if (data.cycleNumber <= lastProcessedCycleRef.current) return;
         lastProcessedCycleRef.current = data.cycleNumber;
         const cycleNumber = data.cycleNumber;
-        const currentDifficulty = DifficultyManager.getLatestOutput()?.total ?? 1;
+        const currentDifficulty = 1;
 
         setState(prev => ({
           ...prev,

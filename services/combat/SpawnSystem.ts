@@ -130,7 +130,7 @@ export class SpawnSystem implements ISpawnSystem {
     });
   }
 
-  public update(
+  public updateLegacy(
     deltaTime: number,
     difficulty: number,
     width: number,

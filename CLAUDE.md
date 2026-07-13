@@ -144,6 +144,8 @@ Game code may use bitwise ops, labels, and `++` in for-loops; `no-console` warns
 
 **New buff/debuff**: create a decorator in `services/patterns/decorators/buffs/` or `debuffs/` extending `BaseDecorator` → implement stat modifications → wire into `BuffManager.addBuff()`/`addDebuff()` → emit `buffApplied`/`buffExpired` for UI.
 
+**New character skin**: add the id to `CharacterSkinId` (`types/lootbox.ts`) → metadata in `CHARACTER_SKIN_DEFINITIONS` (`types/inventory.ts`) → palette in `SKIN_VISUAL_REGISTRY` (`config/SkinRegistry.ts`, 6-digit hex only; leave `trailColor`/`accentColor` unset — the LONG/SHORT position color must stay visible). See `docs/architecture/SKIN_SYSTEM.md`.
+
 ## Debug Tools
 
 - `Ctrl+Shift+A` — Analytics Dashboard (beta metrics, errors, devices)

@@ -60,7 +60,7 @@ vi.mock('../../services/combat/PhysicsSystem', () => {
 
 vi.mock('../../services/combat/SpawnSystem', () => {
   class MockSpawnSystem {
-    update = vi.fn();
+    updateLegacy = vi.fn();
     reset = vi.fn();
     dispose = vi.fn();
     static getInstance = vi.fn(() => new MockSpawnSystem());
@@ -184,16 +184,6 @@ vi.mock('../../services/indicators/ClientIndicatorService', () => ({
     })),
   },
 }));
-vi.mock('../../services/core/EngineRegistry', () => ({
-  EngineRegistry: {
-    setPoolManager: vi.fn(),
-    setCombatSystem: vi.fn(),
-    setPhysicsSystem: vi.fn(),
-    setSpawnSystem: vi.fn(),
-    setAudioService: vi.fn(),
-  },
-}));
-
 // Mock Hooks
 
 vi.mock('../../hooks/useGameInput', () => ({

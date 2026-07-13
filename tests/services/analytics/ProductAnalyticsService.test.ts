@@ -92,6 +92,23 @@ describe('ProductAnalyticsService', () => {
     );
   });
 
+  it('omits the local-only profile id from product telemetry', async () => {
+    mocks.getProfileId.mockReturnValue('00000000-0000-4000-a000-000000000000');
+    const { ProductAnalyticsService } =
+      await import('../../../services/analytics/ProductAnalyticsService');
+
+    await ProductAnalyticsService.track({
+      eventType: 'season_joined',
+    });
+
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/api/v1/telemetry/product-events',
+      expect.objectContaining({
+        profile_id: null,
+      })
+    );
+  });
+
   it('logs and swallows sync failures', async () => {
     mocks.post.mockRejectedValue(new Error('network down'));
     const { ProductAnalyticsService } =

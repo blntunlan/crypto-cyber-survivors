@@ -70,4 +70,25 @@ describe('DashButton', () => {
 
     expect(container.querySelector('div[style*="height: 100%"]')).toBeInTheDocument();
   });
+
+  it('accepts a second touch during the first dash window', () => {
+    const onDash = vi.fn();
+    const { getByText } = render(<DashButton onDash={onDash} cooldownMs={1000} />);
+    const button = getByText('DASH').parentElement as HTMLElement;
+
+    fireEvent.touchStart(button);
+    fireEvent.touchEnd(button);
+
+    act(() => {
+      EventBus.emit('playerDash', {
+        duration: 100,
+        cooldown: 1000,
+        isDoubleDash: false,
+      });
+    });
+
+    fireEvent.touchStart(button);
+
+    expect(onDash).toHaveBeenCalledTimes(2);
+  });
 });

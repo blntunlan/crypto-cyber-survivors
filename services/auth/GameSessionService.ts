@@ -27,6 +27,39 @@ export interface ServerSessionResponse {
   sessionSecret: string;
 }
 
+export type CashOutPacingState =
+  | 'BUILD_UP'
+  | 'PEAK'
+  | 'PEAK_FADE'
+  | 'RECOVERY'
+  | 'DOOM';
+export type CashOutDecision = 'accept' | 'reject' | 'safe_exit';
+
+export type CashOutQuoteResponse = {
+  quote: {
+    quoteId: string;
+    canonicalSequence: number;
+    rewardPoints: number;
+    issuedAtSeconds?: number;
+    expiresAtSeconds?: number;
+  };
+  signature: string;
+  shouldForceRecovery: boolean;
+  safeExitOnly: boolean;
+};
+
+export type CashOutDecisionResponse = {
+  state: 'active' | 'settled' | 'failed';
+  rewardPoints: number;
+  greedDelta: number;
+};
+
+export type CashOutFailureResponse = {
+  state: 'failed';
+  primaryRewardPoints: 0;
+  shards: number;
+};
+
 type RuntimeAuditFlushResult = {
   ok: boolean;
   batches: number;
@@ -350,6 +383,58 @@ export class GameSessionService {
 
   static getCurrentSessionId(): string | null {
     return this.currentSessionId;
+  }
+
+  static async requestCashOutQuote(
+    pacingState: CashOutPacingState
+  ): Promise<CashOutQuoteResponse> {
+    if (!this.currentSessionId || this.currentSessionId.startsWith('local-')) {
+      throw new Error('NO_SERVER_SESSION');
+    }
+
+    return railwayClient.post<CashOutQuoteResponse>('/api/v1/economy/cash-out/quote', {
+      session_id: this.currentSessionId,
+      pacing_state: pacingState,
+    });
+  }
+
+  static async decideCashOut(
+    quoteId: string,
+    signature: string,
+    decision: CashOutDecision,
+    idempotencyKey: string
+  ): Promise<CashOutDecisionResponse> {
+    if (!this.currentSessionId || this.currentSessionId.startsWith('local-')) {
+      throw new Error('NO_SERVER_SESSION');
+    }
+
+    return railwayClient.post<CashOutDecisionResponse>(
+      '/api/v1/economy/cash-out/decision',
+      {
+        quote_id: quoteId,
+        signature,
+        decision,
+        idempotency_key: idempotencyKey,
+      }
+    );
+  }
+
+  static async recordCashOutFailure(
+    failureType: 'death' | 'liquidation',
+    idempotencyKey: string
+  ): Promise<CashOutFailureResponse> {
+    if (!this.currentSessionId || this.currentSessionId.startsWith('local-')) {
+      throw new Error('NO_SERVER_SESSION');
+    }
+
+    return railwayClient.post<CashOutFailureResponse>(
+      '/api/v1/economy/cash-out/failure',
+      {
+        session_id: this.currentSessionId,
+        failure_type: failureType,
+        idempotency_key: idempotencyKey,
+      }
+    );
   }
 
   static getCurrentSessionSecret(): string | null {

@@ -74,6 +74,23 @@ export class InputPhase implements IGameplayPhase<'input'> {
       1,
       GAME_ENGINE.DOUBLE_DASH_COOLDOWN * dashCooldownMultiplier
     );
+    const doubleDashInputWindow = isMobile
+      ? GAME_ENGINE.DASH_DURATION_MOBILE
+      : GAME_ENGINE.PLAYER_DASH_DURATION;
+    const elapsedSinceDash = dashCooldown - s.dashCooldownTimer;
+
+    if (
+      shared.isDashFreshPress() &&
+      s.dashCooldownTimer > 0 &&
+      elapsedSinceDash >= 0 &&
+      elapsedSinceDash <= doubleDashInputWindow &&
+      !s.doubleDashQueued &&
+      !s.doubleDashUsed
+    ) {
+      s.doubleDashQueued = true;
+      shared.consumeDash();
+      s.shake = 5;
+    }
 
     // Dash Logic Timers
     if (s.dashTimer > 0) {
@@ -85,46 +102,11 @@ export class InputPhase implements IGameplayPhase<'input'> {
           GAME_ENGINE.DASH_HALO_OPACITY_BASE +
         GAME_ENGINE.DASH_HALO_OPACITY_AMP;
 
-      // User must release and press again for double dash queue
-      if (shared.isDashFreshPress() && !s.doubleDashQueued && !s.doubleDashUsed) {
-        s.doubleDashQueued = true;
-        shared.consumeDash();
-        s.shake = 5;
-      }
-
       if (s.dashTimer <= 0) {
         s.isDashing = false;
         s.dashHaloOpacity = 0;
         s.playerScaleX = 0.4;
         s.playerScaleY = 1.6;
-
-        if (s.doubleDashQueued) {
-          const { dx: ddx, dy: ddy } = shared.getMovementVector();
-          if (ddx !== 0 || ddy !== 0) {
-            const effectiveDashDuration = isMobile
-              ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
-              : GAME_ENGINE.PLAYER_DASH_DURATION;
-
-            s.isDashing = true;
-            s.dashTimer = effectiveDashDuration;
-            s.doubleDashQueued = false;
-            s.doubleDashUsed = true;
-            s.dashCooldownTimer = doubleDashCooldown;
-            audio.playDash();
-            s.shake = 10;
-            EventBus.emit('playerDash', {
-              duration: effectiveDashDuration,
-              cooldown: doubleDashCooldown,
-              isDoubleDash: true,
-            });
-
-            s.playerScaleX = 1.8;
-            s.playerScaleY = 0.4;
-            s.playerRotation = Math.atan2(ddy, ddx);
-          } else {
-            s.doubleDashQueued = false;
-          }
-        }
       }
 
       s.dashTrail.push({ x: player.x, y: player.y });
@@ -146,6 +128,34 @@ export class InputPhase implements IGameplayPhase<'input'> {
         }
       } else {
         s.dashTrailAccumulator = 0;
+      }
+    }
+
+    if (s.doubleDashQueued && !s.isDashing) {
+      const { dx: ddx, dy: ddy } = shared.getMovementVector();
+      if (ddx !== 0 || ddy !== 0) {
+        const effectiveDashDuration = isMobile
+          ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
+          : GAME_ENGINE.PLAYER_DASH_DURATION;
+
+        s.isDashing = true;
+        s.dashTimer = effectiveDashDuration;
+        s.doubleDashQueued = false;
+        s.doubleDashUsed = true;
+        s.dashCooldownTimer = doubleDashCooldown;
+        audio.playDash();
+        s.shake = 10;
+        EventBus.emit('playerDash', {
+          duration: effectiveDashDuration,
+          cooldown: doubleDashCooldown,
+          isDoubleDash: true,
+        });
+
+        s.playerScaleX = 1.8;
+        s.playerScaleY = 0.4;
+        s.playerRotation = Math.atan2(ddy, ddx);
+      } else {
+        s.doubleDashQueued = false;
       }
     }
 
@@ -220,8 +230,7 @@ export class InputPhase implements IGameplayPhase<'input'> {
 
     // Clamp player to screen bounds
     player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
-    const bottomMargin = isMobile ? player.radius + 40 : player.radius;
-    player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
+    player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
 
     this.inputVector.dx = dx;
     this.inputVector.dy = dy;

@@ -17,10 +17,12 @@ class GradientCache {
     y0: number,
     x1: number,
     y1: number,
-    stops: Array<{ offset: number; color: string }>
+    stops: ReadonlyArray<{ offset: number; color: string }>,
+    cacheKey?: string
   ): CanvasGradient {
-    const stopsKey = stops.map(s => `${s.offset}:${s.color}`).join('|');
-    const key = `lin-${x0.toFixed(1)}-${y0.toFixed(1)}-${x1.toFixed(1)}-${y1.toFixed(1)}-${stopsKey}`;
+    const key =
+      cacheKey ??
+      `lin-${x0.toFixed(1)}-${y0.toFixed(1)}-${x1.toFixed(1)}-${y1.toFixed(1)}-${stops.map(s => `${s.offset}:${s.color}`).join('|')}`;
 
     let grad = this.cache.get(key);
     if (!grad) {
@@ -51,10 +53,12 @@ class GradientCache {
     x1: number,
     y1: number,
     r1: number,
-    stops: Array<{ offset: number; color: string }>
+    stops: ReadonlyArray<{ offset: number; color: string }>,
+    cacheKey?: string
   ): CanvasGradient {
-    const stopsKey = stops.map(s => `${s.offset}:${s.color}`).join('|');
-    const key = `rad-${x0.toFixed(0)}-${y0.toFixed(0)}-${r0.toFixed(0)}-${x1.toFixed(0)}-${y1.toFixed(0)}-${r1.toFixed(0)}-${stopsKey}`;
+    const key =
+      cacheKey ??
+      `rad-${x0.toFixed(0)}-${y0.toFixed(0)}-${r0.toFixed(0)}-${x1.toFixed(0)}-${y1.toFixed(0)}-${r1.toFixed(0)}-${stops.map(s => `${s.offset}:${s.color}`).join('|')}`;
 
     let grad = this.cache.get(key);
     if (!grad) {

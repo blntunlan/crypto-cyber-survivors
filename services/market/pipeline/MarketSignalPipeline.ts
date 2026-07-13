@@ -1,8 +1,6 @@
 import { type MarketPosition } from '../../../types';
 import { type CryptoPair } from '../../../types/crypto';
 import { type MarketStateData } from '../../../types/events';
-import { type DifficultyOutput } from '../../gameplay/DifficultyTypes';
-import { DifficultyManager } from '../../gameplay/DifficultyManager';
 import { ClientIndicatorService } from '../../indicators/ClientIndicatorService';
 import { getSpawnRateFromATR } from '../../../types/indicators';
 
@@ -21,9 +19,6 @@ export interface MarketPipelineTickInput {
   price: number;
   volume: number;
   timestamp: number;
-  rawPnl: number;
-  level: number;
-  hpPercent: number;
   fallbackAtrPercent?: number;
   /** High price from OHLC candle (for accurate ATR) */
   high?: number;
@@ -45,28 +40,9 @@ export interface MarketPipelineIndicators {
   source: 'client' | 'server-fallback' | 'hybrid';
 }
 
-export interface MarketPipelineGameplay {
-  difficultyOutput: DifficultyOutput;
-  totalDifficulty: number;
-  spawnRateMultiplier: number;
-  indicatorSpawnRateMultiplier: number;
-  enemyDamage: number;
-  enemySpeed: number;
-  gemValueMultiplier: number;
-}
-
 export interface MarketPipelineResult {
   indicators: MarketPipelineIndicators;
-  gameplay: MarketPipelineGameplay;
 }
-
-const MIN_SPAWN_RATE = 0.25;
-const MAX_SPAWN_RATE = 6;
-
-const clamp = (value: number, min: number, max: number): number => {
-  if (!Number.isFinite(value)) return min;
-  return Math.max(min, Math.min(max, value));
-};
 
 const toPair = (pair: string): CryptoPair => {
   if (pair === 'ETH') return 'ETH';
@@ -146,32 +122,8 @@ export class MarketSignalPipeline {
       input.high,
       input.low
     );
-    const indicators = this.resolveIndicators(input.pair, input.fallbackAtrPercent);
-
-    const difficultyOutput = DifficultyManager.calculate(
-      input.rawPnl,
-      indicators.atrPercent,
-      input.level,
-      input.hpPercent
-    );
-
-    const combinedSpawnRate = clamp(
-      difficultyOutput.spawnRate * indicators.spawnRateMultiplier,
-      MIN_SPAWN_RATE,
-      MAX_SPAWN_RATE
-    );
-
     return {
-      indicators,
-      gameplay: {
-        difficultyOutput,
-        totalDifficulty: difficultyOutput.total,
-        spawnRateMultiplier: combinedSpawnRate,
-        indicatorSpawnRateMultiplier: indicators.spawnRateMultiplier,
-        enemyDamage: difficultyOutput.enemyDamage,
-        enemySpeed: difficultyOutput.enemySpeed,
-        gemValueMultiplier: difficultyOutput.gemDropRate,
-      },
+      indicators: this.resolveIndicators(input.pair, input.fallbackAtrPercent),
     };
   }
 

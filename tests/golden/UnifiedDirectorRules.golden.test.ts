@@ -1,78 +1,58 @@
-/**
- * Golden test — Katman A: UnifiedDirector kural pipeline'ının HAM
- * (pre-smoothing) çıktılarını kilitler.
- *
- * 4 senaryo × 60 adım sabit UnifiedInputs dizisi → her adımda update +
- * snapToTargets → raw hedef çıktılar. Kurallar Director.RulesLayer'a
- * taşınırken bit-eşitlik (1e-8) garantisi sağlar.
- *
- * Fixture üretimi (bir kez): UPDATE_GOLDEN=1 npx vitest run tests/golden
- */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { UnifiedDirector } from '../../services/difficulty/UnifiedDirector';
 import {
-  UnifiedDirector,
-  type UnifiedOutputs,
-} from '../../services/difficulty/UnifiedDirector';
-import {
-  collectGoldenMismatches,
-  isGoldenUpdateMode,
-  readGoldenFixture,
-  writeGoldenFixture,
-} from './helpers/goldenIo';
+  BASELINE_SOURCE_REVISION,
+  assertBaselineProductionSource,
+  hashBaselinePayload,
+  readBaselineArtifact,
+  writeBaselineArtifact,
+} from './helpers/baselineArtifact';
+import { collectGoldenMismatches } from './helpers/goldenIo';
+import { runUnifiedDirectorRules } from './helpers/legacyBaselineHarness';
 import { RULE_SCENARIOS, RULE_SCENARIO_STEPS } from './helpers/scenarios';
 
-const FIXTURE_NAME = 'unified-rules.golden.json';
+const FIXTURE_PATH = 'tests/golden/fixtures/unified-rules.v1.json';
 const TOLERANCE = 1e-8;
 
-type RuleGoldenFixture = Record<string, UnifiedOutputs[]>;
+type UnifiedDirectorGoldenPayload = {
+  outputHash: string;
+  outputs: ReturnType<typeof runUnifiedDirectorRules>;
+};
 
-function runScenarios(): RuleGoldenFixture {
-  const results: RuleGoldenFixture = {};
-
-  for (const scenario of RULE_SCENARIOS) {
-    UnifiedDirector.reset();
-    const outputs: UnifiedOutputs[] = [];
-
-    for (let step = 0; step < RULE_SCENARIO_STEPS; step++) {
-      UnifiedDirector.update(scenario.inputsAt(step), step * 1000);
-      // Ham hedef çıktılar: snap sonrası smoothed == raw target
-      UnifiedDirector.snapToTargets();
-      outputs.push(UnifiedDirector.getOutputs());
-    }
-
-    results[scenario.name] = outputs;
-  }
-
-  return results;
-}
-
-describe('Golden — UnifiedDirector rule pipeline (raw outputs)', () => {
+describe('Golden — UnifiedDirector legacy rules', () => {
   beforeEach(() => {
     UnifiedDirector.reset();
   });
 
-  it('matches the locked golden fixture for all scenarios', () => {
-    const actual = runScenarios();
+  it('matches the versioned golden output for all legacy rule scenarios', () => {
+    const actual = runUnifiedDirectorRules();
 
-    // Temel sağlamlık — fixture modundan bağımsız
     expect(Object.keys(actual)).toHaveLength(RULE_SCENARIOS.length);
     for (const scenario of RULE_SCENARIOS) {
       expect(actual[scenario.name]).toHaveLength(RULE_SCENARIO_STEPS);
     }
 
-    if (isGoldenUpdateMode()) {
-      writeGoldenFixture(FIXTURE_NAME, actual);
-      return;
+    if (process.env.UPDATE_GOLDEN === '1') {
+      assertBaselineProductionSource();
+      writeBaselineArtifact(FIXTURE_PATH, {
+        fixtureId: 'unified-rules.v1',
+        producer: 'unified-director-rules',
+        sourceRevision: BASELINE_SOURCE_REVISION,
+        payload: { outputHash: hashBaselinePayload(actual), outputs: actual },
+      });
     }
 
-    const expected = readGoldenFixture<RuleGoldenFixture>(FIXTURE_NAME);
-    const mismatches = collectGoldenMismatches(actual, expected, TOLERANCE);
-    expect(mismatches).toEqual([]);
+    const expected = readBaselineArtifact<UnifiedDirectorGoldenPayload>(
+      FIXTURE_PATH,
+      'unified-director-rules'
+    ).payload;
+    expect(hashBaselinePayload(actual)).toBe(expected.outputHash);
+    expect(collectGoldenMismatches(actual, expected.outputs, TOLERANCE)).toEqual([]);
   });
 
-  it('is deterministic across repeated runs in the same process', () => {
-    const first = runScenarios();
-    const second = runScenarios();
-    expect(collectGoldenMismatches(second, first, 0)).toEqual([]);
+  it('produces the same output hash across repeated runs in one process', () => {
+    expect(hashBaselinePayload(runUnifiedDirectorRules())).toBe(
+      hashBaselinePayload(runUnifiedDirectorRules())
+    );
   });
 });

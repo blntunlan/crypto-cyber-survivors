@@ -167,6 +167,24 @@ describe('telemetry ingestion and admin visibility', () => {
     expect(response.body).toEqual({ error: 'Invalid product event type' });
   });
 
+  it('omits the local-only profile id from product events', async () => {
+    await request(makeTelemetryApp())
+      .post('/api/v1/telemetry/product-events')
+      .send({
+        profile_id: '00000000-0000-4000-a000-000000000000',
+        event_type: 'season_joined',
+      })
+      .expect(200);
+
+    expect(mocks.values).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          profileId: null,
+        }),
+      ])
+    );
+  });
+
   it('exposes telemetry counts in the admin dashboard summary', async () => {
     mocks.query.mockImplementation((queryText: string) => {
       if (queryText.includes('COUNT(*) AS count FROM profiles')) return countRows(10);

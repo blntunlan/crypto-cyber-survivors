@@ -192,8 +192,10 @@ describe('SSEMarketService', () => {
       const { service } = createService({ pair: 'ETH' as never });
       service.connect();
 
-      // SSEMarketService now uses relative URLs (Vite proxy / same-origin)
-      expect(mockEs.url).toBe('/api/v1/market/stream?pair=ETH');
+      // SSEMarketService uses absolute URL if VITE_MARKET_AGGREGATOR_URL is configured
+      expect(mockEs.url).toBe(
+        'https://market.test.local/api/v1/market/stream?pair=ETH'
+      );
     });
   });
 

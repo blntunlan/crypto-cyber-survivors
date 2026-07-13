@@ -4,25 +4,17 @@ import {
   type BaselinePhaseResult,
   type IGameplayPhase,
 } from './IGameplayPhase';
-import { DifficultyManager } from '../DifficultyManager';
 import { difficultyContext } from '../../difficulty/DifficultyContext';
 import { TimeService } from '../../core/TimeService';
 
 /**
- * DifficultyPhase — updates difficulty calculation and shock detection.
- *
- * Extracted from GameEngine.tsx update loop:
- *   - DifficultyManager.updateWaveTimer(deltaTime)
- *   - difficultyContext.updateTime(...)
+ * DifficultyPhase — synchronizes the runtime clock into DifficultyContext.
  */
 export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
   public readonly phase = 'difficulty' as const;
   private readonly result = createBaselinePhaseResult(this.phase);
 
-  public execute(input: PhaseInput<'difficulty'>): BaselinePhaseResult<'difficulty'> {
-    const deltaTime = input.context.clock.deltaMs;
-
-    DifficultyManager.updateWaveTimer(deltaTime);
+  public execute(_input: PhaseInput<'difficulty'>): BaselinePhaseResult<'difficulty'> {
     difficultyContext.updateTime(TimeService.getGameTimeSeconds());
 
     return this.result;

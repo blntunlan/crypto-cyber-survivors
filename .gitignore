@@ -136,6 +136,7 @@ Desktop.ini
 # Temporary / tool-generated directories
 .tmp-codex*/
 .tmp-codex-push-repo-2/
+.superpowers/
 googleerror/
 
 # Supabase local metadata

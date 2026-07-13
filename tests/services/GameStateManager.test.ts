@@ -6,11 +6,12 @@ import {
   RUN_STATS_DEFAULTS,
 } from '../../services/core/GameStateManager';
 import { EventBus } from '../../services/core/EventBus';
-import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { ComboSystem } from '../../services/combat/ComboSystem';
 import { MetricsService } from '../../services/core/MetricsService';
 import { GameSessionService } from '../../services/auth/GameSessionService';
 import { MarketPosition } from '../../types';
+import { difficultyContext } from '../../services/difficulty/DifficultyContext';
+import { LeverageEngine } from '../../services/gameplay/LeverageEngine';
 
 // Mock dependencies
 vi.mock('../../services/core/EventBus', () => ({
@@ -19,9 +20,15 @@ vi.mock('../../services/core/EventBus', () => ({
   },
 }));
 
-vi.mock('../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    startGame: vi.fn(),
+vi.mock('../../services/difficulty/DifficultyContext', () => ({
+  difficultyContext: {
+    updateInputs: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/gameplay/LeverageEngine', () => ({
+  LeverageEngine: {
+    setLeverage: vi.fn(),
   },
 }));
 
@@ -76,7 +83,13 @@ describe('GameStateManager', () => {
       GameStateManager.resetAll(10);
 
       expect(EventBus.emit).toHaveBeenCalledWith('beforeReset', {});
-      expect(DifficultyManager.startGame).toHaveBeenCalledWith(10);
+      expect(LeverageEngine.setLeverage).toHaveBeenCalledWith(10);
+      expect(difficultyContext.updateInputs).toHaveBeenCalledWith({
+        leverage: 10,
+        level: PLAYER_DEFAULTS.level,
+        elapsedSeconds: 0,
+        pnlHistory: [],
+      });
       expect(ComboSystem.startGame).toHaveBeenCalled();
       expect(EventBus.emit).toHaveBeenCalledWith('afterReset', {});
       expect(EventBus.emit).toHaveBeenCalledWith('gameReset', {});
@@ -88,7 +101,7 @@ describe('GameStateManager', () => {
       // For now, let's just ensure subsequent calls work
       GameStateManager.resetAll();
       GameStateManager.resetAll();
-      expect(DifficultyManager.startGame).toHaveBeenCalledTimes(2);
+      expect(LeverageEngine.setLeverage).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -108,8 +121,8 @@ describe('GameStateManager', () => {
         startParams.pair
       );
 
-      // Should call resetAll (which calls DifficultyManager.startGame)
-      expect(DifficultyManager.startGame).toHaveBeenCalledWith(25);
+      // Should call resetAll and initialize the runtime context
+      expect(LeverageEngine.setLeverage).toHaveBeenCalledWith(25);
 
       // Should start metrics
       expect(MetricsService.startSession).toHaveBeenCalledWith(

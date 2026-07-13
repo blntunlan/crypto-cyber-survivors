@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GameStatus, type GameState } from '../../../types';
 import { createInitialPlayer } from '../../../config/PlayerConfig';
 import type { PhaseInput, TickContext } from '../../../services/gameplay/contracts';
@@ -143,5 +143,23 @@ describe('Gameplay scaffold phases', () => {
 
     expect(result.control).toBe('continue');
     expect(shared.didAttack).toBe(true);
+  });
+
+  it('spawn phase delegates only an injected plan and world state to its executor', () => {
+    const execute = vi.fn(() => ({ executedCount: 2, spentThreat: 2 }));
+    const shared: Record<string, unknown> = {
+      spawnPlan: { intents: [] },
+      spawnExecutor: { execute },
+      spawnWorld: { maxActiveEnemies: 20 },
+    };
+
+    new SpawnPhase().execute({
+      phase: 'spawn',
+      context: createFakeTickContext(),
+      shared: shared as Record<string, never>,
+    });
+
+    expect(execute).toHaveBeenCalledWith(shared.spawnPlan, shared.spawnWorld);
+    expect(shared.spawnExecution).toEqual({ executedCount: 2, spentThreat: 2 });
   });
 });

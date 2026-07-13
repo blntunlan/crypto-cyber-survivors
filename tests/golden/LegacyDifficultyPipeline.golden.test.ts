@@ -1,39 +1,7 @@
-/**
- * Golden test — Katman B: legacy market→difficulty pipeline'ının uçtan uca
- * davranışını kilitler.
- *
- * 120 tick'lik sabit SSE dizisi → MarketSignalPipeline.processTick (GERÇEK
- * ClientIndicatorService + DifficultyManager + difficultyContext +
- * UnifiedDirector; sahte saat 1 Hz ilerler) → tick başına tam
- * MarketPipelineResult. Legacy smoothing (~1 Hz LERP) dahil tüm davranış
- * bu fixture'da kayıt altındadır.
- *
- * Fixture üretimi (bir kez): UPDATE_GOLDEN=1 npx vitest run tests/golden
- */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MarketPosition } from '../../types';
-import {
-  createMarketSignalPipeline,
-  type MarketSignalPipeline,
-  type MarketPipelineResult,
-} from '../../services/market/pipeline/MarketSignalPipeline';
-import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
-import {
-  collectGoldenMismatches,
-  isGoldenUpdateMode,
-  readGoldenFixture,
-  writeGoldenFixture,
-} from './helpers/goldenIo';
-import {
-  generateSseTicks,
-  SSE_TICK_COUNT,
-  type GoldenSseTick,
-} from './helpers/scenarios';
-
-const OUTPUT_FIXTURE = 'legacy-pipeline.golden.json';
-const INPUT_FIXTURE = 'sse-btc-120tick.json';
-const TOLERANCE = 1e-8;
-const LEVERAGE = 10;
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { hashBaselinePayload, readBaselineArtifact } from './helpers/baselineArtifact';
+import { collectGoldenMismatches } from './helpers/goldenIo';
+import { runLegacyPipelineScenarios } from './helpers/legacyBaselineHarness';
 
 const { clock } = vi.hoisted(() => ({ clock: { nowMs: 0 } }));
 
@@ -57,84 +25,48 @@ vi.mock('../../services/combat/PoolManager', () => ({
   },
 }));
 
-function runPipeline(
-  pipeline: MarketSignalPipeline,
-  ticks: GoldenSseTick[]
-): MarketPipelineResult[] {
-  const entryPrice = ticks[0]!.price;
-  const results: MarketPipelineResult[] = [];
+vi.mock('../../services/system/Logger', () => ({
+  Logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
-  for (let i = 0; i < ticks.length; i++) {
-    const tick = ticks[i]!;
-    clock.nowMs = i * 1000; // oyun zamanı: tick başına 1 sn
+const FIXTURE_PATH = 'tests/golden/fixtures/legacy-pipeline.v1.json';
+const TOLERANCE = 1e-8;
 
-    results.push(
-      pipeline.processTick({
-        pair: 'BTC',
-        position: MarketPosition.LONG,
-        price: tick.price,
-        volume: tick.volume,
-        timestamp: tick.timestamp,
-        rawPnl: (tick.price - entryPrice) / entryPrice,
-        level: tick.level,
-        hpPercent: tick.hpPercent,
-        high: tick.high,
-        low: tick.low,
-      })
-    );
-  }
+type LegacyPipelinePayload = {
+  outputHash: string;
+  outputs: ReturnType<typeof runLegacyPipelineScenarios>;
+};
 
-  return results;
-}
-
-function freshRun(ticks: GoldenSseTick[]): MarketPipelineResult[] {
-  clock.nowMs = 0;
-  DifficultyManager.reset(); // difficultyContext + UnifiedDirector dahil
-  const pipeline = createMarketSignalPipeline();
-  pipeline.reset(); // ClientIndicatorService singleton state
-  DifficultyManager.startGame(LEVERAGE);
-  return runPipeline(pipeline, ticks);
-}
-
-describe('Golden — legacy market→difficulty pipeline (end-to-end)', () => {
+describe('Golden — legacy market-to-difficulty pipeline', () => {
   beforeEach(() => {
     clock.nowMs = 0;
   });
 
-  it('input tick series matches the locked input fixture', () => {
-    const ticks = generateSseTicks();
-    expect(ticks).toHaveLength(SSE_TICK_COUNT);
+  it('preserves the indicator projection captured by the legacy baseline', () => {
+    const actual = runLegacyPipelineScenarios(clock);
 
-    if (isGoldenUpdateMode()) {
-      writeGoldenFixture(INPUT_FIXTURE, ticks);
-      return;
-    }
-
-    // Üreteç kayması korumasi: girdi dizisi de kilitli
-    const expected = readGoldenFixture<GoldenSseTick[]>(INPUT_FIXTURE);
-    expect(collectGoldenMismatches(ticks, expected, 0)).toEqual([]);
+    const expected = readBaselineArtifact<LegacyPipelinePayload>(
+      FIXTURE_PATH,
+      'legacy-market-pipeline'
+    ).payload;
+    expect(hashBaselinePayload(expected.outputs)).toBe(expected.outputHash);
+    const expectedIndicators = Object.fromEntries(
+      Object.entries(expected.outputs).map(([scenario, samples]) => [
+        scenario,
+        samples.map(sample => ({ indicators: sample.indicators })),
+      ])
+    ) as unknown as ReturnType<typeof runLegacyPipelineScenarios>;
+    expect(collectGoldenMismatches(actual, expectedIndicators, TOLERANCE)).toEqual([]);
   });
 
-  it('matches the locked golden fixture tick-by-tick', () => {
-    const ticks = generateSseTicks();
-    const actual = freshRun(ticks);
-
-    expect(actual).toHaveLength(SSE_TICK_COUNT);
-
-    if (isGoldenUpdateMode()) {
-      writeGoldenFixture(OUTPUT_FIXTURE, actual);
-      return;
-    }
-
-    const expected = readGoldenFixture<MarketPipelineResult[]>(OUTPUT_FIXTURE);
-    const mismatches = collectGoldenMismatches(actual, expected, TOLERANCE);
-    expect(mismatches).toEqual([]);
-  });
-
-  it('is deterministic across repeated runs in the same process', () => {
-    const ticks = generateSseTicks();
-    const first = freshRun(ticks);
-    const second = freshRun(ticks);
-    expect(collectGoldenMismatches(second, first, 0)).toEqual([]);
+  it('produces the same output hash across repeated runs in one process', () => {
+    expect(hashBaselinePayload(runLegacyPipelineScenarios(clock))).toBe(
+      hashBaselinePayload(runLegacyPipelineScenarios(clock))
+    );
   });
 });

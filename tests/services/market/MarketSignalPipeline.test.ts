@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MarketPosition } from '../../../types';
 import { createMarketSignalPipeline } from '../../../services/market/pipeline/MarketSignalPipeline';
 
-const { clientStateRef, calculateMock, updateMock } = vi.hoisted(() => ({
+const { clientStateRef, updateMock } = vi.hoisted(() => ({
   clientStateRef: { current: null as any },
-  calculateMock: vi.fn(),
   updateMock: vi.fn(),
 }));
 
@@ -17,31 +16,6 @@ vi.mock('../../../services/indicators/ClientIndicatorService', () => ({
     reset: vi.fn(),
   },
 }));
-
-vi.mock('../../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    calculate: (...args: unknown[]) => calculateMock(...args),
-  },
-}));
-
-const difficultyOutput = {
-  total: 2.0,
-  wavePhase: 'active',
-  liquidationWarning: 'NONE',
-  fovReduction: 0,
-  shockActive: false,
-  spawnRate: 1.5,
-  enemySpeed: 1.3,
-  enemyHP: 1.2,
-  enemyDamage: 1.4,
-  enemyVariety: 0.4,
-  chaosLevel: 0.3,
-  mercyFactor: 0,
-  pressureIntensity: 0.7,
-  whaleProbability: 0.1,
-  xpMultiplier: 1.1,
-  gemDropRate: 1.2,
-} as const;
 
 describe('MarketSignalPipeline', () => {
   beforeEach(() => {
@@ -67,10 +41,9 @@ describe('MarketSignalPipeline', () => {
       lastUpdateTime: 0,
       dataPointCount: 0,
     };
-    calculateMock.mockReturnValue(difficultyOutput);
   });
 
-  it('combines indicator and gameplay spawn multipliers', () => {
+  it('returns normalized indicators without a gameplay difficulty output', () => {
     clientStateRef.current = {
       ...clientStateRef.current,
       rsi: 58,
@@ -92,16 +65,12 @@ describe('MarketSignalPipeline', () => {
       price: 50000,
       volume: 1200,
       timestamp: 1000,
-      rawPnl: 0.04,
-      level: 5,
-      hpPercent: 80,
       fallbackAtrPercent: 0.003,
     });
 
-    expect(calculateMock).toHaveBeenCalledWith(0.04, 0.007, 5, 80);
     expect(result.indicators.source).toBe('client');
-    expect(result.gameplay.indicatorSpawnRateMultiplier).toBe(1.2);
-    expect(result.gameplay.spawnRateMultiplier).toBeCloseTo(1.8, 6);
+    expect(result.indicators.spawnRateMultiplier).toBe(1.2);
+    expect(result).not.toHaveProperty('gameplay');
   });
 
   it('falls back to server indicator snapshot when client is not initialized', () => {
@@ -137,9 +106,6 @@ describe('MarketSignalPipeline', () => {
       price: 50100,
       volume: 900,
       timestamp: 2000,
-      rawPnl: -0.02,
-      level: 4,
-      hpPercent: 65,
       fallbackAtrPercent: 0.003,
     });
 
@@ -147,6 +113,6 @@ describe('MarketSignalPipeline', () => {
     expect(result.indicators.rsi).toBe(67);
     expect(result.indicators.rsiState).toBe('OVERBOUGHT');
     expect(result.indicators.atrPercent).toBe(0.004);
-    expect(calculateMock).toHaveBeenCalledWith(-0.02, 0.004, 4, 65);
+    expect(result).not.toHaveProperty('gameplay');
   });
 });

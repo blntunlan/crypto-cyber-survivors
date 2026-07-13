@@ -229,33 +229,10 @@ class LeverageEngineClass {
       1.0
     );
 
-    // --- SPAWN RATE ---
-    // More enemies at high leverage, extra pain when losing
-    const spawnPnlBoost =
-      pnl < 0 ? 1.0 + Math.abs(pnl) * (C.NEGATIVE_PNL_SPAWN_AMP - 1) : 1.0;
-    this.output.spawnRate = clamp(
-      (0.8 + norm * C.SPAWN_BASE_AMP) * spawnPnlBoost,
-      0.5,
-      C.MAX_SPAWN_RATE
-    );
-
-    // --- ENEMY SPEED ---
-    // Moderate scaling — too fast enemies aren't fun
-    this.output.enemySpeed = clamp(
-      0.8 + norm * C.SPEED_BASE_AMP,
-      0.5,
-      C.MAX_ENEMY_SPEED
-    );
-
-    // --- ENEMY HP ---
-    this.output.enemyHP = clamp(0.8 + norm * C.HP_BASE_AMP, 0.5, C.MAX_ENEMY_HP);
-
-    // --- ENEMY DAMAGE ---
-    this.output.enemyDamage = clamp(
-      0.8 + norm * C.ENEMY_DAMAGE_BASE_AMP,
-      0.5,
-      C.MAX_ENEMY_DAMAGE
-    );
+    this.output.spawnRate = 1;
+    this.output.enemySpeed = 1;
+    this.output.enemyHP = 1;
+    this.output.enemyDamage = 1;
 
     // --- GEM VALUE ---
     // Higher leverage = bigger rewards (risk/reward payoff)
@@ -267,13 +244,7 @@ class LeverageEngineClass {
       C.MAX_GEM_VALUE
     );
 
-    // --- DIFFICULTY RAMP SPEED ---
-    // Higher leverage = difficulty escalates faster over time
-    this.output.difficultyRampSpeed = clamp(
-      1.0 + norm * C.RAMP_SPEED_COEFFICIENT * 3.0,
-      1.0,
-      C.MAX_RAMP_SPEED
-    );
+    this.output.difficultyRampSpeed = 1;
 
     this.output.leverageNorm = norm;
 

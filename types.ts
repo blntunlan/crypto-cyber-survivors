@@ -174,6 +174,14 @@ export interface BulletTrailPoint {
   age: number;
 }
 
+export interface BulletTrailBuffer {
+  x: Float32Array;
+  y: Float32Array;
+  age: Float32Array;
+  head: number;
+  count: number;
+}
+
 export type BulletPhase =
   | 'flight'
   | 'return'
@@ -197,7 +205,7 @@ export interface Bullet extends Entity {
   /** Maximum lifetime in ms; bullet despawns once `age >= maxAge`. */
   maxAge?: number;
   /** Ring of past positions for trail rendering. */
-  trail?: BulletTrailPoint[];
+  trail?: BulletTrailBuffer | BulletTrailPoint[];
   /** Spawn origin (used by boomerang to compute return path). */
   spawnX?: number;
   spawnY?: number;

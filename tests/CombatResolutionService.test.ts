@@ -3,7 +3,6 @@ import { CombatResolutionService } from '../services/combat/physics/CombatResolu
 import { type Enemy, type Player } from '../types';
 import { EventBus } from '../services/core/EventBus';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 
 // Mock dependencies
@@ -27,13 +26,6 @@ vi.mock('../services/patterns/decorators/BuffManager', () => ({
 vi.mock('../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(() => ({ particleMultiplier: 1 })),
-  },
-}));
-
-vi.mock('../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    recordKill: vi.fn(),
-    getXpMultiplier: vi.fn(() => 1.0),
   },
 }));
 
@@ -255,18 +247,16 @@ describe('CombatResolutionService', () => {
       }).not.toThrow();
     });
 
-    it('should apply leverage multiplier to gem value', () => {
+    it('keeps gem value independent of the removed legacy multiplier', () => {
       // Mock random to return high value (> 0.5) to ensure non-rare gem
       const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
-      vi.mocked(DifficultyManager.getXpMultiplier).mockReturnValue(2.0); // 100x leverage
       CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer);
 
       const gemArgs = mockPool.getGem.mock.calls[0];
       if (!gemArgs) throw new Error('getGem not called');
       const value = gemArgs[2];
 
-      // Base value is 12 for normal enemies (as per ECONOMY_CONFIG). 12 * 2.0 = 24.
-      expect(value).toBe(24);
+      expect(value).toBe(12);
       randomSpy.mockRestore();
     });
   });

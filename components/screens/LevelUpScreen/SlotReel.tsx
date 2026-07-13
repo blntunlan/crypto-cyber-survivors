@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useMemo, useRef, startTransition } from 'react';
+import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  ALL_CARDS_FLAT,
   type Card,
   TIER_CONFIG,
-  ALL_CARDS_FLAT,
 } from '../../../services/cards/CardSystem';
 import { audio } from '../../../services/audio';
 import { type SlotReelProps } from './types';
 import { SLOT_CONFIG } from './constants';
 import { CardIcon } from './CardIcon';
-
 import { useThemeSize } from '../../../hooks/useThemeSize';
 import { useIsRetro } from '../../../contexts/useTheme';
+import { COLORS } from '../../../constants';
+import { HUD_WAR_ROOM } from '../../../config/HUDWarRoom';
 
 export const SlotReel: React.FC<SlotReelProps> = ({
   finalCard,
@@ -29,9 +30,9 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   const currentCardRef = useRef(finalCard);
 
   const spinCards = useMemo(() => {
-    const pool = ALL_CARDS_FLAT.filter(c => c.id !== finalCard.id);
+    const pool = ALL_CARDS_FLAT.filter(card => card.id !== finalCard.id);
     const cards: Card[] = [];
-    for (let i = 0; i < SLOT_CONFIG.CARDS_PER_SPIN; i++) {
+    for (let index = 0; index < SLOT_CONFIG.CARDS_PER_SPIN; index++) {
       cards.push(pool[Math.floor(Math.random() * pool.length)]!);
     }
     return [...cards, finalCard];
@@ -49,28 +50,24 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     let displayIndex = 0;
     let lastRenderTime = 0;
     let soundTickCount = 0;
-    const SOUND_SKIP = 2; // Play sound every Nth tick during fast spin
+    const soundSkip = 2;
     const minRenderIntervalSource =
       typeof SLOT_CONFIG.MIN_RENDER_INTERVAL === 'number'
         ? SLOT_CONFIG.MIN_RENDER_INTERVAL
         : SLOT_CONFIG.SPIN_INTERVAL;
     const minRenderInterval = Math.max(16, minRenderIntervalSource);
-
     const stopDelay =
       SLOT_CONFIG.SPIN_DURATION +
       stopOrder * SLOT_CONFIG.STOP_DELAY_INCREMENT +
       SLOT_CONFIG.STOP_DELAY_BASE;
-
-    const totalDuration = stopDelay;
     const slowdownStartTime = stopDelay - SLOT_CONFIG.SLOWDOWN_DURATION;
-
     let rafId: number;
 
     const animate = () => {
       const now = Date.now();
       const elapsed = now - startTime;
 
-      if (elapsed >= totalDuration) {
+      if (elapsed >= stopDelay) {
         if (!isDone) {
           isDone = true;
           startTransition(() => {
@@ -83,7 +80,6 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         return;
       }
 
-      // Determine current speed based on phase
       let currentInterval = SLOT_CONFIG.SPIN_INTERVAL;
       if (elapsed > slowdownStartTime) {
         if (!isSlowing) {
@@ -96,13 +92,11 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         currentInterval = SLOT_CONFIG.SPIN_INTERVAL + slowdownProgress * 200;
       }
 
-      // High-precision ticking for sounds and visual swaps
       if (now - lastTickTime > currentInterval) {
         lastTickTime = now;
         displayIndex = (displayIndex + 1) % (spinCards.length - 1);
         soundTickCount++;
 
-        // Throttle React re-renders — update card state at most every minRenderInterval ms
         if (now - lastRenderTime >= minRenderInterval) {
           lastRenderTime = now;
           const card = spinCards[displayIndex];
@@ -114,9 +108,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
           }
         }
 
-        // Throttle sound ticks: every Nth during fast spin, every tick during slowdown
-        if (totalDuration - elapsed > 100) {
-          const shouldPlaySound = isSlowing || soundTickCount % SOUND_SKIP === 0;
+        if (stopDelay - elapsed > 100) {
+          const shouldPlaySound = isSlowing || soundTickCount % soundSkip === 0;
           if (shouldPlaySound) {
             audio.playSlotTick(isSlowing ? 0.8 : 1);
           }
@@ -145,238 +138,172 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   const tierConfig = TIER_CONFIG[displayCard.tier];
   const isSpinning = phase !== 'stopped';
   const isSlowingDown = phase === 'slowing';
-
-  // Selection Pulse Animation
-  const pulseProps =
-    isSelected && isStopped
-      ? {
-          boxShadow: isRetro
-            ? [
-                '4px 4px 0px rgba(0,0,0,0.5)',
-                '8px 8px 0px rgba(0,0,0,0.3)',
-                '4px 4px 0px rgba(0,0,0,0.5)',
-              ]
-            : [
-                `0 0 20px ${tierConfig.glowColor}40, 0 0 0px #ffffff00`,
-                `0 0 40px ${tierConfig.glowColor}80, 0 0 20px #ffffff40`,
-                `0 0 20px ${tierConfig.glowColor}40, 0 0 0px #ffffff00`,
-              ],
-          borderColor: isRetro
-            ? ['#ffffff', '#fbbf24', '#ffffff']
-            : ['#ffffff', tierConfig.borderColor, '#ffffff'],
-        }
-      : {};
+  const reelState = isSelected && isStopped ? 'selected' : isStopped ? 'locked' : phase;
+  const stateColor = isSelected
+    ? COLORS.CASINO_GOLD
+    : isStopped
+      ? HUD_WAR_ROOM.colors.mint
+      : COLORS.ELECTRIC_BLUE;
 
   return (
     <motion.button
+      data-testid="level-up-reel"
+      data-reel-index={reelIndex}
+      data-reel-state={reelState}
       onClick={() => isStopped && onSelect(finalCard)}
       disabled={!isStopped}
-      className={`group relative flex min-h-[100px] w-full flex-row items-center overflow-hidden p-3 text-left md:min-h-[140px] md:p-5
-        ${isRetro ? 'rounded-none' : 'rounded-sm md:rounded-sm'}
-        ${isStopped ? 'cursor-pointer' : 'cursor-wait'} 
-        ${isSelected && isStopped ? 'z-10' : 'z-0'}
-      `}
+      aria-busy={isSpinning}
+      className={`group relative grid min-h-[86px] w-full grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2 overflow-hidden border p-2 text-left transition-colors motion-reduce:transition-none sm:min-h-[108px] sm:grid-cols-[5.75rem_minmax(0,1fr)_auto] sm:gap-4 sm:p-3 ${isRetro ? 'rounded-none border-2' : 'rounded-none'} ${isStopped ? 'cursor-pointer' : 'cursor-wait'} ${isSelected && isStopped ? 'z-10' : 'z-0'}`}
       style={{
-        backgroundColor:
-          isSelected && isStopped ? `${tierConfig.bgColor}ee` : tierConfig.bgColor,
-        borderWidth: isRetro ? '4px' : '2px',
-        borderStyle: 'solid',
-        borderColor: isSelected && isStopped ? '#ffffff' : tierConfig.borderColor,
+        background: isSelected
+          ? `linear-gradient(90deg, ${COLORS.CASINO_GOLD}20, #05090ff5 38%)`
+          : isStopped
+            ? `linear-gradient(90deg, ${tierConfig.bgColor}, #05090ff5 42%)`
+            : 'linear-gradient(90deg, rgba(0,191,255,0.07), rgba(5,9,15,0.96) 40%)',
+        borderColor: isSelected
+          ? COLORS.CASINO_GOLD
+          : isStopped
+            ? `${tierConfig.borderColor}aa`
+            : `${COLORS.ELECTRIC_BLUE}45`,
         boxShadow:
-          !isSelected && isStopped && displayCard.tier !== 'common'
-            ? isRetro
-              ? `4px 4px 0px rgba(0,0,0,0.4)`
-              : `0 0 30px ${tierConfig.glowColor}30`
-            : 'none',
+          isSelected && !isRetro
+            ? `inset 0 0 28px ${COLORS.CASINO_GOLD}12, 0 0 18px ${COLORS.CASINO_GOLD}16`
+            : isStopped && displayCard.tier !== 'common' && !isRetro
+              ? `inset 0 0 22px ${tierConfig.glowColor}12`
+              : isRetro && isSelected
+                ? '4px 4px 0 rgba(0,0,0,0.65)'
+                : 'none',
       }}
-      initial={{ opacity: 0, x: -100 }}
+      initial={{ opacity: 0, x: -28 }}
       animate={{
         opacity: 1,
-        x: isSelected && isStopped ? (isRetro ? 20 : 12) : 0,
-        scale: isSelected && isStopped ? 1.05 : 1,
-        ...pulseProps,
+        x: isSelected && isStopped ? (isRetro ? 4 : 3) : 0,
+        scale: 1,
         transition: {
-          opacity: { duration: 0.3 },
-          x: { type: 'spring', stiffness: 400, damping: 25 },
-          scale: { type: 'spring', stiffness: 400, damping: 25 },
-          boxShadow: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
-          borderColor: { duration: 1, repeat: Infinity, ease: 'linear' },
-          delay: reelIndex * 0.1,
+          opacity: { duration: 0.2, delay: reelIndex * 0.06 },
+          x: { type: 'spring', stiffness: 420, damping: 30 },
         },
       }}
       whileHover={
-        isStopped && !isSelected
-          ? { backgroundColor: `${tierConfig.bgColor}ee`, x: 4 }
-          : {}
+        isStopped && !isSelected ? { x: isRetro ? 2 : 3, borderColor: stateColor } : {}
       }
-      whileTap={isStopped ? { scale: 0.98 } : {}}
+      whileTap={isStopped ? { scale: 0.99 } : {}}
     >
-      {/* Selected Indicator Pointer */}
-      {isSelected && isStopped && (
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="absolute left-1 top-1/2 flex -translate-y-1/2 items-center"
-        >
-          <div
-            className={`h-12 w-1.5 ${isRetro ? 'bg-yellow-400' : 'rounded-full bg-white blur-[1px]'}`}
-          />
-        </motion.div>
-      )}
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-[3px] sm:w-1"
+        style={{
+          backgroundColor: stateColor,
+          boxShadow: isStopped ? `0 0 12px ${stateColor}88` : 'none',
+        }}
+      />
 
-      {/* Left: Icon & Badge */}
-      <div className="mr-4 flex w-20 shrink-0 flex-col items-center justify-center pl-2 md:mr-8 md:w-28">
-        {/* Tier Badge */}
+      <div className="flex min-w-0 flex-col items-center justify-center border-r border-white/5 pr-2 sm:pr-4">
         <motion.div
-          className={`${sizes.tiny} mb-1 text-center font-black uppercase tracking-widest md:mb-2`}
+          className={`${sizes.tiny} mb-1 text-center font-black uppercase tracking-[0.16em]`}
           style={{ color: tierConfig.color }}
-          animate={{
-            opacity: isSpinning ? 0.7 : 1,
-            scale: isSelected && isStopped ? [1, 1.1, 1] : 1,
-          }}
-          transition={{
-            duration: 1,
-            repeat: isSelected && isStopped ? Infinity : 0,
-            ease: 'easeInOut',
-          }}
+          animate={{ opacity: isSpinning ? 0.58 : 1 }}
         >
           {tierConfig.name}
         </motion.div>
 
-        {/* Spinning Icon Container */}
-        <div className="relative flex h-14 w-14 items-center justify-center text-3xl md:h-20 md:w-20 md:text-5xl">
+        <div className="relative flex h-11 w-11 items-center justify-center text-2xl sm:h-14 sm:w-14 sm:text-3xl">
           <motion.div
-            className={`absolute inset-0 ${isRetro ? '' : 'rounded-full blur-xl'}`}
+            className={`absolute inset-1 ${isRetro ? '' : 'blur-lg'}`}
             style={{ backgroundColor: isRetro ? 'transparent' : tierConfig.color }}
-            animate={
-              isRetro
-                ? {}
-                : {
-                    opacity: isSpinning
-                      ? 0.2
-                      : isSelected
-                        ? [0.4, 0.8, 0.4]
-                        : [0.1, 0.4, 0.1],
-                    scale: isSpinning ? 1 : isSelected ? [1, 1.5, 1] : [0.9, 1.2, 0.9],
-                  }
-            }
-            transition={{
-              duration: isStopped ? 1.5 : 0.3,
-              repeat: isStopped ? Infinity : 0,
+            animate={{
+              opacity: isRetro ? 0 : isSpinning ? 0.1 : isSelected ? 0.34 : 0.2,
             }}
+            transition={{ duration: 0.2 }}
           />
-
           <motion.div
             className="relative z-10"
             style={{ mixBlendMode: isRetro ? 'normal' : 'plus-lighter' }}
             animate={{
-              y: isSpinning ? (isSlowingDown ? -5 : 0) : 0,
-              opacity: isSpinning ? 0.8 : 1,
-              scale: isStopped ? (isSelected ? [1, 1.25, 1.15] : [0.8, 1.15, 1]) : 1,
-              rotate: isSelected ? [0, 5, -5, 0] : 0,
+              y: isSlowingDown ? -2 : 0,
+              opacity: isSpinning ? 0.62 : 1,
+              scale: isStopped ? 1 : 0.94,
             }}
-            transition={
-              isStopped
-                ? {
-                    duration: isSelected ? 2 : 0.4,
-                    repeat: isSelected ? Infinity : 0,
-                    ease: 'easeInOut',
-                  }
-                : { duration: 0.15 }
-            }
+            transition={{ duration: 0.15 }}
           >
             <CardIcon
               card={displayCard}
-              color={isSelected ? '#ffffff' : tierConfig.color}
+              color={isSelected ? COLORS.CASINO_GOLD : tierConfig.color}
               scaleDown={true}
             />
           </motion.div>
         </div>
       </div>
 
-      {/* Middle/Right: Info */}
-      <div className="flex flex-1 flex-col justify-center">
+      <div className="flex min-w-0 flex-col justify-center">
         <motion.div
-          className={`${sizes.heading} ${isRetro ? 'font-retro-jersey text-3xl md:text-5xl' : 'font-black tracking-tight'} mb-1 uppercase leading-tight ${isSpinning ? 'truncate whitespace-nowrap' : 'whitespace-normal'}`}
+          className={`${isRetro ? 'font-retro-jersey text-xl sm:text-3xl' : 'font-cyber text-base font-black tracking-tight sm:text-xl'} mb-1 truncate uppercase leading-tight`}
           style={{
-            color: isSelected ? '#ffffff' : tierConfig.color,
+            color: isSelected
+              ? COLORS.CASINO_GOLD
+              : isStopped
+                ? '#ffffff'
+                : tierConfig.color,
             textShadow: isRetro
               ? isSelected
-                ? '2px 2px 0px #000000'
-                : '1px 1px 0px #000000'
+                ? `2px 2px 0 ${COLORS.SLOT_BLACK}`
+                : '1px 1px 0 #000000'
               : 'none',
           }}
           animate={{
-            opacity: isSpinning ? 0.7 : 1,
-            filter: isSpinning ? (isRetro ? 'none' : 'blur(2px)') : 'blur(0px)',
-            textShadow:
-              !isRetro && isSelected
-                ? [
-                    `0 0 10px ${tierConfig.color}`,
-                    `0 0 20px ${tierConfig.color}`,
-                    `0 0 10px ${tierConfig.color}`,
-                  ]
-                : undefined,
+            opacity: isSpinning ? 0.58 : 1,
+            filter: isSpinning && !isRetro ? 'blur(1px)' : 'blur(0px)',
           }}
-          transition={{ duration: 1, repeat: isSelected ? Infinity : 0 }}
+          transition={{ duration: 0.15 }}
         >
           {displayCard.name}
         </motion.div>
 
         <motion.div
-          className={`${sizes.subheading} ${isRetro ? 'font-retro-jersey text-xl md:text-2xl' : 'font-bold'} ${isSelected ? 'text-white' : 'text-slate-300'} leading-tight`}
-          animate={{ opacity: isStopped ? 1 : 0 }}
+          className={`${isRetro ? 'font-retro-text text-[9px] sm:text-xs' : 'text-[11px] font-semibold sm:text-sm'} line-clamp-2 leading-snug ${isSelected ? 'text-white' : 'text-slate-300'}`}
+          animate={{ opacity: isStopped ? 0.92 : 0.42 }}
         >
           {isStopped ? displayCard.description : 'Decrypting slot...'}
         </motion.div>
       </div>
 
-      {/* Far Right: Status/Instruction */}
-      <div className="ml-4 hidden shrink-0 pr-4 md:block">
+      <div className="hidden shrink-0 pr-1 sm:block">
         {isStopped ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{
-              opacity: 1,
-              scale: isSelected ? [1, 1.2, 1] : 1,
-              backgroundColor: isSelected
-                ? isRetro
-                  ? '#fbbf24'
-                  : '#ffffff'
-                : 'rgba(255,255,255,0.1)',
-              color: isSelected ? '#000000' : '#ffffff',
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`${isRetro ? 'font-retro-pixel text-[7px]' : 'font-mono text-[9px]'} border px-2.5 py-1.5 font-black uppercase tracking-[0.12em]`}
+            style={{
+              borderColor: isSelected ? COLORS.CASINO_GOLD : `${stateColor}55`,
+              color: isSelected ? COLORS.CASINO_GOLD : HUD_WAR_ROOM.colors.mint,
+              backgroundColor: isSelected ? `${COLORS.CASINO_GOLD}12` : 'transparent',
             }}
-            transition={{ duration: 0.5, repeat: isSelected ? Infinity : 0 }}
-            className={`border border-white/20 px-4 py-1.5 text-xs font-black uppercase tracking-tighter ${isRetro ? 'rounded-none' : 'rounded-lg shadow-xl'}`}
           >
-            {isSelected ? '★ Select' : 'Select'}
+            {isSelected ? '★ Select' : 'Locked'}
           </motion.div>
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center">
+          <div className="flex h-8 items-center justify-center" aria-hidden="true">
             <div
-              className={`mx-0.5 h-4 w-1 animate-pulse bg-white/20 ${isRetro ? '' : 'rounded-full'}`}
+              className="mx-0.5 h-3 w-0.5 animate-pulse motion-reduce:animate-none"
+              style={{ backgroundColor: `${COLORS.ELECTRIC_BLUE}55` }}
             />
             <div
-              className={`mx-0.5 h-6 w-1 animate-pulse bg-white/40 ${isRetro ? '' : 'rounded-full'}`}
-              style={{ animationDelay: '0.1s' }}
+              className="mx-0.5 h-5 w-0.5 animate-pulse motion-reduce:animate-none"
+              style={{
+                backgroundColor: `${COLORS.ELECTRIC_BLUE}aa`,
+                animationDelay: '0.1s',
+              }}
             />
             <div
-              className={`mx-0.5 h-4 w-1 animate-pulse bg-white/20 ${isRetro ? '' : 'rounded-full'}`}
-              style={{ animationDelay: '0.2s' }}
+              className="mx-0.5 h-3 w-0.5 animate-pulse motion-reduce:animate-none"
+              style={{
+                backgroundColor: `${COLORS.ELECTRIC_BLUE}55`,
+                animationDelay: '0.2s',
+              }}
             />
           </div>
         )}
       </div>
-
-      {/* Retro Highlight Overlay */}
-      {isSelected && isStopped && isRetro && (
-        <motion.div
-          className="pointer-events-none absolute inset-0"
-          animate={{ opacity: [0, 0.1, 0] }}
-          transition={{ duration: 0.2, repeat: Infinity }}
-          style={{ backgroundColor: '#ffffff' }}
-        />
-      )}
     </motion.button>
   );
 };

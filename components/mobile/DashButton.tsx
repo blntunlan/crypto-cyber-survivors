@@ -9,6 +9,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { EventBus } from '../../services/core/EventBus';
 import { useTheme } from '../../contexts/useTheme';
 import { Zap } from 'lucide-react';
+import { GAME_ENGINE } from '../../constants';
 
 interface DashButtonProps {
   /** Called when dash is triggered (press start) */
@@ -17,6 +18,8 @@ interface DashButtonProps {
   onDashRelease?: () => void;
   /** Cooldown duration in milliseconds */
   cooldownMs?: number;
+  /** Window after the first dash where a second touch can queue double dash */
+  doubleDashWindowMs?: number;
   /** Button size in pixels */
   size?: number;
   /** Enable haptic feedback */
@@ -29,6 +32,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
   onDash,
   onDashRelease,
   cooldownMs = 500,
+  doubleDashWindowMs = GAME_ENGINE.DASH_DURATION_MOBILE,
   size = 80,
   hapticFeedback = true,
   disabled = false,
@@ -36,11 +40,14 @@ export const DashButton: React.FC<DashButtonProps> = ({
   const { theme, isRetro } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
   const [isReady, setIsReady] = useState(!disabled);
+  const [isDoubleDashReady, setIsDoubleDashReady] = useState(false);
 
   const cooldownEndRef = useRef<number>(0);
   const totalCooldownDurationRef = useRef(cooldownMs);
   const cooldownOverlayRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number>(0);
+  const doubleDashWindowEndRef = useRef(0);
+  const doubleDashConsumedRef = useRef(false);
 
   const accentColor = theme.colors.primary;
   const accentColorRgb = theme.colors.primary.startsWith('#')
@@ -62,7 +69,13 @@ export const DashButton: React.FC<DashButtonProps> = ({
         cooldownOverlayRef.current.style.height = '0%';
       }
       setIsReady(!disabled);
+      setIsDoubleDashReady(false);
       return; // Stop animation loop
+    }
+
+    if (doubleDashWindowEndRef.current > 0 && now > doubleDashWindowEndRef.current) {
+      doubleDashWindowEndRef.current = 0;
+      setIsDoubleDashReady(false);
     }
 
     const percent =
@@ -100,23 +113,45 @@ export const DashButton: React.FC<DashButtonProps> = ({
   // Listen for global engine dash events to sync cooldown visuals
   useEffect(() => {
     const unsub = EventBus.on('playerDash', data => {
+      if (data.isDoubleDash) {
+        doubleDashWindowEndRef.current = 0;
+        doubleDashConsumedRef.current = true;
+        setIsDoubleDashReady(false);
+      } else {
+        doubleDashWindowEndRef.current =
+          performance.now() + Math.max(data.duration, doubleDashWindowMs);
+        doubleDashConsumedRef.current = false;
+        setIsDoubleDashReady(true);
+      }
       startCooldown(data.cooldown);
     });
     return () => {
       unsub();
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [startCooldown]);
+  }, [doubleDashWindowMs, startCooldown]);
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       e.preventDefault();
 
-      if (disabled || !isReady) return;
+      const canQueueDoubleDash =
+        !doubleDashConsumedRef.current &&
+        doubleDashWindowEndRef.current > 0 &&
+        performance.now() <= doubleDashWindowEndRef.current;
+
+      if (disabled || (!isReady && !canQueueDoubleDash)) return;
+
+      if (canQueueDoubleDash) {
+        doubleDashConsumedRef.current = true;
+        doubleDashWindowEndRef.current = 0;
+        setIsDoubleDashReady(false);
+      }
 
       setIsPressed(true);
-      // Visual fallback
-      startCooldown(cooldownMs);
+      if (!canQueueDoubleDash) {
+        startCooldown(cooldownMs);
+      }
       onDash();
 
       // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
@@ -143,13 +178,13 @@ export const DashButton: React.FC<DashButtonProps> = ({
     borderRadius: isRetro ? '0' : '50%',
     background: isPressed
       ? `radial-gradient(circle, rgba(${accentColorRgb}, 0.8) 0%, rgba(${accentColorRgb}, 0.4) 100%)`
-      : isReady
+      : isReady || isDoubleDashReady
         ? 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)'
         : 'radial-gradient(circle, rgba(100, 100, 100, 0.3) 0%, rgba(100, 100, 100, 0.1) 100%)',
-    border: `${isRetro ? '4px' : '3px'} solid ${isReady ? accentColor : 'rgba(100, 100, 100, 0.4)'}`,
+    border: `${isRetro ? '4px' : '3px'} solid ${isReady || isDoubleDashReady ? accentColor : 'rgba(100, 100, 100, 0.4)'}`,
     boxShadow: isPressed
       ? `0 0 30px rgba(${accentColorRgb}, 0.6), inset 0 0 20px rgba(${accentColorRgb}, 0.3)`
-      : isReady
+      : isReady || isDoubleDashReady
         ? `0 0 15px rgba(${accentColorRgb}, 0.3)`
         : 'none',
     display: 'flex',
@@ -157,7 +192,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
     alignItems: 'center',
     touchAction: 'none',
     userSelect: 'none',
-    cursor: isReady ? 'pointer' : 'not-allowed',
+    cursor: isReady || isDoubleDashReady ? 'pointer' : 'not-allowed',
     transition: 'box-shadow 0.1s ease, background 0.1s ease',
     overflow: 'hidden',
   };
@@ -165,7 +200,12 @@ export const DashButton: React.FC<DashButtonProps> = ({
   const iconStyle: React.CSSProperties = {
     width: size * 0.5,
     height: size * 0.5,
-    color: isReady ? (isRetro ? '#ffffff' : accentColor) : 'rgba(255, 255, 255, 0.4)',
+    color:
+      isReady || isDoubleDashReady
+        ? isRetro
+          ? '#ffffff'
+          : accentColor
+        : 'rgba(255, 255, 255, 0.4)',
     pointerEvents: 'none',
     zIndex: 1,
     fill: isPressed ? 'currentColor' : 'none',
@@ -188,7 +228,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
     left: '50%',
     transform: 'translateX(-50%)',
     fontSize: isRetro ? 8 : 10,
-    color: isReady ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+    color: isReady || isDoubleDashReady ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     fontFamily: isRetro ? '"Pixelify Sans", cursive' : 'inherit',
     fontWeight: 'bold',

@@ -24,8 +24,8 @@ import {
 import { GameMode, type CycleCompleteData } from '../types/gameMode';
 import { CoinService } from '../services/gameplay/CoinService';
 import { GameSessionService } from '../services/auth/GameSessionService';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { GameStateMachine } from '../services/core/GameStateMachine';
+import { TimeService } from '../services/core/TimeService';
 import { ExperienceService } from '../services/gameplay/ExperienceService';
 import { PerformanceTracker } from '../services/analytics/PerformanceTracker';
 import { DeviceProfiler } from '../services/analytics/DeviceProfiler';
@@ -59,6 +59,10 @@ export interface PauseMenuStats {
   maxStreak: number;
   totalBonusXp: number;
 }
+
+type EndRunOptions = {
+  skipServerSubmission?: boolean;
+};
 
 interface UseGameFlowControllerResult {
   upgradeChoices: Card[];
@@ -176,7 +180,8 @@ export const useGameFlowController = ({
   const handleGameOver = useCallback(
     async (
       reason: GameEndReason = GameEndReason.DEATH,
-      rewardPayload?: RewardPayload
+      rewardPayload?: RewardPayload,
+      options: EndRunOptions = {}
     ) => {
       if (isGameOverProcessingRef.current) return;
       isGameOverProcessingRef.current = true;
@@ -187,12 +192,32 @@ export const useGameFlowController = ({
       }
 
       frozenPnlRef.current = marketDataRef.current.pnl;
-      DifficultyManager.reset();
+      const survivalSeconds = TimeService.getGameTimeSeconds();
+      difficultyContext.reset();
 
       // Challenge: end tracking synchronously BEFORE async session submission.
       // If onRunEnd runs after the await, a rapid retry can start a new run whose
       // tracking gets killed by this stale call. (race condition fix)
       ChallengeService.onRunEnd();
+
+      if (options.skipServerSubmission) return;
+
+      if (reason === GameEndReason.DEATH || reason === GameEndReason.LIQUIDATION) {
+        const failureType =
+          reason === GameEndReason.LIQUIDATION ? 'liquidation' : 'death';
+        void GameSessionService.recordCashOutFailure(
+          failureType,
+          `failure:${failureType}:${survivalSeconds}`
+        )
+          .catch(error => {
+            Logger.error('[GameFlow] Authoritative failure settlement failed', error);
+          })
+          .finally(() => {
+            GameSessionService.clearSession();
+            isGameOverProcessingRef.current = false;
+          });
+        return;
+      }
 
       const tracker = PerformanceTracker.getInstance();
       tracker.stop();
@@ -246,8 +271,7 @@ export const useGameFlowController = ({
               level: rewardPayload?.level ?? playerRef.current.level,
               kills: rewardPayload?.kills ?? runStatsTotalKills,
               survivalTimeMs:
-                (rewardPayload?.survivalSeconds ??
-                  DifficultyManager.getTotalElapsedSeconds()) * 1000,
+                (rewardPayload?.survivalSeconds ?? survivalSeconds) * 1000,
               entryPrice,
               exitPrice: md.price,
               pnlPercent: md.pnl,
@@ -372,45 +396,40 @@ export const useGameFlowController = ({
   const handleCashOut = useCallback(async () => {
     if (!cycleData) return;
 
-    const maxStreak = ComboSystem.getMaxStreak();
-    const rewards = CoinService.calculateCycleReward({
-      survivalTimeSeconds: cycleData.survivalTimeSeconds,
-      kills: cycleData.totalKills,
-      level: cycleData.level,
-      pnl: cycleData.effectivePnl,
-      maxStreak,
+    let settled = false;
+    try {
+      const quote = await GameSessionService.requestCashOutQuote('RECOVERY');
+      const settlement = await GameSessionService.decideCashOut(
+        quote.quote.quoteId,
+        quote.signature,
+        quote.safeExitOnly ? 'safe_exit' : 'accept',
+        `cash-out:${quote.quote.quoteId}`
+      );
+      if (settlement.state !== 'settled') {
+        throw new Error('CASH_OUT_NOT_SETTLED');
+      }
+      settled = true;
+    } catch (error) {
+      Logger.error('[GameFlow] Authoritative cash-out failed', error);
+    }
+
+    if (!settled) {
+      setCycleData(null);
+      GameStateMachine.transition(GameStatus.PLAYING);
+      return;
+    }
+
+    GameSessionService.clearSession();
+    difficultyContext.reset();
+    await handleGameOver(GameEndReason.CYCLE_COMPLETE, undefined, {
+      skipServerSubmission: true,
     });
-
-    const rewardPayload: RewardPayload = {
-      kills: cycleData.totalKills,
-      level: cycleData.level,
-      survivalSeconds: cycleData.survivalTimeSeconds,
-      pnlPercent: cycleData.effectivePnl,
-      maxStreak,
-      exitType: 'cycle_complete',
-      portalType: null,
-      rawCoins: rewards.killBonus,
-      enemyDropCoins: 0,
-      totalCoins: rewards.total,
-      breakdown: {
-        base: rewards.base,
-        survival: rewards.base,
-        kill: rewards.killBonus,
-        level: rewards.levelBonus,
-        market: rewards.marketBonus,
-        streak: rewards.streakBonus,
-        portal: rewards.portalBonus,
-      },
-    };
-
-    DifficultyManager.reset();
-    await handleGameOver(GameEndReason.CYCLE_COMPLETE, rewardPayload);
   }, [cycleData, handleGameOver]);
 
   const handleContinue = useCallback(() => {
     if (cycleData) {
       // Reset per-cycle state before applying new cycle factor to prevent compounding
-      DifficultyManager.resetForCycleContinue();
+      difficultyContext.resetForCycleContinue();
       ComboSystem.resetCombo();
       // Apply difficulty multiplier for continuing (risk/reward)
       const cycleFactor = cycleData.continueMultiplier;
@@ -433,7 +452,7 @@ export const useGameFlowController = ({
     lastProcessedCycleRef.current = 0;
     setCycleData(null);
     setUpgradeChoices([]);
-    DifficultyManager.reset();
+    difficultyContext.reset();
   }, []);
 
   const pauseMenuStats = useMemo<PauseMenuStats>(

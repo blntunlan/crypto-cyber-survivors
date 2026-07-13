@@ -1,11 +1,26 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MACDCalculator } from '../../../services/indicators/MACDCalculator';
+import { EventBus } from '../../../services/core/EventBus';
 
 describe('MACDCalculator', () => {
   let calculator: MACDCalculator;
 
   beforeEach(() => {
     calculator = new MACDCalculator();
+  });
+
+  afterEach(() => {
+    calculator.dispose();
+  });
+
+  it('unsubscribes from gameReset exactly once when disposed', () => {
+    const resetSpy = vi.spyOn(calculator, 'reset');
+
+    calculator.dispose();
+    calculator.dispose();
+    EventBus.emit('gameReset', {});
+
+    expect(resetSpy).toHaveBeenCalledTimes(1);
   });
 
   it('should initialize with zeros', () => {

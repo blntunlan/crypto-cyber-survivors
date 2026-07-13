@@ -7,6 +7,7 @@
  * byte-identical input sequences.
  */
 import type { UnifiedInputs } from '../../../services/difficulty/UnifiedDirector';
+import { BASELINE_SOURCE_REVISION, createBaselineArtifact } from './baselineArtifact';
 
 // ---------------------------------------------------------------------------
 // Katman A — UnifiedDirector rule pipeline scenarios (4 × 60 steps)
@@ -162,3 +163,126 @@ export function generateSseTicks(): GoldenSseTick[] {
   }
   return ticks;
 }
+
+// ---------------------------------------------------------------------------
+// CS-DIR-01 — Canonical recorded market scenarios
+// ---------------------------------------------------------------------------
+
+const MARKET_SCENARIO_FRAME_COUNT = 48;
+const MARKET_SCENARIO_BASE_PRICE = 50_000;
+const MARKET_SCENARIO_START_TIMESTAMP = 1_000_000;
+const MARKET_SCENARIO_INTERVAL_MS = 1_000;
+
+export type MarketConnectionState = 'connected' | 'stale';
+
+export type MarketScenarioName =
+  | 'calm'
+  | 'trend-up'
+  | 'trend-down'
+  | 'volume-surge'
+  | 'volatility-spike'
+  | 'stale-reconnect';
+
+export type MarketScenarioFrame = {
+  sequence: number;
+  timestamp: number;
+  price: number;
+  volume: number;
+  high: number;
+  low: number;
+  connection: MarketConnectionState;
+  rawPnl: number;
+  level: number;
+  hpPercent: number;
+};
+
+export type MarketScenario = {
+  name: MarketScenarioName;
+  frames: readonly MarketScenarioFrame[];
+};
+
+export type MarketScenarioPayload = {
+  scenarios: readonly MarketScenario[];
+};
+
+type PriceAt = (step: number) => number;
+type VolumeAt = (step: number) => number;
+
+const connectionAt = (name: MarketScenarioName, step: number): MarketConnectionState =>
+  name === 'stale-reconnect' && step >= 18 && step < 24 ? 'stale' : 'connected';
+
+const sequenceAt = (name: MarketScenarioName, step: number): number =>
+  name === 'stale-reconnect' && step >= 24 ? 10_000 + step - 24 : step + 1;
+
+const createMarketScenario = (
+  name: MarketScenarioName,
+  priceAt: PriceAt,
+  volumeAt: VolumeAt
+): MarketScenario => {
+  const frames: MarketScenarioFrame[] = [];
+
+  for (let step = 0; step < MARKET_SCENARIO_FRAME_COUNT; step += 1) {
+    const price = priceAt(step);
+    const spikeWindow = name === 'volatility-spike' && step >= 18 && step < 30;
+    const spreadPercent = spikeWindow ? 0.035 : 0.001;
+
+    frames.push({
+      sequence: sequenceAt(name, step),
+      timestamp: MARKET_SCENARIO_START_TIMESTAMP + step * MARKET_SCENARIO_INTERVAL_MS,
+      price,
+      volume: volumeAt(step),
+      high: price * (1 + spreadPercent),
+      low: price * (1 - spreadPercent),
+      connection: connectionAt(name, step),
+      rawPnl: (price - MARKET_SCENARIO_BASE_PRICE) / MARKET_SCENARIO_BASE_PRICE,
+      level: 1 + Math.floor(step / 12),
+      hpPercent: 0.85,
+    });
+  }
+
+  return { name, frames };
+};
+
+export const MARKET_SCENARIOS: readonly MarketScenario[] = [
+  createMarketScenario(
+    'calm',
+    step => MARKET_SCENARIO_BASE_PRICE + step * 2,
+    () => 800
+  ),
+  createMarketScenario(
+    'trend-up',
+    step => MARKET_SCENARIO_BASE_PRICE * (1 + step * 0.0015),
+    () => 800
+  ),
+  createMarketScenario(
+    'trend-down',
+    step => MARKET_SCENARIO_BASE_PRICE * (1 - step * 0.0015),
+    () => 800
+  ),
+  createMarketScenario(
+    'volume-surge',
+    step => MARKET_SCENARIO_BASE_PRICE + step * 10,
+    step => (step >= 20 && step < 28 ? 3_200 : 800)
+  ),
+  createMarketScenario(
+    'volatility-spike',
+    step =>
+      step >= 18 && step < 30
+        ? MARKET_SCENARIO_BASE_PRICE + (step % 2 === 0 ? 900 : -750)
+        : MARKET_SCENARIO_BASE_PRICE + step * 5,
+    () => 800
+  ),
+  createMarketScenario(
+    'stale-reconnect',
+    step => MARKET_SCENARIO_BASE_PRICE + step * 5,
+    () => 800
+  ),
+];
+
+export const createMarketScenarioArtifact = () =>
+  createBaselineArtifact<MarketScenarioPayload>({
+    fixtureId: 'market-scenarios.v1',
+    producer: 'market-scenarios',
+    sourceRevision: BASELINE_SOURCE_REVISION,
+    payload: { scenarios: MARKET_SCENARIOS },
+  });

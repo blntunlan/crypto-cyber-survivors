@@ -41,6 +41,18 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
       return;
     }
 
+    const entryRows = await db
+      .select({ price: priceHistory.price })
+      .from(priceHistory)
+      .where(eq(priceHistory.pair, pair))
+      .orderBy(sql`${priceHistory.timestamp} DESC`)
+      .limit(1);
+    const canonicalEntryPrice = entryRows[0]?.price;
+    if (!canonicalEntryPrice || canonicalEntryPrice <= 0) {
+      res.status(503).json({ error: 'Canonical entry price unavailable' });
+      return;
+    }
+
     const sessionSecret = crypto.randomBytes(32).toString('hex');
 
     const rows = await db
@@ -50,6 +62,7 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
         pair,
         position,
         leverage,
+        entryPrice: canonicalEntryPrice,
         sessionSecret,
       })
       .returning({

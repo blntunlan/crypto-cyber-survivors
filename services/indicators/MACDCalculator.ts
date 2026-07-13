@@ -40,12 +40,20 @@ export class MACDCalculator {
   private prevSignalEma: number | null = null;
 
   private currentResult: MACDResult = { macd: 0, signal: 0, histogram: 0, value: 0 };
+  private gameResetUnsubscribe: (() => void) | null = null;
 
   constructor(config: MACDConfig = DEFAULT_MACD_CONFIG) {
     this.config = config;
 
-    // Subscribe to game reset
-    EventBus.on('gameReset', () => this.reset());
+    this.gameResetUnsubscribe = EventBus.on('gameReset', () => this.reset());
+  }
+
+  dispose(): void {
+    if (!this.gameResetUnsubscribe) return;
+
+    this.gameResetUnsubscribe();
+    this.gameResetUnsubscribe = null;
+    this.reset();
   }
 
   /**

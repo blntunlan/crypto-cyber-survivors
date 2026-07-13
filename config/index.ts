@@ -46,6 +46,11 @@ export {
   MARKET_RUNTIME_MODES,
 } from './marketRuntime';
 export type { MarketRuntimeMode, MarketRuntimeConfig } from './marketRuntime';
+export { getDirectorRuntimeConfig } from './directorRuntime';
+export type {
+  DirectorRuntimeMode,
+  DirectorRuntimePlan,
+} from '../services/director/DirectorRuntimeMode';
 
 // =============================================================================
 // AUTO-REGISTER configs with ConfigRegistry (debug/admin tooling only)

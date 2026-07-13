@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { RSICalculator } from '../../services/indicators/RSICalculator';
 import { ATRCalculator } from '../../services/indicators/ATRCalculator';
 import { SYNC_CONFIG } from '../../types/indicators';
@@ -15,6 +15,10 @@ describe('Indicator Synchronization & Determinism', () => {
   beforeEach(() => {
     rsi = new RSICalculator(); // Default 14 period
     atr = new ATRCalculator(); // Default 14 period
+  });
+
+  afterEach(() => {
+    rsi.dispose();
   });
 
   it('RSICalculator should produce deterministic values across 14-period window', () => {

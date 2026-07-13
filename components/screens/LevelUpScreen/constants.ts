@@ -9,6 +9,22 @@ export const SLOT_CONFIG = {
   MIN_RENDER_INTERVAL: 32, // Clamp UI updates to ~30fps so spins feel fluid
 };
 
+export function createRandomStopOrder(
+  choiceCount: number,
+  random: () => number = Math.random
+): number[] {
+  const order = Array.from({ length: choiceCount }, (_, index) => index);
+
+  for (let index = order.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const current = order[index];
+    order[index] = order[swapIndex]!;
+    order[swapIndex] = current!;
+  }
+
+  return order;
+}
+
 // Animation variants
 export const containerVariants = {
   hidden: { opacity: 0 },

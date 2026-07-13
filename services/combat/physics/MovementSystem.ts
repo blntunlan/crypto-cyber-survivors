@@ -6,6 +6,7 @@ import { type PerformanceConfig } from '../../../types/DeviceProfile';
 import { GAME_ENGINE, SEPARATION } from '../../../constants';
 import { type IMovementSystem } from '../../interfaces/IPhysicsSubsystems';
 import { enemyGrid } from '../SpatialGrid';
+import { createBulletTrailBuffer, updateBulletTrailBuffer } from '../BulletTrailBuffer';
 
 /**
  * Phase 1 VFX — QuantumBullet trail tunables.
@@ -18,7 +19,6 @@ import { enemyGrid } from '../SpatialGrid';
 const QUANTUM_TRAIL_LIFE_MS = 180;
 const SPREAD_TRAIL_LIFE_MS = 200;
 const BOOMERANG_TRAIL_LIFE_MS = 380;
-const TRAIL_MAX_POINTS = 16;
 /** 1000ms / 60fps ≈ 16.667ms per engine-normalized frame. */
 const QUANTUM_TRAIL_MS_PER_FRAME = 1000 / 60;
 const BOOMERANG_CURVE_AMOUNT = 40;
@@ -327,21 +327,12 @@ export class MovementSystem implements IMovementSystem {
     if (trailLifeMs <= 0) return;
 
     let trail = bullet.trail;
-    if (trail === undefined) {
-      trail = [];
+    if (trail === undefined || Array.isArray(trail)) {
+      trail = createBulletTrailBuffer();
       bullet.trail = trail;
     }
 
-    for (let i = 0; i < trail.length; i++) {
-      trail[i]!.age += dtMs;
-    }
-    while (trail.length > 0 && trail[0]!.age > trailLifeMs) {
-      trail.shift();
-    }
-    while (trail.length >= TRAIL_MAX_POINTS) {
-      trail.shift();
-    }
-    trail.push({ x: bullet.x, y: bullet.y, age: 0 });
+    updateBulletTrailBuffer(trail, bullet.x, bullet.y, dtMs, trailLifeMs);
   }
 
   private updateOrbitBullet(bullet: Bullet, dtMs: number, player: Player): void {

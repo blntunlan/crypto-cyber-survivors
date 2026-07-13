@@ -4,18 +4,33 @@
  * Tests the RSI calculation with hysteresis for the market indicator system.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   createRSICalculator,
   type RSICalculator,
 } from '../../services/indicators/RSICalculator';
 import { DEFAULT_RSI_CONFIG } from '../../types/indicators';
+import { EventBus } from '../../services/core/EventBus';
 
 describe('RSICalculator', () => {
   let calculator: RSICalculator;
 
   beforeEach(() => {
     calculator = createRSICalculator();
+  });
+
+  afterEach(() => {
+    calculator.dispose();
+  });
+
+  it('unsubscribes from gameReset exactly once when disposed', () => {
+    const resetSpy = vi.spyOn(calculator, 'reset');
+
+    calculator.dispose();
+    calculator.dispose();
+    EventBus.emit('gameReset', {});
+
+    expect(resetSpy).toHaveBeenCalledTimes(1);
   });
 
   describe('Initialization', () => {
@@ -288,6 +303,7 @@ describe('RSICalculator', () => {
 
       customCalc.update(114);
       expect(customCalc.isInitialized()).toBe(true);
+      customCalc.dispose();
     });
 
     it('should use custom thresholds', () => {
@@ -309,6 +325,7 @@ describe('RSICalculator', () => {
       if (rsi > 20 && rsi < 80) {
         expect(customCalc.getState()).toBe('NEUTRAL');
       }
+      customCalc.dispose();
     });
   });
 });

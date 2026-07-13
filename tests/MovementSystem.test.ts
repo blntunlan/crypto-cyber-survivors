@@ -241,6 +241,37 @@ describe('MovementSystem', () => {
   });
 
   describe('Bullet Movement', () => {
+    it('reuses a fixed trail buffer across updates', () => {
+      const bullet = createMockBullet({
+        x: 100,
+        y: 100,
+        vx: 0,
+        vy: 0,
+        weaponId: 'quantum_bullet',
+      });
+      pool.activeBullets.push(bullet);
+
+      movementSystem.update(pool, 1, 800, 600, createMockPlayer());
+      const trail = bullet.trail as unknown as {
+        x: Float32Array;
+        y: Float32Array;
+        age: Float32Array;
+        count: number;
+      };
+      const xBuffer = trail.x;
+      const yBuffer = trail.y;
+      const ageBuffer = trail.age;
+
+      for (let i = 0; i < 100; i++) {
+        movementSystem.update(pool, 1, 800, 600, createMockPlayer());
+      }
+
+      expect(trail.x).toBe(xBuffer);
+      expect(trail.y).toBe(yBuffer);
+      expect(trail.age).toBe(ageBuffer);
+      expect(trail.count).toBeLessThanOrEqual(16);
+    });
+
     it('should move bullets based on velocity', () => {
       const bullet = createMockBullet({ x: 100, y: 100, vx: 10, vy: 5 });
       pool.activeBullets.push(bullet);

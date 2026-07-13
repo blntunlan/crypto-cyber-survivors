@@ -63,8 +63,14 @@ const formatCompactPrice = (price: number): string => {
   return `$${Math.round(price).toLocaleString('en-US')}`;
 };
 
+const formatFullPrice = (price: number): string =>
+  `$${price.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
 const formatDisplayPrice = (price: number, status: FeedStatus): string =>
-  status === 'connecting' ? 'SYNCING' : `$${Math.round(price).toLocaleString('en-US')}`;
+  status === 'connecting' ? 'SYNCING' : formatFullPrice(price);
 
 const formatPercent = (value: number): string =>
   `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -397,12 +403,8 @@ export const LandingPriceFeed: React.FC = () => {
   }, []);
 
   const latestPoint = getLatestPoint(points);
-  const previousPoint = getPreviousPoint(points);
-  const priceChangePercent =
-    previousPoint.price > 0
-      ? ((latestPoint.price - previousPoint.price) / previousPoint.price) * 100
-      : 0;
   const chartModel = useMemo(() => buildChartModel(points), [points]);
+  const priceChangePercent = chartModel.windowChangePercent;
   const priceOrbCoordinate =
     chartModel.coordinates[chartModel.coordinates.length - 1] ?? null;
   const priceTrailCoordinates = chartModel.coordinates.slice(-(TRAIL_LENGTH + 1), -1);
@@ -561,7 +563,7 @@ export const LandingPriceFeed: React.FC = () => {
                     : 'border-[#b22222]/40 bg-[#b22222]/15 text-[#ff7777]'
                 }`}
               >
-                WINDOW {formatPercent(chartModel.windowChangePercent)}
+                24H {formatPercent(chartModel.windowChangePercent)}
               </span>
               <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-600">
                 VOL
@@ -645,7 +647,7 @@ export const LandingPriceFeed: React.FC = () => {
                   transition: glideTransition,
                 }}
               >
-                {formatAxisPrice(latestPoint.price)}
+                {formatDisplayPrice(latestPoint.price, feedStatus)}
               </span>
             </div>
           </div>

@@ -563,12 +563,6 @@ body {
   height: 100%;
   overflow: hidden;
   position: relative;
-
-  /* Safe area padding for notched devices */
-  padding-top: var(--sat);
-  padding-bottom: var(--sab);
-  padding-left: var(--sal);
-  padding-right: var(--sar);
 }
 
 canvas {

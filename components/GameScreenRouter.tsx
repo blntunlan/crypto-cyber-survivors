@@ -34,7 +34,7 @@ import { MarketDisconnectedScreen } from './screens/MarketDisconnectedScreen';
 import { LevelUpScreen } from './screens/LevelUpScreen/LevelUpScreen';
 import { NotificationSystem } from './hud/NotificationSystem';
 import { UserSessionService } from '../services/auth/UserSessionService';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 import { CoinService } from '../services/gameplay/CoinService';
 import { useDevice } from '../hooks/useDevice';
 import { OverlayBackButton } from './ui/OverlayChrome';
@@ -230,7 +230,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
             <GameOverScreen
               level={playerRef.current.level}
               finalPnl={frozenPnlRef.current}
-              survivalTime={DifficultyManager.getTotalElapsedSeconds()}
+              survivalTime={TimeService.getGameTimeSeconds()}
               kills={pauseMenuStats.totalKills}
               onRestart={resetGame}
               coinsEarned={CoinService.getSessionCoins()}

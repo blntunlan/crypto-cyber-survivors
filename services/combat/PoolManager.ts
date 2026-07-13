@@ -27,6 +27,7 @@ import { audio } from '../audio';
 import { type EnemyId } from '../../config/EnemyRegistry';
 import { POOL } from '../../constants';
 import { RESET_PRIORITY, ResetOrchestrator } from '../core/ResetOrchestrator';
+import { resetBulletTrailBuffer } from './BulletTrailBuffer';
 
 /**
  * ObjectPool - A generic, high-performance object pooling container.
@@ -539,9 +540,11 @@ export class PoolManager implements IPoolManager {
         obj.age = undefined;
         obj.maxAge = undefined;
         if (obj.trail !== undefined) {
-          // Preserve the existing array (avoid GC churn) but drop contents.
-          obj.trail.length = 0;
-          obj.trail = undefined;
+          if (Array.isArray(obj.trail)) {
+            obj.trail.length = 0;
+          } else {
+            resetBulletTrailBuffer(obj.trail);
+          }
         }
         obj.spawnX = undefined;
         obj.spawnY = undefined;

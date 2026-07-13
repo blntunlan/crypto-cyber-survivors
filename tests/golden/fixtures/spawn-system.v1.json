@@ -1,0 +1,2232 @@
+{
+  "fixtureId": "spawn-system.v1",
+  "producer": "spawn-system",
+  "sourceRevision": "1ce825ab6045a63636422556a7fd5621df5a0328",
+  "payload": {
+    "outputHash": "2b78f794436267ee6327753d5c24c51b306732b1ae62ae582d1e9dfcb976fb7d",
+    "scenarios": {
+      "calm": [
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ],
+      "trend-up": [
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ],
+      "trend-down": [
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "mev_bot",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ],
+      "volume-surge": [
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ],
+      "volatility-spike": [
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "liquidator",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ],
+      "stale-reconnect": [
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bull",
+          "x": 900,
+          "y": 60,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "bear",
+          "x": -100,
+          "y": 540,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "rugpull",
+          "x": 560,
+          "y": 700,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        },
+        {
+          "type": "pumpdump",
+          "x": 240,
+          "y": -100,
+          "difficulty": 1.25,
+          "side": "LONG",
+          "isElite": false
+        }
+      ]
+    }
+  },
+  "schemaVersion": 1,
+  "contentHash": "7448af8c8569c9709d1ef5c60c0ec7f30be365394ab7a35aa3280686167a42cd"
+}

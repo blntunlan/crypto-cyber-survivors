@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '../test-utils';
+import { render, screen, waitFor, fireEvent, within } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
@@ -54,11 +54,13 @@ vi.mock('../../services/audio', () => ({
     playCoinShower: vi.fn(),
     playMultiplierChime: vi.fn(),
     playNearMiss: vi.fn(),
+    playButton: vi.fn(),
   },
 }));
 
 import { LevelUpScreen } from '../../components/screens/LevelUpScreen';
 import { type Card } from '../../services/cards/CardSystem';
+import { audio } from '../../services/audio';
 
 describe('LevelUpScreen', () => {
   const mockChoices: Card[] = [
@@ -89,6 +91,7 @@ describe('LevelUpScreen', () => {
   ];
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 
@@ -130,14 +133,43 @@ describe('LevelUpScreen', () => {
     expect(buttons.length).toBe(3);
   });
 
-  it('should display tier badges', () => {
-    vi.useRealTimers();
+  it('renders every upgrade reel inside one vertical payline cabinet', () => {
     render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
 
-    // At least some tier badges should be rendered (specific tier depends on random spinning)
-    // Check that tier text styling exists (font-black uppercase tracking-widest)
-    const tierBadges = document.querySelectorAll('.tracking-widest');
-    expect(tierBadges.length).toBeGreaterThanOrEqual(3);
+    const cabinet = screen.getByTestId('level-up-payline-cabinet');
+    expect(within(cabinet).getAllByRole('button')).toHaveLength(3);
+
+    const progress = screen.getByTestId('level-up-lock-progress');
+    expect(progress.querySelectorAll('[data-locked="false"]')).toHaveLength(3);
+  });
+
+  it('marks each reward row as spinning before it locks', () => {
+    render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
+
+    const reels = screen.getAllByTestId('level-up-reel');
+    expect(reels).toHaveLength(3);
+    expect(reels.every(reel => reel.dataset.reelState === 'spinning')).toBe(true);
+  });
+
+  it('keeps card icons and the cabinet background free of box and line chrome', () => {
+    render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
+
+    const cabinet = screen.getByTestId('level-up-payline-cabinet');
+    expect(cabinet.querySelector('[aria-hidden="true"].h-px')).toBeNull();
+
+    const reels = screen.getAllByTestId('level-up-reel');
+    reels.forEach(reel => {
+      const iconContainer = reel.querySelector('.h-11.w-11');
+      expect(iconContainer).not.toHaveClass('border');
+    });
+  });
+
+  it('should display tier badges', () => {
+    render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
+
+    expect(screen.getByText('Common')).toBeDefined();
+    expect(screen.getByText('Rare')).toBeDefined();
+    expect(screen.getByText('Epic')).toBeDefined();
   });
 
   it('should show "Choose your upgrade" after all reels stop', async () => {
@@ -151,6 +183,30 @@ describe('LevelUpScreen', () => {
       },
       { timeout: 6000 }
     );
+
+    const progress = screen.getByTestId('level-up-lock-progress');
+    expect(progress.querySelectorAll('[data-locked="true"]')).toHaveLength(3);
+  });
+
+  it('keeps reel audio and enables keyboard selection after all locks', async () => {
+    vi.useRealTimers();
+    const onSelect = vi.fn();
+    render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={onSelect} />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('levelup.choose_upgrade')).toBeDefined();
+      },
+      { timeout: 7000 }
+    );
+
+    expect(audio.playReelStop).toHaveBeenCalledTimes(3);
+    expect(audio.playMultiplierChime).toHaveBeenCalledTimes(3);
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(onSelect).toHaveBeenCalledWith(mockChoices[1]);
   });
 
   it('should render card icons or emojis', () => {

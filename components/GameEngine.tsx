@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import {
-  type MarketPosition,
+  MarketPosition,
   type MarketData,
   type Player,
   GameStatus,
@@ -41,8 +41,6 @@ import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { FeedbackService } from '../services/gameplay/FeedbackService';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
-import { PlayerPowerAnalyzer } from '../services/difficulty/PlayerPowerAnalyzer';
-import { LeverageEngine } from '../services/gameplay/LeverageEngine';
 import type {
   MutableRef,
   PhaseName,
@@ -79,6 +77,14 @@ import {
   getRuntimeDebugFlags,
   resolveRuntimeCanvasDpr,
 } from '../config/RuntimeDebugFlags';
+import {
+  deriveDirectorSeed,
+  type DirectorSpawnOrchestratorInput,
+} from '../services/director/DirectorSpawnOrchestrator';
+import { type SpawnExecutorWorld } from '../services/combat/SpawnExecutor';
+import { DIRECTOR_CONFIG_V1 } from '../services/director/config/DirectorConfigV1';
+import { MarketEventConsolidator } from '../services/market/MarketEventConsolidator';
+import { type PresentationInput } from '../services/presentation/PresentationDirector';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -89,6 +95,20 @@ import { useGameStatusEffects } from '../hooks/useGameStatusEffects';
 
 const DEBUG_API_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEBUG_API === 'true';
+
+const resetPhaseDurations = (
+  durations: Partial<Record<PhaseName, number>> | undefined
+): void => {
+  if (!durations) return;
+  durations.difficulty = 0;
+  durations.input = 0;
+  durations.combat = 0;
+  durations.spawn = 0;
+  durations.physics = 0;
+  durations.effects = 0;
+  durations.portal = 0;
+  durations.metrics = 0;
+};
 
 interface GameEngineProps {
   status: GameStatus;
@@ -103,6 +123,93 @@ interface GameEngineProps {
   height: number;
   gameMode?: GameMode;
 }
+
+const createDirectorSpawnInput = (): DirectorSpawnOrchestratorInput => ({
+  tick: 0,
+  deltaSeconds: 0,
+  marketFrame: {
+    revision: 0,
+    sequence: 0,
+    sourceTimestamp: 0,
+    receivedAt: 0,
+    quality: 'STALE',
+    price: 0,
+    pnlPercent: 0,
+    rsi: 50,
+    rsiState: 'NEUTRAL',
+    atrPercent: 0,
+    normalizedVolume: 0,
+    whaleTier: 0,
+    macd: { value: 0, signal: 0, histogram: 0 },
+    priceChangePercent: 0,
+    trendStrength: 0,
+    trendDirection: 'SIDEWAYS',
+    source: 'fallback',
+  },
+  run: {
+    runId: '',
+    seed: 0,
+    elapsedSeconds: 0,
+    mode: 'TOKEN',
+    greedLevel: 0,
+  },
+  position: {
+    side: MarketPosition.LONG,
+    leverage: 1,
+    entryPrice: 0,
+    liquidationPrice: 0,
+  },
+  player: {
+    hpRatio: 1,
+    damageTakenPerSecond: 0,
+    killsPerMinute: 0,
+    combatMastery: 0,
+    buildPower: 0,
+    mobilityUsage: 0,
+  },
+  world: {
+    width: 0,
+    height: 0,
+    activeEnemies: 0,
+    maxActiveEnemies: 0,
+    activePrimaryEncounters: 0,
+    activeSupportEncounters: 0,
+  },
+});
+
+const createPresentationInput = (): PresentationInput => ({
+  deltaSeconds: 0,
+  tick: 0,
+  gameplay: {
+    revision: 0,
+    validFromTick: 0,
+    pacing: { state: 'BUILD_UP', threatMultiplier: 1, remainingSeconds: 0 },
+    threat: { target: 0, creditRate: 0, availableCredits: 0, maximumCredits: 0 },
+    advantage: {
+      creditRate: 0,
+      availableCredits: 0,
+      maximumCredits: 0,
+      activeMechanic: null,
+    },
+    environment: { regime: 'CALM', presentationIntensity: 0, isFavorable: false },
+    encounter: {
+      activeEventFamily: null,
+      canStartMarketSurge: false,
+      queuedEventFamily: null,
+      phase: 'IDLE',
+      primaryCardId: null,
+      supportCardId: null,
+      headwindChannels: [],
+    },
+  },
+  alignment: 0,
+  volatility: 0,
+  suggestedBpm: 0,
+  liquidationTension: 0,
+  accessibilityIntensity: 1,
+  marketStatus: 'LIVE',
+  safeExitAvailable: false,
+});
 
 export const GameEngine: React.FC<GameEngineProps> = ({
   status,
@@ -134,7 +241,22 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const combatSystem = useRef(runtimeRef.current.combatSystem);
   const physicsSystem = useRef(runtimeRef.current.physicsSystem);
   const spawnSystemRef = useRef(runtimeRef.current.spawnSystem);
+  const spawnExecutorRef = useRef(runtimeRef.current.spawnExecutor);
+  const directorSpawnOrchestratorRef = useRef(
+    runtimeRef.current.directorSpawnOrchestrator
+  );
+  const presentationDirectorRef = useRef(runtimeRef.current.presentationDirector);
+  const presentationCueAdapterRef = useRef(runtimeRef.current.presentationCueAdapter);
   const difficultyContextRef = useRef(runtimeRef.current.difficultyContext);
+  const directorSpawnWorldRef = useRef<SpawnExecutorWorld>({
+    pool: runtimeRef.current.poolManager,
+    position,
+    maxActiveEnemies: 0,
+  });
+  const directorRunIdRef = useRef('');
+  const directorRunSeedRef = useRef(0);
+  const directorSpawnInputRef = useLazyRef(() => createDirectorSpawnInput());
+  const presentationInputRef = useLazyRef(() => createPresentationInput());
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
   const lastCycleRef = useRef(1);
 
@@ -243,7 +365,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const marketDataRef = useRef(marketData);
   const hitStopGovernorRef = useLazyRef(() => new HitStopGovernor());
   const coreLoopRef = useLazyRef(() => new CoreGameplayLoop());
-  const playerPowerAnalyzerRef = useLazyRef(() => new PlayerPowerAnalyzer());
   const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
   const gameplayFrameRef = useRef(0);
   const phaseSharedRef = useRef<Record<string, unknown>>({});
@@ -454,17 +575,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     nowMs: 0,
   });
 
-  const spawnOptionsRef = useRef({
-    rsi: 0,
-    rsiState: 'NEUTRAL' as string,
-    whaleTier: 0 as 0 | 1 | 2 | 3,
-    playerPower: 0,
-    offensePower: 0,
-    counterPressure: 0,
-    rangedPressure: 0,
-    screenPressure: 0,
-  });
-
   useEffect(() => {
     marketDataRef.current = marketData;
   }, [marketData]);
@@ -478,20 +588,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     }
     if (status === GameStatus.GAMEOVER || status === GameStatus.MENU) {
       coreLoopRef.current.reset();
-      playerPowerAnalyzerRef.current.reset();
       RuntimeDiagnosticsService.stop();
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
       lastRawFrameTimeRef.current = null;
     }
-  }, [
-    phaseProfilerRef,
-    status,
-    coreLoopRef,
-    hitStopGovernorRef,
-    playerPowerAnalyzerRef,
-  ]);
+  }, [phaseProfilerRef, status, coreLoopRef, hitStopGovernorRef]);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -1010,6 +1113,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         }
 
+        const layout = getHUDLayout(device.platform);
+        const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+        const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
+
         // Mutate pre-allocated shared object instead of creating new one each frame
         const shared = phaseSharedRef.current;
         shared.deltaTime = deltaTime;
@@ -1026,6 +1133,111 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         shared.isDashPressed = isSpacePressed;
         shared.isDashFreshPress = isSpaceFreshPress;
         shared.consumeDash = consumeDash;
+        shared.spawnExecutor = spawnExecutorRef.current;
+        const directorSpawnWorld = directorSpawnWorldRef.current;
+        directorSpawnWorld.pool = p;
+        directorSpawnWorld.position = position;
+        directorSpawnWorld.maxActiveEnemies = maxEnemies;
+        shared.spawnWorld = directorSpawnWorld;
+        shared.spawnPlan = undefined;
+        shared.spawnExecution = undefined;
+        shared.directorSpawnPlanPreview = undefined;
+
+        const canonicalFrame = MarketEventConsolidator.lockForSimulationTick(
+          gameplayFrameRef.current,
+          time
+        );
+        const directorInputs = difficultyContextRef.current.inputs;
+        const isSupportedDirectorLeverage =
+          DIRECTOR_CONFIG_V1.position.publicLeverageTiers.includes(
+            marketDataRef.current.leverage
+          );
+        const runId = marketDataRef.current.runtimeRunId;
+
+        if (
+          canonicalFrame !== null &&
+          runId !== undefined &&
+          directorInputs.entryPrice > 0 &&
+          isSupportedDirectorLeverage
+        ) {
+          if (directorRunIdRef.current !== runId) {
+            directorRunIdRef.current = runId;
+            directorRunSeedRef.current = deriveDirectorSeed(runId);
+            directorSpawnOrchestratorRef.current.reset();
+          }
+
+          const directorSpawnInput = directorSpawnInputRef.current;
+          directorSpawnInput.tick = gameplayFrameRef.current;
+          directorSpawnInput.deltaSeconds = deltaTime / 1_000;
+          directorSpawnInput.marketFrame = canonicalFrame;
+          directorSpawnInput.run.runId = runId;
+          directorSpawnInput.run.seed = directorRunSeedRef.current;
+          directorSpawnInput.run.elapsedSeconds = TimeService.getGameTimeSeconds();
+          directorSpawnInput.run.mode =
+            gameMode === GameMode.CASUAL ? 'PRACTICE' : 'TOKEN';
+          directorSpawnInput.run.greedLevel = 0;
+          directorSpawnInput.position.side = position;
+          directorSpawnInput.position.leverage = marketDataRef.current.leverage;
+          directorSpawnInput.position.entryPrice = directorInputs.entryPrice;
+          directorSpawnInput.position.liquidationPrice =
+            directorInputs.liquidationPrice;
+          directorSpawnInput.player.hpRatio =
+            player.maxHp > 0 ? player.hp / player.maxHp : 0;
+          directorSpawnInput.player.damageTakenPerSecond = 0;
+          directorSpawnInput.player.killsPerMinute = killStreak;
+          directorSpawnInput.player.combatMastery = Math.min(1, killStreak / 30);
+          directorSpawnInput.player.buildPower = Math.min(1, player.level / 50);
+          directorSpawnInput.player.mobilityUsage = s.isDashing ? 1 : 0;
+          directorSpawnInput.world.width = width;
+          directorSpawnInput.world.height = height;
+          directorSpawnInput.world.activeEnemies = p.activeEnemies.length;
+          directorSpawnInput.world.maxActiveEnemies = maxEnemies;
+          directorSpawnInput.world.activePrimaryEncounters = 0;
+          directorSpawnInput.world.activeSupportEncounters = 0;
+
+          const directorSpawn =
+            directorSpawnOrchestratorRef.current.update(directorSpawnInput);
+          shared.directorSpawnPlanPreview = directorSpawn.plan;
+
+          if (directorSpawn.snapshot.validFromTick === gameplayFrameRef.current) {
+            const presentationInput = presentationInputRef.current;
+            presentationInput.deltaSeconds = Math.max(
+              deltaTime / 1_000,
+              1 / DIRECTOR_CONFIG_V1.runtime.updateFrequencyHz
+            );
+            presentationInput.tick = gameplayFrameRef.current;
+            presentationInput.gameplay = directorSpawn.snapshot;
+            presentationInput.alignment = directorSpawn.position.alignment;
+            presentationInput.volatility =
+              directorSpawn.snapshot.environment.presentationIntensity;
+            presentationInput.suggestedBpm =
+              PriceMomentumEngine.getLatest().suggestedBPM;
+            presentationInput.liquidationTension =
+              directorSpawn.position.liquidationProximity;
+            presentationInput.accessibilityIntensity = graphicsRef.current.reducedMotion
+              ? 0.35
+              : 1;
+            presentationInput.marketStatus =
+              canonicalFrame.quality === 'STALE' ? 'STALE' : 'LIVE';
+            presentationInput.safeExitAvailable = false;
+
+            const presentation =
+              presentationDirectorRef.current.update(presentationInput);
+            presentationCueAdapterRef.current.apply(presentation);
+            if (
+              graphicsRef.current.showScreenShake &&
+              !runtimeDebugFlags.noScreenShake &&
+              presentation.sensory.shake > 0
+            ) {
+              s.shake = Math.max(
+                s.shake,
+                presentation.sensory.shake * GAME_ENGINE.VOLATILITY_SHOCK_SHAKE_MULT
+              );
+            }
+          }
+
+          shared.spawnPlan = directorSpawn.plan;
+        }
 
         // Reuse pre-allocated tick context to avoid per-frame GC pressure
         const tick = tickContextRef.current;
@@ -1040,16 +1252,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         tick.world.gameState = state as unknown as MutableRef<GameState>;
         tick.world.pool = pool as unknown as MutableRef<PoolLikeRef>;
         tick.marketData = marketDataRef.current;
-        // Reset telemetry (reassign to avoid V8 hidden-class deopt from delete)
-        tick.telemetry.phaseDurationsMs = {};
-        tick.telemetry.counters = {};
-        tick.telemetry.marks = {};
+        resetPhaseDurations(tick.telemetry.phaseDurationsMs);
 
         const phaseTickResult = gameLoopCoordinatorRef.current.runTickSync(tick);
-        lastPhaseTickRef.current = {
-          completedPhaseIds: phaseTickResult.completedPhaseIds,
-          errorCount: phaseTickResult.errors.length,
-        };
+        const lastPhaseTick = lastPhaseTickRef.current;
+        lastPhaseTick.completedPhaseIds = phaseTickResult.completedPhaseIds;
+        lastPhaseTick.errorCount = phaseTickResult.errors.length;
 
         if (phaseTickResult.errors.length > 0) {
           // Throttle warning logs to avoid console spam during frame loop.
@@ -1143,71 +1351,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);
         }
 
-        const layout = getHUDLayout(device.platform);
-        const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
-
-        // Use the lower of layout limit and performance config limit
-        const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
-
         // 0. Sync Market Metadata from marketDataRef
         state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
-
-        // Feed LeverageEngine (controls Risk/Reward XP and Damage)
-        LeverageEngine.updateMarketState(
-          state.current.atrPercent,
-          marketDataRef.current.pnl
-        );
-
-        state.current.spawnRateMultiplier =
-          (marketDataRef.current.spawnRateMultiplier ?? 1) *
-          coreLoopOutput.spawnMultiplier;
-        state.current.marketPosition = position;
-
-        // 1. Update Sub-systems (Physics, Spawning, etc.)
-        const playerPowerState = playerPowerAnalyzerRef.current.updateFromValues(
-          player,
-          p.activeEnemies.length,
-          maxEnemies,
-          killStreak,
-          WeaponSystem.getWeapons(),
-          coreLoopOutput.flowState
-        );
-        difficultyContextRef.current.updatePlayerPower(
-          playerPowerState.playerPower,
-          playerPowerState.offensePower,
-          playerPowerState.counterPressure,
-          playerPowerState.rangedPressure
-        );
-
-        const spawnOpts = spawnOptionsRef.current;
-        spawnOpts.rsi = marketDataRef.current.rsi;
-        spawnOpts.rsiState = marketDataRef.current.rsiState ?? 'NEUTRAL';
-        spawnOpts.whaleTier = marketDataRef.current.whaleTier ?? 0;
-        spawnOpts.playerPower = playerPowerState.playerPower;
-        spawnOpts.offensePower = playerPowerState.offensePower;
-        spawnOpts.counterPressure = playerPowerState.counterPressure;
-        spawnOpts.rangedPressure = playerPowerState.rangedPressure;
-        spawnOpts.screenPressure = playerPowerState.screenPressure;
-
-        spawnSystemRef.current.update(
-          deltaTime,
-          marketDataRef.current.difficulty,
-          width,
-          height,
-          position,
-          p,
-          marketDataRef.current.pnl,
-          maxEnemies,
-          state.current.spawnRateMultiplier,
-          pair,
-          // marketData enemy damage/speed already include leverage-aware difficulty output.
-          // Applying LeverageEngine enemy multipliers here double-counts leverage and causes
-          // near-instant deaths at high leverage (e.g. 100x).
-          (marketDataRef.current.enemyDamage ?? 1) *
-            coreLoopOutput.enemyDamageMultiplier,
-          (marketDataRef.current.enemySpeed ?? 1) * coreLoopOutput.enemySpeedMultiplier,
-          spawnOpts
-        );
 
         // --- INTERACTABLE SPAWN LOGIC ---
         s.interactableSpawnTimer = s.interactableSpawnTimer + deltaTime;
@@ -1360,13 +1505,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       physicsSystem,
       pool,
       renderer,
-      spawnSystemRef,
+      spawnExecutorRef,
+      directorSpawnOrchestratorRef,
+      presentationDirectorRef,
+      presentationCueAdapterRef,
+      directorSpawnWorldRef,
+      directorSpawnInputRef,
+      presentationInputRef,
       speedLineSpawner,
       gameLoopCoordinatorRef,
-      pair,
       gameMode,
       coreLoopRef,
-      playerPowerAnalyzerRef,
       runtimeDebugFlags,
     ]
   );

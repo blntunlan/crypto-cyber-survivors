@@ -1,7 +1,7 @@
 import { EventBus } from '../../core/EventBus';
 import { type MarketInputSlice } from '../types';
-import { type MarketRuntimeSnapshot } from '../../../types';
-import { type CanonicalMarketPayload } from '../../../types/marketCanonical';
+import '../../market/MarketEventConsolidator';
+import { type CanonicalMarketFrame } from '../../../types/marketCanonical';
 import { DIFFICULTY_CONFIG } from '../constants';
 
 /**
@@ -9,8 +9,8 @@ import { DIFFICULTY_CONFIG } from '../constants';
  * and maintains the canonical market input slice.
  *
  * Responsibilities:
- * - Listens to gameMarketUpdate, marketRuntimeSnapshot, clientIndicatorsUpdated
- * - Manages hasRuntimeMarketAuthority (runtime > client > fallback)
+ * - Listens only to the ordered canonical market frame stream
+ * - Keeps runtime/client/fallback source precedence outside difficulty
  * - Maintains pnlHistory ring buffer
  *
  * Hot-path safe: pre-allocated state, no allocations on update.
@@ -26,48 +26,7 @@ class MarketInputAggregatorClass {
     MarketInputAggregatorClass.getDefaultSlice();
 
   private constructor() {
-    EventBus.on('gameMarketUpdate', data => {
-      this.slice.pnlPercent = data.pnl;
-      this.slice.currentPrice = data.price;
-      this.recordPnLMove(data.pnl);
-    });
-
-    EventBus.on('marketRuntimeSnapshot', (snapshot: MarketRuntimeSnapshot) => {
-      this.hasRuntimeMarketAuthority = true;
-      this.slice.pnlPercent = snapshot.rawPnl;
-      this.slice.currentPrice = snapshot.price;
-      this.slice.rsi = snapshot.rsi;
-      this.slice.rsiState = snapshot.rsiState;
-      this.slice.normalizedVolume = snapshot.normalizedVolume;
-      this.slice.whaleTier = snapshot.whaleTier;
-      this.slice.atrPercent = snapshot.atrPercent;
-      if (typeof snapshot.macd === 'number') {
-        this.slice.macd.value = snapshot.macd;
-        this.slice.macd.signal = 0;
-        this.slice.macd.histogram = snapshot.macd;
-        this.slice.macd.macd = snapshot.macd;
-      }
-      this.recordPnLMove(snapshot.rawPnl);
-    });
-
-    EventBus.on('clientIndicatorsUpdated', data => {
-      if (this.hasRuntimeMarketAuthority) return;
-      this.slice.rsi = data.rsi;
-      this.slice.rsiState = data.rsiState;
-      this.slice.normalizedVolume = data.normalizedVolume;
-      this.slice.atrPercent = data.atrPercent;
-      this.slice.whaleTier = data.whaleTier;
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (data.macd) {
-        this.slice.macd.value = data.macd.value;
-        this.slice.macd.signal = data.macd.signal;
-        this.slice.macd.histogram = data.macd.histogram;
-        this.slice.macd.macd = data.macd.value;
-      }
-    });
-
-    // Canonical consolidated event — single source of truth after Step 3
-    EventBus.on('canonicalMarketUpdate', (data: CanonicalMarketPayload) => {
+    EventBus.on('canonicalMarketFrame', (data: Readonly<CanonicalMarketFrame>) => {
       this.slice.pnlPercent = data.pnlPercent;
       this.slice.currentPrice = data.price;
       this.slice.rsi = data.rsi;

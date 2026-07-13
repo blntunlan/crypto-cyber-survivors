@@ -14,6 +14,10 @@ import {
   type MarketRuntimeUpdatePayload,
 } from './marketRuntime';
 import {
+  type CanonicalMarketFrame,
+  type CanonicalMarketPayload,
+} from './marketCanonical';
+import {
   type LootboxType,
   type LootboxRarity,
   type LootboxSource,
@@ -21,7 +25,6 @@ import {
   type CharacterSkinId,
   type ConsumableEffectType,
 } from './lootbox';
-import { type CanonicalMarketPayload } from './marketCanonical';
 import { type InventoryItemType } from './inventory';
 import { type WeaponId } from './weapons';
 import { type TutorialPhase } from './tutorial';
@@ -156,6 +159,7 @@ export type GameEvent =
   | 'priceMomentumUpdate'
   // Consolidated market event (Step 3)
   | 'canonicalMarketUpdate'
+  | 'canonicalMarketFrame'
   // Railway auth events
   | 'authStateChanged'
   // Market Event Announcements
@@ -952,6 +956,7 @@ export interface EventDataMap {
   priceMomentumUpdate: PriceMomentumUpdateEvent;
   // Consolidated market event (Step 3)
   canonicalMarketUpdate: CanonicalMarketPayload;
+  canonicalMarketFrame: Readonly<CanonicalMarketFrame>;
   // Railway auth state change event
   authStateChanged: AuthStateChangedEvent;
   // Market Event Announcements

@@ -18,9 +18,6 @@ export interface CoreGameplayLoopOutput {
   flowState: FlowState;
   phase: CoreLoopPhase;
   flowScore: number;
-  spawnMultiplier: number;
-  enemySpeedMultiplier: number;
-  enemyDamageMultiplier: number;
   playerScaleTargetX: number;
   playerScaleTargetY: number;
   pulse: number;
@@ -45,21 +42,7 @@ export const CORE_GAMEPLAY_LOOP_CONFIG = {
   RELEASE_HP_THRESHOLD: 38,
   BUILD_ENEMY_THRESHOLD: 16,
   RELEASE_ENEMY_THRESHOLD: 32,
-  SPAWN_MIN: 0.6,
-  SPAWN_MAX: 1.75,
-  SPEED_MIN: 0.8,
-  SPEED_MAX: 1.25,
-  DAMAGE_MIN: 0.75,
-  DAMAGE_MAX: 1.2,
   PLAYER_PULSE_SCALE: 0.06,
-
-  // --- Price Momentum Integration ---
-  /** How much momentum contributes to spawn rate (0-1 blend weight) */
-  MOMENTUM_SPAWN_WEIGHT: 0.4,
-  /** How much momentum contributes to enemy speed (0-1 blend weight) */
-  MOMENTUM_SPEED_WEIGHT: 0.35,
-  /** How much momentum contributes to enemy damage (0-1 blend weight) */
-  MOMENTUM_DAMAGE_WEIGHT: 0.25,
 } as const;
 
 const FRAME_MS = 1000 / 60;
@@ -81,9 +64,6 @@ const lerp = (from: number, to: number, alpha: number): number => {
 export class CoreGameplayLoop {
   private phase: CoreLoopPhase = 'build';
   private phaseElapsedMs = 0;
-  private spawnMultiplier = 1;
-  private enemySpeedMultiplier = 1;
-  private enemyDamageMultiplier = 1;
   private pulse = 0;
   private pendingShakeBoost = 0;
   private smoothedMarketIntensity = 0;
@@ -91,9 +71,6 @@ export class CoreGameplayLoop {
   public reset(): void {
     this.phase = 'build';
     this.phaseElapsedMs = 0;
-    this.spawnMultiplier = 1;
-    this.enemySpeedMultiplier = 1;
-    this.enemyDamageMultiplier = 1;
     this.pulse = 0;
     this.pendingShakeBoost = 0;
     this.smoothedMarketIntensity = 0;
@@ -140,54 +117,8 @@ export class CoreGameplayLoop {
 
     const phaseDuration = this.getPhaseDuration(flowAnalysis.state, mIntensity);
     const progress = clamp(this.phaseElapsedMs / phaseDuration, 0, 1);
-    const phaseCurve = 0.5 - 0.5 * Math.cos(progress * Math.PI); // smooth 0 -> 1
+    const phaseCurve = 0.5 - 0.5 * Math.cos(progress * Math.PI);
     const signedSwing = this.phase === 'build' ? phaseCurve : -phaseCurve;
-
-    const flowSwingScale =
-      flowAnalysis.state === 'bored'
-        ? 1.15
-        : flowAnalysis.state === 'stressed'
-          ? 0.65
-          : 0.9;
-    const streakMomentum = clamp(input.killStreak / 30, 0, 1);
-    const swingMagnitude =
-      CORE_GAMEPLAY_LOOP_CONFIG.YOYO_SWING *
-      (0.7 + streakMomentum * 0.2 + activity * 0.1) *
-      flowSwingScale;
-
-    const yoyoMultiplier = 1 + signedSwing * swingMagnitude;
-
-    // --- Blend flow corrections with price momentum ---
-    const C = CORE_GAMEPLAY_LOOP_CONFIG;
-    const mSpawnW = C.MOMENTUM_SPAWN_WEIGHT;
-    const mSpeedW = C.MOMENTUM_SPEED_WEIGHT;
-    const mDamageW = C.MOMENTUM_DAMAGE_WEIGHT;
-
-    const flowSpawn =
-      flowAnalysis.suggestedCorrections.spawnRateMultiplier * yoyoMultiplier;
-    const flowSpeed =
-      flowAnalysis.suggestedCorrections.enemySpeedMultiplier *
-      (1 + signedSwing * swingMagnitude * 0.45);
-    const flowDamage =
-      flowAnalysis.suggestedCorrections.enemyDamageMultiplier *
-      (1 + signedSwing * swingMagnitude * 0.35);
-
-    // Blend: (1-w) * flowValue + w * momentumValue
-    const targetSpawn = clamp(
-      flowSpawn * (1 - mSpawnW) + momentum.spawnRateMod * mSpawnW,
-      C.SPAWN_MIN,
-      C.SPAWN_MAX
-    );
-    const targetSpeed = clamp(
-      flowSpeed * (1 - mSpeedW) + momentum.enemySpeedMod * mSpeedW,
-      C.SPEED_MIN,
-      C.SPEED_MAX
-    );
-    const targetDamage = clamp(
-      flowDamage * (1 - mDamageW) + 1.0 * mDamageW, // momentum doesn't directly drive damage
-      C.DAMAGE_MIN,
-      C.DAMAGE_MAX
-    );
 
     // Pulse is amplified by market intensity for a breathing effect
     const targetPulse = clamp(
@@ -198,17 +129,6 @@ export class CoreGameplayLoop {
     );
 
     const smoothingAlpha = this.getSmoothingAlpha(deltaMs);
-    this.spawnMultiplier = lerp(this.spawnMultiplier, targetSpawn, smoothingAlpha);
-    this.enemySpeedMultiplier = lerp(
-      this.enemySpeedMultiplier,
-      targetSpeed,
-      smoothingAlpha
-    );
-    this.enemyDamageMultiplier = lerp(
-      this.enemyDamageMultiplier,
-      targetDamage,
-      smoothingAlpha
-    );
     this.pulse = lerp(this.pulse, targetPulse, smoothingAlpha);
 
     const pulseScale = this.pulse * CORE_GAMEPLAY_LOOP_CONFIG.PLAYER_PULSE_SCALE;
@@ -230,9 +150,6 @@ export class CoreGameplayLoop {
       flowState: flowAnalysis.state,
       phase: this.phase,
       flowScore,
-      spawnMultiplier: this.spawnMultiplier,
-      enemySpeedMultiplier: this.enemySpeedMultiplier,
-      enemyDamageMultiplier: this.enemyDamageMultiplier,
       playerScaleTargetX,
       playerScaleTargetY,
       pulse: this.pulse,
@@ -274,14 +191,17 @@ export class CoreGameplayLoop {
     }
 
     if (this.phaseElapsedMs >= phaseDuration) {
-      this.switchPhase(this.phase === 'build' ? 'release' : 'build');
+      this.switchPhase(
+        this.phase === 'build' ? 'release' : 'build',
+        this.phaseElapsedMs - phaseDuration
+      );
     }
   }
 
-  private switchPhase(nextPhase: CoreLoopPhase): void {
+  private switchPhase(nextPhase: CoreLoopPhase, elapsedMs = 0): void {
     if (nextPhase === this.phase) return;
     this.phase = nextPhase;
-    this.phaseElapsedMs = 0;
+    this.phaseElapsedMs = elapsedMs;
     this.pendingShakeBoost = CORE_GAMEPLAY_LOOP_CONFIG.PHASE_SWITCH_SHAKE;
   }
 

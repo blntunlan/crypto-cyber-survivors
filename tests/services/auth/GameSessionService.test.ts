@@ -139,4 +139,64 @@ describe('GameSessionService', () => {
       expect(flushAllMock).toHaveBeenCalled();
     });
   });
+
+  describe('authoritative cash-out API', () => {
+    it('uses the active server session for quote and decision requests', async () => {
+      railwayPostMock
+        .mockResolvedValueOnce({
+          sessionId: 's1',
+          sessionSecret: 's2',
+          startTime: new Date().toISOString(),
+        })
+        .mockResolvedValueOnce({
+          quote: { quoteId: 'quote-1', canonicalSequence: 42, rewardPoints: 120 },
+          signature: 'a'.repeat(64),
+          shouldForceRecovery: false,
+          safeExitOnly: false,
+        })
+        .mockResolvedValueOnce({ state: 'settled', rewardPoints: 120, greedDelta: 0 });
+
+      await GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
+      await GameSessionService.requestCashOutQuote('RECOVERY');
+      await GameSessionService.decideCashOut(
+        'quote-1',
+        'a'.repeat(64),
+        'accept',
+        'accept-key-123'
+      );
+
+      expect(railwayPostMock).toHaveBeenCalledWith('/api/v1/economy/cash-out/quote', {
+        session_id: 's1',
+        pacing_state: 'RECOVERY',
+      });
+      expect(railwayPostMock).toHaveBeenCalledWith(
+        '/api/v1/economy/cash-out/decision',
+        {
+          quote_id: 'quote-1',
+          signature: 'a'.repeat(64),
+          decision: 'accept',
+          idempotency_key: 'accept-key-123',
+        }
+      );
+    });
+
+    it('records a server-side death or liquidation failure for the active session', async () => {
+      railwayPostMock
+        .mockResolvedValueOnce({
+          sessionId: 's1',
+          sessionSecret: 's2',
+          startTime: new Date().toISOString(),
+        })
+        .mockResolvedValueOnce({ state: 'failed', primaryRewardPoints: 0, shards: 50 });
+
+      await GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
+      await GameSessionService.recordCashOutFailure('liquidation', 'failure-key-123');
+
+      expect(railwayPostMock).toHaveBeenCalledWith('/api/v1/economy/cash-out/failure', {
+        session_id: 's1',
+        failure_type: 'liquidation',
+        idempotency_key: 'failure-key-123',
+      });
+    });
+  });
 });

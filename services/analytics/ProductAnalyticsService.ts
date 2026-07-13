@@ -6,9 +6,14 @@ import { Logger } from '../system/Logger';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LOCAL_ONLY_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
 
 function nullableUuid(value: string | null | undefined): string | null {
   return value && UUID_REGEX.test(value) ? value : null;
+}
+
+function nullableProfileId(value: string | null | undefined): string | null {
+  return value === LOCAL_ONLY_PROFILE_ID ? null : nullableUuid(value);
 }
 
 function normalizeMetadata(
@@ -39,7 +44,7 @@ class ProductAnalyticsServiceClass {
     if (import.meta.env.VITE_ENABLE_ANALYTICS === 'false') return;
     if (!isRailwayApiConfigured()) return;
 
-    const profileId = nullableUuid(
+    const profileId = nullableProfileId(
       event.profileId ?? UserSessionService.getProfileId()
     );
     const sessionId = nullableUuid(event.sessionId);

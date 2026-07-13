@@ -5,7 +5,7 @@ import { COLORS, COMPETITIVE_LIMITS } from '../../../constants';
 import { Z_LAYERS } from '../../../constants/ZIndex';
 import { audio } from '../../../services/audio';
 import { type LevelUpScreenProps } from './types';
-import { containerVariants, titleVariants } from './constants';
+import { containerVariants, createRandomStopOrder, titleVariants } from './constants';
 import { LevelUpErrorBoundary } from './LevelUpErrorBoundary';
 import { SlotReel } from './SlotReel';
 
@@ -21,6 +21,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { GameMode } from '../../../types/gameMode';
 import { Logger } from '../../../services/system/Logger';
 import { MODERN_SCREEN_OVERLAY } from '../../../config/modernSurface';
+import { HUD_WAR_ROOM } from '../../../config/HUDWarRoom';
 
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   upgradeChoices,
@@ -51,11 +52,10 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     selectedIndexRef.current = selectedIndex;
   }, [selectedIndex]);
 
-  // Generate random stop order (e.g., [2, 0, 1] means middle stops first, then right, then left)
-  const stopOrder = useMemo(() => {
-    const order = [0, 1, 2];
-    return order.sort(() => Math.random() - 0.5);
-  }, []);
+  const stopOrder = useMemo(
+    () => createRandomStopOrder(upgradeChoices.length),
+    [upgradeChoices.length]
+  );
 
   const handleReelStopped = useCallback(() => {
     setStoppedCount(prev => prev + 1);
@@ -216,82 +216,145 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="my-auto w-full max-w-4xl"
+            className="my-auto w-full max-w-3xl"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
           >
-            {/* Title */}
-            <motion.div className="mb-4 text-center md:mb-10" variants={titleVariants}>
+            <motion.div className="mb-4 text-center md:mb-6" variants={titleVariants}>
+              <div
+                className={`${isRetro ? 'font-retro-pixel text-[8px]' : 'font-mono text-[9px]'} mb-2 font-bold uppercase tracking-[0.32em]`}
+                style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : COLORS.CASINO_GOLD }}
+              >
+                {String(stoppedCount).padStart(2, '0')} /{' '}
+                {String(upgradeChoices.length).padStart(2, '0')}
+              </div>
               <motion.h3
                 className={`${isRetro ? 'font-retro-jersey text-5xl md:text-8xl' : 'cyber-glitch-text font-cyber font-black italic tracking-tighter'} ${sizes.title} text-white`}
                 animate={{
-                  textShadow: allStopped
-                    ? isRetro
-                      ? [
-                          `2px 2px 0px ${COLORS.NEON_GREEN}`,
-                          `4px 4px 0px ${COLORS.NEON_GREEN}`,
-                          `2px 2px 0px ${COLORS.NEON_GREEN}`,
-                        ]
-                      : [
-                          '0 0 30px rgba(74, 222, 128, 0.5)',
-                          '0 0 60px rgba(74, 222, 128, 0.8)',
-                          '0 0 30px rgba(74, 222, 128, 0.5)',
-                        ]
-                    : isRetro
-                      ? [
-                          '2px 2px 0px rgba(255,255,255,0.5)',
-                          '4px 4px 0px rgba(255,255,255,0.5)',
-                          '2px 2px 0px rgba(255,255,255,0.5)',
-                        ]
-                      : [
-                          '0 0 20px rgba(255,255,255,0.3)',
-                          '0 0 40px rgba(255,255,255,0.5)',
-                          '0 0 20px rgba(255,255,255,0.3)',
-                        ],
-                  scale: allStopped ? [1, 1.05, 1] : 1,
+                  textShadow: isRetro
+                    ? `3px 3px 0 ${allStopped ? COLORS.NEON_GREEN : COLORS.SLOT_BLACK}`
+                    : allStopped
+                      ? `0 0 28px ${HUD_WAR_ROOM.colors.mint}55`
+                      : `0 0 22px ${COLORS.ELECTRIC_BLUE}2e`,
                 }}
-                transition={{ duration: allStopped ? 0.5 : 2, repeat: Infinity }}
+                transition={{ duration: 0.25 }}
               >
                 {t('levelup.title')}
               </motion.h3>
-
-              <motion.p
-                className={`font-bold uppercase ${sizes.tiny} mt-1 min-h-[1.5em] md:mt-2`}
-                style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}
-                animate={{ opacity: allStopped ? [0.7, 1, 0.7] : 0.8 }}
-                transition={{ duration: 0.8, repeat: allStopped ? Infinity : 0 }}
-              >
-                {renderStatusText()}
-              </motion.p>
             </motion.div>
 
-            {/* Slot Reels - Vertical Layout for Web */}
             <div
-              className={`mx-auto max-w-2xl p-4 transition-all md:p-8 ${
+              data-testid="level-up-payline-cabinet"
+              className={`relative mx-auto max-w-2xl overflow-hidden transition-all ${
                 isRetro
-                  ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
-                  : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+                  ? 'rounded-none border-4 bg-zinc-950 shadow-[8px_8px_0_rgba(0,0,0,0.65)]'
+                  : 'border bg-[#05090f] shadow-[0_24px_80px_rgba(0,0,0,0.72),inset_0_0_0_3px_#020509]'
               }`}
+              style={{
+                borderColor: isRetro
+                  ? 'var(--color-primary)'
+                  : `${COLORS.CASINO_GOLD}88`,
+              }}
             >
-              <div className="flex flex-col gap-3 md:gap-4">
-                {upgradeChoices.map((card, index) => (
-                  <SlotReel
-                    key={card.id}
-                    finalCard={card}
-                    reelIndex={index}
-                    stopOrder={stopOrder[index] ?? index}
-                    onSelect={c => {
-                      if (!hasSelectedRef.current) {
-                        hasSelectedRef.current = true;
-                        onSelect(c);
-                      }
-                    }}
-                    onStopped={handleReelStopped}
-                    isSelected={allStopped && selectedIndex === index}
-                  />
-                ))}
+              {!isRetro && (
+                <>
+                  <div className="pointer-events-none absolute left-0 top-0 z-20 h-6 w-6 border-l-[3px] border-t-[3px] border-[#d6b85c]" />
+                  <div className="pointer-events-none absolute bottom-0 right-0 z-20 h-6 w-6 border-b-[3px] border-r-[3px] border-[#d6b85c]" />
+                </>
+              )}
+
+              <div
+                className={`flex min-h-11 items-center justify-between gap-4 border-b px-3 py-2 sm:px-4 ${isRetro ? 'bg-black' : 'bg-slate-950/95'}`}
+                style={{
+                  borderColor: isRetro
+                    ? `${COLORS.ELECTRIC_BLUE}66`
+                    : `${COLORS.CASINO_GOLD}38`,
+                }}
+              >
+                <motion.p
+                  className={`${isRetro ? 'font-retro-pixel text-[8px]' : 'font-cyber text-[10px] sm:text-xs'} min-h-[1.5em] font-bold uppercase tracking-[0.14em]`}
+                  style={{
+                    color: allStopped ? HUD_WAR_ROOM.colors.mint : COLORS.ELECTRIC_BLUE,
+                  }}
+                  animate={{ opacity: allStopped ? 1 : 0.82 }}
+                >
+                  {renderStatusText()}
+                </motion.p>
+
+                <div
+                  data-testid="level-up-lock-progress"
+                  className="flex shrink-0 items-center gap-1.5"
+                  aria-label={`${stoppedCount}/${upgradeChoices.length}`}
+                >
+                  {upgradeChoices.map((card, index) => {
+                    const isLocked = index < stoppedCount;
+                    return (
+                      <span
+                        key={card.id}
+                        data-locked={isLocked}
+                        className={`h-1.5 w-4 border transition-colors sm:w-5 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+                        style={{
+                          borderColor: isLocked
+                            ? HUD_WAR_ROOM.colors.mint
+                            : `${COLORS.SLOT_SILVER}30`,
+                          backgroundColor: isLocked
+                            ? HUD_WAR_ROOM.colors.mint
+                            : `${COLORS.SLOT_SILVER}10`,
+                          boxShadow: isLocked
+                            ? `0 0 9px ${HUD_WAR_ROOM.colors.mint}88`
+                            : 'none',
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                className={`relative overflow-hidden border-y p-2 sm:p-3 ${isRetro ? 'bg-zinc-900' : 'bg-[linear-gradient(180deg,#030609,#08131c_48%,#030609)]'}`}
+                style={{
+                  borderColor: isRetro
+                    ? `${COLORS.ELECTRIC_BLUE}88`
+                    : `${COLORS.ELECTRIC_BLUE}70`,
+                }}
+              >
+                <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
+                  {upgradeChoices.map((card, index) => (
+                    <SlotReel
+                      key={card.id}
+                      finalCard={card}
+                      reelIndex={index}
+                      stopOrder={stopOrder[index] ?? index}
+                      onSelect={c => {
+                        if (!hasSelectedRef.current) {
+                          hasSelectedRef.current = true;
+                          onSelect(c);
+                        }
+                      }}
+                      onStopped={handleReelStopped}
+                      isSelected={allStopped && selectedIndex === index}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className={`flex items-center justify-between gap-3 px-3 py-2 font-mono text-[8px] font-bold uppercase tracking-[0.15em] sm:px-4 ${isRetro ? 'bg-black text-[#DCDCDC]' : 'bg-slate-950/95 text-slate-500'}`}
+              >
+                <span>
+                  {stoppedCount === 0
+                    ? '•••'
+                    : `${stoppedCount}/${upgradeChoices.length}`}
+                </span>
+                <span
+                  style={{
+                    color: allStopped ? COLORS.CASINO_GOLD : COLORS.SLOT_SILVER,
+                  }}
+                >
+                  {allStopped ? '↑ ↓ / ENTER' : '◫ ◫ ◫'}
+                </span>
               </div>
             </div>
           </motion.div>

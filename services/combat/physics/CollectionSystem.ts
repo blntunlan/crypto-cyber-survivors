@@ -10,7 +10,6 @@ import { type ICollectionSystem } from '../../interfaces/IPhysicsSubsystems';
 import { GAME_ENGINE } from '../../../constants';
 import { ECONOMY_CONFIG } from '../../../config';
 import { LeverageEngine } from '../../gameplay/LeverageEngine';
-import { PriceMomentumEngine } from '../../market/PriceMomentumEngine';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -136,10 +135,9 @@ export class CollectionSystem implements ICollectionSystem {
   ): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
 
-    // Apply leverage and momentum gem value multipliers
+    // Apply the run-locked leverage and player progression multipliers.
     const levMult = LeverageEngine.getMultipliers();
-    const momMult = PriceMomentumEngine.getLatest();
-    const adjustedGemValue = gem.value * levMult.gemValue * momMult.gemValueMod;
+    const adjustedGemValue = gem.value * levMult.gemValue;
     const expMultiplier = player.expMultiplier ?? 1;
 
     // Apply leverage XP gain multiplier (higher leverage = faster leveling)

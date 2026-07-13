@@ -25,7 +25,7 @@ describe('CoreGameplayLoop', () => {
     loop.reset();
   });
 
-  it('ramps pressure in build phase when player is comfortable', () => {
+  it('keeps build-phase pacing as a presentation signal when player is comfortable', () => {
     let now = 0;
     let output = loop.update({
       deltaMs: 0,
@@ -51,12 +51,12 @@ describe('CoreGameplayLoop', () => {
     }
 
     expect(output.phase).toBe('build');
-    expect(output.spawnMultiplier).toBeGreaterThan(1);
     expect(output.playerScaleTargetX).toBeGreaterThan(1);
     expect(output.flowScore).toBeLessThan(1);
+    expect(output).not.toHaveProperty('spawnMultiplier');
   });
 
-  it('switches to release and lowers pressure when player is overwhelmed', () => {
+  it('switches to release without returning combat multipliers', () => {
     let now = 0;
     let output = loop.update({
       deltaMs: 0,
@@ -87,8 +87,7 @@ describe('CoreGameplayLoop', () => {
 
     expect(sawPhaseSwitchShake).toBe(true);
     expect(output.phase).toBe('release');
-    expect(output.spawnMultiplier).toBeLessThan(1);
-    expect(output.enemyDamageMultiplier).toBeLessThan(1);
+    expect(output).not.toHaveProperty('enemyDamageMultiplier');
   });
 
   it('resets to neutral pacing defaults', () => {
@@ -119,8 +118,6 @@ describe('CoreGameplayLoop', () => {
     });
 
     expect(output.phase).toBe('build');
-    expect(output.spawnMultiplier).toBe(1);
-    expect(output.enemySpeedMultiplier).toBe(1);
-    expect(output.enemyDamageMultiplier).toBe(1);
+    expect(output.pulse).toBe(0);
   });
 });

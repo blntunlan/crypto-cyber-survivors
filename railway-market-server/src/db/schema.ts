@@ -178,6 +178,123 @@ export const rewardClaims = pgTable(
   ]
 );
 
+export const runEscrows = pgTable(
+  'run_escrows',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .unique()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    state: text('state').notNull().default('active'),
+    greedLevel: integer('greed_level').notNull().default(0),
+    timeWeightedAlignment: doublePrecision('time_weighted_alignment').notNull().default(0),
+    alignmentSampleCount: integer('alignment_sample_count').notNull().default(0),
+    lastMarketSequence: bigint('last_market_sequence', { mode: 'number' }),
+    marketStaleSince: timestamp('market_stale_since', { withTimezone: true }),
+    safeExitAvailableAt: timestamp('safe_exit_available_at', { withTimezone: true }),
+    primaryRewardPoints: doublePrecision('primary_reward_points').notNull().default(0),
+    settledAt: timestamp('settled_at', { withTimezone: true }),
+    failureType: text('failure_type'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'ck_run_escrows_state',
+      sql`${table.state} IN ('active', 'quote_open', 'settled', 'failed')`
+    ),
+    check('ck_run_escrows_greed', sql`${table.greedLevel} >= 0`),
+    check('ck_run_escrows_alignment_samples', sql`${table.alignmentSampleCount} >= 0`),
+    check('ck_run_escrows_points', sql`${table.primaryRewardPoints} >= 0`),
+    index('idx_run_escrows_profile_state').on(table.profileId, table.state, table.updatedAt),
+  ]
+);
+
+export const cashOutQuotes = pgTable(
+  'cash_out_quotes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    escrowId: uuid('escrow_id')
+      .notNull()
+      .references(() => runEscrows.id, { onDelete: 'cascade' }),
+    quoteId: text('quote_id').unique().notNull(),
+    canonicalSequence: bigint('canonical_sequence', { mode: 'number' }).notNull(),
+    rewardPoints: doublePrecision('reward_points').notNull(),
+    signature: text('signature').notNull(),
+    status: text('status').notNull().default('open'),
+    issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+    idempotencyKey: text('idempotency_key'),
+  },
+  (table) => [
+    check(
+      'ck_cash_out_quotes_status',
+      sql`${table.status} IN ('open', 'accepted', 'rejected', 'expired', 'safe_exit')`
+    ),
+    check('ck_cash_out_quotes_points', sql`${table.rewardPoints} >= 0`),
+    index('idx_cash_out_quotes_escrow').on(table.escrowId, table.status),
+  ]
+);
+
+export const shardEntries = pgTable(
+  'shard_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .unique()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    amount: integer('amount').notNull(),
+    failureType: text('failure_type').notNull(),
+    participationVerified: boolean('participation_verified').notNull(),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_shard_entries_amount', sql`${table.amount} >= 0 AND ${table.amount} <= 220`),
+    index('idx_shard_entries_profile_created').on(table.profileId, table.createdAt),
+  ]
+);
+
+export const rewardPointEntries = pgTable(
+  'reward_point_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .unique()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    escrowId: uuid('escrow_id')
+      .notNull()
+      .references(() => runEscrows.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    amount: doublePrecision('amount').notNull(),
+    entryType: text('entry_type').notNull(),
+    quoteId: text('quote_id').references(() => cashOutQuotes.quoteId, { onDelete: 'set null' }),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_reward_point_entries_amount', sql`${table.amount} >= 0`),
+    check(
+      'ck_reward_point_entries_type',
+      sql`${table.entryType} IN ('cash_out_accepted', 'safe_exit')`
+    ),
+    index('idx_reward_point_entries_profile_created').on(table.profileId, table.createdAt),
+    index('idx_reward_point_entries_escrow').on(table.escrowId),
+  ]
+);
+
 export const idempotencyKeys = pgTable(
   'idempotency_keys',
   {

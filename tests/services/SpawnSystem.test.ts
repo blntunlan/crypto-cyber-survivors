@@ -50,9 +50,14 @@ describe('SpawnSystem', () => {
     (mockPool as any).activeEnemies = [];
   });
 
+  it('exposes the historical multiplier path only as an explicit legacy adapter', () => {
+    expect('update' in spawnSystem).toBe(false);
+    expect(typeof spawnSystem.updateLegacy).toBe('function');
+  });
+
   it('should not spawn if timer is below threshold', () => {
     // 100ms delta, threshold around 1000ms
-    spawnSystem.update(100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
   });
 
@@ -60,7 +65,7 @@ describe('SpawnSystem', () => {
     // Large delta to exceed threshold (1000ms)
     // scaledDifficulty=1. threshold = 1000/1 = 1000
     // Passed 1100ms
-    spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
     expect(mockPool.getEnemy).toHaveBeenCalled();
   });
 
@@ -69,7 +74,7 @@ describe('SpawnSystem', () => {
     const enemies = new Array(100).fill({});
     (mockPool as any).activeEnemies = enemies;
 
-    spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
   });
 
@@ -78,7 +83,7 @@ describe('SpawnSystem', () => {
     const threshold = 1000 / difficulty; // baseInterval=1000, so threshold is 333.3ms
 
     // Just under threshold
-    spawnSystem.update(
+    spawnSystem.updateLegacy(
       threshold - 10,
       difficulty,
       800,
@@ -89,7 +94,7 @@ describe('SpawnSystem', () => {
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
 
     // Just over threshold
-    spawnSystem.update(20, difficulty, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(20, difficulty, 800, 600, MarketPosition.LONG, mockPool);
     expect(mockPool.getEnemy).toHaveBeenCalled();
   });
 
@@ -98,7 +103,14 @@ describe('SpawnSystem', () => {
     const width = 800;
     const height = 600;
 
-    spawnSystem.update(1100, difficulty, width, height, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(
+      1100,
+      difficulty,
+      width,
+      height,
+      MarketPosition.LONG,
+      mockPool
+    );
 
     expect(mockPool.getEnemy).toHaveBeenCalled();
     const args = vi.mocked(mockPool.getEnemy).mock.calls[0]!;
@@ -113,7 +125,7 @@ describe('SpawnSystem', () => {
     // This is probabilistic, so mock Math.random to ensure it spawns
     vi.spyOn(Math, 'random').mockReturnValue(0.001); // < config.spawnChance (0.2 * 0.01 = 0.002)
 
-    spawnSystem.update(
+    spawnSystem.updateLegacy(
       16,
       1.0,
       800,
@@ -150,7 +162,7 @@ describe('SpawnSystem', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.4); // < 0.45 for bear, < 0.55 for bull
 
     // LONG + Loss = Bear
-    spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool, -100);
+    spawnSystem.updateLegacy(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool, -100);
     expect(mockPool.getEnemy).toHaveBeenCalledWith(
       expect.any(Number),
       expect.any(Number),
@@ -167,7 +179,7 @@ describe('SpawnSystem', () => {
     );
 
     // LONG + Profit = Bull
-    spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool, 100);
+    spawnSystem.updateLegacy(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool, 100);
     expect(mockPool.getEnemy).toHaveBeenCalledWith(
       expect.any(Number),
       expect.any(Number),
@@ -194,7 +206,7 @@ describe('SpawnSystem', () => {
     // Inside else: random(). if < 0.4 ... else if < 0.7 ... else ...
     // Since mock returns 0.8 constantly, 0.8 >= 0.7. So it should spawn 'pumpdump' (last else)
 
-    spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
 
     expect(mockPool.getEnemy).toHaveBeenCalledWith(
       expect.any(Number),
@@ -215,7 +227,7 @@ describe('SpawnSystem', () => {
   it('should scale enemies from player power signals', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.95);
 
-    spawnSystem.update(
+    spawnSystem.updateLegacy(
       1100,
       1.0,
       800,

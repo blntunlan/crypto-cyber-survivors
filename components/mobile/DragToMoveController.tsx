@@ -15,6 +15,7 @@ interface DragState {
 interface DragToMoveProps {
   onMove: (dx: number, dy: number, speed: number) => void;
   onDash: () => void;
+  onDashRelease?: () => void;
   disabled?: boolean;
   showVisualFeedback?: boolean;
   hapticFeedback?: boolean;
@@ -25,6 +26,7 @@ interface DragToMoveProps {
 export const DragToMoveController: React.FC<DragToMoveProps> = ({
   onMove,
   onDash,
+  onDashRelease,
   disabled = false,
   showVisualFeedback = true,
   hapticFeedback = true,
@@ -208,10 +210,11 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
         if (touch.identifier === secondTouchIdRef.current) {
           secondTouchIdRef.current = null;
           setSecondTouchActive(false);
+          onDashRelease?.();
         }
       }
     },
-    [onMove]
+    [onMove, onDashRelease]
   );
 
   return (

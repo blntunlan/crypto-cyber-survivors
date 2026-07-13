@@ -1,0 +1,312 @@
+{
+  "fixtureId": "core-gameplay-loop.v1",
+  "producer": "core-gameplay-loop",
+  "sourceRevision": "1ce825ab6045a63636422556a7fd5621df5a0328",
+  "payload": {
+    "outputHash": "6a5a4fa7ee1854f79549d1a0a4059f15d2c5a8ec20c4169d386bc7b5e702ff5a",
+    "run": {
+      "transitions": [
+        {
+          "atMs": 16.66666667,
+          "phase": "build"
+        },
+        {
+          "atMs": 5233.33333333,
+          "phase": "release"
+        },
+        {
+          "atMs": 7433.33333333,
+          "phase": "build"
+        },
+        {
+          "atMs": 9633.33333333,
+          "phase": "release"
+        },
+        {
+          "atMs": 12666.66666667,
+          "phase": "build"
+        },
+        {
+          "atMs": 14866.66666667,
+          "phase": "release"
+        },
+        {
+          "atMs": 17900,
+          "phase": "build"
+        },
+        {
+          "atMs": 23133.33333333,
+          "phase": "release"
+        }
+      ],
+      "samples": [
+        {
+          "atMs": 1000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.12894705,
+          "enemySpeedMultiplier": 1.03896569,
+          "enemyDamageMultiplier": 1.00355985,
+          "pulse": 0.06553746,
+          "marketIntensity": 0.44697669,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 2000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.15575476,
+          "enemySpeedMultiplier": 1.05084586,
+          "enemyDamageMultiplier": 1.01422065,
+          "pulse": 0.26214837,
+          "marketIntensity": 0.44997969,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 3000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.19118806,
+          "enemySpeedMultiplier": 1.06654925,
+          "enemyDamageMultiplier": 1.02831343,
+          "pulse": 0.52189405,
+          "marketIntensity": 0.44999986,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 4000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.22281504,
+          "enemySpeedMultiplier": 1.08056576,
+          "enemyDamageMultiplier": 1.04089235,
+          "pulse": 0.75371387,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 5000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.23953622,
+          "enemySpeedMultiplier": 1.08797628,
+          "enemyDamageMultiplier": 1.04754281,
+          "pulse": 0.87625353,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 6000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.10506859,
+          "enemySpeedMultiplier": 1.02838267,
+          "enemyDamageMultiplier": 0.99406137,
+          "pulse": 0.11000871,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 7000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.04895863,
+          "enemySpeedMultiplier": 1.00351576,
+          "enemyDamageMultiplier": 0.97174491,
+          "pulse": 0.5208624,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 8000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.10787435,
+          "enemySpeedMultiplier": 1.03604019,
+          "enemyDamageMultiplier": 1.00093351,
+          "pulse": 0.02087699,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 9000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.04859665,
+          "enemySpeedMultiplier": 1.0445419,
+          "enemyDamageMultiplier": 1.00856325,
+          "pulse": 0.18290395,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 10000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.02832455,
+          "enemySpeedMultiplier": 1.03414023,
+          "enemyDamageMultiplier": 0.99922841,
+          "pulse": 0.0288966,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 11000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 0.99204138,
+          "enemySpeedMultiplier": 1.01552124,
+          "enemyDamageMultiplier": 0.98251906,
+          "pulse": 0.37337898,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 12000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 0.94452696,
+          "enemySpeedMultiplier": 0.99113884,
+          "enemyDamageMultiplier": 0.96063742,
+          "pulse": 0.84075252,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 13000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.0280655,
+          "enemySpeedMultiplier": 1.03400729,
+          "enemyDamageMultiplier": 0.99910911,
+          "pulse": 0.03132485,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 14000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.04347888,
+          "enemySpeedMultiplier": 1.04191679,
+          "enemyDamageMultiplier": 1.00620738,
+          "pulse": 0.13258598,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 15000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.03706046,
+          "enemySpeedMultiplier": 1.03862313,
+          "enemyDamageMultiplier": 1.00325153,
+          "pulse": 0.07317507,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 16000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.01734318,
+          "enemySpeedMultiplier": 1.02148145,
+          "enemyDamageMultiplier": 0.98786797,
+          "pulse": 0.25333991,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 17000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.03988222,
+          "enemySpeedMultiplier": 0.99949417,
+          "enemyDamageMultiplier": 0.96813579,
+          "pulse": 0.58088763,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 18000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.08912045,
+          "enemySpeedMultiplier": 1.02131474,
+          "enemyDamageMultiplier": 0.98771836,
+          "pulse": 0.22365942,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 19000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.12956077,
+          "enemySpeedMultiplier": 1.03923716,
+          "enemyDamageMultiplier": 1.00380258,
+          "pulse": 0.06935898,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 20000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.15418809,
+          "enemySpeedMultiplier": 1.05015154,
+          "enemyDamageMultiplier": 1.01359754,
+          "pulse": 0.24790355,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 21000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.18532502,
+          "enemySpeedMultiplier": 1.06395086,
+          "enemyDamageMultiplier": 1.02598154,
+          "pulse": 0.47363166,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 22000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.21204494,
+          "enemySpeedMultiplier": 1.07579264,
+          "enemyDamageMultiplier": 1.03660878,
+          "pulse": 0.6673176,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 23000,
+          "phase": "build",
+          "flowState": "flow",
+          "spawnMultiplier": 1.22497048,
+          "enemySpeedMultiplier": 1.08152101,
+          "enemyDamageMultiplier": 1.04174962,
+          "pulse": 0.7609872,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        },
+        {
+          "atMs": 24000,
+          "phase": "release",
+          "flowState": "flow",
+          "spawnMultiplier": 1.10315044,
+          "enemySpeedMultiplier": 1.02753258,
+          "enemyDamageMultiplier": 0.99329847,
+          "pulse": 0.12237634,
+          "marketIntensity": 0.45,
+          "suggestedBPM": 104
+        }
+      ]
+    }
+  },
+  "schemaVersion": 1,
+  "contentHash": "438ad0f77ffb1d5fc060b8995bfae37d8732d274e217dca3128a7277f2968224"
+}

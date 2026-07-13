@@ -80,10 +80,26 @@ export class SSEMarketService {
     this.createEventSource();
   }
 
+  private getMarketBaseUrl(): string {
+    const aggregatorUrl = (
+      import.meta.env.VITE_MARKET_AGGREGATOR_URL as string | undefined
+    )?.trim();
+    const apiUrl = (import.meta.env.VITE_RAILWAY_API_URL as string | undefined)?.trim();
+    const baseUrl =
+      aggregatorUrl && aggregatorUrl.length > 0
+        ? aggregatorUrl
+        : apiUrl && apiUrl.length > 0
+          ? apiUrl
+          : '';
+
+    return baseUrl.replace(/\/+$/, '');
+  }
+
   private createEventSource(): void {
     this.updateState('connecting');
 
-    const url = `/api/v1/market/stream?pair=${encodeURIComponent(this.pair)}`;
+    const baseUrl = this.getMarketBaseUrl();
+    const url = `${baseUrl}/api/v1/market/stream?pair=${encodeURIComponent(this.pair)}`;
     this.eventSource = new EventSource(url);
 
     // Connection timeout: if no data in 30s, mark as failed

@@ -2,8 +2,8 @@ import { CombatSystem } from '../combat/CombatSystem';
 import { PoolManager } from '../combat/PoolManager';
 import { PhysicsSystem } from '../combat/PhysicsSystem';
 import { SpawnSystem } from '../combat/SpawnSystem';
+import { SpawnExecutor } from '../combat/SpawnExecutor';
 import { CollisionSystem } from '../combat/physics/CollisionSystem';
-import { EngineRegistry } from '../core/EngineRegistry';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
 import { type IGameRenderer } from '../interfaces/IGameRenderer';
@@ -12,6 +12,11 @@ import { type ISpawnSystem } from '../interfaces/ISpawnSystem';
 import { GameRenderer } from '../renderers/GameRenderer';
 import { ProjectileRenderer } from '../renderers/ProjectileRenderer';
 import { audio } from '../audio';
+import { DirectorSpawnOrchestrator } from '../director/DirectorSpawnOrchestrator';
+import { MarketAudioReactor } from '../audio/MarketAudioReactor';
+import { PresentationDirector } from '../presentation/PresentationDirector';
+import { createGamePresentationCueAdapter } from '../presentation/GamePresentationCueAdapter';
+import { type EventBusPresentationCueAdapter } from '../presentation/EventBusPresentationCueAdapter';
 
 export type GameRuntime = {
   poolManager: PoolManager;
@@ -19,6 +24,10 @@ export type GameRuntime = {
   combatSystem: ICombatSystem;
   physicsSystem: IPhysicsSystem;
   spawnSystem: ISpawnSystem;
+  spawnExecutor: SpawnExecutor;
+  directorSpawnOrchestrator: DirectorSpawnOrchestrator;
+  presentationDirector: PresentationDirector;
+  presentationCueAdapter: EventBusPresentationCueAdapter;
   difficultyContext: typeof difficultyContext;
   reset: () => void;
   dispose: () => void;
@@ -35,21 +44,24 @@ export function createGameRuntime(): GameRuntime {
   const combatSystem = new CombatSystem(audio);
   const physicsSystem = new PhysicsSystem(undefined, new CollisionSystem(), undefined);
   const spawnSystem = new SpawnSystem();
-
-  EngineRegistry.setPoolManager(poolManager);
-  EngineRegistry.setCombatSystem(combatSystem);
-  EngineRegistry.setPhysicsSystem(physicsSystem);
-  EngineRegistry.setSpawnSystem(spawnSystem);
-  EngineRegistry.setAudioService(audio);
+  const spawnExecutor = new SpawnExecutor();
+  const directorSpawnOrchestrator = new DirectorSpawnOrchestrator();
+  const presentationDirector = new PresentationDirector();
+  const presentationCueAdapter = createGamePresentationCueAdapter();
 
   const reset = () => {
     poolManager.clearAll();
     spawnSystem.reset();
+    directorSpawnOrchestrator.reset();
     difficultyContext.reset();
+    presentationDirector.reset();
+    MarketAudioReactor.clearPresentationAmbience();
   };
 
   const dispose = () => {
     difficultyContext.reset();
+    presentationDirector.reset();
+    MarketAudioReactor.clearPresentationAmbience();
 
     if ('dispose' in spawnSystem && typeof spawnSystem.dispose === 'function') {
       spawnSystem.dispose();
@@ -70,6 +82,10 @@ export function createGameRuntime(): GameRuntime {
     combatSystem,
     physicsSystem,
     spawnSystem,
+    spawnExecutor,
+    directorSpawnOrchestrator,
+    presentationDirector,
+    presentationCueAdapter,
     difficultyContext,
     reset,
     dispose,

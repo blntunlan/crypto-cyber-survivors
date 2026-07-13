@@ -51,6 +51,22 @@ describe('EventRecorderService', () => {
   });
 
   describe('Hash Chain Integrity', () => {
+    it('overwrites capped events without shifting the backing array', () => {
+      EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
+      // @ts-expect-error: inspect the hot-path backing store
+      const shiftSpy = vi.spyOn(EventRecorderService.events, 'shift');
+
+      for (let i = 0; i < 50_005; i++) {
+        EventRecorderService.record(ReplayEventType.XP_GAINED, {
+          amount: i,
+          source: 'stress',
+        });
+      }
+
+      expect(EventRecorderService.getEventCount()).toBe(50_000);
+      expect(shiftSpy).not.toHaveBeenCalled();
+    });
+
     it('should produce consistent and chained hashes', () => {
       EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
 

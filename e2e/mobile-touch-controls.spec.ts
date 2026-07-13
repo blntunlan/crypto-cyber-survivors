@@ -398,6 +398,102 @@ test.describe('Mobile Settings', () => {
 });
 
 test.describe('Orientation Handling', () => {
+  test('keeps the liquidation decision surface inside a compact portrait viewport', async ({
+    page,
+  }) => {
+    const viewport = { width: 375, height: 667 };
+    await setupMobileSession(page, viewport);
+    await startGameFromMainMenu(page, 'LONG');
+
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty('--sat', '47px');
+      document.documentElement.style.setProperty('--sab', '34px');
+      window.GameHelpers?.triggerGameOver?.();
+    });
+
+    const surface = page.locator('[data-testid="overlay-chrome-surface"]');
+    await expect(surface).toBeVisible({ timeout: 15_000 });
+
+    const geometry = await surface.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const rootRect = document.getElementById('root')!.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        rootTop: rootRect.top,
+        rootBottom: rootRect.bottom,
+      };
+    });
+
+    expect(geometry.top).toBeGreaterThanOrEqual(geometry.rootTop);
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.rootBottom);
+
+    const backButton = page.getByRole('button', { name: /Back to Terminal/i });
+    await backButton.scrollIntoViewIfNeeded();
+    await expect(backButton).toBeInViewport();
+  });
+
+  test('fills portrait mobile PWA viewports behind safe areas', async ({ page }) => {
+    const viewports = [
+      { width: 375, height: 667, safeTop: 20, safeBottom: 0 },
+      { width: 414, height: 896, safeTop: 47, safeBottom: 34 },
+      { width: 430, height: 932, safeTop: 59, safeBottom: 34 },
+    ];
+    await setupMobileSession(page, viewports[0]!);
+    await startGameFromMainMenu(page, 'LONG');
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(({ safeTop, safeBottom }) => {
+        document.documentElement.style.setProperty('--sat', `${safeTop}px`);
+        document.documentElement.style.setProperty('--sab', `${safeBottom}px`);
+      }, viewport);
+
+      await expect
+        .poll(() =>
+          page
+            .locator('canvas')
+            .first()
+            .evaluate(canvas => {
+              const canvasRect = canvas.getBoundingClientRect();
+              const rootRect = document.getElementById('root')!.getBoundingClientRect();
+              return {
+                canvas: {
+                  left: canvasRect.left,
+                  top: canvasRect.top,
+                  right: canvasRect.right,
+                  bottom: canvasRect.bottom,
+                  width: canvasRect.width,
+                  height: canvasRect.height,
+                },
+                root: {
+                  left: rootRect.left,
+                  top: rootRect.top,
+                  right: rootRect.right,
+                  bottom: rootRect.bottom,
+                },
+              };
+            })
+        )
+        .toEqual({
+          canvas: {
+            left: 0,
+            top: 0,
+            right: viewport.width,
+            bottom: viewport.height,
+            width: viewport.width,
+            height: viewport.height,
+          },
+          root: {
+            left: 0,
+            top: 0,
+            right: viewport.width,
+            bottom: viewport.height,
+          },
+        });
+    }
+  });
+
   test('should work in portrait orientation', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await setupMobileSession(page, { width: 375, height: 667 });

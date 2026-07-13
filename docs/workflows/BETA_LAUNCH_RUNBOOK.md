@@ -10,6 +10,7 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | Kapı | Komut / Kanıt | Kabul |
 |---|---|---|
 | Baseline | `npm run check:baseline` | Typecheck, architecture guardrail, lint, unit test ve build geçer |
+| Director Gate H | `npm run check:director-reference` | Replay, Mirror parity, 30/60/120 pacing ve performance reference geçer |
 | Market server | `cd railway-market-server && npm run validate` | Typecheck, lint ve build geçer |
 | External sign-off | [Beta External Sign-off Board](/docs/workflows/BETA_EXTERNAL_SIGNOFF_BOARD) | Tüm P0 satırları `Geçti` |
 | E2E critical | `PLAYWRIGHT_CHROME_EXECUTABLE_PATH=... npm run test:e2e:beta:critical` | Chromium ve mobile Chrome critical path geçer |
@@ -23,7 +24,7 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | 1 | Release branch veya main HEAD doğrula | `git status --short` ve commit SHA kaydı | Engineering |
 | 2 | Docs mirror güncelle | `npm run docs:sync` | Engineering |
 | 3 | Baseline ve market validate son kez çalıştır | `npm run check:baseline`; `cd railway-market-server && npm run validate` | Engineering |
-| 4 | Gerekirse DB migration uygula | `npm run supabase:push` | Backend |
+| 4 | Gerekirse DB migration uygula | API servis startup migration logunu doğrula | Backend |
 | 5 | Frontend deploy tetikle | `npm run deploy` | Operations |
 | 6 | Market server deploy tetikle | `npm run railway:market:deploy` | Operations |
 | 7 | Smoke test çalıştır | [Beta Smoke Test Checklist](/docs/workflows/BETA_SMOKE_TEST_CHECKLIST) | QA |
@@ -40,6 +41,20 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | Telemetry ingest | Error, performance ve session telemetry admin dashboard'a akar |
 | Docs viewer | `public/docs/navigation.json` yeni dokümanları gösterir |
 
+## Director Rollout
+
+| Aşama | Runtime Modu | Trafik | Gerekli Kanıt | İlerleme Kuralı |
+|---|---|---:|---|---|
+| 0 | `runtime` | 0% | Replay ve Mirror parity hash sıfır mismatch | Ops rehearsal tamamlanır |
+| 1 | `runtime` | 1% | 30 dakika telemetry gözlemi | Unfair death, clamp, event spam ve settlement error normal bandda |
+| 2 | `runtime` | 10% | 2 saat telemetry gözlemi | Fatal error veya verification fail eşiği aşılmaz |
+| 3 | `runtime` | 50% | 24 saat telemetry gözlemi | Rollback tetiklenmez |
+| 4 | `runtime` | 100% | Incident owner onayı | Release notu ve kanıt logu tamamlanır |
+
+- Production’da `VITE_MARKET_RUNTIME_MODE` yalnız `runtime` olabilir; `legacy` ve `dual` değerleri Director runtime’a zorlanır.
+- Token ve Mirror PvP, Practice Assist kullanamaz; parity kanıtı aynı frame/seed/config/content için saklanır.
+- Her aşama öncesi server-side reward idempotency ve cash-out race testleri yeşil olmalıdır.
+
 ## Rollback Planı
 
 | Senaryo | Aksiyon | Kapanış |
@@ -49,6 +64,9 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | Verify/reward regression | Deploy durdur, reward writes disable edilmeden yeni release açma | Double-credit ve false credit yok |
 | Env misconfiguration | Railway env guardrail yeniden çalıştır, eksik key düzelt | `check:beta-env` tüm servislerde geçer |
 | DB migration issue | Migration owner rollback planını uygular, API writes kontrol edilir | Data loss yok, health check yeşil |
+| Replay veya Mirror parity mismatch | Rollout yüzdesini durdur, son sağlıklı runtime release'e dön | Aynı recorded frame/seed tekrarında hash sıfır mismatch |
+| Frame-time baseline `%5` üstü | Yeni rollout aşamasını açma, performans regresyonunu izole et | Reference benchmark ve 30/60/120 pacing tekrar yeşil |
+| Settlement error veya unfair-death spike | Yeni oturum kabulünü durdur, release rollback ve ledger audit başlat | İdempotent ledger tekrarında coin/shard kaybı veya çift kredi yok |
 
 ## Monitoring Penceresi
 
@@ -59,6 +77,15 @@ Bu runbook beta release rehearsal, deploy, rollback, monitoring ve incident owne
 | İlk 1 saat | Crash-free session rate | `< 95%` |
 | İlk 1 saat | Reconnect events | Normal baseline üstünde belirgin spike |
 | İlk 24 saat | Balance telemetry | Median survival ve reward/min uç değerleri |
+| Her rollout aşaması | Director telemetry | Replay mismatch, clamp, event spam, unfair death ve settlement error sıfır kritik alarm |
+
+## Rollback Tatbikatı
+
+1. Stage 0'da aynı recorded canonical frame dizisini ve seed'i replay ederek snapshot/spawn hash eşitliğini doğrula.
+2. Token ve Mirror PvP modu için parity testini çalıştır; Practice Assist istisnası oluşmadığını doğrula.
+3. Cash-out, liquidation ve reconnect yarış testlerinden sonra aynı idempotency key ile tekrar çağrı yap; ledger sonucu değişmemelidir.
+4. Rollback sonrası API migration logunu, aktif runtime modunu ve wallet/escrow bakiyelerini doğrula.
+5. Tatbikat, veri veya ledger kaybı üretirse rollout bir sonraki aşamaya geçmez.
 
 ## Incident Owner Akışı
 

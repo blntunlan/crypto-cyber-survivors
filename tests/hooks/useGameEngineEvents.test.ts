@@ -16,7 +16,9 @@ vi.mock('../../services/audio', () => ({
 }));
 
 vi.mock('../../services/market/PriceMomentumEngine', () => ({
-  PriceMomentumEngine: { update: vi.fn() },
+  PriceMomentumEngine: {
+    update: vi.fn(),
+  },
 }));
 
 vi.mock('../../services/market/MarketEventAnnouncer', () => ({

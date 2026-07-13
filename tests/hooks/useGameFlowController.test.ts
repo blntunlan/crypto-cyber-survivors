@@ -19,7 +19,6 @@ import { applyCardEffect } from '../../services/cards/CardApplicator';
 import { ExperienceService } from '../../services/gameplay/ExperienceService';
 import { MetricsService } from '../../services/core/MetricsService';
 import { CoinService } from '../../services/gameplay/CoinService';
-import { ComboSystem } from '../../services/combat/ComboSystem';
 import { MetaProgressionService } from '../../services/progression/MetaProgressionService';
 import { GameSessionService } from '../../services/auth/GameSessionService';
 import { ChallengeService } from '../../services/challenges/ChallengeService';
@@ -72,14 +71,29 @@ vi.mock('../../services/gameplay/CoinService', () => ({
 vi.mock('../../services/auth/GameSessionService', () => ({
   GameSessionService: {
     submitSession: vi.fn(async () => ({ success: false })),
+    requestCashOutQuote: vi.fn(async () => ({
+      quote: { quoteId: 'quote-1', canonicalSequence: 42, rewardPoints: 120 },
+      signature: 'a'.repeat(64),
+      shouldForceRecovery: false,
+      safeExitOnly: false,
+    })),
+    decideCashOut: vi.fn(async () => ({
+      state: 'settled',
+      rewardPoints: 120,
+      greedDelta: 0,
+    })),
+    recordCashOutFailure: vi.fn(async () => ({
+      state: 'failed',
+      primaryRewardPoints: 0,
+      shards: 0,
+    })),
+    clearSession: vi.fn(),
   },
 }));
 
-vi.mock('../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    getTotalElapsedSeconds: vi.fn(() => 123),
-    reset: vi.fn(),
-    resetForCycleContinue: vi.fn(),
+vi.mock('../../services/core/TimeService', () => ({
+  TimeService: {
+    getGameTimeSeconds: vi.fn(() => 123),
   },
 }));
 
@@ -450,7 +464,7 @@ describe('useGameFlowController', () => {
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
-  it('handleCashOut submits cycle reward payload without optimistic credit', async () => {
+  it('handleCashOut accepts the server quote without legacy reward submission', async () => {
     const playerRef = { current: makePlayer({ level: 4 }) };
     vi.mocked(MetricsService.endSession).mockReturnValue({
       replayData: { events: [] },
@@ -485,35 +499,93 @@ describe('useGameFlowController', () => {
       await result.current.handleCashOut();
     });
 
-    expect(CoinService.calculateCycleReward).toHaveBeenCalled();
-    expect(ComboSystem.getMaxStreak).toHaveBeenCalled();
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledWith('RECOVERY');
+    expect(GameSessionService.decideCashOut).toHaveBeenCalledWith(
+      'quote-1',
+      'a'.repeat(64),
+      'accept',
+      'cash-out:quote-1'
+    );
+    expect(GameSessionService.clearSession).toHaveBeenCalled();
     expect(CoinService.creditCoins).not.toHaveBeenCalled();
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
+    expect(GameSessionService.submitSession).not.toHaveBeenCalled();
+  });
 
-    await waitFor(() => {
-      expect(GameSessionService.submitSession).toHaveBeenCalled();
+  it('settles a stale-market quote through the Safe Exit decision', async () => {
+    vi.mocked(GameSessionService.requestCashOutQuote).mockResolvedValueOnce({
+      quote: { quoteId: 'safe-exit-quote', canonicalSequence: 42, rewardPoints: 120 },
+      signature: 'b'.repeat(64),
+      shouldForceRecovery: false,
+      safeExitOnly: true,
     });
-
-    expect(GameSessionService.submitSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        endReason: GameEndReason.CYCLE_COMPLETE,
-        exitType: 'cycle_complete',
-        portalType: null,
-        kills: 19,
-        level: 4,
-        maxStreak: 7,
-      }),
-      expect.objectContaining({
-        exitType: 'cycle_complete',
-        portalType: null,
-        totalCoins: 100,
-        rawCoins: 20,
-        breakdown: expect.objectContaining({
-          market: 15,
-          streak: 5,
-        }),
+    const playerRef = { current: makePlayer({ level: 4 }) };
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.15, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 19,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
       })
     );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
+    });
+    await waitFor(() => expect(result.current.cycleData).not.toBeNull());
+
+    await act(async () => {
+      await result.current.handleCashOut();
+    });
+
+    expect(GameSessionService.decideCashOut).toHaveBeenCalledWith(
+      'safe-exit-quote',
+      'b'.repeat(64),
+      'safe_exit',
+      'cash-out:safe-exit-quote'
+    );
+  });
+
+  it('keeps the run active when the authoritative quote cannot be issued', async () => {
+    vi.mocked(GameSessionService.requestCashOutQuote).mockRejectedValueOnce(
+      new Error('CASH_OUT_NOT_ELIGIBLE')
+    );
+    const playerRef = { current: makePlayer({ level: 4 }) };
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.15, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 19,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
+    });
+    await waitFor(() => expect(result.current.cycleData).not.toBeNull());
+
+    await act(async () => {
+      await result.current.handleCashOut();
+    });
+
+    expect(GameSessionService.clearSession).not.toHaveBeenCalled();
+    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
   it('ignores duplicate cycleComplete events with same cycleNumber', async () => {
@@ -560,9 +632,9 @@ describe('useGameFlowController', () => {
     );
   });
 
-  it('handleGameOver calls DifficultyManager.reset()', async () => {
-    const { DifficultyManager } =
-      await import('../../services/gameplay/DifficultyManager');
+  it('handleGameOver resets the runtime difficulty context', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer() };
 
     const { result } = renderHook(() =>
@@ -585,12 +657,12 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(DifficultyManager.reset).toHaveBeenCalled();
+    expect(difficultyContext.reset).toHaveBeenCalled();
   });
 
   it('handleGameOver does not submit session side effects when state transition is rejected', async () => {
-    const { DifficultyManager } =
-      await import('../../services/gameplay/DifficultyManager');
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer() };
     vi.mocked(GameStateMachine.transition)
       .mockReturnValueOnce(false)
@@ -616,7 +688,7 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(DifficultyManager.reset).not.toHaveBeenCalled();
+    expect(difficultyContext.reset).not.toHaveBeenCalled();
     expect(MetricsService.endSession).not.toHaveBeenCalled();
     expect(GameSessionService.submitSession).not.toHaveBeenCalled();
 
@@ -624,11 +696,15 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(DifficultyManager.reset).toHaveBeenCalled();
-    expect(MetricsService.endSession).toHaveBeenCalled();
+    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(MetricsService.endSession).not.toHaveBeenCalled();
+    expect(GameSessionService.recordCashOutFailure).toHaveBeenCalledWith(
+      'death',
+      'failure:death:123'
+    );
   });
 
-  it('handleGameOver clears processing when metrics are unavailable', async () => {
+  it('handleGameOver records each failure without requiring end-session metrics', async () => {
     const playerRef = { current: makePlayer() };
     vi.mocked(MetricsService.endSession).mockReturnValue(null);
 
@@ -656,12 +732,13 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(MetricsService.endSession).toHaveBeenCalledTimes(2);
+    expect(MetricsService.endSession).not.toHaveBeenCalled();
     expect(GameSessionService.submitSession).not.toHaveBeenCalled();
     expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(2);
+    expect(GameSessionService.recordCashOutFailure).toHaveBeenCalledTimes(2);
   });
 
-  it('handleGameOver submits death payload defaults for server reconciliation', async () => {
+  it('handleGameOver records death through the authoritative failure endpoint', async () => {
     const playerRef = { current: makePlayer({ level: 5 }) };
     vi.mocked(MetricsService.endSession).mockReturnValue({
       replayData: { events: [] },
@@ -688,21 +765,11 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    await waitFor(() => {
-      expect(GameSessionService.submitSession).toHaveBeenCalled();
-    });
-
-    expect(GameSessionService.submitSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        endReason: GameEndReason.DEATH,
-        exitType: 'death',
-        portalType: null,
-        kills: 9,
-        level: 5,
-        maxStreak: 7,
-      }),
-      undefined
+    expect(GameSessionService.recordCashOutFailure).toHaveBeenCalledWith(
+      'death',
+      'failure:death:123'
     );
+    expect(GameSessionService.submitSession).not.toHaveBeenCalled();
   });
 
   it('handleGameOver submits portal reward payload for server reconciliation', async () => {
@@ -754,10 +821,6 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.PORTAL, rewardPayload);
     });
 
-    await waitFor(() => {
-      expect(GameSessionService.submitSession).toHaveBeenCalled();
-    });
-
     expect(GameSessionService.submitSession).toHaveBeenCalledWith(
       expect.objectContaining({
         endReason: GameEndReason.PORTAL,
@@ -804,15 +867,14 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    await waitFor(() => {
-      expect(GameSessionService.submitSession).toHaveBeenCalled();
-    });
+    expect(GameSessionService.recordCashOutFailure).toHaveBeenCalled();
+    expect(GameSessionService.submitSession).not.toHaveBeenCalled();
     expect(CoinService.creditVerifiedCoins).not.toHaveBeenCalled();
   });
 
-  it('handleCashOut calls DifficultyManager.reset() before ending run', async () => {
-    const { DifficultyManager } =
-      await import('../../services/gameplay/DifficultyManager');
+  it('handleCashOut resets the runtime difficulty context before ending run', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -843,14 +905,12 @@ describe('useGameFlowController', () => {
       await result.current.handleCashOut();
     });
 
-    expect(DifficultyManager.reset).toHaveBeenCalled();
+    expect(difficultyContext.reset).toHaveBeenCalled();
   });
 
   it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
     const { difficultyContext } =
       await import('../../services/difficulty/DifficultyContext');
-    const { DifficultyManager } =
-      await import('../../services/gameplay/DifficultyManager');
     const { ComboSystem } = await import('../../services/combat/ComboSystem');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
@@ -882,14 +942,14 @@ describe('useGameFlowController', () => {
       result.current.handleContinue();
     });
 
-    expect(DifficultyManager.resetForCycleContinue).toHaveBeenCalled();
+    expect(difficultyContext.resetForCycleContinue).toHaveBeenCalled();
     expect(ComboSystem.resetCombo).toHaveBeenCalled();
     expect(difficultyContext.updateInputs).toHaveBeenCalledWith({ cycleFactor: 2 });
   });
 
   it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {
-    const { DifficultyManager } =
-      await import('../../services/gameplay/DifficultyManager');
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -928,7 +988,7 @@ describe('useGameFlowController', () => {
     expect(result.current.upgradeChoices).toEqual([]);
     expect(result.current.cycleData).toBeNull();
     expect(result.current.frozenPnlRef.current).toBe(0);
-    expect(DifficultyManager.reset).toHaveBeenCalled();
+    expect(difficultyContext.reset).toHaveBeenCalled();
   });
 
   it('handleGameOver calls ChallengeService.onRunEnd synchronously before async submission (race condition guard)', async () => {
@@ -938,12 +998,12 @@ describe('useGameFlowController', () => {
       performance: { avgFps: 60 },
     } as any);
 
-    // Make submitSession hang forever so we can verify onRunEnd fires first
-    let resolveSubmit: (val: any) => void = () => {};
-    vi.mocked(GameSessionService.submitSession).mockImplementation(
+    // Make failure settlement hang forever so we can verify onRunEnd fires first
+    let resolveFailure: (val: any) => void = () => {};
+    vi.mocked(GameSessionService.recordCashOutFailure).mockImplementation(
       () =>
         new Promise(resolve => {
-          resolveSubmit = resolve;
+          resolveFailure = resolve;
         })
     );
 
@@ -967,12 +1027,12 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    // onRunEnd must have been called even though submitSession is still pending
+    // onRunEnd must have been called even though failure settlement is pending
     expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(1);
-    expect(GameSessionService.submitSession).toHaveBeenCalledTimes(1);
+    expect(GameSessionService.recordCashOutFailure).toHaveBeenCalledTimes(1);
 
-    // Resolve the pending submission
-    resolveSubmit({ success: true, verified: true, reward: 100, metaShare: 15 });
+    // Resolve the pending failure settlement
+    resolveFailure({ state: 'failed', primaryRewardPoints: 0, shards: 50 });
     await waitFor(() => {
       // onRunEnd must NOT be called a second time after submission resolves
       expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(1);

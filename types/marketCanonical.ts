@@ -24,3 +24,17 @@ export interface CanonicalMarketPayload {
   /** Which source produced this payload */
   source: 'runtime' | 'client' | 'fallback';
 }
+
+export type MarketFrameQuality = 'LIVE' | 'DELAYED' | 'STALE';
+
+/**
+ * Ordered, replayable market input accepted by the Director pipeline.
+ * `quality` is assigned and maintained by MarketInbox, not by gameplay consumers.
+ */
+export interface CanonicalMarketFrame extends CanonicalMarketPayload {
+  revision: number;
+  sequence: number;
+  sourceTimestamp: number;
+  receivedAt: number;
+  quality: MarketFrameQuality;
+}

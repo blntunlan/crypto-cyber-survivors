@@ -13,6 +13,12 @@ import { WEAPON_REGISTRY } from '../../config/WeaponRegistry';
 import { type WeaponRenderKind } from '../../types/weapons';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { ComboSystem } from '../combat/ComboSystem';
+import {
+  getBulletTrailAge,
+  getBulletTrailCount,
+  getBulletTrailX,
+  getBulletTrailY,
+} from '../combat/BulletTrailBuffer';
 
 /**
  * ProjectileRenderer - Visualizes player bullets and projectiles.
@@ -391,20 +397,22 @@ export class ProjectileRenderer implements IRenderer {
   ): void {
     const trail = b.trail;
     // 1. Trail polyline (drawn first so it sits behind the glow/core).
-    if (trail !== undefined && trail.length > 1) {
+    const trailCount = trail === undefined ? 0 : getBulletTrailCount(trail);
+    if (trail !== undefined && trailCount > 1) {
       const previousAlpha = ctx.globalAlpha;
       ctx.lineCap = 'round';
-      for (let i = 1; i < trail.length; i++) {
-        const p0 = trail[i - 1]!;
-        const p1 = trail[i]!;
-        const alpha = Math.max(0, 1 - p1.age / QUANTUM_TRAIL_LIFE_MS);
+      for (let i = 1; i < trailCount; i++) {
+        const alpha = Math.max(
+          0,
+          1 - getBulletTrailAge(trail, i) / QUANTUM_TRAIL_LIFE_MS
+        );
         if (alpha <= 0) continue;
         ctx.globalAlpha = previousAlpha * alpha * 0.7;
         ctx.strokeStyle = comboColor;
         ctx.lineWidth = 2 * alpha + 0.5;
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(getBulletTrailX(trail, i - 1), getBulletTrailY(trail, i - 1));
+        ctx.lineTo(getBulletTrailX(trail, i), getBulletTrailY(trail, i));
         ctx.stroke();
       }
       ctx.globalAlpha = previousAlpha;
@@ -414,11 +422,17 @@ export class ProjectileRenderer implements IRenderer {
     ctx.save();
     ctx.translate(b.x, b.y);
 
-    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, 9, [
-      { offset: 0, color: '#ffffff' },
-      { offset: 0.4, color: 'rgba(34,211,238,0.8)' },
-      { offset: 1, color: 'rgba(34,211,238,0)' },
-    ]);
+    const grad = gradientCache.getRadialGradient(
+      ctx,
+      0,
+      0,
+      0,
+      0,
+      0,
+      9,
+      QUANTUM_GRADIENT_STOPS,
+      'projectile-quantum'
+    );
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(0, 0, 9, 0, Math.PI * 2);
@@ -446,24 +460,25 @@ export class ProjectileRenderer implements IRenderer {
    */
   private renderSpread(ctx: CanvasRenderingContext2D, b: Bullet, heat: number): void {
     const isHot = heat > SPREAD_HEAT_THRESHOLD;
-    const coreColor = isHot ? SPREAD_HOT_COLOR : SPREAD_COOL_COLOR;
     const trailRgb = isHot ? SPREAD_HOT_TRAIL_RGB : SPREAD_COOL_TRAIL_RGB;
     const trailAlphaScale = 0.5 + heat * 0.5;
 
     // 1. Trail polyline (drawn first so it sits behind the pellet).
     const trail = b.trail;
-    if (trail !== undefined && trail.length > 1) {
+    const trailCount = trail === undefined ? 0 : getBulletTrailCount(trail);
+    if (trail !== undefined && trailCount > 1) {
       ctx.lineCap = 'round';
-      for (let i = 1; i < trail.length; i++) {
-        const p0 = trail[i - 1]!;
-        const p1 = trail[i]!;
-        const alpha = Math.max(0, 1 - p1.age / SPREAD_TRAIL_LIFE_MS);
+      for (let i = 1; i < trailCount; i++) {
+        const alpha = Math.max(
+          0,
+          1 - getBulletTrailAge(trail, i) / SPREAD_TRAIL_LIFE_MS
+        );
         if (alpha <= 0) continue;
         ctx.strokeStyle = `rgba(${trailRgb},${alpha * trailAlphaScale})`;
         ctx.lineWidth = 2.2 * alpha + 0.5;
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(getBulletTrailX(trail, i - 1), getBulletTrailY(trail, i - 1));
+        ctx.lineTo(getBulletTrailX(trail, i), getBulletTrailY(trail, i));
         ctx.stroke();
       }
     }
@@ -472,11 +487,17 @@ export class ProjectileRenderer implements IRenderer {
     ctx.save();
     ctx.translate(b.x, b.y);
 
-    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, 7, [
-      { offset: 0, color: '#ffffff' },
-      { offset: 0.4, color: coreColor },
-      { offset: 1, color: `rgba(${trailRgb},0)` },
-    ]);
+    const grad = gradientCache.getRadialGradient(
+      ctx,
+      0,
+      0,
+      0,
+      0,
+      0,
+      7,
+      isHot ? SPREAD_HOT_GRADIENT_STOPS : SPREAD_COOL_GRADIENT_STOPS,
+      isHot ? 'projectile-spread-hot' : 'projectile-spread-cool'
+    );
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(0, 0, 7, 0, Math.PI * 2);
@@ -492,43 +513,46 @@ export class ProjectileRenderer implements IRenderer {
 
   private renderBoomerang(ctx: CanvasRenderingContext2D, b: Bullet): void {
     const trail = b.trail;
-    if (trail !== undefined && trail.length >= 2) {
+    const trailCount = trail === undefined ? 0 : getBulletTrailCount(trail);
+    if (trail !== undefined && trailCount >= 2) {
       ctx.save();
       ctx.lineCap = 'round';
       ctx.strokeStyle = 'rgba(192,38,211,0.2)';
       ctx.lineWidth = 10;
       ctx.beginPath();
-      ctx.moveTo(trail[0]!.x, trail[0]!.y);
-      for (let i = 1; i < trail.length; i++) {
-        ctx.lineTo(trail[i]!.x, trail[i]!.y);
+      ctx.moveTo(getBulletTrailX(trail, 0), getBulletTrailY(trail, 0));
+      for (let i = 1; i < trailCount; i++) {
+        ctx.lineTo(getBulletTrailX(trail, i), getBulletTrailY(trail, i));
       }
       ctx.stroke();
       ctx.restore();
 
-      for (let i = 1; i < trail.length; i++) {
-        const p0 = trail[i - 1]!;
-        const p1 = trail[i]!;
-        const alpha = Math.max(0, 1 - p1.age / BOOMERANG_TRAIL_LIFE_MS);
+      for (let i = 1; i < trailCount; i++) {
+        const alpha = Math.max(
+          0,
+          1 - getBulletTrailAge(trail, i) / BOOMERANG_TRAIL_LIFE_MS
+        );
         ctx.strokeStyle = `rgba(168,85,247,${alpha * 0.9})`;
         ctx.lineWidth = 3 * alpha + 1;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(getBulletTrailX(trail, i - 1), getBulletTrailY(trail, i - 1));
+        ctx.lineTo(getBulletTrailX(trail, i), getBulletTrailY(trail, i));
         ctx.stroke();
       }
 
       // Bright magenta core
-      for (let i = 1; i < trail.length; i++) {
-        const p0 = trail[i - 1]!;
-        const p1 = trail[i]!;
-        const alpha = Math.max(0, 1 - p1.age / BOOMERANG_TRAIL_LIFE_MS);
+      for (let i = 1; i < trailCount; i++) {
+        const alpha = Math.max(
+          0,
+          1 - getBulletTrailAge(trail, i) / BOOMERANG_TRAIL_LIFE_MS
+        );
         ctx.strokeStyle = `rgba(240,171,252,${alpha * 0.8})`;
         ctx.lineWidth = Math.max(0.5, alpha * 1.5);
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(getBulletTrailX(trail, i - 1), getBulletTrailY(trail, i - 1));
+        ctx.lineTo(getBulletTrailX(trail, i), getBulletTrailY(trail, i));
         ctx.stroke();
       }
     }
@@ -694,11 +718,17 @@ export class ProjectileRenderer implements IRenderer {
     ctx.save();
     ctx.translate(b.x, b.y);
 
-    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, glowR, [
-      { offset: 0, color: '#ffffff' },
-      { offset: 0.4, color: 'rgba(68,221,255,0.8)' },
-      { offset: 1, color: 'rgba(68,221,255,0)' },
-    ]);
+    const grad = gradientCache.getRadialGradient(
+      ctx,
+      0,
+      0,
+      0,
+      0,
+      0,
+      glowR,
+      ORBIT_GRADIENT_STOPS,
+      `projectile-orbit-${glowR}`
+    );
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(0, 0, glowR, 0, Math.PI * 2);
@@ -723,3 +753,23 @@ const SPREAD_COOL_TRAIL_RGB = '255,180,80';
 const SPREAD_HOT_TRAIL_RGB = '255,220,120';
 const BOOMERANG_TRAIL_LIFE_MS = 380;
 const NUKE_SHOCKWAVE_LIFE_MS = 650;
+const QUANTUM_GRADIENT_STOPS = [
+  { offset: 0, color: '#ffffff' },
+  { offset: 0.4, color: 'rgba(34,211,238,0.8)' },
+  { offset: 1, color: 'rgba(34,211,238,0)' },
+] as const;
+const SPREAD_COOL_GRADIENT_STOPS = [
+  { offset: 0, color: '#ffffff' },
+  { offset: 0.4, color: SPREAD_COOL_COLOR },
+  { offset: 1, color: `rgba(${SPREAD_COOL_TRAIL_RGB},0)` },
+] as const;
+const SPREAD_HOT_GRADIENT_STOPS = [
+  { offset: 0, color: '#ffffff' },
+  { offset: 0.4, color: SPREAD_HOT_COLOR },
+  { offset: 1, color: `rgba(${SPREAD_HOT_TRAIL_RGB},0)` },
+] as const;
+const ORBIT_GRADIENT_STOPS = [
+  { offset: 0, color: '#ffffff' },
+  { offset: 0.4, color: 'rgba(68,221,255,0.8)' },
+  { offset: 1, color: 'rgba(68,221,255,0)' },
+] as const;

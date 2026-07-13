@@ -32,7 +32,7 @@ describe('SpawnSystem Edge Cases', () => {
     // Fill pool to limit
     mockPool.activeEnemies = new Array(150).fill({});
 
-    const result = spawnSystem.update(
+    const result = spawnSystem.updateLegacy(
       5000, // Way over threshold
       1,
       800,
@@ -56,9 +56,16 @@ describe('SpawnSystem Edge Cases', () => {
 
   it('should handle zero or negative deltaTime gracefully', () => {
     // Set initial timer via update
-    spawnSystem.update(500, 1, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.updateLegacy(500, 1, 800, 600, MarketPosition.LONG, mockPool);
     // Add negative delta
-    const result = spawnSystem.update(-100, 1, 800, 600, MarketPosition.LONG, mockPool);
+    const result = spawnSystem.updateLegacy(
+      -100,
+      1,
+      800,
+      600,
+      MarketPosition.LONG,
+      mockPool
+    );
     expect(result).toBe(400); // 500 + (-100)
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
   });
@@ -66,7 +73,7 @@ describe('SpawnSystem Edge Cases', () => {
   it('should handle very high difficulty scaling', () => {
     // Difficulty 100
     // spawnThreshold = 1000 / 100 = 10 ms
-    const result = spawnSystem.update(
+    const result = spawnSystem.updateLegacy(
       100,
       100,
       800,

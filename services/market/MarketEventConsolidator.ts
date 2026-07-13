@@ -1,6 +1,10 @@
 import { EventBus } from '../core/EventBus';
-import { type CanonicalMarketPayload } from '../../types/marketCanonical';
+import {
+  type CanonicalMarketFrame,
+  type CanonicalMarketPayload,
+} from '../../types/marketCanonical';
 import { type MarketRuntimeSnapshot } from '../../types';
+import { MarketInbox } from './feed/MarketInbox';
 
 /**
  * MarketEventConsolidator — Mediator pattern
@@ -29,6 +33,30 @@ class MarketEventConsolidatorClass {
     source: 'fallback',
   };
 
+  /** Pre-allocated ordered frame handed to the simulation boundary. */
+  private readonly frame: CanonicalMarketFrame = {
+    revision: 0,
+    sequence: 0,
+    sourceTimestamp: 0,
+    receivedAt: 0,
+    quality: 'STALE',
+    price: 0,
+    pnlPercent: 0,
+    rsi: 50,
+    rsiState: 'NEUTRAL',
+    atrPercent: 0,
+    normalizedVolume: 0,
+    whaleTier: 0,
+    macd: { value: 0, signal: 0, histogram: 0 },
+    priceChangePercent: 0,
+    trendStrength: 0,
+    trendDirection: 'SIDEWAYS',
+    source: 'fallback',
+  };
+
+  private readonly inbox = new MarketInbox();
+  private nextSequence = 0;
+
   /** Whether we have received a runtime snapshot (highest priority) */
   private hasRuntimeAuthority = false;
 
@@ -39,7 +67,7 @@ class MarketEventConsolidatorClass {
       this.payload.price = data.price;
       this.payload.pnlPercent = data.pnl;
       this.payload.source = 'fallback';
-      this.emit();
+      this.publish(Date.now());
     });
 
     // Priority 2: clientIndicatorsUpdated — full indicator set from client
@@ -60,7 +88,7 @@ class MarketEventConsolidatorClass {
         this.payload.macd.histogram = data.macd.histogram;
       }
       this.payload.source = 'client';
-      this.emit();
+      this.publish(Date.now());
     });
 
     // Priority 1 (highest): marketRuntimeSnapshot — server-side computed
@@ -79,7 +107,7 @@ class MarketEventConsolidatorClass {
         this.payload.macd.histogram = snapshot.macd;
       }
       this.payload.source = 'runtime';
-      this.emit();
+      this.publish(snapshot.createdAt);
     });
 
     EventBus.on('gameReset', () => this.reset());
@@ -93,6 +121,19 @@ class MarketEventConsolidatorClass {
   /** Get the latest canonical payload (read-only reference) */
   getLatest(): Readonly<CanonicalMarketPayload> {
     return this.payload;
+  }
+
+  /** Returns the latest accepted frame; callers must not retain it past a tick. */
+  getLatestFrame(): Readonly<CanonicalMarketFrame> | null {
+    return this.inbox.getLatestFrame();
+  }
+
+  /** Locks one immutable market revision for the current simulation tick. */
+  lockForSimulationTick(
+    simulationTick: number,
+    nowMs: number
+  ): Readonly<CanonicalMarketFrame> | null {
+    return this.inbox.lockForSimulationTick(simulationTick, nowMs);
   }
 
   /** Whether the runtime feed has authority */
@@ -116,10 +157,38 @@ class MarketEventConsolidatorClass {
     this.payload.trendStrength = 0;
     this.payload.trendDirection = 'SIDEWAYS';
     this.payload.source = 'fallback';
+    this.nextSequence = 0;
+    this.inbox.reset();
   }
 
-  private emit(): void {
+  private publish(sourceTimestamp: number): void {
+    const receivedAt = Date.now();
+    this.nextSequence += 1;
+    this.frame.revision = this.nextSequence;
+    this.frame.sequence = this.nextSequence;
+    this.frame.sourceTimestamp = sourceTimestamp;
+    this.frame.receivedAt = receivedAt;
+    this.frame.price = this.payload.price;
+    this.frame.pnlPercent = this.payload.pnlPercent;
+    this.frame.rsi = this.payload.rsi;
+    this.frame.rsiState = this.payload.rsiState;
+    this.frame.atrPercent = this.payload.atrPercent;
+    this.frame.normalizedVolume = this.payload.normalizedVolume;
+    this.frame.whaleTier = this.payload.whaleTier;
+    this.frame.macd.value = this.payload.macd.value;
+    this.frame.macd.signal = this.payload.macd.signal;
+    this.frame.macd.histogram = this.payload.macd.histogram;
+    this.frame.priceChangePercent = this.payload.priceChangePercent;
+    this.frame.trendStrength = this.payload.trendStrength;
+    this.frame.trendDirection = this.payload.trendDirection;
+    this.frame.source = this.payload.source;
+    this.inbox.offer(this.frame);
+
     EventBus.emit('canonicalMarketUpdate', this.payload);
+    const latestFrame = this.inbox.getLatestFrame();
+    if (latestFrame) {
+      EventBus.emit('canonicalMarketFrame', latestFrame);
+    }
   }
 
   static resetForTesting(): void {

@@ -198,6 +198,91 @@ CREATE INDEX IF NOT EXISTS idx_reward_claims_account_created ON reward_claims(ac
 CREATE INDEX IF NOT EXISTS idx_reward_claims_profile ON reward_claims(profile_id);
 
 -- ============================================================
+-- 9b. Authoritative cash-out economy (migration 015)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS run_escrows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID UNIQUE NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  state TEXT NOT NULL DEFAULT 'active',
+  greed_level INTEGER NOT NULL DEFAULT 0,
+  time_weighted_alignment DOUBLE PRECISION NOT NULL DEFAULT 0,
+  alignment_sample_count INTEGER NOT NULL DEFAULT 0,
+  last_market_sequence BIGINT,
+  market_stale_since TIMESTAMPTZ,
+  safe_exit_available_at TIMESTAMPTZ,
+  primary_reward_points DOUBLE PRECISION NOT NULL DEFAULT 0,
+  settled_at TIMESTAMPTZ,
+  failure_type TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_run_escrows_state CHECK (state IN ('active', 'quote_open', 'settled', 'failed')),
+  CONSTRAINT ck_run_escrows_greed CHECK (greed_level >= 0),
+  CONSTRAINT ck_run_escrows_alignment_samples CHECK (alignment_sample_count >= 0),
+  CONSTRAINT ck_run_escrows_points CHECK (primary_reward_points >= 0)
+);
+CREATE INDEX IF NOT EXISTS idx_run_escrows_profile_state
+  ON run_escrows(profile_id, state, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS cash_out_quotes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  escrow_id UUID NOT NULL REFERENCES run_escrows(id) ON DELETE CASCADE,
+  quote_id TEXT UNIQUE NOT NULL,
+  canonical_sequence BIGINT NOT NULL,
+  reward_points DOUBLE PRECISION NOT NULL,
+  signature TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  responded_at TIMESTAMPTZ,
+  idempotency_key TEXT,
+  CONSTRAINT ck_cash_out_quotes_status CHECK (status IN ('open', 'accepted', 'rejected', 'expired', 'safe_exit')),
+  CONSTRAINT ck_cash_out_quotes_points CHECK (reward_points >= 0)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cash_out_quotes_open_escrow
+  ON cash_out_quotes(escrow_id) WHERE status = 'open';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cash_out_quotes_idempotency
+  ON cash_out_quotes(idempotency_key) WHERE idempotency_key IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS shard_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID UNIQUE NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  failure_type TEXT NOT NULL,
+  participation_verified BOOLEAN NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_shard_entries_amount CHECK (amount >= 0 AND amount <= 220)
+);
+CREATE INDEX IF NOT EXISTS idx_shard_entries_profile_created
+  ON shard_entries(profile_id, created_at DESC);
+
+-- ============================================================
+-- 9c. Immutable primary reward-point ledger (migration 016)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS reward_point_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID UNIQUE NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  escrow_id UUID NOT NULL REFERENCES run_escrows(id) ON DELETE CASCADE,
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount DOUBLE PRECISION NOT NULL,
+  entry_type TEXT NOT NULL,
+  quote_id TEXT REFERENCES cash_out_quotes(quote_id) ON DELETE SET NULL,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_reward_point_entries_amount CHECK (amount >= 0),
+  CONSTRAINT ck_reward_point_entries_type
+    CHECK (entry_type IN ('cash_out_accepted', 'safe_exit'))
+);
+CREATE INDEX IF NOT EXISTS idx_reward_point_entries_profile_created
+  ON reward_point_entries(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reward_point_entries_escrow
+  ON reward_point_entries(escrow_id);
+
+-- ============================================================
 -- 10. idempotency_keys (API idempotency vault)
 -- ============================================================
 
