@@ -1,9 +1,12 @@
-import { render, screen, fireEvent } from '../test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, act } from '../test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GameOverScreen } from '../../components/screens/GameOverScreen';
 import { ComboSystem } from '../../services/combat/ComboSystem';
+import { audio } from '../../services/audio/AudioService';
+import { useGameStore } from '../../stores/gameStore';
 
 const themeState = vi.hoisted(() => ({ isRetro: false }));
+const motionState = vi.hoisted(() => ({ reducedMotion: false }));
 
 vi.mock('../../contexts/useTheme', () => ({
   useIsRetro: () => themeState.isRetro,
@@ -12,10 +15,12 @@ vi.mock('../../contexts/useTheme', () => ({
 
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => {
+  const getInitialState = (initial: unknown) =>
+    initial === false ? 'false' : initial == null ? undefined : 'configured';
   const motionMock = {
     div: ({
       children,
-      initial: _initial,
+      initial,
       animate: _animate,
       exit: _exit,
       variants: _variants,
@@ -23,7 +28,11 @@ vi.mock('framer-motion', () => {
       whileTap: _whileTap,
       transition: _transition,
       ...props
-    }: any) => <div {...props}>{children}</div>,
+    }: any) => (
+      <div data-motion-initial={getInitialState(initial)} {...props}>
+        {children}
+      </div>
+    ),
     h2: ({
       children,
       initial: _initial,
@@ -37,11 +46,15 @@ vi.mock('framer-motion', () => {
     }: any) => <h2 {...props}>{children}</h2>,
     h1: ({
       children,
-      initial: _initial,
+      initial,
       animate: _animate,
       transition: _transition,
       ...props
-    }: any) => <h1 {...props}>{children}</h1>,
+    }: any) => (
+      <h1 data-motion-initial={getInitialState(initial)} {...props}>
+        {children}
+      </h1>
+    ),
     span: ({
       children,
       initial: _initial,
@@ -69,6 +82,7 @@ vi.mock('framer-motion', () => {
     motion: motionMock,
     m: motionMock,
     AnimatePresence: ({ children }: any) => <>{children}</>,
+    useReducedMotion: () => motionState.reducedMotion,
   };
 });
 
@@ -84,7 +98,14 @@ describe('GameOverScreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     themeState.isRetro = false;
+    motionState.reducedMotion = false;
+    useGameStore.getState().resetProgress();
     vi.spyOn(ComboSystem, 'getMaxStreak').mockReturnValue(36);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('renders the approved liquidation hierarchy in semantic order', () => {
@@ -145,6 +166,64 @@ describe('GameOverScreen', () => {
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
     expect(screen.getByTestId('liquidation-reward-breakdown')).toBeVisible();
+  });
+
+  it('keeps the primary action outside the only scrollable result body', () => {
+    render(<GameOverScreen {...defaultProps} />);
+
+    const result = screen.getByTestId('liquidation-result');
+    const resultBody = screen.getByTestId('liquidation-result-body');
+    const action = screen.getByTestId('liquidation-primary-action');
+
+    expect(result).toContainElement(resultBody);
+    expect(result).toContainElement(action);
+    expect(resultBody).toHaveClass('overflow-y-auto');
+    expect(resultBody).not.toContainElement(action);
+    expect(action.parentElement).toHaveClass('shrink-0');
+  });
+
+  it('keeps a positive-PnL high score and audio stable through result recording', () => {
+    vi.useFakeTimers();
+    useGameStore.setState(state => ({
+      progress: { ...state.progress, highScore: 800 },
+    }));
+    const playDeath = vi.spyOn(audio, 'playDeath').mockImplementation(() => {});
+    const playAchievementGlint = vi
+      .spyOn(audio, 'playAchievementGlint')
+      .mockImplementation(() => {});
+
+    render(<GameOverScreen {...defaultProps} />);
+
+    const highScoreBadge = screen.getByText('common.game_over_screen.new_high_score');
+    expect(highScoreBadge).toBeVisible();
+    expect(useGameStore.getState().progress.highScore).toBe(1120);
+    expect(playDeath).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(highScoreBadge).toBeVisible();
+    expect(playAchievementGlint).toHaveBeenCalledTimes(1);
+    expect(playDeath).toHaveBeenCalledTimes(1);
+  });
+
+  it('declares reduced motion and suppresses entrance initial states', () => {
+    motionState.reducedMotion = true;
+    render(<GameOverScreen {...defaultProps} />);
+
+    expect(screen.getByTestId('liquidation-result')).toHaveAttribute(
+      'data-reduced-motion',
+      'true'
+    );
+    expect(screen.getByTestId('liquidation-result')).toHaveAttribute(
+      'data-motion-initial',
+      'false'
+    );
+    expect(screen.getByTestId('liquidation-heading')).toHaveAttribute(
+      'data-motion-initial',
+      'false'
+    );
   });
 
   it('keeps required content in retro mode', () => {

@@ -425,8 +425,8 @@ test.describe('Orientation Handling', () => {
       };
     });
 
-    expect(geometry.top).toBeGreaterThanOrEqual(geometry.rootTop);
-    expect(geometry.bottom).toBeLessThanOrEqual(geometry.rootBottom);
+    expect(geometry.top).toBeGreaterThanOrEqual(geometry.rootTop + 47);
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.rootBottom - 34);
 
     const result = page.getByTestId('liquidation-result');
     const heading = page.getByTestId('liquidation-heading');
@@ -438,7 +438,6 @@ test.describe('Orientation Handling', () => {
 
     await page.getByRole('button', { name: /Details/i }).click();
     await expect(page.getByTestId('liquidation-reward-breakdown')).toBeVisible();
-    await action.scrollIntoViewIfNeeded();
     await expect(action).toBeInViewport();
   });
 
@@ -450,19 +449,15 @@ test.describe('Orientation Handling', () => {
     await startGameFromMainMenu(page, 'LONG');
     await page.evaluate(() => window.GameHelpers?.triggerGameOver?.());
 
+    const result = page.getByTestId('liquidation-result');
     await expect(page.getByTestId('liquidation-heading')).toBeVisible({
       timeout: 15_000,
     });
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            document
-              .getAnimations()
-              .filter(animation => animation.playState === 'running').length
-        )
-      )
-      .toBe(0);
+    await expect(result).toHaveAttribute('data-reduced-motion', 'true');
+    const subtreeAnimations = await result.evaluate(
+      element => element.getAnimations({ subtree: true }).length
+    );
+    expect(subtreeAnimations).toBe(0);
   });
 
   test('fills portrait mobile PWA viewports behind safe areas', async ({ page }) => {

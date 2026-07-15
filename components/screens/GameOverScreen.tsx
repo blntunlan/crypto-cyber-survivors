@@ -1,5 +1,5 @@
 import React from 'react';
-import { m } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { COLORS } from '../../config/Colors';
 import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
 import { Z_LAYERS } from '../../constants/ZIndex';
@@ -42,12 +42,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   coinsEarned = 0,
 }) => {
   const isRetro = useIsRetro();
+  const prefersReducedMotion = useReducedMotion();
   const { t } = useLanguage();
   const { progress, recordGameEnd } = useGameStore();
 
   const hasRecordedRef = React.useRef(false);
   const [showBreakdown, setShowBreakdown] = React.useState(false);
   const maxStreak = React.useMemo(() => ComboSystem.getMaxStreak(), []);
+  const [resultScore] = React.useState(() =>
+    Math.floor(kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0))
+  );
+  const [isNewHighScore] = React.useState(() => resultScore > progress.highScore);
   const coinCalc = React.useMemo(
     () =>
       CoinService.calculateCycleReward({
@@ -64,13 +69,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   React.useEffect(() => {
     if (hasRecordedRef.current) return;
     hasRecordedRef.current = true;
-    const score = Math.floor(
-      kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0)
-    );
-    recordGameEnd(score, level, survivalTime, kills);
-  }, [kills, level, survivalTime, finalPnl, recordGameEnd]);
-
-  const isNewHighScore = Math.floor(kills * 10 + survivalTime) > progress.highScore;
+    recordGameEnd(resultScore, level, survivalTime, kills);
+  }, [kills, level, recordGameEnd, resultScore, survivalTime]);
 
   React.useEffect(() => {
     audio.playDeath();
@@ -93,45 +93,52 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       <m.div
         data-testid="liquidation-result"
         data-liquidation-theme={isRetro ? 'retro' : 'modern'}
+        data-reduced-motion={prefersReducedMotion ? 'true' : 'false'}
         className={cn(
-          'custom-scrollbar relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-8 sm:py-7',
+          'relative flex min-h-0 flex-1 flex-col overflow-hidden',
           isRetro ? 'font-retro-pixel' : 'font-cyber'
         )}
-        initial={{ opacity: 0, y: 8 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={RESULT_ENTER_TRANSITION}
       >
-        <LiquidationHeader
-          isRetro={isRetro}
-          title={t('common.game_over_screen.liquidated') as string}
-          subtitle={t('common.session_halted') as string}
-        />
-        {isNewHighScore && (
-          <CompactHighScore
-            label={t('common.game_over_screen.new_high_score') as string}
+        <div
+          data-testid="liquidation-result-body"
+          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-8 sm:pb-4 sm:pt-7"
+        >
+          <LiquidationHeader
+            isRetro={isRetro}
+            reducedMotion={Boolean(prefersReducedMotion)}
+            title={t('common.game_over_screen.liquidated') as string}
+            subtitle={t('common.session_halted') as string}
           />
-        )}
-        <LiquidationResult
-          finalPnl={finalPnl}
-          level={level}
-          survivalTime={formatTime(survivalTime)}
-          kills={kills}
-          maxStreak={maxStreak}
-          isRetro={isRetro}
-        />
-        <LiquidationReward
-          coinCalc={coinCalc}
-          displayedCoins={displayedCoins}
-          isRetro={isRetro}
-          expanded={showBreakdown}
-          onToggle={() => setShowBreakdown(previous => !previous)}
-        />
-        <LiquidationCareer
-          games={progress.totalGamesPlayed}
-          totalKills={progress.totalKills}
-          bestLevel={progress.highestLevel}
-        />
-        <div className="sticky bottom-0 z-20 mt-auto bg-gradient-to-t from-[#090C12] via-[#090C12] to-transparent pt-4">
+          {isNewHighScore && (
+            <CompactHighScore
+              label={t('common.game_over_screen.new_high_score') as string}
+            />
+          )}
+          <LiquidationResult
+            finalPnl={finalPnl}
+            level={level}
+            survivalTime={formatTime(survivalTime)}
+            kills={kills}
+            maxStreak={maxStreak}
+            isRetro={isRetro}
+          />
+          <LiquidationReward
+            coinCalc={coinCalc}
+            displayedCoins={displayedCoins}
+            isRetro={isRetro}
+            expanded={showBreakdown}
+            onToggle={() => setShowBreakdown(previous => !previous)}
+          />
+          <LiquidationCareer
+            games={progress.totalGamesPlayed}
+            totalKills={progress.totalKills}
+            bestLevel={progress.highestLevel}
+          />
+        </div>
+        <div className="shrink-0 bg-[#090C12] px-4 pb-4 pt-3 sm:px-8 sm:pb-7 sm:pt-4">
           <ThemedButton
             data-testid="liquidation-primary-action"
             intent="primary"
@@ -148,9 +155,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
 const LiquidationHeader: React.FC<{
   isRetro: boolean;
+  reducedMotion: boolean;
   title: string;
   subtitle: string;
-}> = ({ isRetro, title, subtitle }) => (
+}> = ({ isRetro, reducedMotion, title, subtitle }) => (
   <header
     className={cn(
       'relative border-b border-t border-white/10 border-t-[#B22222]/55 py-3 sm:py-4',
@@ -180,7 +188,7 @@ const LiquidationHeader: React.FC<{
         'relative z-10 text-[clamp(2rem,10vw,4.75rem)] font-black leading-[0.88] tracking-[-0.055em] text-white',
         isRetro && 'font-retro-pixel tracking-normal text-[#FF5A5A]'
       )}
-      initial={{ opacity: 0 }}
+      initial={reducedMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={RESULT_ENTER_TRANSITION}
     >
