@@ -428,9 +428,41 @@ test.describe('Orientation Handling', () => {
     expect(geometry.top).toBeGreaterThanOrEqual(geometry.rootTop);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.rootBottom);
 
-    const backButton = page.getByRole('button', { name: /Back to Terminal/i });
-    await backButton.scrollIntoViewIfNeeded();
-    await expect(backButton).toBeInViewport();
+    const result = page.getByTestId('liquidation-result');
+    const heading = page.getByTestId('liquidation-heading');
+    const action = page.getByTestId('liquidation-primary-action');
+
+    await expect(result).toBeVisible();
+    await expect(heading).toBeInViewport();
+    await expect(action).toBeInViewport();
+
+    await page.getByRole('button', { name: /Details/i }).click();
+    await expect(page.getByTestId('liquidation-reward-breakdown')).toBeVisible();
+    await action.scrollIntoViewIfNeeded();
+    await expect(action).toBeInViewport();
+  });
+
+  test('settles liquidation motion when reduced motion is requested', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setupMobileSession(page, { width: 375, height: 667 });
+    await startGameFromMainMenu(page, 'LONG');
+    await page.evaluate(() => window.GameHelpers?.triggerGameOver?.());
+
+    await expect(page.getByTestId('liquidation-heading')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document
+              .getAnimations()
+              .filter(animation => animation.playState === 'running').length
+        )
+      )
+      .toBe(0);
   });
 
   test('fills portrait mobile PWA viewports behind safe areas', async ({ page }) => {
