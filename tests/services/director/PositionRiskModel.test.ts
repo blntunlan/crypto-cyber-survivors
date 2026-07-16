@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { DIRECTOR_CONFIG_V1 } from '../../../services/director/config/DirectorConfigV1';
 import { PositionRiskModel } from '../../../services/director/position/PositionRiskModel';
+import { LEVERAGE_OPTIONS } from '../../../types';
 
 describe('PositionRiskModel', () => {
   it('treats an equivalent long rise and short fall symmetrically', () => {
@@ -76,7 +78,27 @@ describe('PositionRiskModel', () => {
     expect(danger.liquidationProximity).toBeGreaterThan(0.95);
   });
 
-  it('rejects leverage outside the v1 public policy', () => {
+  it('accepts every selectable public leverage tier', () => {
+    expect(DIRECTOR_CONFIG_V1.position.publicLeverageTiers).toEqual(LEVERAGE_OPTIONS);
+
+    for (const leverage of LEVERAGE_OPTIONS) {
+      const model = new PositionRiskModel();
+
+      expect(() =>
+        model.update({
+          sequence: 1,
+          deltaSeconds: 1,
+          currentPrice: 100,
+          entryPrice: 100,
+          side: 'LONG',
+          leverage,
+          liquidationPrice: 80,
+        })
+      ).not.toThrow();
+    }
+  });
+
+  it('rejects leverage outside the public policy', () => {
     const model = new PositionRiskModel();
 
     expect(() =>
@@ -86,7 +108,7 @@ describe('PositionRiskModel', () => {
         currentPrice: 100,
         entryPrice: 100,
         side: 'LONG',
-        leverage: 25,
+        leverage: 3,
         liquidationPrice: 80,
       })
     ).toThrow('Unsupported public leverage tier');

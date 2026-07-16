@@ -42,6 +42,7 @@ export const POOL = {
     FLOATING_TEXTS: 200,
     SPEED_LINES: 100,
     IMPACT_RINGS: 120,
+    INTERACTABLES: 50,
   },
   PRE_WARM: {
     ENEMIES: 30,

@@ -124,7 +124,6 @@ describe('PhysicsSystem', () => {
     rsiVisualState: 'NEUTRAL',
     whaleEventTimer: 0,
     targetBg: { r: 2, g: 6, b: 23 },
-    interactableSpawnTimer: 0,
     atrPercent: 0,
     spawnRateMultiplier: 1,
     marketPosition: MarketPosition.LONG,
@@ -325,6 +324,34 @@ describe('PhysicsSystem', () => {
   });
 
   describe('handleCollisions', () => {
+    it('forwards reduced motion to collection handling', () => {
+      const collectionSystem = { update: vi.fn() };
+      const isolatedPhysicsSystem = new PhysicsSystem(
+        { update: vi.fn() },
+        { update: vi.fn() },
+        collectionSystem
+      );
+
+      isolatedPhysicsSystem.handleCollisions(
+        mockPool as PoolManager,
+        mockPlayer,
+        mockState,
+        1,
+        800,
+        600,
+        mockOnGameOver,
+        true
+      );
+
+      expect(collectionSystem.update).toHaveBeenCalledWith(
+        mockPool,
+        mockPlayer,
+        mockState,
+        1,
+        true
+      );
+    });
+
     it('should not damage player when dashing', () => {
       const mockEnemy = {
         x: 405,

@@ -4,6 +4,7 @@ import { type EnemyId } from '../../config/EnemyRegistry';
 import { DIRECTOR_CONFIG_V1, type DirectorConfigV1 } from './config/DirectorConfigV1';
 import { type GameplaySnapshot, type SpawnIntent, type SpawnPlan } from './contracts';
 import { SeededRng } from './SeededRng';
+import { type RuntimeDifficultySnapshot } from '../../types/runtimeDifficulty';
 
 export type SpawnPlanWorldInput = {
   width: number;
@@ -13,10 +14,16 @@ export type SpawnPlanWorldInput = {
   position: MarketPosition;
 };
 
-export type SpawnPlanBuildInput = {
+export type CurrentSpawnPlanBuildInput = {
   tick: number;
   seed: number;
   snapshot: GameplaySnapshot;
+  world: SpawnPlanWorldInput;
+};
+
+export type RuntimeSpawnPlanBuildInput = {
+  tick: number;
+  snapshot: RuntimeDifficultySnapshot;
   world: SpawnPlanWorldInput;
 };
 
@@ -43,7 +50,70 @@ export class SpawnPlanBuilder {
     this.config = config;
   }
 
-  public build(input: SpawnPlanBuildInput): SpawnPlan {
+  public build(input: RuntimeSpawnPlanBuildInput): SpawnPlan {
+    const snapshot = input.snapshot;
+    const capacity = Math.max(
+      0,
+      Math.min(snapshot.spawn.maximumActiveEnemies, input.world.maxActiveEnemies) -
+        input.world.activeEnemies
+    );
+    const spendableThreat = Math.min(
+      Math.max(0, snapshot.spawn.reservedCredits),
+      capacity * MINIMUM_ENEMY_COST
+    );
+    const spawnCount = Math.min(
+      capacity,
+      Math.floor(spendableThreat / MINIMUM_ENEMY_COST)
+    );
+    const rng = new SeededRng(
+      snapshot.spawn.seed ^ input.tick ^ snapshot.meta.revision
+    );
+    const intents: SpawnIntent[] = [];
+    const directives = snapshot.spawn.directives;
+    const composition: readonly string[] =
+      directives.length > 0
+        ? directives.map(directive => directive.archetype)
+        : ENEMY_TYPES_BY_HEADWIND;
+
+    for (let sequence = 0; sequence < spawnCount; sequence += 1) {
+      const directive = directives[sequence % Math.max(1, directives.length)];
+      const enemyType =
+        directive?.archetype ??
+        composition[rng.nextInt(composition.length)] ??
+        ENEMY_TYPES_BY_HEADWIND[0]!;
+      const position = this.getSpawnPosition(rng, input.world);
+      intents.push({
+        tick: input.tick,
+        sequence,
+        enemyType,
+        x: position.x,
+        y: position.y,
+        threatCost: MINIMUM_ENEMY_COST,
+        difficulty: snapshot.pressure.total,
+        healthMultiplier: snapshot.enemy.healthMultiplier,
+        damageMultiplier: snapshot.enemy.damageMultiplier,
+        speedMultiplier: snapshot.enemy.speedMultiplier,
+        intent: directive?.intent ?? 'pressure',
+        powerTier: snapshot.enemy.behaviorTier,
+      });
+    }
+
+    return {
+      revision: snapshot.meta.revision,
+      seed: snapshot.spawn.seed,
+      spendableThreat,
+      composition,
+      statTier: snapshot.enemy.behaviorTier,
+      maxActiveEnemies: Math.min(
+        snapshot.spawn.maximumActiveEnemies,
+        input.world.maxActiveEnemies
+      ),
+      spawnWindowSeconds: snapshot.spawn.spawnWindowSeconds,
+      intents,
+    };
+  }
+
+  public buildCurrent(input: CurrentSpawnPlanBuildInput): SpawnPlan {
     const capacity = Math.max(
       0,
       input.world.maxActiveEnemies - input.world.activeEnemies

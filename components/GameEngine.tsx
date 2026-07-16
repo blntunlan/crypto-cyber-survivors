@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import {
-  MarketPosition,
+  type MarketPosition,
   type MarketData,
   type Player,
   GameStatus,
@@ -69,7 +69,6 @@ import { WeaponSystem } from '../services/combat/WeaponSystem';
 import { eliteAbilitySystem } from '../services/combat/EliteAbilitySystem';
 import { useGameEngineEvents } from '../hooks/useGameEngineEvents';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
-import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 import { updateNearMissFeedbackTimers } from '../services/gameplay/NearMissTiming';
 import { createGameRuntime } from '../services/gameplay/GameRuntime';
@@ -77,14 +76,10 @@ import {
   getRuntimeDebugFlags,
   resolveRuntimeCanvasDpr,
 } from '../config/RuntimeDebugFlags';
-import {
-  deriveDirectorSeed,
-  type DirectorSpawnOrchestratorInput,
-} from '../services/director/DirectorSpawnOrchestrator';
+import { deriveDirectorSeed } from '../services/director/DirectorSpawnOrchestrator';
 import { type SpawnExecutorWorld } from '../services/combat/SpawnExecutor';
-import { DIRECTOR_CONFIG_V1 } from '../services/director/config/DirectorConfigV1';
 import { MarketEventConsolidator } from '../services/market/MarketEventConsolidator';
-import { type PresentationInput } from '../services/presentation/PresentationDirector';
+import { type LootCacheUpdateInput } from '../services/interfaces/ILootCacheSystem';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -124,93 +119,6 @@ interface GameEngineProps {
   gameMode?: GameMode;
 }
 
-const createDirectorSpawnInput = (): DirectorSpawnOrchestratorInput => ({
-  tick: 0,
-  deltaSeconds: 0,
-  marketFrame: {
-    revision: 0,
-    sequence: 0,
-    sourceTimestamp: 0,
-    receivedAt: 0,
-    quality: 'STALE',
-    price: 0,
-    pnlPercent: 0,
-    rsi: 50,
-    rsiState: 'NEUTRAL',
-    atrPercent: 0,
-    normalizedVolume: 0,
-    whaleTier: 0,
-    macd: { value: 0, signal: 0, histogram: 0 },
-    priceChangePercent: 0,
-    trendStrength: 0,
-    trendDirection: 'SIDEWAYS',
-    source: 'fallback',
-  },
-  run: {
-    runId: '',
-    seed: 0,
-    elapsedSeconds: 0,
-    mode: 'TOKEN',
-    greedLevel: 0,
-  },
-  position: {
-    side: MarketPosition.LONG,
-    leverage: 1,
-    entryPrice: 0,
-    liquidationPrice: 0,
-  },
-  player: {
-    hpRatio: 1,
-    damageTakenPerSecond: 0,
-    killsPerMinute: 0,
-    combatMastery: 0,
-    buildPower: 0,
-    mobilityUsage: 0,
-  },
-  world: {
-    width: 0,
-    height: 0,
-    activeEnemies: 0,
-    maxActiveEnemies: 0,
-    activePrimaryEncounters: 0,
-    activeSupportEncounters: 0,
-  },
-});
-
-const createPresentationInput = (): PresentationInput => ({
-  deltaSeconds: 0,
-  tick: 0,
-  gameplay: {
-    revision: 0,
-    validFromTick: 0,
-    pacing: { state: 'BUILD_UP', threatMultiplier: 1, remainingSeconds: 0 },
-    threat: { target: 0, creditRate: 0, availableCredits: 0, maximumCredits: 0 },
-    advantage: {
-      creditRate: 0,
-      availableCredits: 0,
-      maximumCredits: 0,
-      activeMechanic: null,
-    },
-    environment: { regime: 'CALM', presentationIntensity: 0, isFavorable: false },
-    encounter: {
-      activeEventFamily: null,
-      canStartMarketSurge: false,
-      queuedEventFamily: null,
-      phase: 'IDLE',
-      primaryCardId: null,
-      supportCardId: null,
-      headwindChannels: [],
-    },
-  },
-  alignment: 0,
-  volatility: 0,
-  suggestedBpm: 0,
-  liquidationTension: 0,
-  accessibilityIntensity: 1,
-  marketStatus: 'LIVE',
-  safeExitAvailable: false,
-});
-
 export const GameEngine: React.FC<GameEngineProps> = ({
   status,
   position,
@@ -224,30 +132,24 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   height,
   gameMode = GameMode.COMPETITIVE,
 }) => {
-  const { t } = useLanguage();
-  const tRef = useRef(t);
-  tRef.current = t;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
-  const runtimeDebugFlagsRef = useRef(getRuntimeDebugFlags());
+  const runtimeDebugFlagsRef = useLazyRef(getRuntimeDebugFlags);
   const runtimeDebugFlags = runtimeDebugFlagsRef.current;
   const canvasDpr = resolveRuntimeCanvasDpr(runtimeDebugFlags);
   const canvasPixelWidth = Math.max(1, Math.round(width * canvasDpr));
   const canvasPixelHeight = Math.max(1, Math.round(height * canvasDpr));
 
   const runtimeRef = useLazyRef(() => createGameRuntime());
+  const runtimeMountedRef = useRef(false);
   const pool = useRef(runtimeRef.current.poolManager);
   const renderer = useRef(runtimeRef.current.renderer);
   const combatSystem = useRef(runtimeRef.current.combatSystem);
   const physicsSystem = useRef(runtimeRef.current.physicsSystem);
   const spawnSystemRef = useRef(runtimeRef.current.spawnSystem);
   const spawnExecutorRef = useRef(runtimeRef.current.spawnExecutor);
-  const directorSpawnOrchestratorRef = useRef(
-    runtimeRef.current.directorSpawnOrchestrator
-  );
-  const presentationDirectorRef = useRef(runtimeRef.current.presentationDirector);
-  const presentationCueAdapterRef = useRef(runtimeRef.current.presentationCueAdapter);
   const difficultyContextRef = useRef(runtimeRef.current.difficultyContext);
+  const lootCacheSystem = runtimeRef.current.lootCacheSystem;
   const directorSpawnWorldRef = useRef<SpawnExecutorWorld>({
     pool: runtimeRef.current.poolManager,
     position,
@@ -255,8 +157,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   });
   const directorRunIdRef = useRef('');
   const directorRunSeedRef = useRef(0);
-  const directorSpawnInputRef = useLazyRef(() => createDirectorSpawnInput());
-  const presentationInputRef = useLazyRef(() => createPresentationInput());
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
   const lastCycleRef = useRef(1);
 
@@ -286,7 +186,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       graphicsSettings.showScreenShake && !runtimeDebugFlagsRef.current.noScreenShake;
     graphicsRef.current.reducedMotion = graphicsSettings.reducedMotion;
     graphicsRef.current.disableGlow = runtimeDebugFlagsRef.current.noGlow;
-  }, [graphicsSettings]);
+  }, [graphicsSettings, runtimeDebugFlagsRef]);
 
   useEffect(() => {
     FeedbackService.configure({
@@ -339,9 +239,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     rsiVisualState: 'NEUTRAL',
     whaleEventTimer: 0,
     targetBg: { r: 2, g: 6, b: 23 }, // Reusable object for background color updates
-
-    // Lootbox Spawn Timer
-    interactableSpawnTimer: 0,
 
     // Market Indicators
     atrPercent: 0,
@@ -415,14 +312,29 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       marks: {},
     },
   });
+  const lootCacheUpdateInputRef = useRef<LootCacheUpdateInput>({
+    deltaMs: 0,
+    elapsedSeconds: 0,
+    width: 0,
+    height: 0,
+    reducedMotion: false,
+    showParticles: true,
+    particleMultiplier: 1,
+    pool: runtimeRef.current.poolManager,
+    player: playerRef.current as Player,
+    state: state.current,
+  });
 
   const gameLoopCoordinatorRef = useLazyRef(() => {
-    const difficultyPhase = new DifficultyPhase();
+    const difficultyPhase = new DifficultyPhase(runtimeRef.current.difficultyRuntime);
     const inputPhase = new InputPhase();
     const combatPhase = new CombatPhase();
     const spawnPhase = new SpawnPhase();
     const physicsPhase = new PhysicsPhase();
-    const effectsPhase = new EffectsPhase();
+    const effectsPhase = new EffectsPhase(
+      runtimeRef.current.presentationDirector,
+      runtimeRef.current.presentationCueAdapter
+    );
     const portalPhase = new PortalPhase();
     const metricsPhase = new MetricsPhase();
 
@@ -584,17 +496,22 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       hitStopGovernorRef.current.reset();
       phaseProfilerRef.current.reset();
       MarketAudioReactor.stop();
-      MarketEventAnnouncer.reset();
     }
     if (status === GameStatus.GAMEOVER || status === GameStatus.MENU) {
+      MarketEventAnnouncer.reset();
       coreLoopRef.current.reset();
       RuntimeDiagnosticsService.stop();
+    }
+    if (status === GameStatus.GAMEOVER || status === GameStatus.CYCLE_COMPLETE) {
+      lootCacheSystem.reset();
+      directorRunIdRef.current = '';
+      directorRunSeedRef.current = 0;
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
       lastRawFrameTimeRef.current = null;
     }
-  }, [phaseProfilerRef, status, coreLoopRef, hitStopGovernorRef]);
+  }, [phaseProfilerRef, status, coreLoopRef, hitStopGovernorRef, lootCacheSystem]);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -615,8 +532,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   useEffect(() => {
     const runtime = runtimeRef.current;
-    return () => runtime.dispose();
-  }, [runtimeRef]);
+    runtimeMountedRef.current = true;
+
+    return () => {
+      runtimeMountedRef.current = false;
+      queueMicrotask(() => {
+        if (!runtimeMountedRef.current) {
+          runtime.dispose();
+        }
+      });
+    };
+  }, [runtimeRef, runtimeMountedRef]);
 
   // ========================================
   // Custom Hooks for Setup, Events & Status
@@ -1141,102 +1067,44 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         shared.spawnWorld = directorSpawnWorld;
         shared.spawnPlan = undefined;
         shared.spawnExecution = undefined;
-        shared.directorSpawnPlanPreview = undefined;
 
         const canonicalFrame = MarketEventConsolidator.lockForSimulationTick(
           gameplayFrameRef.current,
           time
         );
         const directorInputs = difficultyContextRef.current.inputs;
-        const isSupportedDirectorLeverage =
-          DIRECTOR_CONFIG_V1.position.publicLeverageTiers.includes(
-            marketDataRef.current.leverage
-          );
         const runId = marketDataRef.current.runtimeRunId;
+        shared.canonicalMarketFrame = canonicalFrame;
+        shared.difficultyRunId = undefined;
+        shared.difficultyRunSeed = undefined;
+        shared.difficultyRunMode = undefined;
+        shared.difficultyEntryPrice = undefined;
+        shared.difficultyLiquidationPrice = undefined;
+        shared.difficultyPosition = position;
+        shared.difficultyMaximumEnemies = maxEnemies;
+        shared.difficultyKillStreak = killStreak;
+        shared.difficultyActivePrimaryEncounters = 0;
+        shared.difficultyActiveSupportEncounters = 0;
 
         if (
           canonicalFrame !== null &&
           runId !== undefined &&
-          directorInputs.entryPrice > 0 &&
-          isSupportedDirectorLeverage
+          directorInputs.entryPrice > 0
         ) {
           if (directorRunIdRef.current !== runId) {
             directorRunIdRef.current = runId;
             directorRunSeedRef.current = deriveDirectorSeed(runId);
-            directorSpawnOrchestratorRef.current.reset();
-          }
-
-          const directorSpawnInput = directorSpawnInputRef.current;
-          directorSpawnInput.tick = gameplayFrameRef.current;
-          directorSpawnInput.deltaSeconds = deltaTime / 1_000;
-          directorSpawnInput.marketFrame = canonicalFrame;
-          directorSpawnInput.run.runId = runId;
-          directorSpawnInput.run.seed = directorRunSeedRef.current;
-          directorSpawnInput.run.elapsedSeconds = TimeService.getGameTimeSeconds();
-          directorSpawnInput.run.mode =
-            gameMode === GameMode.CASUAL ? 'PRACTICE' : 'TOKEN';
-          directorSpawnInput.run.greedLevel = 0;
-          directorSpawnInput.position.side = position;
-          directorSpawnInput.position.leverage = marketDataRef.current.leverage;
-          directorSpawnInput.position.entryPrice = directorInputs.entryPrice;
-          directorSpawnInput.position.liquidationPrice =
-            directorInputs.liquidationPrice;
-          directorSpawnInput.player.hpRatio =
-            player.maxHp > 0 ? player.hp / player.maxHp : 0;
-          directorSpawnInput.player.damageTakenPerSecond = 0;
-          directorSpawnInput.player.killsPerMinute = killStreak;
-          directorSpawnInput.player.combatMastery = Math.min(1, killStreak / 30);
-          directorSpawnInput.player.buildPower = Math.min(1, player.level / 50);
-          directorSpawnInput.player.mobilityUsage = s.isDashing ? 1 : 0;
-          directorSpawnInput.world.width = width;
-          directorSpawnInput.world.height = height;
-          directorSpawnInput.world.activeEnemies = p.activeEnemies.length;
-          directorSpawnInput.world.maxActiveEnemies = maxEnemies;
-          directorSpawnInput.world.activePrimaryEncounters = 0;
-          directorSpawnInput.world.activeSupportEncounters = 0;
-
-          const directorSpawn =
-            directorSpawnOrchestratorRef.current.update(directorSpawnInput);
-          shared.directorSpawnPlanPreview = directorSpawn.plan;
-
-          if (directorSpawn.snapshot.validFromTick === gameplayFrameRef.current) {
-            const presentationInput = presentationInputRef.current;
-            presentationInput.deltaSeconds = Math.max(
-              deltaTime / 1_000,
-              1 / DIRECTOR_CONFIG_V1.runtime.updateFrequencyHz
+            lootCacheSystem.beginRun(
+              deriveDirectorSeed(runId),
+              TimeService.getGameTimeSeconds()
             );
-            presentationInput.tick = gameplayFrameRef.current;
-            presentationInput.gameplay = directorSpawn.snapshot;
-            presentationInput.alignment = directorSpawn.position.alignment;
-            presentationInput.volatility =
-              directorSpawn.snapshot.environment.presentationIntensity;
-            presentationInput.suggestedBpm =
-              PriceMomentumEngine.getLatest().suggestedBPM;
-            presentationInput.liquidationTension =
-              directorSpawn.position.liquidationProximity;
-            presentationInput.accessibilityIntensity = graphicsRef.current.reducedMotion
-              ? 0.35
-              : 1;
-            presentationInput.marketStatus =
-              canonicalFrame.quality === 'STALE' ? 'STALE' : 'LIVE';
-            presentationInput.safeExitAvailable = false;
-
-            const presentation =
-              presentationDirectorRef.current.update(presentationInput);
-            presentationCueAdapterRef.current.apply(presentation);
-            if (
-              graphicsRef.current.showScreenShake &&
-              !runtimeDebugFlags.noScreenShake &&
-              presentation.sensory.shake > 0
-            ) {
-              s.shake = Math.max(
-                s.shake,
-                presentation.sensory.shake * GAME_ENGINE.VOLATILITY_SHOCK_SHAKE_MULT
-              );
-            }
           }
-
-          shared.spawnPlan = directorSpawn.plan;
+          shared.difficultyRunId = runId;
+          shared.difficultyRunSeed = directorRunSeedRef.current;
+          shared.difficultyRunMode =
+            gameMode === GameMode.CASUAL ? 'PRACTICE' : 'TOKEN';
+          shared.difficultyEntryPrice = directorInputs.entryPrice;
+          shared.difficultyLiquidationPrice = directorInputs.liquidationPrice;
         }
 
         // Reuse pre-allocated tick context to avoid per-frame GC pressure
@@ -1354,30 +1222,20 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // 0. Sync Market Metadata from marketDataRef
         state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
 
-        // --- INTERACTABLE SPAWN LOGIC ---
-        s.interactableSpawnTimer = s.interactableSpawnTimer + deltaTime;
-        if (s.interactableSpawnTimer > 30000) {
-          // Every 30 seconds wait for a random loot crate
-          s.interactableSpawnTimer = 0;
-          const pad = 100;
-          const rx = pad + Math.random() * (width - pad * 2);
-          const ry = pad + Math.random() * (height - pad * 2);
-
-          p.getInteractable('LOOT_CRATE', rx, ry, 150);
-
-          // Only show supply drop notifications in development mode
-          if (import.meta.env.DEV) {
-            EventBus.emit('gameNotification', {
-              title: tRef.current('hud.announcer.supply_drop') as string,
-              message: tRef.current('hud.announcer.loot_crate_appeared') as string,
-              type: 'success',
-            });
-          }
-          audio.playLevelUp();
-        }
-
         // Update Physics & Collisions
         const physStart = performance.now();
+        const lootCacheUpdateInput = lootCacheUpdateInputRef.current;
+        lootCacheUpdateInput.deltaMs = deltaTime;
+        lootCacheUpdateInput.elapsedSeconds = TimeService.getGameTimeSeconds();
+        lootCacheUpdateInput.width = width;
+        lootCacheUpdateInput.height = height;
+        lootCacheUpdateInput.reducedMotion = graphicsRef.current.reducedMotion;
+        lootCacheUpdateInput.showParticles = graphicsRef.current.showParticles;
+        lootCacheUpdateInput.particleMultiplier = perfConfig.particleMultiplier;
+        lootCacheUpdateInput.pool = p;
+        lootCacheUpdateInput.player = player;
+        lootCacheUpdateInput.state = s;
+        lootCacheSystem.update(lootCacheUpdateInput);
         physicsSystem.current.updateEntities(p, dtFactor, width, height, player);
         eliteAbilitySystem.update(
           deltaTime / 1000,
@@ -1393,7 +1251,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           dtFactor,
           width,
           height,
-          onGameOver
+          onGameOver,
+          graphicsRef.current.reducedMotion
         );
         physicsDurationMs = performance.now() - physStart;
         FPSMonitor.recordPhysics(physicsDurationMs);
@@ -1506,17 +1365,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       pool,
       renderer,
       spawnExecutorRef,
-      directorSpawnOrchestratorRef,
-      presentationDirectorRef,
-      presentationCueAdapterRef,
       directorSpawnWorldRef,
-      directorSpawnInputRef,
-      presentationInputRef,
       speedLineSpawner,
       gameLoopCoordinatorRef,
       gameMode,
       coreLoopRef,
       runtimeDebugFlags,
+      lootCacheSystem,
     ]
   );
 

@@ -28,6 +28,7 @@ import { type EnemyId } from '../../config/EnemyRegistry';
 import { POOL } from '../../constants';
 import { RESET_PRIORITY, ResetOrchestrator } from '../core/ResetOrchestrator';
 import { resetBulletTrailBuffer } from './BulletTrailBuffer';
+import { type LootCacheRarity, type LootCacheSource } from '../../types/lootCache';
 
 /**
  * ObjectPool - A generic, high-performance object pooling container.
@@ -141,6 +142,11 @@ class ObjectPool<T extends { active: boolean; poolIndex?: number }> {
   }
 }
 
+function resetEnemyMovementSlow(enemy: GameEnemy): void {
+  enemy.movementSlowTimerMs = 0;
+  enemy.movementSlowMultiplier = 1;
+}
+
 /**
  * PoolManager Class
  *
@@ -167,8 +173,7 @@ export class PoolManager implements IPoolManager {
     this.floatingTexts = new ObjectPool<FloatingText>(POOL.MAX_ACTIVE.FLOATING_TEXTS);
     this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
     this.impactRings = new ObjectPool<ImpactRing>(POOL.MAX_ACTIVE.IMPACT_RINGS);
-    // Use a conservative limit for interactables as they are sparse
-    this.interactables = new ObjectPool<Interactable>(50);
+    this.interactables = new ObjectPool<Interactable>(POOL.MAX_ACTIVE.INTERACTABLES);
     this.unregisterResetHandler = ResetOrchestrator.registerResetHandler(
       RESET_PRIORITY.GAME_SYSTEMS,
       'PoolManager',
@@ -297,6 +302,9 @@ export class PoolManager implements IPoolManager {
         isCrit: false,
         vx: 0,
         vy: 0,
+        stationary: false,
+        alwaysVisible: false,
+        velocityOnly: false,
       });
     }
 
@@ -391,8 +399,8 @@ export class PoolManager implements IPoolManager {
     const currentEnemyType = enemyType ?? 'bear';
 
     return this.enemies.get(
-      () =>
-        enemyFactory.createEnemy(
+      () => {
+        const enemy = enemyFactory.createEnemy(
           currentEnemyType,
           x,
           y,
@@ -403,7 +411,10 @@ export class PoolManager implements IPoolManager {
           hpMultiplier,
           intent,
           powerTier
-        ),
+        );
+        resetEnemyMovementSlow(enemy);
+        return enemy;
+      },
       obj => {
         enemyFactory.createEnemy(
           currentEnemyType,
@@ -420,6 +431,7 @@ export class PoolManager implements IPoolManager {
         );
         // Apply extra speed multiplier if provided (e.g. from global effects)
         obj.speed *= speedMultiplier;
+        resetEnemyMovementSlow(obj);
       }
     );
   }
@@ -465,6 +477,7 @@ export class PoolManager implements IPoolManager {
         }
         e.whaleTier = tier;
         e.speed *= speedMultiplier;
+        resetEnemyMovementSlow(e);
         return e;
       },
       obj => {
@@ -491,6 +504,7 @@ export class PoolManager implements IPoolManager {
         }
         obj.whaleTier = tier;
         obj.speed *= speedMultiplier;
+        resetEnemyMovementSlow(obj);
       }
     );
   }
@@ -650,7 +664,21 @@ export class PoolManager implements IPoolManager {
     vy: number = 0
   ): FloatingText {
     return this.floatingTexts.get(
-      () => ({ active: true, x, y, text, color, size, life: 1, isCrit, vx, vy }),
+      () => ({
+        active: true,
+        x,
+        y,
+        text,
+        color,
+        size,
+        life: 1,
+        isCrit,
+        vx,
+        vy,
+        stationary: false,
+        alwaysVisible: false,
+        velocityOnly: false,
+      }),
       obj => {
         obj.active = true;
         obj.x = x;
@@ -662,6 +690,9 @@ export class PoolManager implements IPoolManager {
         obj.isCrit = isCrit;
         obj.vx = vx;
         obj.vy = vy;
+        obj.stationary = false;
+        obj.alwaysVisible = false;
+        obj.velocityOnly = false;
       }
     );
   }
@@ -785,6 +816,77 @@ export class PoolManager implements IPoolManager {
         obj.color = colorMap[type];
         obj.isHit = false;
         obj.hitTimer = 0;
+        obj.lootCacheId = undefined;
+        obj.lootCacheRarity = undefined;
+        obj.lootCachePhase = undefined;
+        obj.lootCacheSource = undefined;
+        obj.lootCachePhaseElapsedMs = 0;
+        obj.lootCacheIdleElapsedMs = 0;
+        obj.lootCacheProximity = false;
+        obj.lootCacheProximityTickElapsedMs = 0;
+        obj.lootCacheCoreFlashPending = false;
+        obj.lootCachePrimaryReward = undefined;
+        obj.lootCacheSecondaryReward = null;
+        obj.lootCacheFragmentPreview = false;
+      }
+    );
+  }
+
+  getLootCache(
+    cacheId: number,
+    rarity: LootCacheRarity,
+    source: LootCacheSource,
+    x: number,
+    y: number,
+    color: string
+  ): Interactable {
+    return this.interactables.get(
+      () => ({
+        active: true,
+        type: 'LOOT_CRATE',
+        x,
+        y,
+        radius: 20,
+        color,
+        health: 1,
+        maxHealth: 1,
+        isHit: false,
+        hitTimer: 0,
+        lootCacheId: cacheId,
+        lootCacheRarity: rarity,
+        lootCachePhase: 'closed',
+        lootCacheSource: source,
+        lootCachePhaseElapsedMs: 0,
+        lootCacheIdleElapsedMs: 0,
+        lootCacheProximity: false,
+        lootCacheProximityTickElapsedMs: 0,
+        lootCacheCoreFlashPending: false,
+        lootCacheSecondaryReward: null,
+        lootCacheFragmentPreview: false,
+      }),
+      obj => {
+        obj.active = true;
+        obj.type = 'LOOT_CRATE';
+        obj.x = x;
+        obj.y = y;
+        obj.radius = 20;
+        obj.color = color;
+        obj.health = 1;
+        obj.maxHealth = 1;
+        obj.isHit = false;
+        obj.hitTimer = 0;
+        obj.lootCacheId = cacheId;
+        obj.lootCacheRarity = rarity;
+        obj.lootCachePhase = 'closed';
+        obj.lootCacheSource = source;
+        obj.lootCachePhaseElapsedMs = 0;
+        obj.lootCacheIdleElapsedMs = 0;
+        obj.lootCacheProximity = false;
+        obj.lootCacheProximityTickElapsedMs = 0;
+        obj.lootCacheCoreFlashPending = false;
+        obj.lootCachePrimaryReward = undefined;
+        obj.lootCacheSecondaryReward = null;
+        obj.lootCacheFragmentPreview = false;
       }
     );
   }

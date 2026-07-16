@@ -1,5 +1,5 @@
 /**
- * Difficulty System V2 - Main Export
+ * Difficulty runtime public exports.
  *
  * Modular, layered difficulty system with pure function calculators.
  *
@@ -9,14 +9,8 @@
  * @see docs/AI_DIRECTOR_V2_DESIGN.md
  *
  * @example
- * // Using the UnifiedDirector (recommended for AI Director V2)
- * import { UnifiedDirector } from './services/difficulty';
- * const outputs = UnifiedDirector.getOutputs();
- *
- * @example
- * // Using the FlowStateManager for player state
- * import { FlowStateManager } from './services/difficulty';
- * const analysis = FlowStateManager.update(playerHP);
+ * import { createDifficultyRuntime } from './services/difficulty';
+ * const runtime = createDifficultyRuntime('modular');
  *
  * @example
  * // Using the legacy context
@@ -30,12 +24,19 @@
  * const pnl = calculatePnLFactor({ pnlPercent: -0.05, leverage: 10 });
  */
 
-// AI Director V2 - Unified Brain
 export {
-  UnifiedDirector,
-  type UnifiedInputs,
-  type UnifiedOutputs,
-} from './UnifiedDirector';
+  createDifficultyRuntime,
+  DifficultyRuntime,
+  type DifficultyBoundaryInput,
+  type DifficultyPhaseDecision,
+  type DifficultyRuntimeOptions,
+} from './runtime/DifficultyRuntime';
+export { DifficultyV2CompatibilityAdapter } from './runtime/DifficultyV2CompatibilityAdapter';
+export {
+  ShadowComparisonRecorder,
+  type CurrentDirectorSnapshot,
+  type ShadowComparisonRecord,
+} from './runtime/ShadowComparisonRecorder';
 
 export { difficultyContext } from './DifficultyContext';
 export { FlowStateManager } from './FlowStateManager';

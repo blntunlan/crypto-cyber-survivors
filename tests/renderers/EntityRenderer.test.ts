@@ -3,6 +3,9 @@ import { EntityRenderer } from '../../services/renderers/EntityRenderer';
 import { GameStatus } from '../../types';
 import { BuffGemSpawner } from '../../services/spawners/BuffGemSpawner';
 import { ThemeService } from '../../services/system/ThemeService';
+import { TIER_CONFIG } from '../../services/cards/CardSystem';
+import { LOOT_CACHE_CONFIG } from '../../config/LootCacheConfig';
+import { type LootCacheRarity } from '../../types/lootCache';
 
 // Mock services
 vi.mock('../../services/system/ScreenService', () => ({
@@ -55,6 +58,12 @@ describe('EntityRenderer', () => {
     const strokeStyleSpy = vi.fn(val => {
       mockCtx._strokeStyle = val;
     });
+    const shadowBlurSpy = vi.fn(val => {
+      mockCtx._shadowBlur = val;
+    });
+    const shadowColorSpy = vi.fn(val => {
+      mockCtx._shadowColor = val;
+    });
 
     mockCtx = {
       save: vi.fn(),
@@ -71,6 +80,8 @@ describe('EntityRenderer', () => {
       strokeRect: vi.fn(),
       fillText: vi.fn(),
       closePath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
       createRadialGradient: vi.fn(() => ({
         addColorStop: vi.fn(),
       })),
@@ -90,10 +101,24 @@ describe('EntityRenderer', () => {
       },
       fillStyleSpy,
       strokeStyleSpy,
+      shadowBlurSpy,
+      shadowColorSpy,
       lineWidth: 0,
       globalAlpha: 1,
-      shadowBlur: 0,
-      shadowColor: '',
+      _shadowBlur: 0,
+      _shadowColor: '',
+      get shadowBlur() {
+        return this._shadowBlur;
+      },
+      set shadowBlur(val) {
+        shadowBlurSpy(val);
+      },
+      get shadowColor() {
+        return this._shadowColor;
+      },
+      set shadowColor(val) {
+        shadowColorSpy(val);
+      },
       font: '',
       textAlign: '',
       textBaseline: '',
@@ -125,7 +150,12 @@ describe('EntityRenderer', () => {
       height: 600,
       status: GameStatus.PLAYING,
       graphics: {
+        showParticles: true,
+        showDamageNumbers: true,
+        showScreenShake: true,
         shadowsEnabled: true,
+        reducedMotion: false,
+        disableGlow: false,
       },
     };
   });
@@ -149,6 +179,325 @@ describe('EntityRenderer', () => {
   });
 
   describe('drawInteractables', () => {
+    const rarities: LootCacheRarity[] = ['common', 'rare', 'epic', 'legendary'];
+    const bounds = {
+      left: 0,
+      right: 800,
+      top: 0,
+      bottom: 600,
+    };
+
+    const drawInteractables = (shadowsEnabled = true) =>
+      (renderer as any).drawInteractables(
+        mockCtx,
+        mockPool,
+        bounds,
+        mockOpts,
+        shadowsEnabled
+      );
+
+    const makeLootCache = (
+      rarity: LootCacheRarity,
+      phase: 'closed' | 'anticipation' | 'opening' | 'reward' = 'closed'
+    ) => ({
+      x: 400,
+      y: 300,
+      radius: 20,
+      color: '#flat-purple',
+      type: 'LOOT_CRATE',
+      health: 0.5,
+      maxHealth: 1,
+      active: true,
+      isHit: false,
+      lootCacheId: 7,
+      lootCacheRarity: rarity,
+      lootCachePhase: phase,
+      lootCachePhaseElapsedMs: 0,
+      lootCacheIdleElapsedMs: 240,
+      lootCacheProximity: false,
+      lootCacheCoreFlashPending: false,
+    });
+
+    it.each(rarities)('draws %s caches with the shared casino tier color', rarity => {
+      mockPool.activeInteractables = [makeLootCache(rarity)];
+
+      drawInteractables();
+
+      expect(mockCtx.strokeStyleSpy).toHaveBeenCalledWith(TIER_CONFIG[rarity].color);
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith(TIER_CONFIG[rarity].color);
+    });
+
+    it('uses displaced opening transforms only outside reduced motion', () => {
+      const cache = makeLootCache('epic', 'opening');
+      cache.lootCachePhaseElapsedMs = 140;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables();
+
+      expect(mockCtx.rotate).toHaveBeenCalled();
+      expect(mockCtx.translate).toHaveBeenCalled();
+      expect(mockCtx.translate).not.toHaveBeenCalledWith(400, 300);
+
+      vi.clearAllMocks();
+      mockOpts.graphics.reducedMotion = true;
+      drawInteractables();
+
+      expect(mockCtx.translate).toHaveBeenCalledWith(400, 300);
+      expect(mockCtx.rotate).not.toHaveBeenCalled();
+    });
+
+    it('consumes a local white core signal exactly once', () => {
+      const cache = makeLootCache('legendary', 'opening');
+      cache.lootCacheCoreFlashPending = true;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables();
+
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith('#FFFFFF');
+      expect(mockCtx.arc).toHaveBeenLastCalledWith(0, 0, 15, 0, Math.PI * 2);
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(0, 0, 800, 600);
+      for (const arcCall of mockCtx.arc.mock.calls) {
+        expect(arcCall[2]).toBeLessThan(300);
+      }
+      expect(cache.lootCacheCoreFlashPending).toBe(false);
+
+      vi.clearAllMocks();
+      drawInteractables();
+
+      expect(mockCtx.fillStyleSpy).not.toHaveBeenCalledWith('#FFFFFF');
+      expect(mockCtx.arc).not.toHaveBeenCalledWith(0, 0, 15, 0, Math.PI * 2);
+    });
+
+    it('gates the opening core only behind reduced motion and disabled glow', () => {
+      const cache = makeLootCache('legendary', 'opening');
+      mockPool.activeInteractables = [cache];
+
+      cache.lootCacheCoreFlashPending = true;
+      mockOpts.graphics.disableGlow = true;
+      drawInteractables();
+      expect(mockCtx.fillStyleSpy).not.toHaveBeenCalledWith('#FFFFFF');
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(0, 0, 800, 600);
+
+      vi.clearAllMocks();
+      cache.lootCacheCoreFlashPending = true;
+      mockOpts.graphics.disableGlow = false;
+      mockOpts.graphics.reducedMotion = true;
+      drawInteractables();
+      expect(mockCtx.fillStyleSpy).not.toHaveBeenCalledWith('#FFFFFF');
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(0, 0, 800, 600);
+
+      vi.clearAllMocks();
+      cache.lootCacheCoreFlashPending = true;
+      mockOpts.graphics.reducedMotion = false;
+      drawInteractables(false);
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith('#FFFFFF');
+      expect(mockCtx.arc).toHaveBeenCalledWith(0, 0, 15, 0, Math.PI * 2);
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(0, 0, 800, 600);
+    });
+
+    it('consumes an off-screen core signal instead of deferring it', () => {
+      const cache = makeLootCache('epic', 'opening');
+      cache.x = 900;
+      cache.lootCacheCoreFlashPending = true;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables(false);
+
+      expect(cache.lootCacheCoreFlashPending).toBe(false);
+      expect(mockCtx.fillStyleSpy).not.toHaveBeenCalledWith('#FFFFFF');
+
+      vi.clearAllMocks();
+      cache.x = 400;
+      drawInteractables(false);
+      expect(mockCtx.fillStyleSpy).not.toHaveBeenCalledWith('#FFFFFF');
+    });
+
+    it('gives every closed rarity distinct non-color tier text', () => {
+      const tierText: string[] = [];
+      for (const rarity of rarities) {
+        vi.clearAllMocks();
+        mockPool.activeInteractables = [makeLootCache(rarity)];
+        drawInteractables(false);
+        tierText.push(
+          mockCtx.fillText.mock.calls
+            .map((call: [string]) => call[0])
+            .find((text: string) => text.includes(rarity.toUpperCase())) ?? ''
+        );
+      }
+
+      expect(tierText).toEqual(['C COMMON', 'R RARE', 'E EPIC', 'L LEGENDARY']);
+      expect(new Set(tierText).size).toBe(4);
+    });
+
+    it.each([
+      [LOOT_CACHE_CONFIG.feedback.anticipationMs * 0.5, 1.06, 0.92],
+      [LOOT_CACHE_CONFIG.feedback.anticipationMs, 1.12, 0.84],
+    ])('squashes anticipation at %sms within the configured 40ms', (elapsed, x, y) => {
+      const cache = makeLootCache('rare', 'anticipation');
+      cache.lootCachePhaseElapsedMs = elapsed;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables();
+
+      expect(mockCtx.scale).toHaveBeenCalledWith(x, y);
+    });
+
+    it('progresses opening squash across the configured opening interval', () => {
+      const cache = makeLootCache('epic', 'opening');
+      const openingDuration =
+        LOOT_CACHE_CONFIG.feedback.totalOpeningMs *
+          LOOT_CACHE_CONFIG.feedback.rewardPhaseProgress -
+        LOOT_CACHE_CONFIG.feedback.anticipationMs;
+      mockPool.activeInteractables = [cache];
+
+      cache.lootCachePhaseElapsedMs = 0;
+      drawInteractables();
+      expect(mockCtx.scale.mock.calls[0]![0]).toBeCloseTo(1.14);
+      expect(mockCtx.scale.mock.calls[0]![1]).toBeCloseTo(0.9);
+
+      vi.clearAllMocks();
+      cache.lootCachePhaseElapsedMs = openingDuration * 0.5;
+      drawInteractables();
+      expect(mockCtx.scale.mock.calls[0]![0]).toBeCloseTo(1.07);
+      expect(mockCtx.scale.mock.calls[0]![1]).toBeCloseTo(0.95);
+
+      vi.clearAllMocks();
+      cache.lootCachePhaseElapsedMs = openingDuration;
+      drawInteractables();
+      expect(mockCtx.scale.mock.calls[0]![0]).toBeCloseTo(1);
+      expect(mockCtx.scale.mock.calls[0]![1]).toBeCloseTo(1);
+    });
+
+    it('accelerates the closed-cache pulse in proximity', () => {
+      const cache = makeLootCache('rare');
+      mockPool.activeInteractables = [cache];
+
+      cache.lootCacheIdleElapsedMs = 0;
+      drawInteractables();
+      const farStartRadius = mockCtx.arc.mock.calls[0]![2];
+
+      vi.clearAllMocks();
+      cache.lootCacheIdleElapsedMs = 100;
+      drawInteractables();
+      const farEndRadius = mockCtx.arc.mock.calls[0]![2];
+
+      vi.clearAllMocks();
+      cache.lootCacheProximity = true;
+      cache.lootCacheIdleElapsedMs = 0;
+      drawInteractables();
+      const nearStartRadius = mockCtx.arc.mock.calls[0]![2];
+
+      vi.clearAllMocks();
+      cache.lootCacheIdleElapsedMs = 100;
+      drawInteractables();
+      const nearEndRadius = mockCtx.arc.mock.calls[0]![2];
+
+      expect(nearEndRadius - nearStartRadius).toBeGreaterThan(
+        farEndRadius - farStartRadius
+      );
+    });
+
+    it('suppresses rarity glow when performance shadows are disabled', () => {
+      const cache = makeLootCache('rare');
+      cache.lootCacheProximity = true;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables(false);
+
+      expect(mockCtx.shadowColorSpy).not.toHaveBeenCalled();
+      expect(mockCtx.shadowBlurSpy).not.toHaveBeenCalled();
+
+      drawInteractables(true);
+      expect(mockCtx.shadowColorSpy).toHaveBeenCalledWith(TIER_CONFIG.rare.glowColor);
+      expect(mockCtx.shadowBlurSpy).toHaveBeenCalled();
+    });
+
+    it('keeps reduced-motion phase feedback readable without shake or fragment travel', () => {
+      const cache = makeLootCache('rare', 'reward');
+      cache.lootCachePhaseElapsedMs = 400;
+      cache.lootCacheProximity = true;
+      mockPool.activeInteractables = [cache];
+      mockOpts.graphics.reducedMotion = true;
+
+      drawInteractables();
+
+      expect(mockCtx.rotate).not.toHaveBeenCalled();
+      expect(mockCtx.translate).toHaveBeenCalledWith(400, 300);
+      expect(mockCtx.arc).toHaveBeenCalled();
+      expect(mockCtx.fillText).toHaveBeenCalledWith('★', 0, 1);
+    });
+
+    it('draws an off-screen cache as a clamped rarity edge triangle', () => {
+      const cache = makeLootCache('legendary');
+      cache.x = 900;
+      cache.y = -100;
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables();
+
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith(TIER_CONFIG.legendary.color);
+      expect(mockCtx.moveTo).toHaveBeenCalledTimes(1);
+      expect(mockCtx.lineTo).toHaveBeenCalledTimes(2);
+      expect(mockCtx.closePath).toHaveBeenCalledTimes(1);
+      const markerCoordinates = [
+        ...mockCtx.moveTo.mock.calls,
+        ...mockCtx.lineTo.mock.calls,
+      ].flat();
+      for (let index = 0; index < markerCoordinates.length; index += 2) {
+        expect(markerCoordinates[index]).toBeGreaterThanOrEqual(0);
+        expect(markerCoordinates[index]).toBeLessThanOrEqual(800);
+        expect(markerCoordinates[index + 1]).toBeGreaterThanOrEqual(0);
+        expect(markerCoordinates[index + 1]).toBeLessThanOrEqual(600);
+      }
+    });
+
+    it.each([
+      ['common', 'C'],
+      ['rare', 'R'],
+      ['epic', 'E'],
+      ['legendary', 'L'],
+    ] as const)('adds a non-color %s tier icon to the edge marker', (rarity, icon) => {
+      const cache = makeLootCache(rarity);
+      cache.x = 900;
+      cache.color = '#same-color';
+      mockPool.activeInteractables = [cache];
+
+      drawInteractables(false);
+
+      expect(mockCtx.fillText).toHaveBeenCalledWith(
+        icon,
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('omits cache health bars while retaining mining-rig health bars', () => {
+      mockPool.activeInteractables = [makeLootCache('common')];
+
+      drawInteractables();
+
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(380, 272, 40, 4);
+
+      vi.clearAllMocks();
+      mockPool.activeInteractables = [
+        {
+          x: 400,
+          y: 300,
+          radius: 20,
+          color: '#8b4513',
+          type: 'MINING_RIG',
+          health: 50,
+          maxHealth: 100,
+          active: true,
+          isHit: false,
+        },
+      ];
+      drawInteractables();
+
+      expect(mockCtx.fillRect).toHaveBeenCalledWith(380, 272, 40, 4);
+      expect(mockCtx.fillRect).toHaveBeenCalledWith(380, 272, 20, 4);
+    });
+
     it('should draw active interactables in viewport', () => {
       mockPool.activeInteractables = [
         {

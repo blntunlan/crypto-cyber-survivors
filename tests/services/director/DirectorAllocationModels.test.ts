@@ -24,7 +24,7 @@ const createMarket = (
   rsiExtremity: 0.4,
   whalePressure: 0,
   activeEventFamily: 'VOLUME_SURGE',
-  eventTelegraphEndsAtTick: 102,
+  eventTelegraphEndsAtElapsedSeconds: 102,
   ...overrides,
 });
 
@@ -86,11 +86,12 @@ describe('Director allocation models', () => {
   it('maps adverse market identity to no more than two mechanical channels', () => {
     const planner = new EncounterPlanner();
     const plan = planner.plan({
-      tick: 100,
+      elapsedSeconds: 100,
       seed: 8,
       market: createMarket({ regime: 'PANIC', activeEventFamily: 'PANIC_CRASH' }),
       headwind: 0.9,
       liquidationProximity: 0.1,
+      availableCredits: Number.MAX_SAFE_INTEGER,
       world: emptyWorld,
     });
 
@@ -100,11 +101,12 @@ describe('Director allocation models', () => {
 
   it('keeps one primary plus one support encounter and has a deterministic seed plan', () => {
     const input = {
-      tick: 100,
+      elapsedSeconds: 100,
       seed: 7,
       market: createMarket(),
       headwind: 0.8,
       liquidationProximity: 0,
+      availableCredits: Number.MAX_SAFE_INTEGER,
       world: emptyWorld,
     };
 
@@ -133,13 +135,14 @@ describe('Director allocation models', () => {
       market: createMarket(),
       headwind: 0.7,
       liquidationProximity: 0,
+      availableCredits: Number.MAX_SAFE_INTEGER,
       world: emptyWorld,
     };
 
-    const telegraph = planner.plan({ ...input, tick: 100 });
-    const active = planner.plan({ ...input, tick: 102 });
-    const recovery = planner.plan({ ...input, tick: 114 });
-    const cooldown = planner.plan({ ...input, tick: 122 });
+    const telegraph = planner.plan({ ...input, elapsedSeconds: 100 });
+    const active = planner.plan({ ...input, elapsedSeconds: 102 });
+    const recovery = planner.plan({ ...input, elapsedSeconds: 114 });
+    const cooldown = planner.plan({ ...input, elapsedSeconds: 122 });
     const modifiers = active.primary?.statModifiers;
 
     expect(telegraph.phase).toBe('TELEGRAPH');

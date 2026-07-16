@@ -193,6 +193,10 @@ export const useGameFlowController = ({
 
       frozenPnlRef.current = marketDataRef.current.pnl;
       const survivalSeconds = TimeService.getGameTimeSeconds();
+      EventBus.emit('gameOver', {
+        finalLevel: playerRef.current.level,
+        finalPnl: frozenPnlRef.current,
+      });
       difficultyContext.reset();
 
       // Challenge: end tracking synchronously BEFORE async session submission.
@@ -419,6 +423,10 @@ export const useGameFlowController = ({
       return;
     }
 
+    EventBus.emit('cycleDecisionMade', {
+      decision: 'CASH_OUT',
+      cycleNumber: cycleData.cycleNumber,
+    });
     GameSessionService.clearSession();
     difficultyContext.reset();
     await handleGameOver(GameEndReason.CYCLE_COMPLETE, undefined, {
@@ -428,6 +436,10 @@ export const useGameFlowController = ({
 
   const handleContinue = useCallback(() => {
     if (cycleData) {
+      EventBus.emit('cycleDecisionMade', {
+        decision: 'CONTINUE',
+        cycleNumber: cycleData.cycleNumber,
+      });
       // Reset per-cycle state before applying new cycle factor to prevent compounding
       difficultyContext.resetForCycleContinue();
       ComboSystem.resetCombo();

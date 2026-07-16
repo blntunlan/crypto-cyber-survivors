@@ -126,7 +126,6 @@ describe('GameRenderer', () => {
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
       targetBg: { r: 15, g: 23, b: 42 },
-      interactableSpawnTimer: 0,
       atrPercent: 1,
       spawnRateMultiplier: 1,
       marketPosition: MarketPosition.LONG,

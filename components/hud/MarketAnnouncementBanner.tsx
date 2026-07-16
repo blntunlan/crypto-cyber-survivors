@@ -1,11 +1,12 @@
 /**
  * MarketAnnouncementBanner - Displays market event announcements as banners.
  *
- * Listens to EventBus `marketAnnouncement` events, maintains a priority queue,
- * and shows one announcement at a time with slide-in animations.
+ * Listens to EventBus `marketAnnouncement` events and shows the latest relevant
+ * announcement with slide-in animations.
  *
  * Features:
- * - Priority queue: higher priority interrupts current
+ * - Single slot: new market information replaces stale information
+ * - Liquidation priority blocks lower-priority interruptions
  * - Auto-dismiss after configured duration
  * - Liquidation warning flashes/pulses
  * - Monospace font with neon glow aesthetic
@@ -22,9 +23,8 @@ import { HudEventRail } from './HudGhostRail';
 // TYPES
 // =============================================================================
 
-interface QueuedAnnouncement extends MarketAnnouncementEvent {
+interface ActiveAnnouncement extends MarketAnnouncementEvent {
   id: number;
-  expiresAt: number;
 }
 
 // =============================================================================
@@ -34,10 +34,9 @@ interface QueuedAnnouncement extends MarketAnnouncementEvent {
 let nextAnnouncementId = 0;
 
 export const MarketAnnouncementBanner: React.FC = memo(() => {
-  const [current, setCurrent] = useState<QueuedAnnouncement | null>(null);
-  const queueRef = useRef<QueuedAnnouncement[]>([]);
+  const [current, setCurrent] = useState<ActiveAnnouncement | null>(null);
+  const currentRef = useRef<ActiveAnnouncement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingEventTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -46,85 +45,56 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
     }
   }, []);
 
-  const showNext = useCallback(() => {
-    clearTimer();
+  const handleAnnouncement = useCallback(
+    (data: MarketAnnouncementEvent) => {
+      const activeAnnouncement = currentRef.current;
+      if (
+        activeAnnouncement &&
+        activeAnnouncement.priority >= 10 &&
+        data.priority < 10
+      ) {
+        return;
+      }
 
-    // Pop highest priority from queue
-    if (queueRef.current.length === 0) {
-      setCurrent(null);
-      return;
-    }
+      clearTimer();
+      const announcement: ActiveAnnouncement = {
+        ...data,
+        id: nextAnnouncementId++,
+      };
+      currentRef.current = announcement;
+      setCurrent(announcement);
 
-    // Sort by priority descending, then by id ascending (FIFO for same priority)
-    queueRef.current.sort((a, b) => b.priority - a.priority || a.id - b.id);
-    const next = queueRef.current.shift()!;
-    setCurrent(next);
-
-    timerRef.current = setTimeout(() => {
-      setCurrent(null);
-      // Small delay before showing next to allow exit animation
       timerRef.current = setTimeout(() => {
-        showNext();
-      }, 300);
-    }, next.duration);
-  }, [clearTimer]);
+        if (currentRef.current?.id !== announcement.id) return;
+        currentRef.current = null;
+        timerRef.current = null;
+        setCurrent(null);
+      }, data.duration);
+    },
+    [clearTimer]
+  );
+
+  useEffect(
+    () => EventBus.on('marketAnnouncement', handleAnnouncement),
+    [handleAnnouncement]
+  );
 
   useEffect(() => {
-    const unsub = EventBus.on('marketAnnouncement', (data: MarketAnnouncementEvent) => {
-      const eventTimer = setTimeout(() => {
-        pendingEventTimersRef.current.delete(eventTimer);
-
-        const announcement: QueuedAnnouncement = {
-          ...data,
-          id: nextAnnouncementId++,
-          expiresAt: Date.now() + data.duration,
-        };
-
-        // High priority (>=10) interrupts current announcement
-        if (data.priority >= 10 && current !== null) {
-          clearTimer();
-          // Push current back to queue if it hasn't expired
-          queueRef.current.unshift({
-            ...current,
-            duration: Math.max(0, current.expiresAt - Date.now()),
-          });
-          queueRef.current.push(announcement);
-          showNext();
-          return;
-        }
-
-        queueRef.current.push(announcement);
-
-        // If nothing is currently showing, start display
-        if (current === null) {
-          showNext();
-        }
-      }, 0);
-      pendingEventTimersRef.current.add(eventTimer);
-    });
-
-    return () => {
-      unsub();
-      clearTimer();
-    };
-  }, [current, clearTimer, showNext]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    const pendingEventTimers = pendingEventTimersRef.current;
     return () => {
       clearTimer();
-      pendingEventTimers.forEach(timer => clearTimeout(timer));
-      pendingEventTimers.clear();
-      queueRef.current = [];
+      currentRef.current = null;
     };
   }, [clearTimer]);
 
   const isLiquidation = current?.type === 'LIQUIDATION_WARNING';
+  const messageParts = current?.message.split(' // ', 2);
 
   return (
     <div
-      className="pointer-events-none fixed left-1/2 z-[130] -translate-x-1/2"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="pointer-events-none fixed left-1/2 z-[130] max-w-[calc(100vw-1.5rem)] -translate-x-1/2"
       style={{ top: 'calc(2rem + env(safe-area-inset-top, 0px))' }}
     >
       <AnimatePresence mode="wait">
@@ -135,20 +105,39 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="whitespace-nowrap"
+            className="max-w-full whitespace-nowrap"
             style={{
               fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
             }}
           >
             <HudEventRail
               tone={isLiquidation ? 'danger' : 'gold'}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2"
+              className="flex max-w-full items-center gap-2 px-2.5 py-1.5 sm:px-3"
             >
-              <span className="text-lg sm:text-xl" style={{ color: current.color }}>
+              <span
+                aria-hidden="true"
+                className="market-announcement-glyph border-r border-white/15 pr-2 text-sm"
+                style={{ color: current.color }}
+              >
                 {current.icon}
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-white sm:text-sm">
-                {current.message}
+              <span className="min-w-0 overflow-hidden text-ellipsis text-[11px] uppercase sm:text-xs">
+                <span
+                  className="market-announcement-label font-extrabold tracking-[0.12em]"
+                  style={{ color: current.color }}
+                >
+                  {messageParts?.[0]}
+                </span>
+                {messageParts?.[1] && (
+                  <>
+                    <span aria-hidden="true" className="px-1.5 text-slate-600">
+                      /
+                    </span>
+                    <span className="market-announcement-detail font-semibold tracking-[0.08em] text-slate-300">
+                      {messageParts[1]}
+                    </span>
+                  </>
+                )}
               </span>
             </HudEventRail>
           </motion.div>

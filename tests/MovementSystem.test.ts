@@ -238,6 +238,53 @@ describe('MovementSystem', () => {
 
       expect(enemy.x).toBe(100); // Should not have moved
     });
+
+    it('applies and expires enemy movement slow from game-time updates', () => {
+      pool.clearAll();
+      const move = vi.fn();
+      const enemy = createMockEnemy({
+        hasEnteredScreen: true,
+        movementSlowTimerMs: 2500,
+        movementSlowMultiplier: 0.5,
+        behavior: { name: 'slow-test', move },
+      });
+      const player = createMockPlayer();
+      pool.activeEnemies.push(enemy);
+
+      movementSystem.update(pool, 1, 800, 600, player);
+
+      expect(move).toHaveBeenLastCalledWith(enemy, player.x, player.y, 0.5);
+
+      for (let update = 1; update < 150; update++) {
+        movementSystem.update(pool, 1, 800, 600, player);
+      }
+
+      expect(enemy.movementSlowTimerMs).toBe(0);
+      expect(enemy.movementSlowMultiplier).toBe(1);
+
+      movementSystem.update(pool, 1, 800, 600, player);
+      expect(move).toHaveBeenLastCalledWith(enemy, player.x, player.y, 1);
+      pool.clearAll();
+    });
+
+    it('clears movement slow state before a dying enemy returns to the pool', () => {
+      pool.clearAll();
+      const move = vi.fn();
+      const enemy = createMockEnemy({
+        isDying: true,
+        movementSlowTimerMs: 2000,
+        movementSlowMultiplier: 0.5,
+        behavior: { name: 'dying-slow-test', move },
+      });
+      pool.activeEnemies.push(enemy);
+
+      movementSystem.update(pool, 1, 800, 600, createMockPlayer());
+
+      expect(enemy.movementSlowTimerMs).toBe(0);
+      expect(enemy.movementSlowMultiplier).toBe(1);
+      expect(move).not.toHaveBeenCalled();
+      pool.clearAll();
+    });
   });
 
   describe('Bullet Movement', () => {
@@ -333,6 +380,55 @@ describe('MovementSystem', () => {
 
       expect(text.y).toBeLessThan(300); // Moves up
       expect(text.life).toBeLessThan(1.0);
+    });
+
+    it('applies pooled reward travel velocity while preserving ascent', () => {
+      const text = createMockFloatingText({ x: 300, y: 300, vx: -2, vy: 0.5 });
+      pool.activeFloatingTexts.push(text);
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(text.x).toBe(298);
+      expect(text.y).toBe(299);
+    });
+
+    it.each([
+      ['above', 100, -1.2],
+      ['well below', 700, 1.2],
+    ] as const)(
+      'velocity-only cache reveal reduces distance to a player %s the cache',
+      (_direction, playerY, velocityY) => {
+        const text = createMockFloatingText({
+          x: 300,
+          y: 300,
+          vx: 0,
+          vy: velocityY,
+          velocityOnly: true,
+        });
+        const initialDistance = Math.abs(playerY - text.y);
+        pool.activeFloatingTexts.push(text);
+
+        movementSystem.update(pool, 1, 800, 800, createMockPlayer({ y: playerY }));
+
+        expect(Math.abs(playerY - text.y)).toBeLessThan(initialDistance);
+      }
+    );
+
+    it('keeps reduced-motion pooled text stationary while its life decays', () => {
+      const text = createMockFloatingText({
+        x: 300,
+        y: 300,
+        vx: -2,
+        vy: 0.5,
+        stationary: true,
+      });
+      pool.activeFloatingTexts.push(text);
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(text.x).toBe(300);
+      expect(text.y).toBe(300);
+      expect(text.life).toBeLessThan(1);
     });
 
     it('should deactivate floating text when life reaches zero', () => {

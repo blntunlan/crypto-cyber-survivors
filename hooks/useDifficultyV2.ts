@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { EventBus } from '../services/core/EventBus';
+import { DifficultyV2CompatibilityAdapter } from '../services/difficulty/runtime/DifficultyV2CompatibilityAdapter';
 import type {
   DifficultyOutputV2,
   LiquidationWarning,
@@ -24,12 +25,23 @@ const RUNTIME_OUTPUT: DifficultyOutputV2 = {
   gemDropRate: 1,
 };
 
+const compatibilityAdapter = new DifficultyV2CompatibilityAdapter();
+
 export function useDifficultyV2() {
+  const [output, setOutput] = useState<DifficultyOutputV2>(RUNTIME_OUTPUT);
+  useEffect(
+    () =>
+      EventBus.on('difficultySnapshotCommitted', ({ snapshot }) => {
+        setOutput(compatibilityAdapter.toOutput(snapshot));
+      }),
+    []
+  );
+
   return {
-    output: RUNTIME_OUTPUT,
-    fovReduction: 0,
-    shockActive: false,
-    total: 1,
+    output,
+    fovReduction: output.fovReduction,
+    shockActive: output.shockActive,
+    total: output.total,
   };
 }
 
@@ -39,12 +51,9 @@ export function useLiquidationWarning(
   onWarning: (level: LiquidationWarning, distance: number) => void
 ) {
   useEffect(() => {
-    const unsubscribe = EventBus.on(
-      'liquidationWarning',
-      (data: { level: LiquidationWarning; distance: number }) => {
-        onWarning(data.level, data.distance);
-      }
-    );
+    const unsubscribe = EventBus.on('liquidationWarning', data => {
+      onWarning(data.level, data.distance);
+    });
     return unsubscribe;
   }, [onWarning]);
 }
@@ -54,12 +63,9 @@ export function useShockDetection(
   onShock: (intensity: number, direction: 'up' | 'down') => void
 ) {
   useEffect(() => {
-    const unsubscribe = EventBus.on(
-      'shockDetected',
-      (data: { intensity: number; direction: 'up' | 'down' }) => {
-        onShock(data.intensity, data.direction);
-      }
-    );
+    const unsubscribe = EventBus.on('shockDetected', data => {
+      onShock(data.intensity, data.direction);
+    });
     return unsubscribe;
   }, [onShock]);
 }

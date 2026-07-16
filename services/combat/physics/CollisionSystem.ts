@@ -502,6 +502,7 @@ export class CollisionSystem implements ICollisionSystem {
     const obj = system.nearbyInteractable;
     const pool = system.nearbyPool;
     if (!obj?.active || !bullet.active || !pool) return;
+    if (obj.type === 'LOOT_CRATE') return;
 
     const dx = obj.x - bullet.x;
     const dy = obj.y - bullet.y;

@@ -35,7 +35,7 @@ export class DirectorInputBuilder {
       rsiExtremity: 0,
       whalePressure: 0,
       activeEventFamily: null,
-      eventTelegraphEndsAtTick: null,
+      eventTelegraphEndsAtElapsedSeconds: null,
     },
     position: {
       sourceSequence: 0,
@@ -106,7 +106,8 @@ export class DirectorInputBuilder {
     target.rsiExtremity = source.rsiExtremity;
     target.whalePressure = source.whalePressure;
     target.activeEventFamily = source.activeEventFamily;
-    target.eventTelegraphEndsAtTick = source.eventTelegraphEndsAtTick;
+    target.eventTelegraphEndsAtElapsedSeconds =
+      source.eventTelegraphEndsAtElapsedSeconds;
   }
 
   private copyPosition(source: PositionRiskSnapshot): void {

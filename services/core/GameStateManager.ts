@@ -5,7 +5,7 @@
  * Coordinates reset across all game systems to ensure consistency.
  */
 
-import { MarketPosition, type PlayerStats } from '../../types';
+import { MarketPosition, type LeverageOption, type PlayerStats } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 import { EventBus } from './EventBus';
 import { ResetOrchestrator } from './ResetOrchestrator';
@@ -16,6 +16,8 @@ import { EventRecorderService } from './EventRecorderService';
 import { UserSessionService } from '../auth/UserSessionService';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { LeverageEngine } from '../gameplay/LeverageEngine';
+import { MarketCalculator } from '../market/MarketCalculator';
+import { deriveDirectorSeed } from '../director/DirectorSpawnOrchestrator';
 
 // ============================================================================
 // INITIAL STATE CONSTANTS
@@ -77,7 +79,6 @@ export const GAME_STATE_DEFAULTS = {
   lastHeartbeatTime: 0,
   rsiVisualState: 'NEUTRAL',
   whaleEventTimer: 0,
-  interactableSpawnTimer: 0,
   // Market Indicators (set to initial safe values)
   atrPercent: 0,
   spawnRateMultiplier: 1,
@@ -155,7 +156,7 @@ class GameStateManagerClass {
   async initializeNewGame(
     position: MarketPosition,
     entryPrice: number,
-    leverage: number,
+    leverage: LeverageOption,
     pair: CryptoPair
   ): Promise<boolean> {
     // Ensure clean state before starting
@@ -173,6 +174,13 @@ class GameStateManagerClass {
         Logger.error('[GameStateManager] Failed to initialize server session');
         return false;
       }
+
+      const liquidationPrice = MarketCalculator.calculateLiquidationPrice({
+        entryPrice,
+        leverage,
+        position,
+      });
+      const runSeed = deriveDirectorSeed(serverSession.sessionId);
 
       // 2. Start metrics tracking for this session
       MetricsService.startSession(
@@ -211,6 +219,15 @@ class GameStateManagerClass {
         leverage,
         position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
         entryPrice,
+      });
+
+      EventBus.emit('difficultyRunInitialized', {
+        runId: serverSession.sessionId,
+        seed: runSeed,
+        side: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
+        leverage,
+        entryPrice,
+        liquidationPrice,
       });
 
       return true;

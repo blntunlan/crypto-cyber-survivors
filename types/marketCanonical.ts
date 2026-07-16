@@ -31,10 +31,11 @@ export type MarketFrameQuality = 'LIVE' | 'DELAYED' | 'STALE';
  * Ordered, replayable market input accepted by the Director pipeline.
  * `quality` is assigned and maintained by MarketInbox, not by gameplay consumers.
  */
-export interface CanonicalMarketFrame extends CanonicalMarketPayload {
+export type CanonicalMarketFrame = CanonicalMarketPayload & {
   revision: number;
   sequence: number;
+  sourceSequence: number;
   sourceTimestamp: number;
   receivedAt: number;
   quality: MarketFrameQuality;
-}
+};

@@ -6,45 +6,50 @@ import {
 } from '../../../services/presentation/PresentationDirector';
 import { PresentationCueAdapter } from '../../../services/presentation/PresentationCueAdapter';
 import { EventBusPresentationCueAdapter } from '../../../services/presentation/EventBusPresentationCueAdapter';
-import { createGameplaySnapshotHash } from '../../../services/director/ExperienceDirector';
+import {
+  createNeutralRuntimeDifficultySnapshot,
+  type RuntimeDifficultySnapshot,
+} from '../../../types/runtimeDifficulty';
+
+type SnapshotOverrides = {
+  phase?: RuntimeDifficultySnapshot['encounter']['phase'];
+  stale?: boolean;
+  liquidationProximity?: number;
+};
+
+const createSnapshot = (
+  overrides: SnapshotOverrides = {}
+): RuntimeDifficultySnapshot => {
+  const snapshot = structuredClone(
+    createNeutralRuntimeDifficultySnapshot({ tick: 10, inputRevision: 1 })
+  ) as any;
+  snapshot.meta.revision = 1;
+  snapshot.meta.validFromTick = 10;
+  snapshot.signals.market.regime = 'VOLATILE';
+  snapshot.signals.market.volatility = 0.8;
+  snapshot.signals.market.reasonCodes = overrides.stale
+    ? ['MARKET_STALE']
+    : ['MARKET_LIVE'];
+  snapshot.signals.position.alignment = -0.4;
+  snapshot.signals.position.liquidationProximity =
+    overrides.liquidationProximity ?? 0.3;
+  snapshot.encounter.family = 'VOLUME_SURGE';
+  snapshot.encounter.phase = overrides.phase ?? 'TELEGRAPH';
+  snapshot.presentation.intensity = 0.8;
+  snapshot.presentation.suggestedBpm = 128;
+  snapshot.presentation.shakeLimit = 0.3;
+  snapshot.presentation.audioIntensity = 0.8;
+  return snapshot as RuntimeDifficultySnapshot;
+};
 
 const createInput = (
   overrides: Partial<PresentationInput> = {}
 ): PresentationInput => ({
   deltaSeconds: 0.25,
   tick: 10,
-  gameplay: {
-    revision: 1,
-    validFromTick: 10,
-    pacing: { state: 'PEAK', threatMultiplier: 1.25, remainingSeconds: 20 },
-    threat: { target: 1.2, creditRate: 1, availableCredits: 2, maximumCredits: 8 },
-    advantage: {
-      creditRate: 0,
-      availableCredits: 0,
-      maximumCredits: 0,
-      activeMechanic: null,
-    },
-    environment: {
-      regime: 'VOLATILE',
-      presentationIntensity: 0.8,
-      isFavorable: false,
-    },
-    encounter: {
-      activeEventFamily: 'VOLUME_SURGE',
-      canStartMarketSurge: true,
-      queuedEventFamily: null,
-      phase: 'TELEGRAPH',
-      primaryCardId: 'VOLUME_DENSE_WAVE',
-      supportCardId: null,
-      headwindChannels: ['SPAWN_DENSITY'],
-    },
-  },
-  alignment: -0.4,
-  volatility: 0.8,
+  snapshot: createSnapshot(),
   suggestedBpm: 128,
-  liquidationTension: 0.3,
   accessibilityIntensity: 1,
-  marketStatus: 'LIVE',
   safeExitAvailable: false,
   ...overrides,
 });
@@ -64,14 +69,7 @@ describe('PresentationDirector', () => {
     const active = director.update(
       createInput({
         tick: 11,
-        gameplay: {
-          ...createInput().gameplay,
-          validFromTick: 11,
-          encounter: {
-            ...createInput().gameplay.encounter,
-            phase: 'ACTIVE',
-          },
-        },
+        snapshot: createSnapshot({ phase: 'ACTIVE' }),
       })
     );
 
@@ -81,8 +79,15 @@ describe('PresentationDirector', () => {
 
   it('caps sensory requests and rate-limits duplicate cues', () => {
     const director = new PresentationDirector();
-    const first = director.update(createInput({ liquidationTension: 1 }));
-    const repeated = director.update(createInput({ tick: 11, liquidationTension: 1 }));
+    const first = director.update(
+      createInput({ snapshot: createSnapshot({ liquidationProximity: 1 }) })
+    );
+    const repeated = director.update(
+      createInput({
+        tick: 11,
+        snapshot: createSnapshot({ liquidationProximity: 1 }),
+      })
+    );
 
     expect(
       first.sensory.shake +
@@ -96,20 +101,28 @@ describe('PresentationDirector', () => {
   it('keeps gameplay bytes unchanged when presentation is disabled', () => {
     const director = new PresentationDirector();
     const input = createInput({ accessibilityIntensity: 0 });
-    const hashBefore = createGameplaySnapshotHash(input.gameplay);
+    const hashBefore = JSON.stringify(input.snapshot);
 
     const presentation = director.update(input);
 
     expect(presentation.isEnabled).toBe(false);
-    expect(createGameplaySnapshotHash(input.gameplay)).toBe(hashBefore);
+    expect(JSON.stringify(input.snapshot)).toBe(hashBefore);
   });
 
   it('reports stale, reconnect, and safe-exit presentation states without market gameplay effects', () => {
     const director = new PresentationDirector();
-    const stale = director.update(createInput({ marketStatus: 'STALE' }));
-    const reconnect = director.update(createInput({ tick: 11, marketStatus: 'LIVE' }));
+    const stale = director.update(
+      createInput({ snapshot: createSnapshot({ stale: true }) })
+    );
+    const reconnect = director.update(
+      createInput({ tick: 11, snapshot: createSnapshot() })
+    );
     const safeExit = director.update(
-      createInput({ tick: 12, marketStatus: 'STALE', safeExitAvailable: true })
+      createInput({
+        tick: 12,
+        snapshot: createSnapshot({ stale: true }),
+        safeExitAvailable: true,
+      })
     );
 
     expect(stale.cues.map(cue => cue.type)).toContain('MARKET_STALE');

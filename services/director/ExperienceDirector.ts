@@ -100,7 +100,7 @@ export class ExperienceDirector {
     rsiExtremity: ZERO_SECONDS,
     whalePressure: ZERO_SECONDS,
     activeEventFamily: null,
-    eventTelegraphEndsAtTick: null,
+    eventTelegraphEndsAtElapsedSeconds: null,
   };
   private lastProcessedTick: number | null = null;
   private lastUpdatedElapsedSeconds = ZERO_SECONDS;
@@ -131,11 +131,12 @@ export class ExperienceDirector {
       this.config.greed.pressurePerLevel * Math.max(ZERO_SECONDS, frame.run.greedLevel)
     );
     const encounter = this.encounterPlanner.plan({
-      tick: frame.tick,
+      elapsedSeconds: frame.run.elapsedSeconds,
       seed: frame.run.seed,
       market: this.getEncounterMarket(frame),
       headwind: frame.position.headwind,
       liquidationProximity: frame.position.liquidationProximity,
+      availableCredits: Number.MAX_SAFE_INTEGER,
       world: frame.world,
     });
     const encounterPressure =
@@ -238,7 +239,7 @@ export class ExperienceDirector {
     target.rsiExtremity = source.rsiExtremity;
     target.whalePressure = source.whalePressure;
     target.activeEventFamily = null;
-    target.eventTelegraphEndsAtTick = null;
+    target.eventTelegraphEndsAtElapsedSeconds = null;
     return target;
   }
 

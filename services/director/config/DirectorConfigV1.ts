@@ -1,3 +1,5 @@
+import { LEVERAGE_OPTIONS } from '../../../types';
+
 export type DirectorVersionInfo = {
   directorVersion: string;
   configVersion: string;
@@ -248,8 +250,8 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
   position: {
     alignmentScale: 0.05,
     alignmentEmaSeconds: 8,
-    maximumPublicLeverage: 20,
-    publicLeverageTiers: [1, 2, 5, 10, 20],
+    maximumPublicLeverage: Math.max(...LEVERAGE_OPTIONS),
+    publicLeverageTiers: LEVERAGE_OPTIONS,
   },
   cashOut: {
     firstEligibilitySeconds: 300,

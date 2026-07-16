@@ -56,4 +56,123 @@ describe('MarketAnnouncementBanner', () => {
     expect(rail).toHaveTextContent('Margin pressure rising');
     expect(rail).not.toHaveClass('bg-black');
   });
+
+  it('replaces the current ordinary announcement instead of queueing it', () => {
+    render(<MarketAnnouncementBanner />);
+
+    act(() => {
+      announcementHandler?.({
+        type: 'RSI_OVERSOLD',
+        message: 'FIRST MARKET SIGNAL',
+        color: '#67e8f9',
+        icon: '◇',
+        duration: 5000,
+        priority: 5,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.getByText('FIRST MARKET SIGNAL')).toBeInTheDocument();
+
+    act(() => {
+      announcementHandler?.({
+        type: 'FAVORABLE_MARKET',
+        message: 'LONG EDGE // BULL SIGNAL LOCKED',
+        color: '#fbbf24',
+        icon: '▲',
+        duration: 1800,
+        priority: 5,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.queryByText('FIRST MARKET SIGNAL')).not.toBeInTheDocument();
+    expect(screen.getByText('LONG EDGE')).toBeInTheDocument();
+    expect(screen.getByText('BULL SIGNAL LOCKED')).toBeInTheDocument();
+  });
+
+  it('does not restore an ordinary announcement after liquidation interrupts it', () => {
+    render(<MarketAnnouncementBanner />);
+
+    act(() => {
+      announcementHandler?.({
+        type: 'FAVORABLE_MARKET',
+        message: 'LONG EDGE // BULL SIGNAL LOCKED',
+        color: '#fbbf24',
+        icon: '▲',
+        duration: 5000,
+        priority: 5,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    act(() => {
+      announcementHandler?.({
+        type: 'LIQUIDATION_WARNING',
+        message: 'MARGIN BREACH',
+        color: '#fb7185',
+        icon: '⚠',
+        duration: 1000,
+        priority: 10,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.getByText('MARGIN BREACH')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1300);
+    });
+
+    expect(screen.queryByText('MARGIN BREACH')).not.toBeInTheDocument();
+    expect(screen.queryByText('LONG EDGE')).not.toBeInTheDocument();
+  });
+
+  it('dismisses the aligned signal after 1.8 seconds', () => {
+    render(<MarketAnnouncementBanner />);
+
+    act(() => {
+      announcementHandler?.({
+        type: 'FAVORABLE_MARKET',
+        message: 'LONG EDGE // BULL SIGNAL LOCKED',
+        color: '#fbbf24',
+        icon: '▲',
+        duration: 1800,
+        priority: 5,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(1799);
+    });
+    expect(screen.getByText('LONG EDGE')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByText('LONG EDGE')).not.toBeInTheDocument();
+  });
+
+  it('presents alignment copy as a compact accessible combat signal', () => {
+    render(<MarketAnnouncementBanner />);
+
+    act(() => {
+      announcementHandler?.({
+        type: 'FAVORABLE_MARKET',
+        message: 'LONG EDGE // BULL SIGNAL LOCKED',
+        color: '#fbbf24',
+        icon: '▲',
+        duration: 1800,
+        priority: 5,
+      });
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByText('LONG EDGE')).toHaveClass('market-announcement-label');
+    expect(screen.getByText('BULL SIGNAL LOCKED')).toHaveClass(
+      'market-announcement-detail'
+    );
+  });
 });

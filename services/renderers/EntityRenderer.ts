@@ -1,6 +1,11 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import {
+  type GameState,
+  type Player,
+  type Enemy,
+  type Interactable,
+} from '../../types';
 import { type ReplayedEnemy } from '../../types/replayPlayback';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
@@ -13,11 +18,13 @@ import {
 import { ThemeService } from '../system/ThemeService';
 import { SkinService } from '../skins/SkinService';
 import { type ResolvedSkinVisuals } from '../../types/skins';
-import { GAME_ENGINE } from '../../constants';
+import { COLORS, GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
 import { ELITE_CONFIG } from '../../config/EliteConfig';
 import { WhaleTier } from '../../types/indicators';
+import { TIER_CONFIG } from '../cards/CardSystem';
+import { LOOT_CACHE_CONFIG } from '../../config/LootCacheConfig';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -65,7 +72,7 @@ export class EntityRenderer implements IRenderer {
     );
 
     // Layered rendering (Bottom to Top)
-    this.drawInteractables(ctx, pool, bounds);
+    this.drawInteractables(ctx, pool, bounds, opts, shadowsEnabled);
     this.drawGems(ctx, pool, shadowsEnabled, bounds);
     this.drawBuffGems(ctx, shadowsEnabled, bounds);
     this.drawEnemies(ctx, pool, bounds);
@@ -117,59 +124,277 @@ export class EntityRenderer implements IRenderer {
   private drawInteractables(
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
-    bounds: ViewportBounds
+    bounds: ViewportBounds,
+    opts: RenderOptions,
+    shadowsEnabled: boolean
   ): void {
-    pool.activeInteractables.forEach(obj => {
+    const interactables = pool.activeInteractables;
+    for (let index = 0; index < interactables.length; index++) {
+      const obj = interactables[index]!;
+
+      if (obj.type === 'LOOT_CRATE') {
+        const coreFlashPending = obj.lootCacheCoreFlashPending === true;
+        obj.lootCacheCoreFlashPending = false;
+        if (
+          obj.x + obj.radius < 0 ||
+          obj.x - obj.radius > opts.width ||
+          obj.y + obj.radius < 0 ||
+          obj.y - obj.radius > opts.height
+        ) {
+          this.drawLootCacheEdgeMarker(ctx, obj, opts.width, opts.height);
+        } else {
+          this.drawLootCache(ctx, obj, opts, shadowsEnabled, coreFlashPending);
+        }
+        continue;
+      }
+
       if (!isCircleVisible(obj.x, obj.y, obj.radius + 10, bounds)) {
-        return;
+        continue;
       }
 
-      ctx.save();
+      this.drawDestructibleInteractable(ctx, obj);
+    }
+  }
 
-      // Hit flash effect
-      if (obj.isHit) {
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = '#FFFFFF';
-      } else {
-        ctx.fillStyle = obj.color;
+  private drawDestructibleInteractable(
+    ctx: CanvasRenderingContext2D,
+    obj: Interactable
+  ): void {
+    ctx.save();
+
+    // Hit flash effect
+    if (obj.isHit) {
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = '#FFFFFF';
+    } else {
+      ctx.fillStyle = obj.color;
+    }
+
+    // Shake effect if hit
+    const shakeX = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
+    const shakeY = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
+
+    const size = obj.radius * 2;
+    const x = Math.round(obj.x + shakeX) - obj.radius;
+    const y = Math.round(obj.y + shakeY) - obj.radius;
+
+    // Draw Base (Box shape)
+    ctx.fillRect(x, y, size, size);
+
+    // Draw Detail (Icon or Border)
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, size, size);
+
+    // Inner Icon
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = `${Math.round(obj.radius)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const icon = obj.type === 'MINING_RIG' ? '⛏️' : '🎁';
+    ctx.fillText(icon, Math.round(obj.x + shakeX), Math.round(obj.y + shakeY));
+
+    // Health Bar (Mini)
+    const healthPct = obj.health / obj.maxHealth;
+    if (healthPct < 1) {
+      ctx.fillStyle = '#111';
+      ctx.fillRect(x, y - 8, size, 4);
+      ctx.fillStyle = healthPct > 0.5 ? '#0f0' : '#f00';
+      ctx.fillRect(x, y - 8, size * healthPct, 4);
+    }
+
+    ctx.restore();
+  }
+
+  private drawLootCache(
+    ctx: CanvasRenderingContext2D,
+    cache: Interactable,
+    opts: RenderOptions,
+    shadowsEnabled: boolean,
+    coreFlashPending: boolean
+  ): void {
+    const rarity = cache.lootCacheRarity ?? 'common';
+    const tier = TIER_CONFIG[rarity];
+    const phase = cache.lootCachePhase ?? 'closed';
+    const phaseElapsedMs = cache.lootCachePhaseElapsedMs ?? 0;
+    const idleElapsedMs = cache.lootCacheIdleElapsedMs ?? 0;
+    const proximity = cache.lootCacheProximity === true;
+    const reducedMotion = opts.graphics.reducedMotion === true;
+    const radius = cache.radius;
+    const shakeMagnitude = LOOT_CACHE_CONFIG.feedback.shake[rarity];
+    const pulseSpeed = proximity ? 0.012 : 0.004;
+    const pulse = Math.sin(idleElapsedMs * pulseSpeed);
+    let offsetX = 0;
+    let offsetY = 0;
+    let rotation = 0;
+
+    if (!reducedMotion) {
+      if (phase === 'closed') {
+        offsetY = pulse * (proximity ? 2 : 1);
+      } else if (phase === 'anticipation') {
+        offsetX = Math.sin(phaseElapsedMs * 0.9) * shakeMagnitude;
+        offsetY = Math.cos(phaseElapsedMs * 0.7) * shakeMagnitude * 0.5;
+      } else if (phase === 'opening') {
+        offsetX = Math.sin(phaseElapsedMs * 0.83) * shakeMagnitude;
+        offsetY = Math.cos(phaseElapsedMs * 0.67) * shakeMagnitude * 0.5;
+        rotation = Math.sin(phaseElapsedMs * 0.08) * shakeMagnitude * 0.02;
       }
+    }
 
-      // Shake effect if hit
-      const shakeX = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
-      const shakeY = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
+    ctx.save();
+    ctx.translate(cache.x + offsetX, cache.y + offsetY);
 
-      const size = obj.radius * 2;
-      const x = Math.round(obj.x + shakeX) - obj.radius;
-      const y = Math.round(obj.y + shakeY) - obj.radius;
+    if (!reducedMotion && phase === 'opening') {
+      ctx.rotate(rotation);
+    }
 
-      // Draw Base (Box shape)
-      ctx.fillRect(x, y, size, size);
+    if (phase === 'anticipation') {
+      const squashProgress = Math.min(
+        1,
+        phaseElapsedMs / LOOT_CACHE_CONFIG.feedback.anticipationMs
+      );
+      ctx.scale(1 + squashProgress * 0.12, 1 - squashProgress * 0.16);
+    } else if (phase === 'opening') {
+      const openingDuration =
+        LOOT_CACHE_CONFIG.feedback.totalOpeningMs *
+          LOOT_CACHE_CONFIG.feedback.rewardPhaseProgress -
+        LOOT_CACHE_CONFIG.feedback.anticipationMs;
+      const openingProgress = Math.max(
+        0,
+        Math.min(1, phaseElapsedMs / openingDuration)
+      );
+      ctx.scale(1 + (1 - openingProgress) * 0.14, 1 - (1 - openingProgress) * 0.1);
+    }
 
-      // Draw Detail (Icon or Border)
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x, y, size, size);
+    if (shadowsEnabled && tier.glowColor !== 'transparent') {
+      ctx.shadowColor = tier.glowColor;
+      ctx.shadowBlur = (proximity ? 14 : 8) + shakeMagnitude * 2;
+    }
 
-      // Inner Icon
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.font = `${Math.round(obj.radius)}px Arial`;
+    let ringRadius = radius + 5 + pulse;
+    if (phase === 'anticipation') {
+      ringRadius += 3;
+    } else if (phase === 'opening') {
+      ringRadius += Math.min(8, phaseElapsedMs * 0.03);
+    } else if (phase === 'reward') {
+      ringRadius += 8 + pulse * 2;
+    }
+
+    ctx.strokeStyle = tier.color;
+    ctx.lineWidth = phase === 'reward' ? 4 : proximity ? 3 : 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (proximity || phase !== 'closed') {
+      ctx.globalAlpha = phase === 'reward' ? 0.8 : 0.45;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringRadius + 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = tier.bgColor;
+    ctx.fillRect(-radius, -radius * 0.55, radius * 2, radius * 1.35);
+    ctx.strokeStyle = tier.color;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-radius, -radius * 0.55, radius * 2, radius * 1.35);
+
+    ctx.fillStyle = tier.color;
+    const lidY =
+      phase === 'opening' || phase === 'reward' ? -radius * 0.95 : -radius * 0.75;
+    ctx.fillRect(-radius, lidY, radius * 2, radius * 0.3);
+    ctx.strokeRect(-radius, lidY, radius * 2, radius * 0.3);
+
+    ctx.fillStyle = COLORS.SLOT_BLACK;
+    ctx.fillRect(-radius * 0.48, -radius * 0.3, radius * 0.96, radius * 0.7);
+    ctx.strokeStyle = tier.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-radius * 0.48, -radius * 0.3, radius * 0.96, radius * 0.7);
+
+    ctx.fillStyle = tier.color;
+    ctx.fillRect(-radius * 0.18, -radius * 0.02, radius * 0.36, radius * 0.3);
+    ctx.beginPath();
+    ctx.arc(0, -radius * 0.02, radius * 0.16, Math.PI, 0);
+    ctx.stroke();
+
+    if (phase === 'closed' || phase === 'anticipation') {
+      ctx.fillStyle = tier.color;
+      ctx.font = `bold ${Math.round(radius * 0.42)}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.fillText(LOOT_CACHE_CONFIG.presentation.tierText[rarity], 0, radius * 0.52);
+    }
 
-      const icon = obj.type === 'MINING_RIG' ? '⛏️' : '🎁';
-      ctx.fillText(icon, Math.round(obj.x + shakeX), Math.round(obj.y + shakeY));
+    if (phase === 'reward') {
+      ctx.fillStyle = rarity === 'legendary' ? COLORS.JACKPOT_YELLOW : tier.color;
+      ctx.font = `${Math.round(radius * 1.1)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', 0, 1);
+    }
 
-      // Health Bar (Mini)
-      const healthPct = obj.health / obj.maxHealth;
-      if (healthPct < 1) {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(x, y - 8, size, 4);
-        ctx.fillStyle = healthPct > 0.5 ? '#0f0' : '#f00';
-        ctx.fillRect(x, y - 8, size * healthPct, 4);
-      }
+    if (coreFlashPending && !reducedMotion && opts.graphics.disableGlow !== true) {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-      ctx.restore();
-    });
+    ctx.restore();
+  }
+
+  private drawLootCacheEdgeMarker(
+    ctx: CanvasRenderingContext2D,
+    cache: Interactable,
+    width: number,
+    height: number
+  ): void {
+    const rarity = cache.lootCacheRarity ?? 'common';
+    const color = TIER_CONFIG[rarity].color;
+    const centerX = width * 0.5;
+    const centerY = height * 0.5;
+    const directionX = cache.x - centerX;
+    const directionY = cache.y - centerY;
+    const directionLength = Math.max(1, Math.sqrt(directionX ** 2 + directionY ** 2));
+    const unitX = directionX / directionLength;
+    const unitY = directionY / directionLength;
+    const margin = LOOT_CACHE_CONFIG.spawn.viewportPadding;
+    const horizontalScale =
+      directionX === 0
+        ? Number.POSITIVE_INFINITY
+        : (centerX - margin) / Math.abs(directionX);
+    const verticalScale =
+      directionY === 0
+        ? Number.POSITIVE_INFINITY
+        : (centerY - margin) / Math.abs(directionY);
+    const edgeScale = Math.min(horizontalScale, verticalScale);
+    const markerX = centerX + directionX * edgeScale;
+    const markerY = centerY + directionY * edgeScale;
+    const markerSize = Math.max(8, cache.radius * 0.55);
+    const baseX = markerX - unitX * markerSize * 0.7;
+    const baseY = markerY - unitY * markerSize * 0.7;
+    const perpendicularX = -unitY * markerSize * 0.65;
+    const perpendicularY = unitX * markerSize * 0.65;
+
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(markerX + unitX * markerSize, markerY + unitY * markerSize);
+    ctx.lineTo(baseX + perpendicularX, baseY + perpendicularY);
+    ctx.lineTo(baseX - perpendicularX, baseY - perpendicularY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = COLORS.SLOT_BLACK;
+    ctx.font = `bold ${Math.round(markerSize)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(LOOT_CACHE_CONFIG.presentation.tierIcon[rarity], markerX, markerY);
+    ctx.restore();
   }
 
   /**

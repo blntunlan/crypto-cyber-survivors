@@ -1,73 +1,49 @@
-export const DIRECTOR_RUNTIME_MODES = ['LEGACY', 'SHADOW', 'NEW_AUTHORITY'] as const;
+export const DIFFICULTY_RUNTIME_MODES = ['current', 'shadow', 'modular'] as const;
 
-export type DirectorRuntimeMode = (typeof DIRECTOR_RUNTIME_MODES)[number];
+export type DifficultyRuntimeMode = (typeof DIFFICULTY_RUNTIME_MODES)[number];
+export type DirectorRuntimeMode = DifficultyRuntimeMode;
 
 export type DirectorRuntimePlan = {
-  mode: DirectorRuntimeMode;
-  runsLegacyPipeline: boolean;
-  runsShadowDirector: boolean;
-  appliesDirectorSnapshot: boolean;
+  mode: DifficultyRuntimeMode;
+  runsCurrentAdapter: boolean;
+  runsModularShadow: boolean;
+  appliesModularSnapshot: boolean;
 };
 
-export type DirectorRuntimeState = {
-  mode: DirectorRuntimeMode;
-  transitionGeneration: number;
-  lastProcessedTick: number | null;
-  latestSnapshotRevision: number | null;
+export const parseDifficultyRuntimeMode = (
+  rawMode: string | undefined
+): DifficultyRuntimeMode => {
+  if (rawMode === undefined) return 'current';
+  const normalizedMode = rawMode.trim().toLowerCase();
+  return DIFFICULTY_RUNTIME_MODES.includes(normalizedMode as DifficultyRuntimeMode)
+    ? (normalizedMode as DifficultyRuntimeMode)
+    : 'current';
 };
 
 export const resolveDirectorRuntimePlan = (
-  mode: DirectorRuntimeMode
+  mode: DifficultyRuntimeMode
 ): DirectorRuntimePlan => {
   switch (mode) {
-    case 'LEGACY':
+    case 'current':
       return {
         mode,
-        runsLegacyPipeline: true,
-        runsShadowDirector: false,
-        appliesDirectorSnapshot: false,
+        runsCurrentAdapter: true,
+        runsModularShadow: false,
+        appliesModularSnapshot: false,
       };
-    case 'SHADOW':
+    case 'shadow':
       return {
         mode,
-        runsLegacyPipeline: true,
-        runsShadowDirector: true,
-        appliesDirectorSnapshot: false,
+        runsCurrentAdapter: true,
+        runsModularShadow: true,
+        appliesModularSnapshot: false,
       };
-    case 'NEW_AUTHORITY':
+    case 'modular':
       return {
         mode,
-        runsLegacyPipeline: false,
-        runsShadowDirector: true,
-        appliesDirectorSnapshot: true,
+        runsCurrentAdapter: false,
+        runsModularShadow: true,
+        appliesModularSnapshot: true,
       };
   }
-};
-
-export const createDirectorRuntimeState = (
-  mode: DirectorRuntimeMode
-): DirectorRuntimeState => ({
-  mode,
-  transitionGeneration: 0,
-  lastProcessedTick: null,
-  latestSnapshotRevision: null,
-});
-
-/**
- * Director state is never migrated across authority boundaries. A flag change
- * creates a new Director epoch and clears only Director-owned bookkeeping;
- * game, run, and legacy pipeline state remain outside this contract.
- */
-export const transitionDirectorRuntimeState = (
-  currentState: DirectorRuntimeState,
-  nextMode: DirectorRuntimeMode
-): DirectorRuntimeState => {
-  if (currentState.mode === nextMode) return currentState;
-
-  return {
-    mode: nextMode,
-    transitionGeneration: currentState.transitionGeneration + 1,
-    lastProcessedTick: null,
-    latestSnapshotRevision: null,
-  };
 };

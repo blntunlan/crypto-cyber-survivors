@@ -1,0 +1,79 @@
+{
+  "version": "modular-difficulty-shadow-v1",
+  "scenarios": [
+    {
+      "id": "exact-parity",
+      "current": {
+        "revision": 1,
+        "threatTarget": 0.5,
+        "creditRate": 0.5,
+        "spawnWindowSeconds": 1,
+        "spawnCount": 2,
+        "composition": ["bear"],
+        "enemyHealthMultiplier": 1.2,
+        "enemyDamageMultiplier": 1.1,
+        "enemySpeedMultiplier": 1.05,
+        "mercy": 0.1,
+        "recoveryNeed": 0.2,
+        "encounterPhase": "IDLE",
+        "presentationIntensity": 0.5,
+        "quality": "LIVE",
+        "fallbackCodes": []
+      },
+      "modular": {
+        "threatTarget": 0.5,
+        "creditRate": 0.5,
+        "spawnWindowSeconds": 1,
+        "spawnCount": 2,
+        "composition": ["bear"],
+        "enemyHealthMultiplier": 1.2,
+        "enemyDamageMultiplier": 1.1,
+        "enemySpeedMultiplier": 1.05,
+        "mercy": 0.1,
+        "recoveryNeed": 0.2,
+        "encounterPhase": "IDLE",
+        "presentationIntensity": 0.5,
+        "quality": "LIVE",
+        "fallbackCodes": []
+      },
+      "expectedPassed": true
+    },
+    {
+      "id": "approved-pressure",
+      "current": {
+        "revision": 2,
+        "threatTarget": 0.5,
+        "creditRate": 0.5,
+        "spawnWindowSeconds": 1,
+        "spawnCount": 2,
+        "composition": ["bear"],
+        "enemyHealthMultiplier": 1.2,
+        "enemyDamageMultiplier": 1.1,
+        "enemySpeedMultiplier": 1.05,
+        "mercy": 0.1,
+        "recoveryNeed": 0.2,
+        "encounterPhase": "IDLE",
+        "presentationIntensity": 0.5,
+        "quality": "LIVE",
+        "fallbackCodes": []
+      },
+      "modular": {
+        "threatTarget": 0.52,
+        "creditRate": 0.5,
+        "spawnWindowSeconds": 1,
+        "spawnCount": 2,
+        "composition": ["bear"],
+        "enemyHealthMultiplier": 1.2,
+        "enemyDamageMultiplier": 1.1,
+        "enemySpeedMultiplier": 1.05,
+        "mercy": 0.1,
+        "recoveryNeed": 0.2,
+        "encounterPhase": "IDLE",
+        "presentationIntensity": 0.5,
+        "quality": "LIVE",
+        "fallbackCodes": []
+      },
+      "expectedPassed": true
+    }
+  ]
+}

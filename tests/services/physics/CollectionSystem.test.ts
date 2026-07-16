@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CollectionSystem } from '../../../services/combat/physics/CollectionSystem';
 import { type IPhysicsContext } from '../../../services/combat/physics/PhysicsTypes';
 import { type IPoolManager } from '../../../services/interfaces/IPoolManager';
-import { type Player, type GameState, type Gem } from '../../../types';
+import { type ILootCacheSystem } from '../../../services/interfaces/ILootCacheSystem';
+import {
+  type Player,
+  type GameState,
+  type Gem,
+  type Interactable,
+} from '../../../types';
 import { EventBus } from '../../../services/core/EventBus';
 import { BuffManager } from '../../../services/patterns/decorators/BuffManager';
 import { LeverageEngine } from '../../../services/gameplay/LeverageEngine';
@@ -32,7 +38,11 @@ describe('CollectionSystem', () => {
     mockContext = {
       stats: { getMagnet: vi.fn().mockReturnValue(0) },
       statCaps: { MAX_MAGNET: 500 },
-      constants: { GEM_MAGNET_BASE_RANGE: 50 },
+      constants: {
+        GEM_MAGNET_BASE_RANGE: 50,
+        getGameTime: vi.fn(() => 42_000),
+        getGameTimeSeconds: vi.fn(() => 42),
+      },
       audio: { playGem: vi.fn() },
       performance: {
         getPerformanceConfig: vi.fn().mockReturnValue({ particleMultiplier: 1 }),
@@ -44,6 +54,7 @@ describe('CollectionSystem', () => {
 
     mockPool = {
       activeGems: [],
+      activeInteractables: [],
       getParticle: vi.fn().mockReturnValue({}),
       getFloatingText: vi.fn(),
       getImpactRing: vi.fn(),
@@ -255,6 +266,106 @@ describe('CollectionSystem', () => {
 
       expect(buffGem.x).toBeLessThan(60);
       expect(buffGem.x).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Loot Caches', () => {
+    const createLootCacheSystem = (): ILootCacheSystem => ({
+      update: vi.fn(),
+      tryOpen: vi.fn((target, input) => {
+        target.lootCachePhase = 'anticipation';
+        if (!input.reducedMotion) {
+          input.state.shake = 3.5;
+        }
+        return true;
+      }),
+      requestDebugSpawn: vi.fn(),
+      beginRun: vi.fn(),
+      reset: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    const expectNoOpenForOverlappingInteractable = (
+      interactable: Interactable
+    ): void => {
+      const lootCacheSystem = createLootCacheSystem();
+      mockPool.activeInteractables.push(interactable);
+      system = new CollectionSystem(mockContext, lootCacheSystem);
+
+      system.update(mockPool, player, state, 1, false);
+
+      expect(lootCacheSystem.tryOpen).not.toHaveBeenCalled();
+    };
+
+    it('requests opening once when the player contacts a closed cache', () => {
+      const cache = {
+        active: true,
+        type: 'LOOT_CRATE',
+        x: 5,
+        y: 0,
+        radius: 20,
+        color: '#a855f7',
+        health: 1,
+        maxHealth: 1,
+        lootCachePhase: 'closed',
+      } as Interactable;
+      mockPool.activeInteractables.push(cache);
+      const lootCacheSystem = createLootCacheSystem();
+      system = new CollectionSystem(mockContext, lootCacheSystem);
+
+      system.update(mockPool, player, state, 1, true);
+      system.update(mockPool, player, state, 1, true);
+
+      expect(lootCacheSystem.tryOpen).toHaveBeenCalledTimes(1);
+      expect(lootCacheSystem.tryOpen).toHaveBeenCalledWith(cache, {
+        elapsedSeconds: 42,
+        reducedMotion: true,
+        pool: mockPool,
+        player,
+        state,
+      });
+      expect(state.shake).toBe(0);
+    });
+
+    it('does not request opening for an overlapping active non-cache interactable', () => {
+      expectNoOpenForOverlappingInteractable({
+        active: true,
+        type: 'MINING_RIG',
+        x: 5,
+        y: 0,
+        radius: 20,
+        color: '#ffd700',
+        health: 100,
+        maxHealth: 100,
+      });
+    });
+
+    it('does not request opening for an overlapping inactive loot cache', () => {
+      expectNoOpenForOverlappingInteractable({
+        active: false,
+        type: 'LOOT_CRATE',
+        x: 5,
+        y: 0,
+        radius: 20,
+        color: '#a855f7',
+        health: 1,
+        maxHealth: 1,
+        lootCachePhase: 'closed',
+      });
+    });
+
+    it('does not request opening for an overlapping non-closed loot cache', () => {
+      expectNoOpenForOverlappingInteractable({
+        active: true,
+        type: 'LOOT_CRATE',
+        x: 5,
+        y: 0,
+        radius: 20,
+        color: '#a855f7',
+        health: 1,
+        maxHealth: 1,
+        lootCachePhase: 'anticipation',
+      });
     });
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CheatManager } from '../services/system/CheatManager';
+import { EventBus } from '../services/core/EventBus';
 
 describe('CheatManager', () => {
   const mockCallbacks = {
@@ -11,6 +12,7 @@ describe('CheatManager', () => {
     onAddExp: vi.fn(),
     onRestart: vi.fn(),
     onAddComboKill: vi.fn(),
+    isPlaying: vi.fn(() => true),
   };
 
   beforeEach(() => {
@@ -117,6 +119,47 @@ describe('CheatManager', () => {
     const shiftEvent = new KeyboardEvent('keydown', { key: 'c', shiftKey: true });
     window.dispatchEvent(shiftEvent);
     expect(mockCallbacks.onAddComboKill).toHaveBeenCalledWith(10);
+  });
+
+  it('requests a random cache for B and a jackpot cache for Shift+B', () => {
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', shiftKey: true }));
+
+    expect(emitSpy).toHaveBeenNthCalledWith(1, 'debugLootCacheSpawnRequested', {
+      mode: 'random',
+    });
+    expect(emitSpy).toHaveBeenNthCalledWith(2, 'debugLootCacheSpawnRequested', {
+      mode: 'jackpot',
+    });
+  });
+
+  it('shows B and Shift+B in visible help only while playing', () => {
+    mockCallbacks.isPlaying.mockReturnValue(false);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }));
+    expect(document.body).not.toHaveTextContent('B RANDOM CACHE · SHIFT+B GOLD CACHE');
+
+    mockCallbacks.isPlaying.mockReturnValue(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }));
+    expect(document.body).toHaveTextContent('B RANDOM CACHE · SHIFT+B GOLD CACHE');
+  });
+
+  it('rejects cache requests outside PLAYING and with Ctrl or Alt', () => {
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+    mockCallbacks.isPlaying.mockReturnValue(false);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+    mockCallbacks.isPlaying.mockReturnValue(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'b', altKey: true, shiftKey: true })
+    );
+
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      'debugLootCacheSpawnRequested',
+      expect.anything()
+    );
   });
 
   it('should handle word cheats like "moon"', () => {

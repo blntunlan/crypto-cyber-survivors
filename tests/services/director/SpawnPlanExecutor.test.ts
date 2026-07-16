@@ -3,41 +3,42 @@ import { readFileSync } from 'node:fs';
 import { MarketPosition } from '../../../types';
 import { SpawnExecutor } from '../../../services/combat/SpawnExecutor';
 import { SpawnPlanBuilder } from '../../../services/director/SpawnPlanBuilder';
-import { type GameplaySnapshot } from '../../../services/director/contracts';
 import { resolveDirectorRuntimePlan } from '../../../services/director/DirectorRuntimeMode';
 import { resolveSpawnAuthority } from '../../../services/director/SpawnAuthorityRouter';
+import {
+  createNeutralRuntimeDifficultySnapshot,
+  type RuntimeDifficultySnapshot,
+} from '../../../types/runtimeDifficulty';
 
-const createSnapshot = (availableCredits: number): GameplaySnapshot => ({
-  revision: 3,
-  validFromTick: 30,
-  pacing: { state: 'PEAK', threatMultiplier: 1.25, remainingSeconds: 20 },
-  threat: {
-    target: 1.2,
-    creditRate: 1.5,
-    availableCredits,
-    maximumCredits: 12,
-  },
-  advantage: {
-    creditRate: 0,
-    availableCredits: 0,
-    maximumCredits: 0,
-    activeMechanic: null,
-  },
-  environment: {
-    regime: 'VOLATILE',
-    presentationIntensity: 0.8,
-    isFavorable: false,
-  },
-  encounter: {
-    activeEventFamily: 'VOLUME_SURGE',
-    canStartMarketSurge: true,
-    queuedEventFamily: null,
-    phase: 'ACTIVE',
-    primaryCardId: 'VOLUME_DENSE_WAVE',
-    supportCardId: 'VOLUME_FLANK_SUPPORT',
-    headwindChannels: ['SPAWN_DENSITY', 'MULTI_DIRECTIONAL_ENTRIES'],
-  },
-});
+const createSnapshot = (
+  availableCredits: number,
+  healthMultiplier = 1.3
+): RuntimeDifficultySnapshot => {
+  const snapshot = structuredClone(
+    createNeutralRuntimeDifficultySnapshot({ tick: 30, inputRevision: 3 })
+  ) as any;
+  snapshot.meta.revision = 9;
+  snapshot.meta.validFromTick = 30;
+  snapshot.pressure.total = 0.8;
+  snapshot.pressure.availableCredits = availableCredits;
+  snapshot.spawn.revision = 9;
+  snapshot.spawn.seed = 12_345;
+  snapshot.spawn.maximumActiveEnemies = 3;
+  snapshot.spawn.spawnWindowSeconds = 0.5;
+  snapshot.spawn.behaviorTier = 2;
+  snapshot.spawn.availableCredits = availableCredits;
+  snapshot.spawn.reservedCredits = availableCredits;
+  snapshot.spawn.remainingCredits = 0;
+  snapshot.spawn.directives = [
+    { archetype: 'bear', intent: 'pressure', allocation: 1 },
+  ];
+  snapshot.enemy.healthMultiplier = healthMultiplier;
+  snapshot.enemy.damageMultiplier = 1.2;
+  snapshot.enemy.speedMultiplier = 1.1;
+  snapshot.enemy.behaviorTier = 2;
+  snapshot.encounter.headwindChannels = ['MULTI_DIRECTIONAL_ENTRIES'];
+  return snapshot as RuntimeDifficultySnapshot;
+};
 
 const createBuildInput = (availableCredits: number, activeEnemies = 0) => ({
   tick: 30,
@@ -49,7 +50,6 @@ const createBuildInput = (availableCredits: number, activeEnemies = 0) => ({
     maxActiveEnemies: 3,
     position: MarketPosition.LONG,
   },
-  seed: 12345,
 });
 
 describe('SpawnPlanBuilder and SpawnExecutor', () => {
@@ -87,6 +87,18 @@ describe('SpawnPlanBuilder and SpawnExecutor', () => {
     expect(activeLimited.maxActiveEnemies).toBe(3);
   });
 
+  it('expands one snapshot revision with its enemy multipliers', () => {
+    const snapshot = createSnapshot(3, 1.3);
+    const plan = new SpawnPlanBuilder().build({
+      ...createBuildInput(3),
+      snapshot,
+    });
+
+    expect(plan.revision).toBe(9);
+    expect(plan.intents.every(intent => intent.healthMultiplier === 1.3)).toBe(true);
+    expect(plan.spendableThreat).toBeLessThanOrEqual(snapshot.spawn.reservedCredits);
+  });
+
   it('executes only the plan against world state and stops at the active cap', () => {
     const plan = new SpawnPlanBuilder().build(createBuildInput(3));
     const getEnemy = vi.fn();
@@ -107,15 +119,15 @@ describe('SpawnPlanBuilder and SpawnExecutor', () => {
   it('keeps the Director as authority when a production plan is temporarily unavailable', () => {
     const activePlan = new SpawnPlanBuilder().build(createBuildInput(3));
 
-    expect(
-      resolveSpawnAuthority(resolveDirectorRuntimePlan('NEW_AUTHORITY'), true)
-    ).toBe('DIRECTOR');
-    expect(resolveSpawnAuthority(resolveDirectorRuntimePlan('LEGACY'), true)).toBe(
+    expect(resolveSpawnAuthority(resolveDirectorRuntimePlan('modular'), true)).toBe(
+      'DIRECTOR'
+    );
+    expect(resolveSpawnAuthority(resolveDirectorRuntimePlan('current'), true)).toBe(
       'LEGACY'
     );
-    expect(
-      resolveSpawnAuthority(resolveDirectorRuntimePlan('NEW_AUTHORITY'), false)
-    ).toBe('DIRECTOR');
+    expect(resolveSpawnAuthority(resolveDirectorRuntimePlan('modular'), false)).toBe(
+      'DIRECTOR'
+    );
     expect(activePlan.intents).toHaveLength(3);
   });
 });

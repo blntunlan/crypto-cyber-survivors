@@ -191,7 +191,7 @@ export class DirectorSpawnOrchestrator {
     this.output.plan =
       input.marketFrame.quality === 'STALE' || snapshot.validFromTick !== input.tick
         ? this.createEmptyPlan(snapshot, input)
-        : this.planBuilder.build({
+        : this.planBuilder.buildCurrent({
             tick: input.tick,
             seed: input.run.seed,
             snapshot,

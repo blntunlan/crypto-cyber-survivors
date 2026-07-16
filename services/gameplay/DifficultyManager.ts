@@ -6,22 +6,18 @@ import { type WavePhase } from '../../types/metrics';
 import { DIFFICULTY_CONFIG as D_CONFIG } from '../../config';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
-import {
-  difficultyContext,
-  clamp,
-  UnifiedDirector,
-  type UnifiedInputs,
-  type LiquidationWarning,
-} from '../difficulty';
+import { difficultyContext, clamp, type LiquidationWarning } from '../difficulty';
+import { UnifiedDirector, type UnifiedInputs } from '../difficulty/UnifiedDirector';
+import { DifficultyV2CompatibilityAdapter } from '../difficulty/runtime/DifficultyV2CompatibilityAdapter';
+import { type RuntimeDifficultySnapshot } from '../../types/runtimeDifficulty';
+import { type DifficultyOutputV2 } from '../difficulty/types';
 import { PoolManager } from '../combat/PoolManager';
 import { type DifficultyOutput } from './DifficultyTypes';
 import { LeverageEngine } from './LeverageEngine';
 
 /**
- * DifficultyManagerClass - Singleton service for managing game progression.
- * Refactored to V2 (Layered Architecture).
- *
- * Acts as a Consumer Service (Layer 4) of DifficultyContext (Layer 3).
+ * Retired legacy baseline retained for deterministic compatibility tests.
+ * Production runtime consumers use DifficultyRuntime snapshots instead.
  */
 class DifficultyManagerClass {
   private static instance: DifficultyManagerClass | null = null;
@@ -31,6 +27,7 @@ class DifficultyManagerClass {
   private lastKillStreakTime: number = 0;
   private lastShockTime: number = 0; // Prevent shock triggers for the first 10 seconds
   private latestOutput: DifficultyOutput | null = null;
+  private readonly snapshotAdapter = new DifficultyV2CompatibilityAdapter();
 
   // Momentum and Metric tracking
   private lastPnL: number = 0;
@@ -97,6 +94,11 @@ class DifficultyManagerClass {
     return (DifficultyManagerClass.instance ??= new DifficultyManagerClass());
   }
 
+  /** Temporary compatibility mapping for callers migrating to snapshots. */
+  fromSnapshot(snapshot: RuntimeDifficultySnapshot): DifficultyOutputV2 {
+    return this.snapshotAdapter.toOutput(snapshot);
+  }
+
   /**
    * Start tracking difficulty (Legacy Wrapper).
    * NOTE: The caller (GameStateManager.resetAll) emits 'gameReset' BEFORE calling
@@ -144,6 +146,7 @@ class DifficultyManagerClass {
    * Pulls aggregated data from Layer 3 (DifficultyContext) and Maps it to
    * game-specific outputs (Layer 4).
    */
+  /** @deprecated Production runtime code must consume DifficultyRuntime snapshots. */
   calculate(
     pnl: number,
     atrPercent: number,
@@ -293,6 +296,7 @@ class DifficultyManagerClass {
           intensity: Math.min(2.0, shockFactor * leverageImpact),
           direction: 'down' as const,
           isHighLeverage: inputs.leverage >= 25,
+          sourceSnapshotRevision: 0,
         };
         EventBus.emit('volatilityShock', payload);
         EventBus.emit('shockDetected', payload);
@@ -413,6 +417,7 @@ class DifficultyManagerClass {
       distanceToLiquidation: liquidation.distance,
       effectivePnl,
       fovReduction: liquidation.fovReduction,
+      sourceSnapshotRevision: 0,
     });
   }
 

@@ -31,7 +31,7 @@ const clamp = (value: number, minimum: number, maximum: number): number =>
 export class ThreatBudgetAllocator {
   private readonly config: DirectorConfigV1;
   private availableCredits = UNIT_MINIMUM;
-  private snapshot: ThreatBudgetSnapshot;
+  private readonly snapshot: ThreatBudgetSnapshot;
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.config = config;
@@ -61,12 +61,7 @@ export class ThreatBudgetAllocator {
       maximumCredits,
       Math.max(UNIT_MINIMUM, this.availableCredits + accruedCredits)
     );
-    this.snapshot = this.createSnapshot(
-      target,
-      creditRate,
-      maximumCredits,
-      target !== rawTarget
-    );
+    this.writeSnapshot(target, creditRate, maximumCredits, target !== rawTarget);
     return this.snapshot;
   }
 
@@ -79,10 +74,7 @@ export class ThreatBudgetAllocator {
       )
     );
     this.availableCredits -= spentCredits;
-    this.snapshot = {
-      ...this.snapshot,
-      availableCredits: this.availableCredits,
-    };
+    this.snapshot.availableCredits = this.availableCredits;
     return spentCredits;
   }
 
@@ -92,7 +84,7 @@ export class ThreatBudgetAllocator {
 
   public reset(): void {
     this.availableCredits = UNIT_MINIMUM;
-    this.snapshot = this.createSnapshot(
+    this.writeSnapshot(
       this.config.threat.minimumTarget,
       UNIT_MINIMUM,
       UNIT_MINIMUM,
@@ -141,5 +133,18 @@ export class ThreatBudgetAllocator {
       maximumCredits,
       isTargetClamped,
     };
+  }
+
+  private writeSnapshot(
+    target: number,
+    creditRate: number,
+    maximumCredits: number,
+    isTargetClamped: boolean
+  ): void {
+    this.snapshot.target = target;
+    this.snapshot.creditRate = creditRate;
+    this.snapshot.availableCredits = this.availableCredits;
+    this.snapshot.maximumCredits = maximumCredits;
+    this.snapshot.isTargetClamped = isTargetClamped;
   }
 }

@@ -57,9 +57,9 @@ export class MarketRegimeEngine {
     this.config = config;
   }
 
-  public update(frame: CanonicalMarketFrame): MarketRegimeUpdate {
+  public update(frame: CanonicalMarketFrame, elapsedSeconds = 0): MarketRegimeUpdate {
     if (frame.quality === 'STALE') {
-      return this.createUpdate(frame, null);
+      return this.createUpdate(frame, null, elapsedSeconds);
     }
 
     const rsiEvent = this.updateRsi(frame);
@@ -71,7 +71,21 @@ export class MarketRegimeEngine {
       rsiEvent ?? volatilityEvent ?? volumeEvent ?? breakoutEvent ?? whaleEvent;
 
     this.updateRegime(frame);
-    return this.createUpdate(frame, event);
+    return this.createUpdate(frame, event, elapsedSeconds);
+  }
+
+  public reset(): void {
+    this.regime = 'CALM';
+    this.rsiZone = 'NEUTRAL';
+    this.volatilityHigh = false;
+    this.volumeSurge = false;
+    this.trendDirection = 'SIDEWAYS';
+    this.lastRegimeChangedAt = 0;
+    this.rsiConfirmationCount = 0;
+    this.volatilityConfirmationCount = 0;
+    this.volumeConfirmationCount = 0;
+    this.macdConfirmationCount = 0;
+    this.lastEventAt = {};
   }
 
   private updateRsi(frame: CanonicalMarketFrame): MarketRegimeEvent | null {
@@ -203,12 +217,13 @@ export class MarketRegimeEngine {
     }
 
     this.lastEventAt[family] = frame.sourceTimestamp;
-    return { revision: frame.revision, family, sourceSequence: frame.sequence };
+    return { revision: frame.revision, family, sourceSequence: frame.sourceSequence };
   }
 
   private createUpdate(
     frame: CanonicalMarketFrame,
-    event: MarketRegimeEvent | null
+    event: MarketRegimeEvent | null,
+    elapsedSeconds: number
   ): MarketRegimeUpdate {
     const volatility = clampUnit(
       frame.atrPercent / this.config.regime.volatilityReferenceAtrPercent
@@ -241,10 +256,11 @@ export class MarketRegimeEngine {
         rsiExtremity: clampUnit(Math.abs(frame.rsi - 50) / 30),
         whalePressure: frame.whaleTier / 3,
         activeEventFamily: event?.family ?? null,
-        eventTelegraphEndsAtTick:
+        eventTelegraphEndsAtElapsedSeconds:
           event === null
             ? null
-            : frame.sequence + Math.ceil(this.config.marketEvents.minTelegraphSeconds),
+            : Math.max(0, elapsedSeconds) +
+              this.config.marketEvents.minTelegraphSeconds,
       },
       state: {
         revision: frame.revision,

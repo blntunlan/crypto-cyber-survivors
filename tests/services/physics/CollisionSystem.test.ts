@@ -1,7 +1,12 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { CollisionSystem } from '../../../services/combat/physics/CollisionSystem';
 import { type IPhysicsContext } from '../../../services/combat/physics/PhysicsTypes';
-import { type Player, type GameState, type Bullet } from '../../../types';
+import {
+  type Player,
+  type GameState,
+  type Bullet,
+  type Interactable,
+} from '../../../types';
 import { EventBus } from '../../../services/core/EventBus';
 import { CombatResolutionService } from '../../../services/combat/physics/CombatResolutionService';
 import { DeviceProfile } from '../../../types/DeviceProfile';
@@ -107,6 +112,7 @@ describe('CollisionSystem', () => {
         HIT_STOP_CRIT: 10,
         NEAR_MISS_THRESHOLD: 50,
         getGameTime: () => 0,
+        getGameTimeSeconds: () => 0,
       },
       statCaps: {
         MAX_MAGNET: 500,
@@ -125,6 +131,7 @@ describe('CollisionSystem', () => {
       getFloatingText: vi.fn(),
       getParticle: vi.fn(() => ({ life: 1 })),
       getImpactRing: vi.fn(),
+      getGem: vi.fn(),
     };
 
     mockPlayer = {
@@ -980,6 +987,85 @@ describe('CollisionSystem', () => {
 
       expect(CombatResolutionService.handleEnemyDeath).not.toHaveBeenCalled();
       expect(bullet.active).toBe(true);
+    });
+  });
+
+  describe('Bullet-Interactable Collision', () => {
+    const overlapInteractableWithBullet = (
+      interactable: Interactable,
+      bullet: Bullet
+    ): void => {
+      mockPool.activeInteractables = [interactable];
+      mockPool.activeBullets = [bullet];
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (candidate: any, candidateContext: unknown) => void
+        ) => {
+          callback(bullet, context);
+        }
+      );
+    };
+
+    it('leaves loot caches and bullets unchanged when they overlap', () => {
+      const cache = {
+        active: true,
+        type: 'LOOT_CRATE',
+        x: 100,
+        y: 100,
+        radius: 20,
+        color: '#a855f7',
+        health: 1,
+        maxHealth: 1,
+        lootCachePhase: 'closed',
+      } as Interactable;
+      const bullet = {
+        active: true,
+        x: 100,
+        y: 100,
+        radius: 5,
+        damage: 10,
+        vx: 1,
+        vy: 0,
+      } as Bullet;
+      overlapInteractableWithBullet(cache, bullet);
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(cache.health).toBe(1);
+      expect(cache.active).toBe(true);
+      expect(bullet.active).toBe(true);
+    });
+
+    it('preserves bullet damage for mining rigs', () => {
+      const miningRig = {
+        active: true,
+        type: 'MINING_RIG',
+        x: 100,
+        y: 100,
+        radius: 20,
+        color: '#ffd700',
+        health: 100,
+        maxHealth: 100,
+      } as Interactable;
+      const bullet = {
+        active: true,
+        x: 100,
+        y: 100,
+        radius: 5,
+        damage: 10,
+        vx: 1,
+        vy: 0,
+      } as Bullet;
+      overlapInteractableWithBullet(miningRig, bullet);
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(miningRig.health).toBe(90);
+      expect(miningRig.active).toBe(true);
+      expect(bullet.active).toBe(false);
     });
   });
 });

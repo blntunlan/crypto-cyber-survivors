@@ -53,7 +53,7 @@ export type MarketRegimeSnapshot = {
   rsiExtremity: number;
   whalePressure: number;
   activeEventFamily: MarketEventFamily | null;
-  eventTelegraphEndsAtTick: number | null;
+  eventTelegraphEndsAtElapsedSeconds: number | null;
 };
 
 export type PositionRiskSnapshot = {

@@ -4,6 +4,7 @@ import { useGameEvents } from '../../hooks/useGameEvents';
 import { EventBus } from '../../services/core/EventBus';
 import { audio } from '../../services/audio';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
+import { useCosmeticsStore } from '../../stores/cosmeticsStore';
 
 // Mock dependencies
 vi.mock('../../services/core/EventBus', () => ({
@@ -61,6 +62,7 @@ const mockSpawnSystem = {
 describe('useGameEvents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useCosmeticsStore.getState().reset();
     (mockPool.current.activeEnemies[0] as any).health = 100;
     (mockPool.current.activeEnemies[1] as any).health = 50;
   });
@@ -162,5 +164,34 @@ describe('useGameEvents', () => {
       expect.any(String),
       20
     );
+  });
+
+  it('should persist earned cosmetic fragments and clean up the subscription', () => {
+    let fragmentCallback: ((data: { amount: number }) => void) | undefined;
+    const unsubscribe = vi.fn();
+    (EventBus.subscribe as any).mockImplementation(
+      (event: string, callback: (data: { amount: number }) => void) => {
+        if (event === 'cosmeticFragmentEarned') {
+          fragmentCallback = callback;
+          return unsubscribe;
+        }
+        return vi.fn();
+      }
+    );
+
+    const { unmount } = renderHook(() =>
+      useGameEvents({
+        pool: mockPool as any,
+        state: mockState as any,
+        spawnSystem: mockSpawnSystem as any,
+      })
+    );
+
+    expect(fragmentCallback).toBeDefined();
+    fragmentCallback!({ amount: 1 });
+    expect(useCosmeticsStore.getState().encryptedFragments).toBe(1);
+
+    unmount();
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

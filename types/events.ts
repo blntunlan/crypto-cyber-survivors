@@ -25,9 +25,29 @@ import {
   type CharacterSkinId,
   type ConsumableEffectType,
 } from './lootbox';
+import {
+  type LootCacheDebugMode,
+  type LootCacheRarity,
+  type LootCacheRewardId,
+  type LootCacheSource,
+} from './lootCache';
 import { type InventoryItemType } from './inventory';
 import { type WeaponId } from './weapons';
 import { type TutorialPhase } from './tutorial';
+import { type RuntimeDifficultySnapshot } from './runtimeDifficulty';
+
+export type DifficultySnapshotCommittedEvent = {
+  snapshot: RuntimeDifficultySnapshot;
+};
+
+export type DifficultyRunInitializedEvent = {
+  runId: string;
+  seed: number;
+  side: 'LONG' | 'SHORT';
+  leverage: number;
+  entryPrice: number;
+  liquidationPrice: number;
+};
 
 // =============================================================================
 // EVENT NAMES
@@ -88,6 +108,10 @@ export type GameEvent =
   | 'lootboxEarned'
   | 'lootboxOpening'
   | 'lootboxOpened'
+  | 'lootCacheSpawned'
+  | 'lootCacheOpened'
+  | 'cosmeticFragmentEarned'
+  | 'debugLootCacheSpawnRequested'
   // Inventory events
   | 'inventoryItemAdded'
   | 'inventoryUpdated'
@@ -109,6 +133,8 @@ export type GameEvent =
   | 'playerExperienceChange'
   | 'playerHealthChange'
   | 'gameStart'
+  | 'difficultyRunInitialized'
+  | 'difficultySnapshotCommitted'
   | 'difficultyUpdated'
   | 'shockDetected'
   | 'liquidationWarning'
@@ -805,6 +831,30 @@ export interface EventDataMap {
   lootboxEarned: LootboxEarnedEvent;
   lootboxOpening: LootboxOpeningEvent;
   lootboxOpened: LootboxOpenedEvent;
+  lootCacheSpawned: {
+    cacheId: number;
+    rarity: LootCacheRarity;
+    x: number;
+    y: number;
+    source: LootCacheSource;
+  };
+  lootCacheOpened: {
+    cacheId: number;
+    rarity: LootCacheRarity;
+    primaryReward: LootCacheRewardId;
+    secondaryReward: LootCacheRewardId | null;
+    x: number;
+    y: number;
+    elapsedSeconds: number;
+    source: LootCacheSource;
+  };
+  cosmeticFragmentEarned: {
+    amount: number;
+    rarity: LootCacheRarity;
+    elapsedSeconds: number;
+    source: 'runtime';
+  };
+  debugLootCacheSpawnRequested: { mode: LootCacheDebugMode };
   // Inventory events
   inventoryItemAdded: InventoryItemAddedEvent;
   inventoryUpdated: InventoryUpdatedEvent;
@@ -825,18 +875,26 @@ export interface EventDataMap {
   playerExperienceChange: { exp: number; nextLevelExp: number; expPercent: number };
   playerHealthChange: { hpPercent: number; hp: number; maxHp: number };
   gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
+  difficultyRunInitialized: DifficultyRunInitializedEvent;
+  difficultySnapshotCommitted: DifficultySnapshotCommittedEvent;
   difficultyUpdated: {
     trendAlignment?: string;
     lootboxDropChance?: number;
+    sourceSnapshotRevision: number;
     [key: string]: unknown;
   };
-  shockDetected: { intensity: number; direction: 'up' | 'down' };
+  shockDetected: {
+    intensity: number;
+    direction: 'up' | 'down';
+    sourceSnapshotRevision: number;
+  };
   liquidationWarning: {
     level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
     distance: number;
     distanceToLiquidation?: number;
     effectivePnl?: number;
     fovReduction?: number;
+    sourceSnapshotRevision: number;
   };
   secondElapsed: { totalSeconds: number };
   fpsUpdated: { avgFps: number };

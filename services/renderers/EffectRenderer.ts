@@ -59,9 +59,7 @@ export class EffectRenderer implements IRenderer {
     }
 
     // 3. UI Overlays (Damage numbers)
-    if (graphics.showDamageNumbers) {
-      this.drawFloatingTexts(ctx, pool, bounds);
-    }
+    this.drawFloatingTexts(ctx, pool, bounds, graphics.showDamageNumbers);
 
     // 5. Momentum Feedback (Top layer)
     if (graphics.showParticles && !graphics.reducedMotion) {
@@ -423,9 +421,14 @@ export class EffectRenderer implements IRenderer {
   private drawFloatingTexts(
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
-    bounds: ViewportBounds
+    bounds: ViewportBounds,
+    showOrdinaryText = true
   ): void {
     pool.activeFloatingTexts.forEach(t => {
+      if (!showOrdinaryText && t.alwaysVisible !== true) {
+        return;
+      }
+
       // Culling (approximate based on size)
       if (!isCircleVisible(t.x, t.y, t.size * 2, bounds)) {
         return;
@@ -435,7 +438,10 @@ export class EffectRenderer implements IRenderer {
       ctx.globalAlpha = t.life;
 
       // Floating animation logic
-      const floatOffset = (1 - t.life) * GAME_ENGINE.FLOATING_TEXT_FLOAT_DISTANCE;
+      const floatOffset =
+        t.stationary === true || t.velocityOnly === true
+          ? 0
+          : (1 - t.life) * GAME_ENGINE.FLOATING_TEXT_FLOAT_DISTANCE;
       const displayX = Math.round(t.x);
       const displayY = Math.round(t.y - floatOffset);
 

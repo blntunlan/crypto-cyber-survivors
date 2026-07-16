@@ -116,6 +116,9 @@ describe('EffectRenderer', () => {
     it('should skip particles and damage numbers if disabled in graphics config', () => {
       mockOpts.graphics.showParticles = false;
       mockOpts.graphics.showDamageNumbers = false;
+      mockPool.activeFloatingTexts = [
+        { x: 400, y: 300, text: '10', color: '#fff', size: 16, life: 1 },
+      ];
 
       const drawParticlesSpy = vi.spyOn(renderer as any, 'drawParticles');
       const drawFloatingTextsSpy = vi.spyOn(renderer as any, 'drawFloatingTexts');
@@ -124,8 +127,30 @@ describe('EffectRenderer', () => {
       renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
 
       expect(drawParticlesSpy).not.toHaveBeenCalled();
-      expect(drawFloatingTextsSpy).not.toHaveBeenCalled();
+      expect(drawFloatingTextsSpy).toHaveBeenCalled();
+      expect(mockCtx.fillText).not.toHaveBeenCalledWith('10', 400, 300);
       expect(drawSpeedLinesSpy).not.toHaveBeenCalled();
+    });
+
+    it('renders only always-visible cache reveals when damage numbers are disabled', () => {
+      mockOpts.graphics.showDamageNumbers = false;
+      mockPool.activeFloatingTexts = [
+        { x: 380, y: 300, text: '10', color: '#fff', size: 16, life: 1 },
+        {
+          x: 400,
+          y: 300,
+          text: '◆ ENCRYPTED FRAGMENT',
+          color: '#ffdc73',
+          size: 18,
+          life: 1,
+          alwaysVisible: true,
+        },
+      ];
+
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
+
+      expect(mockCtx.fillText).not.toHaveBeenCalledWith('10', 380, 300);
+      expect(mockCtx.fillText).toHaveBeenCalledWith('◆ ENCRYPTED FRAGMENT', 400, 300);
     });
 
     it('should skip motion-heavy overlays when reduced motion is enabled', () => {
@@ -251,6 +276,52 @@ describe('EffectRenderer', () => {
 
       expect(mockCtx.fillText).toHaveBeenCalledWith('CRIT!', 400, 300);
       expect(mockCtx.strokeText).toHaveBeenCalledWith('CRIT!', 400, 300);
+    });
+
+    it('keeps stationary reduced-motion text at its pooled coordinates', () => {
+      mockPool.activeFloatingTexts = [
+        {
+          x: 400,
+          y: 300,
+          text: '◆ ENCRYPTED FRAGMENT',
+          color: '#ffdc73',
+          size: 18,
+          life: 0.5,
+          stationary: true,
+        },
+      ];
+
+      (renderer as any).drawFloatingTexts(mockCtx, mockPool, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.fillText).toHaveBeenCalledWith('◆ ENCRYPTED FRAGMENT', 400, 300);
+    });
+
+    it('does not add floating ascent to velocity-only cache travel', () => {
+      mockPool.activeFloatingTexts = [
+        {
+          x: 400,
+          y: 300,
+          text: '◆ ENCRYPTED FRAGMENT',
+          color: '#ffdc73',
+          size: 18,
+          life: 0.5,
+          velocityOnly: true,
+        },
+      ];
+
+      (renderer as any).drawFloatingTexts(
+        mockCtx,
+        mockPool,
+        { left: 0, right: 800, top: 0, bottom: 600 },
+        true
+      );
+
+      expect(mockCtx.fillText).toHaveBeenCalledWith('◆ ENCRYPTED FRAGMENT', 400, 300);
     });
   });
 

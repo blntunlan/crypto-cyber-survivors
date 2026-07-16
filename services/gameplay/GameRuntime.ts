@@ -4,6 +4,7 @@ import { PhysicsSystem } from '../combat/PhysicsSystem';
 import { SpawnSystem } from '../combat/SpawnSystem';
 import { SpawnExecutor } from '../combat/SpawnExecutor';
 import { CollisionSystem } from '../combat/physics/CollisionSystem';
+import { CollectionSystem } from '../combat/physics/CollectionSystem';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
 import { type IGameRenderer } from '../interfaces/IGameRenderer';
@@ -12,11 +13,27 @@ import { type ISpawnSystem } from '../interfaces/ISpawnSystem';
 import { GameRenderer } from '../renderers/GameRenderer';
 import { ProjectileRenderer } from '../renderers/ProjectileRenderer';
 import { audio } from '../audio';
-import { DirectorSpawnOrchestrator } from '../director/DirectorSpawnOrchestrator';
 import { MarketAudioReactor } from '../audio/MarketAudioReactor';
 import { PresentationDirector } from '../presentation/PresentationDirector';
 import { createGamePresentationCueAdapter } from '../presentation/GamePresentationCueAdapter';
 import { type EventBusPresentationCueAdapter } from '../presentation/EventBusPresentationCueAdapter';
+import { SeededRng } from '../director/SeededRng';
+import { LootCacheSystem } from './loot/LootCacheSystem';
+import { LootCacheRewardResolver } from './loot/LootCacheRewardResolver';
+import { LootCacheRewardApplicator } from './loot/LootCacheRewardApplicator';
+import { type ILootCacheSystem } from '../interfaces/ILootCacheSystem';
+import {
+  createDifficultyRuntime,
+  type DifficultyRuntime,
+} from '../difficulty/runtime/DifficultyRuntime';
+import { type DifficultyRuntimeMode } from '../director/DirectorRuntimeMode';
+import { getDirectorRuntimeConfig } from '../../config/directorRuntime';
+import { type RuntimeDifficultySnapshot } from '../../types/runtimeDifficulty';
+import { RESET_PRIORITY, ResetOrchestrator } from '../core/ResetOrchestrator';
+
+export type CreateGameRuntimeOptions = {
+  difficultyMode?: DifficultyRuntimeMode;
+};
 
 export type GameRuntime = {
   poolManager: PoolManager;
@@ -25,15 +42,16 @@ export type GameRuntime = {
   physicsSystem: IPhysicsSystem;
   spawnSystem: ISpawnSystem;
   spawnExecutor: SpawnExecutor;
-  directorSpawnOrchestrator: DirectorSpawnOrchestrator;
+  difficultyRuntime: DifficultyRuntime;
   presentationDirector: PresentationDirector;
   presentationCueAdapter: EventBusPresentationCueAdapter;
   difficultyContext: typeof difficultyContext;
+  lootCacheSystem: ILootCacheSystem;
   reset: () => void;
   dispose: () => void;
 };
 
-export function createGameRuntime(): GameRuntime {
+export function createGameRuntime(options: CreateGameRuntimeOptions = {}): GameRuntime {
   const poolManager = new PoolManager();
   const renderer = new GameRenderer(
     undefined,
@@ -42,23 +60,60 @@ export function createGameRuntime(): GameRuntime {
     undefined
   );
   const combatSystem = new CombatSystem(audio);
-  const physicsSystem = new PhysicsSystem(undefined, new CollisionSystem(), undefined);
+  const lootCacheRng = new SeededRng(0);
+  const lootCacheRewardResolver = new LootCacheRewardResolver(lootCacheRng);
+  const lootCacheRewardApplicator = LootCacheRewardApplicator;
+  const lootCacheSystem = new LootCacheSystem({
+    rng: lootCacheRng,
+    resolver: lootCacheRewardResolver,
+    applicator: lootCacheRewardApplicator,
+  });
+  const difficultySnapshotRef: { current: RuntimeDifficultySnapshot | null } = {
+    current: null,
+  };
+  const collectionSystem = new CollectionSystem(
+    undefined,
+    lootCacheSystem,
+    () => difficultySnapshotRef.current
+  );
+  const physicsSystem = new PhysicsSystem(
+    undefined,
+    new CollisionSystem(),
+    collectionSystem
+  );
   const spawnSystem = new SpawnSystem();
   const spawnExecutor = new SpawnExecutor();
-  const directorSpawnOrchestrator = new DirectorSpawnOrchestrator();
+  const difficultyRuntime = createDifficultyRuntime(
+    options.difficultyMode ?? getDirectorRuntimeConfig().mode,
+    {
+      onSnapshotCommitted: snapshot => {
+        difficultySnapshotRef.current = snapshot;
+      },
+    }
+  );
   const presentationDirector = new PresentationDirector();
   const presentationCueAdapter = createGamePresentationCueAdapter();
+  const unregisterDifficultyReset = ResetOrchestrator.registerResetHandler(
+    RESET_PRIORITY.DIFFICULTY_RUNTIME,
+    'DifficultyRuntime',
+    () => difficultyRuntime.reset()
+  );
 
   const reset = () => {
+    lootCacheSystem.reset();
     poolManager.clearAll();
     spawnSystem.reset();
-    directorSpawnOrchestrator.reset();
+    difficultyRuntime.reset();
+    difficultySnapshotRef.current = null;
     difficultyContext.reset();
     presentationDirector.reset();
     MarketAudioReactor.clearPresentationAmbience();
   };
 
   const dispose = () => {
+    unregisterDifficultyReset();
+    lootCacheSystem.dispose();
+    difficultyRuntime.dispose();
     difficultyContext.reset();
     presentationDirector.reset();
     MarketAudioReactor.clearPresentationAmbience();
@@ -83,10 +138,11 @@ export function createGameRuntime(): GameRuntime {
     physicsSystem,
     spawnSystem,
     spawnExecutor,
-    directorSpawnOrchestrator,
+    difficultyRuntime,
     presentationDirector,
     presentationCueAdapter,
     difficultyContext,
+    lootCacheSystem,
     reset,
     dispose,
   };

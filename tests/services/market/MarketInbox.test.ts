@@ -9,6 +9,7 @@ const createFrame = (
 ): CanonicalMarketFrame => ({
   revision: sequence,
   sequence,
+  sourceSequence: sequence,
   sourceTimestamp,
   receivedAt,
   quality: 'LIVE',

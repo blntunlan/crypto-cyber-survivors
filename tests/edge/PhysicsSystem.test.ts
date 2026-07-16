@@ -195,7 +195,6 @@ describe('PhysicsSystem Edge Cases', () => {
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
       targetBg: { r: 15, g: 23, b: 42 },
-      interactableSpawnTimer: 0,
       atrPercent: 0,
       spawnRateMultiplier: 1,
       marketPosition: 0, // Using 0 for LONG if MarketPosition is enum

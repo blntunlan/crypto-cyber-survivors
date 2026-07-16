@@ -8,8 +8,8 @@ import {
   DirectorTelemetryRecorder,
   LegacyDifficultyAdapter,
 } from '../../../services/director/DirectorTelemetry';
-import { resolveDirectorRuntimePlan } from '../../../services/director/DirectorRuntimeMode';
 import { ShadowDirectorRuntime } from '../../../services/director/ShadowDirectorRuntime';
+import { createNeutralRuntimeDifficultySnapshot } from '../../../types/runtimeDifficulty';
 
 const createInput = (overrides: Record<string, unknown> = {}) => ({
   tick: 100,
@@ -30,7 +30,7 @@ const createInput = (overrides: Record<string, unknown> = {}) => ({
     rsiExtremity: 0.4,
     whalePressure: 0,
     activeEventFamily: 'VOLUME_SURGE' as const,
-    eventTelegraphEndsAtTick: 102,
+    eventTelegraphEndsAtElapsedSeconds: 602,
   },
   position: {
     sourceSequence: 11,
@@ -128,7 +128,7 @@ describe('ExperienceDirector', () => {
             ...createInput().market,
             revision: 12,
             activeEventFamily: 'PANIC_CRASH',
-            eventTelegraphEndsAtTick: 104,
+            eventTelegraphEndsAtElapsedSeconds: 604,
           },
         })
       )
@@ -148,7 +148,7 @@ describe('ExperienceDirector', () => {
           market: {
             ...createInput().market,
             activeEventFamily: null,
-            eventTelegraphEndsAtTick: null,
+            eventTelegraphEndsAtElapsedSeconds: null,
             pressure: 1,
           },
         })
@@ -184,18 +184,35 @@ describe('ExperienceDirector', () => {
     expect(recorder.getRecords()).toHaveLength(1);
   });
 
-  it('keeps SHADOW mode observation-only while recording one common telemetry sample', () => {
+  it('keeps the retired shadow runtime comparison-only', () => {
     const runtime = new ShadowDirectorRuntime();
-    const plan = resolveDirectorRuntimePlan('SHADOW');
-    const result = runtime.update(
-      plan,
-      new DirectorInputBuilder().build(createInput()),
-      null
+    const modular = createNeutralRuntimeDifficultySnapshot({
+      tick: 1,
+      inputRevision: 1,
+    });
+    const result = runtime.record(
+      'retired-shadow-wrapper',
+      {
+        revision: 1,
+        threatTarget: modular.pressure.threatTarget,
+        creditRate: modular.pressure.creditRate,
+        spawnWindowSeconds: modular.spawn.spawnWindowSeconds,
+        spawnCount: Math.floor(modular.spawn.reservedCredits),
+        composition: modular.spawn.directives.map(directive => directive.archetype),
+        enemyHealthMultiplier: modular.enemy.healthMultiplier,
+        enemyDamageMultiplier: modular.enemy.damageMultiplier,
+        enemySpeedMultiplier: modular.enemy.speedMultiplier,
+        mercy: modular.recovery.mercy,
+        recoveryNeed: modular.recovery.recoveryNeed,
+        encounterPhase: modular.encounter.phase,
+        presentationIntensity: modular.presentation.intensity,
+        quality: modular.meta.quality,
+        fallbackCodes: modular.trace.fallbackCodes,
+      },
+      modular
     );
 
-    expect(plan.appliesDirectorSnapshot).toBe(false);
-    expect(result?.snapshot.revision).toBe(1);
-    expect(result?.telemetry?.legacy).toBeNull();
+    expect(result.passed).toBe(true);
     expect(runtime.getRecords()).toHaveLength(1);
   });
 });

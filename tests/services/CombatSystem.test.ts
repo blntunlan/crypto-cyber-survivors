@@ -78,6 +78,7 @@ const mockPool = {
   getFloatingText: vi.fn(),
   getSpeedLine: vi.fn(),
   getInteractable: vi.fn(),
+  getLootCache: vi.fn(),
   cleanup: vi.fn(),
   clearAll: vi.fn(),
   trimFreeLists: vi.fn(),

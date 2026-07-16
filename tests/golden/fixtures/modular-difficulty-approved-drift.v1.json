@@ -1,0 +1,14 @@
+{
+  "version": "modular-difficulty-approved-drift-v1",
+  "approvedDrifts": [
+    {
+      "id": "fixture-pressure-tuning-v1",
+      "scenarioId": "approved-pressure",
+      "dimension": "threatTarget",
+      "maximumDrift": 0.025,
+      "rationale": "Temporary baseline pressure tuning parity window.",
+      "owner": "Core Gameplay",
+      "expiryReviewDate": "2026-08-15"
+    }
+  ]
+}

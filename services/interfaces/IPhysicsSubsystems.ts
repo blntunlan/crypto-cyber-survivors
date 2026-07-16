@@ -24,5 +24,11 @@ export interface ICollisionSystem {
 }
 
 export interface ICollectionSystem {
-  update(pool: IPoolManager, player: Player, state: GameState, dtFactor: number): void;
+  update(
+    pool: IPoolManager,
+    player: Player,
+    state: GameState,
+    dtFactor: number,
+    reducedMotion?: boolean
+  ): void;
 }

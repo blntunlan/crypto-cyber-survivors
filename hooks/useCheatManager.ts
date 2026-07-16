@@ -32,8 +32,14 @@ export function useCheatManager(
 ): void {
   const handlersRef = useRef(handlers);
   const gameStatusRef = useRef(gameStatus);
-  handlersRef.current = handlers;
-  gameStatusRef.current = gameStatus;
+
+  useEffect(() => {
+    handlersRef.current = handlers;
+  }, [handlers]);
+
+  useEffect(() => {
+    gameStatusRef.current = gameStatus;
+  }, [gameStatus]);
 
   // Init/destroy only on mount/unmount or enabled change
   useEffect(() => {
@@ -56,6 +62,7 @@ export function useCheatManager(
       onSetLuck: (luck: number) => handlersRef.current.onSetLuck(luck),
       onAddExp: (amount: number) => handlersRef.current.onAddExp(amount),
       onRestart: () => handlersRef.current.onRestart(),
+      isPlaying: () => gameStatusRef.current === GameStatus.PLAYING,
       onAddComboKill: (count: number) => {
         for (let i = 0; i < count; i++) {
           EventBus.emit('enemyKilled', { x: 0, y: 0, type: 'cheat', isCrit: false });

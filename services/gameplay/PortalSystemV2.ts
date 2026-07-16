@@ -145,11 +145,6 @@ class PortalSystemV2Class {
       this.currentLevel = data.newLevel;
     });
 
-    // Flash crash detection from legacy event
-    EventBus.on('clientIndicatorsUpdated', data => {
-      if (data.priceChangePercent <= -0.01) this.onFlashCrash();
-    });
-
     // Canonical consolidated event (Step 3)
     EventBus.on('canonicalMarketUpdate', data => {
       if (data.priceChangePercent <= -0.01) this.onFlashCrash();

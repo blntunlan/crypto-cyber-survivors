@@ -10,6 +10,7 @@ import {
   type ICollisionSystem,
   type ICollectionSystem,
 } from '../interfaces/IPhysicsSubsystems';
+import { type ILootCacheSystem } from '../interfaces/ILootCacheSystem';
 
 /**
  * PhysicsSystem - Orchestrates all physical simulations and interactions.
@@ -23,11 +24,13 @@ export class PhysicsSystem implements IPhysicsSystem {
   constructor(
     movement: IMovementSystem = new MovementSystem(),
     collision: ICollisionSystem = CollisionSystem.getInstance(),
-    collection: ICollectionSystem = new CollectionSystem()
+    collection: ICollectionSystem | null = null,
+    lootCacheSystem: ILootCacheSystem | null = null
   ) {
     this.movementSystem = movement;
     this.collisionSystem = collision;
-    this.collectionSystem = collection;
+    this.collectionSystem =
+      collection ?? new CollectionSystem(undefined, lootCacheSystem);
   }
 
   /**
@@ -64,7 +67,8 @@ export class PhysicsSystem implements IPhysicsSystem {
     dtFactor: number,
     width: number,
     height: number,
-    onGameOver: () => void
+    onGameOver: () => void,
+    reducedMotion = false
   ): void {
     // 1. Refresh Spatial Grids for optimized collision detection
     this.refreshSpatialGrids(p);
@@ -73,7 +77,7 @@ export class PhysicsSystem implements IPhysicsSystem {
     this.collisionSystem.update(p, player, s, dtFactor, width, height, onGameOver);
 
     // 3. Resolve Collections (Player vs Gems/Buffs)
-    this.collectionSystem.update(p, player, s, dtFactor);
+    this.collectionSystem.update(p, player, s, dtFactor, reducedMotion);
   }
 
   /**

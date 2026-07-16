@@ -2,7 +2,7 @@ import {
   DIRECTOR_CONFIG_V1,
   type DirectorConfigV1,
 } from '../director/config/DirectorConfigV1';
-import { type GameplaySnapshot } from '../director/contracts';
+import { type RuntimeDifficultySnapshot } from '../../types/runtimeDifficulty';
 
 export const PRESENTATION_CUE_TYPES = [
   'ENCOUNTER_TELEGRAPH',
@@ -23,13 +23,9 @@ export type PresentationCue = {
 export type PresentationInput = {
   deltaSeconds: number;
   tick: number;
-  gameplay: GameplaySnapshot;
-  alignment: number;
-  volatility: number;
+  snapshot: RuntimeDifficultySnapshot;
   suggestedBpm: number;
-  liquidationTension: number;
   accessibilityIntensity: number;
-  marketStatus: 'LIVE' | 'STALE';
   safeExitAvailable: boolean;
 };
 
@@ -54,19 +50,18 @@ const UNIT_MINIMUM = 0;
 const UNIT_MAXIMUM = 1;
 
 const clampUnit = (value: number): number =>
-  Math.min(UNIT_MAXIMUM, Math.max(UNIT_MINIMUM, Number.isFinite(value) ? value : 0));
+  Math.min(
+    UNIT_MAXIMUM,
+    Math.max(UNIT_MINIMUM, Number.isFinite(value) ? value : UNIT_MINIMUM)
+  );
 
-/**
- * Presentation-only interpreter for gameplay snapshots. It emits cue data but
- * never changes gameplay, rewards, player stats, or spawn state.
- */
 export class PresentationDirector {
   private readonly config: DirectorConfigV1;
   private favorable = UNIT_MINIMUM;
   private volatility = UNIT_MINIMUM;
   private bpm = UNIT_MINIMUM;
   private liquidationTension = UNIT_MINIMUM;
-  private previousMarketStatus: PresentationInput['marketStatus'] = 'LIVE';
+  private previousMarketStatus: 'LIVE' | 'STALE' = 'LIVE';
   private telegraphedEventFamily: string | null = null;
   private readonly lastCueAtTick = new Map<PresentationCueType, number>();
 
@@ -76,14 +71,15 @@ export class PresentationDirector {
 
   public update(input: PresentationInput): PresentationSnapshot {
     const accessibilityIntensity = clampUnit(input.accessibilityIntensity);
+    const marketStatus = this.getMarketStatus(input.snapshot);
     if (accessibilityIntensity === UNIT_MINIMUM) {
-      this.previousMarketStatus = input.marketStatus;
+      this.previousMarketStatus = marketStatus;
       return this.createDisabledSnapshot();
     }
 
     const cues: PresentationCue[] = [];
     this.updateAmbience(input);
-    this.collectStatusCues(input, cues, accessibilityIntensity);
+    this.collectStatusCues(input, marketStatus, cues, accessibilityIntensity);
     this.collectEncounterCues(input, cues, accessibilityIntensity);
     const sensory = this.createSensorySnapshot(input, accessibilityIntensity);
 
@@ -111,6 +107,7 @@ export class PresentationDirector {
   }
 
   private updateAmbience(input: PresentationInput): void {
+    const snapshot = input.snapshot;
     const alpha =
       1 -
       Math.exp(
@@ -118,19 +115,27 @@ export class PresentationDirector {
           this.config.presentation.ambienceSmoothingSeconds
       );
     this.favorable +=
-      (clampUnit((input.alignment + UNIT_MAXIMUM) / 2) - this.favorable) * alpha;
-    this.volatility += (clampUnit(input.volatility) - this.volatility) * alpha;
-    this.bpm += (Math.max(UNIT_MINIMUM, input.suggestedBpm) - this.bpm) * alpha;
+      (clampUnit((snapshot.signals.position.alignment + UNIT_MAXIMUM) / 2) -
+        this.favorable) *
+      alpha;
+    this.volatility +=
+      (clampUnit(snapshot.signals.market.volatility) - this.volatility) * alpha;
+    const suggestedBpm =
+      input.suggestedBpm > 0 ? input.suggestedBpm : snapshot.presentation.suggestedBpm;
+    this.bpm += (Math.max(UNIT_MINIMUM, suggestedBpm) - this.bpm) * alpha;
     this.liquidationTension +=
-      (clampUnit(input.liquidationTension) - this.liquidationTension) * alpha;
+      (clampUnit(snapshot.signals.position.liquidationProximity) -
+        this.liquidationTension) *
+      alpha;
   }
 
   private collectStatusCues(
     input: PresentationInput,
+    marketStatus: 'LIVE' | 'STALE',
     cues: PresentationCue[],
     accessibilityIntensity: number
   ): void {
-    if (input.marketStatus === 'STALE') {
+    if (marketStatus === 'STALE') {
       this.pushCue('MARKET_STALE', input.tick, accessibilityIntensity, cues);
       if (input.safeExitAvailable) {
         this.pushCue('SAFE_EXIT_AVAILABLE', input.tick, accessibilityIntensity, cues);
@@ -138,7 +143,7 @@ export class PresentationDirector {
     } else if (this.previousMarketStatus === 'STALE') {
       this.pushCue('MARKET_RECONNECTED', input.tick, accessibilityIntensity, cues);
     }
-    this.previousMarketStatus = input.marketStatus;
+    this.previousMarketStatus = marketStatus;
   }
 
   private collectEncounterCues(
@@ -146,16 +151,16 @@ export class PresentationDirector {
     cues: PresentationCue[],
     accessibilityIntensity: number
   ): void {
-    const { activeEventFamily, phase } = input.gameplay.encounter;
-    if (activeEventFamily === null) return;
+    const { family, phase } = input.snapshot.encounter;
+    if (family === null) return;
 
     if (phase === 'TELEGRAPH') {
-      this.telegraphedEventFamily = activeEventFamily;
+      this.telegraphedEventFamily = family;
       this.pushCue('ENCOUNTER_TELEGRAPH', input.tick, accessibilityIntensity, cues);
       return;
     }
 
-    if (phase === 'ACTIVE' && this.telegraphedEventFamily === activeEventFamily) {
+    if (phase === 'ACTIVE' && this.telegraphedEventFamily === family) {
       this.pushCue('ENCOUNTER_ACTIVE', input.tick, accessibilityIntensity, cues);
     }
   }
@@ -164,19 +169,18 @@ export class PresentationDirector {
     input: PresentationInput,
     accessibilityIntensity: number
   ): PresentationSnapshot['sensory'] {
+    const snapshot = input.snapshot;
     const requestedShake = Math.min(
       this.config.presentation.maximumShake,
-      clampUnit(input.volatility) * this.config.presentation.maximumShake
+      snapshot.presentation.shakeLimit
     );
     const requestedFlash = Math.min(
       this.config.presentation.maximumFlash,
-      clampUnit(input.liquidationTension) * this.config.presentation.maximumFlash
+      snapshot.signals.position.liquidationProximity *
+        this.config.presentation.maximumFlash
     );
     const requestedHitStop = UNIT_MINIMUM;
-    const requestedAudioAccent = Math.min(
-      UNIT_MAXIMUM,
-      clampUnit(input.volatility) + clampUnit(input.liquidationTension)
-    );
+    const requestedAudioAccent = clampUnit(snapshot.presentation.audioIntensity);
     const total =
       requestedShake + requestedFlash + requestedHitStop + requestedAudioAccent;
     const budgetScale =
@@ -193,6 +197,12 @@ export class PresentationDirector {
       ),
       audioAccent: requestedAudioAccent * budgetScale * accessibilityIntensity,
     };
+  }
+
+  private getMarketStatus(snapshot: RuntimeDifficultySnapshot): 'LIVE' | 'STALE' {
+    return snapshot.signals.market.reasonCodes.includes('MARKET_STALE')
+      ? 'STALE'
+      : 'LIVE';
   }
 
   private pushCue(

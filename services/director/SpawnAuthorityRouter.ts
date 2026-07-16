@@ -12,4 +12,4 @@ export type SpawnAuthority = (typeof SPAWN_AUTHORITIES)[number];
 export const resolveSpawnAuthority = (
   runtimePlan: DirectorRuntimePlan,
   _hasDirectorSpawnPlan: boolean
-): SpawnAuthority => (runtimePlan.mode === 'NEW_AUTHORITY' ? 'DIRECTOR' : 'LEGACY');
+): SpawnAuthority => (runtimePlan.appliesModularSnapshot ? 'DIRECTOR' : 'LEGACY');

@@ -30,11 +30,12 @@ export const ENCOUNTER_PHASES = [
 export type EncounterPhase = (typeof ENCOUNTER_PHASES)[number];
 
 export type EncounterPlannerInput = {
-  tick: number;
+  elapsedSeconds: number;
   seed: number;
   market: MarketRegimeSnapshot;
   headwind: number;
   liquidationProximity: number;
+  availableCredits: number;
   world: WorldPressureSnapshot;
 };
 
@@ -56,10 +57,10 @@ export type EncounterPlan = {
 
 type ActiveEncounter = {
   family: MarketEventFamily;
-  telegraphEndsAtTick: number;
-  activeEndsAtTick: number;
-  recoveryEndsAtTick: number;
-  cooldownEndsAtTick: number;
+  telegraphEndsAtElapsedSeconds: number;
+  activeEndsAtElapsedSeconds: number;
+  recoveryEndsAtElapsedSeconds: number;
+  cooldownEndsAtElapsedSeconds: number;
   primary: EncounterCard | null;
   support: EncounterCard | null;
   headwindChannels: readonly HeadwindChannel[];
@@ -89,7 +90,7 @@ export class EncounterPlanner {
     const active = this.resolveActiveEncounter(input);
     if (active === null) return this.createIdlePlan(input);
 
-    const phase = this.resolvePhase(input.tick, active);
+    const phase = this.resolvePhase(input.elapsedSeconds, active);
     if (phase === 'IDLE') {
       this.active = null;
       return this.createIdlePlan(input);
@@ -117,27 +118,30 @@ export class EncounterPlanner {
       'PRIMARY',
       input.seed,
       input.world.activePrimaryEncounters <
-        this.config.marketEvents.maxPrimaryEncounters
+        this.config.marketEvents.maxPrimaryEncounters,
+      input.availableCredits
     );
+    const remainingCredits = input.availableCredits - (primary?.costUnits ?? 0);
     const support = this.selectCard(
       input.market.activeEventFamily,
       'SUPPORT',
       input.seed ^ (primary?.costUnits ?? FIRST_TICK),
       input.world.activeSupportEncounters <
-        this.config.marketEvents.maxSupportEncounters
+        this.config.marketEvents.maxSupportEncounters,
+      remainingCredits
     );
 
     if (primary === null && support === null) return null;
 
-    const telegraphEndsAtTick = Math.max(
-      input.tick,
-      input.market.eventTelegraphEndsAtTick ??
-        input.tick + this.config.marketEvents.minTelegraphSeconds
+    const telegraphEndsAtElapsedSeconds = Math.max(
+      input.elapsedSeconds,
+      input.market.eventTelegraphEndsAtElapsedSeconds ??
+        input.elapsedSeconds + this.config.marketEvents.minTelegraphSeconds
     );
-    const activeEndsAtTick =
-      telegraphEndsAtTick + this.config.encounters.activeDurationSeconds;
-    const recoveryEndsAtTick =
-      activeEndsAtTick + this.config.encounters.recoveryDurationSeconds;
+    const activeEndsAtElapsedSeconds =
+      telegraphEndsAtElapsedSeconds + this.config.encounters.activeDurationSeconds;
+    const recoveryEndsAtElapsedSeconds =
+      activeEndsAtElapsedSeconds + this.config.encounters.recoveryDurationSeconds;
     const cooldownSeconds =
       input.market.activeEventFamily === 'WHALE_EVENT'
         ? this.config.marketEvents.whaleCooldownSeconds
@@ -145,10 +149,10 @@ export class EncounterPlanner {
 
     this.active = {
       family: input.market.activeEventFamily,
-      telegraphEndsAtTick,
-      activeEndsAtTick,
-      recoveryEndsAtTick,
-      cooldownEndsAtTick: recoveryEndsAtTick + cooldownSeconds,
+      telegraphEndsAtElapsedSeconds,
+      activeEndsAtElapsedSeconds,
+      recoveryEndsAtElapsedSeconds,
+      cooldownEndsAtElapsedSeconds: recoveryEndsAtElapsedSeconds + cooldownSeconds,
       primary,
       support,
       headwindChannels: resolveHeadwindChannels(
@@ -168,24 +172,46 @@ export class EncounterPlanner {
     family: MarketEventFamily,
     role: EncounterRole,
     seed: number,
-    hasCapacity: boolean
+    hasCapacity: boolean,
+    availableCredits: number
   ): EncounterCard | null {
     if (!hasCapacity) return null;
+    let candidateCount = 0;
+    for (const card of this.catalog) {
+      if (
+        card.family === family &&
+        card.role === role &&
+        card.costUnits <= availableCredits
+      ) {
+        candidateCount += 1;
+      }
+    }
+    if (candidateCount === FIRST_TICK) return null;
 
-    const candidates = this.catalog.filter(
-      card => card.family === family && card.role === role
-    );
-    if (candidates.length === FIRST_TICK) return null;
-
-    const index = Math.abs(Math.trunc(seed)) % candidates.length;
-    return candidates[index] ?? null;
+    const selectedIndex = Math.abs(Math.trunc(seed)) % candidateCount;
+    let currentIndex = 0;
+    for (const card of this.catalog) {
+      if (
+        card.family !== family ||
+        card.role !== role ||
+        card.costUnits > availableCredits
+      ) {
+        continue;
+      }
+      if (currentIndex === selectedIndex) return card;
+      currentIndex += 1;
+    }
+    return null;
   }
 
-  private resolvePhase(tick: number, active: ActiveEncounter): EncounterPhase {
-    if (tick < active.telegraphEndsAtTick) return 'TELEGRAPH';
-    if (tick < active.activeEndsAtTick) return 'ACTIVE';
-    if (tick < active.recoveryEndsAtTick) return 'RECOVERY';
-    if (tick < active.cooldownEndsAtTick) return 'COOLDOWN';
+  private resolvePhase(
+    elapsedSeconds: number,
+    active: ActiveEncounter
+  ): EncounterPhase {
+    if (elapsedSeconds < active.telegraphEndsAtElapsedSeconds) return 'TELEGRAPH';
+    if (elapsedSeconds < active.activeEndsAtElapsedSeconds) return 'ACTIVE';
+    if (elapsedSeconds < active.recoveryEndsAtElapsedSeconds) return 'RECOVERY';
+    if (elapsedSeconds < active.cooldownEndsAtElapsedSeconds) return 'COOLDOWN';
     return 'IDLE';
   }
 

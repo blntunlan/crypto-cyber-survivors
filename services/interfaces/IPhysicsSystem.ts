@@ -27,6 +27,7 @@ export interface IPhysicsSystem {
     dtFactor: number,
     width: number,
     height: number,
-    onGameOver: () => void
+    onGameOver: () => void,
+    reducedMotion?: boolean
   ): void;
 }

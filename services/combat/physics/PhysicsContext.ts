@@ -138,6 +138,7 @@ const physicsConstants: IPhysicsConstants = {
   HIT_STOP_CRIT: GAME_ENGINE.HIT_STOP_CRIT,
   NEAR_MISS_THRESHOLD: GAME_ENGINE.NEAR_MISS_THRESHOLD,
   getGameTime: () => TimeService.getGameTime(),
+  getGameTimeSeconds: () => TimeService.getGameTimeSeconds(),
 };
 
 /**

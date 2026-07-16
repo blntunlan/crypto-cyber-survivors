@@ -653,11 +653,17 @@ describe('useGameFlowController', () => {
       })
     );
 
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+    emitSpy.mockClear();
     await act(async () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
     expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalledWith('gameOver', {
+      finalLevel: 3,
+      finalPnl: 0.2,
+    });
   });
 
   it('handleGameOver does not submit session side effects when state transition is rejected', async () => {
@@ -901,11 +907,17 @@ describe('useGameFlowController', () => {
       expect(result.current.cycleData).not.toBeNull();
     });
 
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+    emitSpy.mockClear();
     await act(async () => {
       await result.current.handleCashOut();
     });
 
     expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalledWith('cycleDecisionMade', {
+      decision: 'CASH_OUT',
+      cycleNumber: 1,
+    });
   });
 
   it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
@@ -938,6 +950,8 @@ describe('useGameFlowController', () => {
       expect(result.current.cycleData).not.toBeNull();
     });
 
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+    emitSpy.mockClear();
     act(() => {
       result.current.handleContinue();
     });
@@ -945,6 +959,10 @@ describe('useGameFlowController', () => {
     expect(difficultyContext.resetForCycleContinue).toHaveBeenCalled();
     expect(ComboSystem.resetCombo).toHaveBeenCalled();
     expect(difficultyContext.updateInputs).toHaveBeenCalledWith({ cycleFactor: 2 });
+    expect(emitSpy).toHaveBeenCalledWith('cycleDecisionMade', {
+      decision: 'CONTINUE',
+      cycleNumber: 2,
+    });
   });
 
   it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {

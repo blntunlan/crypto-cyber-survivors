@@ -1,17 +1,10 @@
 import {
-  type DirectorRuntimeMode,
-  type DirectorRuntimePlan,
+  parseDifficultyRuntimeMode,
   resolveDirectorRuntimePlan,
+  type DirectorRuntimePlan,
 } from '../services/director/DirectorRuntimeMode';
-import { getMarketRuntimeMode, type MarketRuntimeMode } from './marketRuntime';
-
-const directorModeByMarketMode: Record<MarketRuntimeMode, DirectorRuntimeMode> = {
-  legacy: 'LEGACY',
-  dual: 'SHADOW',
-  runtime: 'NEW_AUTHORITY',
-};
 
 export const getDirectorRuntimeConfig = (
-  marketRuntimeMode: MarketRuntimeMode = getMarketRuntimeMode()
+  rawMode: string | undefined = import.meta.env.VITE_DIFFICULTY_RUNTIME_MODE
 ): DirectorRuntimePlan =>
-  resolveDirectorRuntimePlan(directorModeByMarketMode[marketRuntimeMode]);
+  resolveDirectorRuntimePlan(parseDifficultyRuntimeMode(rawMode));

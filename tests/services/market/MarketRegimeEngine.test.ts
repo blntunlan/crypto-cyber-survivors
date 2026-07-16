@@ -11,6 +11,7 @@ const createFrame = (
   return {
     revision: sequence,
     sequence,
+    sourceSequence: sequence,
     sourceTimestamp: timestamp,
     receivedAt: timestamp,
     quality: 'LIVE',

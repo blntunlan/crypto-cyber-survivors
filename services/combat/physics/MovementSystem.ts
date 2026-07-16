@@ -24,6 +24,7 @@ const QUANTUM_TRAIL_MS_PER_FRAME = 1000 / 60;
 const BOOMERANG_CURVE_AMOUNT = 40;
 const NUKE_SHOCKWAVE_LIFE_MS = 650;
 const NUKE_SHOCKWAVE_START_RADIUS = 5;
+const MIN_TIMER_REMAINDER_MS = 0.001;
 
 /**
  * Returns the trail life-ms for a bullet whose weapon uses a trail-producing
@@ -160,6 +161,8 @@ export class MovementSystem implements IMovementSystem {
 
     pool.activeEnemies.forEach(e => {
       if (e.isDying) {
+        e.movementSlowTimerMs = 0;
+        e.movementSlowMultiplier = 1;
         return;
       }
 
@@ -172,7 +175,18 @@ export class MovementSystem implements IMovementSystem {
       }
 
       // Execute AI behavior move logic
-      e.behavior.move(e, player.x, player.y, dtFactor);
+      let movementDtFactor = dtFactor;
+      if ((e.movementSlowTimerMs ?? 0) > 0) {
+        movementDtFactor *= e.movementSlowMultiplier ?? 1;
+        const remainingSlowMs =
+          (e.movementSlowTimerMs ?? 0) - dtFactor * GAME_ENGINE.MS_PER_FRAME;
+        e.movementSlowTimerMs =
+          remainingSlowMs <= MIN_TIMER_REMAINDER_MS ? 0 : remainingSlowMs;
+        if (e.movementSlowTimerMs === 0) {
+          e.movementSlowMultiplier = 1;
+        }
+      }
+      e.behavior.move(e, player.x, player.y, movementDtFactor);
 
       // Apply separation steering to prevent clumping (throttled)
       if (shouldApplySeparation && e.hasEnteredScreen) {
@@ -471,7 +485,13 @@ export class MovementSystem implements IMovementSystem {
    */
   private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
     pool.activeFloatingTexts.forEach(text => {
-      text.y -= GAME_ENGINE.FLOATING_TEXT_SPEED * dtFactor;
+      if (text.stationary !== true) {
+        text.x += (text.vx ?? 0) * dtFactor;
+        text.y +=
+          ((text.vy ?? 0) -
+            (text.velocityOnly === true ? 0 : GAME_ENGINE.FLOATING_TEXT_SPEED)) *
+          dtFactor;
+      }
       text.life -= GAME_ENGINE.FLOATING_TEXT_LIFE_DECAY * dtFactor;
       if (text.life <= 0) {
         text.active = false;

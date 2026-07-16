@@ -12,6 +12,7 @@ import { EventBus } from './EventBus';
 export const RESET_PRIORITY = {
   CORE: 0,
   DATA: 100,
+  DIFFICULTY_RUNTIME: 125,
   GAME_SYSTEMS: 200,
   GAMEPLAY: 300,
   UI: 400,

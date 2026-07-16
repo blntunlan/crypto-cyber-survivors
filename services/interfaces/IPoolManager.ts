@@ -13,6 +13,7 @@ import {
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { type WhaleTier, type RSIEnemyModifier } from '../../types/indicators';
 import { type EnemyId } from '../../config/EnemyRegistry';
+import { type LootCacheRarity, type LootCacheSource } from '../../types/lootCache';
 
 /**
  * Interface for the Pool Manager.
@@ -129,6 +130,15 @@ export interface IPoolManager {
     x: number,
     y: number,
     health: number
+  ): Interactable;
+
+  getLootCache(
+    cacheId: number,
+    rarity: LootCacheRarity,
+    source: LootCacheSource,
+    x: number,
+    y: number,
+    color: string
   ): Interactable;
 
   cleanup(): void;

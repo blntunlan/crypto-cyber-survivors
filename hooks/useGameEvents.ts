@@ -18,6 +18,7 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { GAME_STATE_DEFAULTS } from '../services/core/GameStateManager';
 import { type ISpawnSystem } from '../services/interfaces/ISpawnSystem';
 import type { GameState, Candle } from '../types';
+import { useCosmeticsStore } from '../stores/cosmeticsStore';
 
 interface UseGameEventsParams {
   /** Reference to pool manager */
@@ -32,6 +33,13 @@ interface UseGameEventsParams {
  * Hook to subscribe to game-wide events
  */
 export function useGameEvents({ pool, state, spawnSystem }: UseGameEventsParams): void {
+  useEffect(() => {
+    const unsubscribe = EventBus.subscribe('cosmeticFragmentEarned', data => {
+      useCosmeticsStore.getState().addEncryptedFragments(data.amount);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Listen for afterReset event from GameStateManager to fully reset all game state
   useEffect(() => {
     const unsub = EventBus.subscribe('afterReset', () => {

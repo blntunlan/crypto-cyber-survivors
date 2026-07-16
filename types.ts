@@ -1,4 +1,10 @@
 import { type CryptoPair } from './types/crypto';
+import {
+  type LootCachePhase,
+  type LootCacheRarity,
+  type LootCacheRewardId,
+  type LootCacheSource,
+} from './types/lootCache';
 export type { CryptoPair };
 export type {
   RuntimePosition,
@@ -128,6 +134,8 @@ export interface Enemy extends Entity {
   type: EnemyId;
   id?: string;
   valueMultiplier?: number;
+  movementSlowTimerMs?: number;
+  movementSlowMultiplier?: number;
   // Dynamic enemy response metadata. Current enemies still deal contact damage;
   // future projectile enemies can consume canShoot/shoot* fields directly.
   intent?: EnemyIntent;
@@ -276,6 +284,9 @@ export interface FloatingText {
   vx?: number;
   vy?: number;
   isCrit?: boolean;
+  stationary?: boolean;
+  alwaysVisible?: boolean;
+  velocityOnly?: boolean;
 }
 
 export interface Candle {
@@ -295,6 +306,18 @@ export interface Interactable extends Entity {
   maxHealth: number;
   isHit?: boolean; // Visual feedback
   hitTimer?: number;
+  lootCacheId?: number;
+  lootCacheRarity?: LootCacheRarity;
+  lootCachePhase?: LootCachePhase;
+  lootCacheSource?: LootCacheSource;
+  lootCachePhaseElapsedMs?: number;
+  lootCacheIdleElapsedMs?: number;
+  lootCacheProximity?: boolean;
+  lootCacheProximityTickElapsedMs?: number;
+  lootCacheCoreFlashPending?: boolean;
+  lootCachePrimaryReward?: LootCacheRewardId;
+  lootCacheSecondaryReward?: LootCacheRewardId | null;
+  lootCacheFragmentPreview?: boolean;
 }
 
 export interface GameState {
@@ -340,7 +363,6 @@ export interface GameState {
   rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   whaleEventTimer: number; // For whale spawn splash/shake effect
   targetBg: { r: number; g: number; b: number }; // Reusable object for background color updates
-  interactableSpawnTimer: number; // Timer for lootbox generation
 
   // Market Indicators for Visuals
   atrPercent: number; // Current volatility (0-100+)

@@ -1,4 +1,5 @@
 import { PLAYER_STATS } from '../../config/PlayerConfig';
+import { DIFFICULTY_RUNTIME_CONFIG } from '../../config/difficulty/DifficultyRuntimeConfig';
 import { type Player } from '../../types';
 import { type WeaponInstance } from '../../types/weapons';
 
@@ -162,6 +163,41 @@ export class PlayerPowerAnalyzer {
     this.state.screenPressure = screenPressure;
     this.state.hpPercent = hpPercent;
 
+    return this.state;
+  }
+
+  updateFromTelemetry(
+    level: number,
+    killsPerMinute: number,
+    shotsPerMinute: number,
+    hpPercent: number,
+    screenPressure: number
+  ): PlayerPowerState {
+    const config = DIFFICULTY_RUNTIME_CONFIG.player;
+    const weights = config.telemetryWeights;
+    const mastery = clamp01(killsPerMinute / config.killsPerMinuteReference);
+    const levelPower = clamp01(level / config.levelPowerReference);
+    const buildPower = clamp01(shotsPerMinute / config.shotsPerMinuteReference);
+    const health = clamp01(hpPercent);
+    const pressure = clamp01(screenPressure);
+
+    this.state.offensePower = clamp01(
+      mastery * weights.offenseMastery + buildPower * weights.offenseBuild
+    );
+    this.state.defensePower = health;
+    this.state.playerPower = clamp01(
+      this.state.offensePower * weights.powerOffense +
+        health * weights.powerHealth +
+        levelPower * weights.powerLevel
+    );
+    this.state.counterPressure = clamp01(
+      this.state.playerPower - pressure * weights.counterScreenRelief
+    );
+    this.state.rangedPressure = clamp01(
+      buildPower - pressure * weights.rangedScreenRelief
+    );
+    this.state.screenPressure = pressure;
+    this.state.hpPercent = health;
     return this.state;
   }
 

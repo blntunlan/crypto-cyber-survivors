@@ -81,4 +81,8 @@ export class PositionRiskModel {
           : input.currentPrice >= input.liquidationPrice,
     };
   }
+
+  public reset(): void {
+    this.alignment = 0;
+  }
 }

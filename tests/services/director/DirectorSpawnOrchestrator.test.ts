@@ -10,6 +10,7 @@ import { type CanonicalMarketFrame } from '../../../types/marketCanonical';
 const createFrame = (sequence: number): CanonicalMarketFrame => ({
   revision: sequence,
   sequence,
+  sourceSequence: sequence,
   sourceTimestamp: sequence * 1_000,
   receivedAt: sequence * 1_000,
   quality: 'LIVE',

@@ -21,6 +21,7 @@ export interface CheatCallbacks {
   onAddExp: (amount: number) => void;
   onRestart?: () => void;
   onAddComboKill?: (count: number) => void;
+  isPlaying: () => boolean;
 }
 
 /**
@@ -87,6 +88,7 @@ class CheatManagerClass {
         '%c🎮 CHEAT MODE ENABLED (DEV ONLY)',
         'color: #fbbf24; font-size: 16px; font-weight: bold;'
       );
+      console.log('Market Cache shortcuts: B = random cache | Shift+B = Gold cache');
     }
   }
 
@@ -202,6 +204,20 @@ class CheatManagerClass {
             totalElapsedSeconds: CHEATS.CYCLE_TIME,
           });
           this.showCheatMessage('🏆 CYCLE COMPLETE');
+        }
+        break;
+      case 'F1':
+        if (!e.ctrlKey && !e.altKey && this.callbacks.isPlaying()) {
+          this.showCheatMessage('B RANDOM CACHE · SHIFT+B GOLD CACHE');
+        }
+        break;
+      case 'B':
+        if (!e.ctrlKey && !e.altKey && this.callbacks.isPlaying()) {
+          const mode = e.shiftKey ? 'jackpot' : 'random';
+          EventBus.emit('debugLootCacheSpawnRequested', { mode });
+          this.showCheatMessage(
+            mode === 'jackpot' ? '🏆 GOLD MARKET CACHE' : '🎁 RANDOM MARKET CACHE'
+          );
         }
         break;
     }

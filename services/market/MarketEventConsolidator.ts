@@ -37,6 +37,7 @@ class MarketEventConsolidatorClass {
   private readonly frame: CanonicalMarketFrame = {
     revision: 0,
     sequence: 0,
+    sourceSequence: 0,
     sourceTimestamp: 0,
     receivedAt: 0,
     quality: 'STALE',
@@ -107,7 +108,7 @@ class MarketEventConsolidatorClass {
         this.payload.macd.histogram = snapshot.macd;
       }
       this.payload.source = 'runtime';
-      this.publish(snapshot.createdAt);
+      this.publish(snapshot.createdAt, snapshot.seq);
     });
 
     EventBus.on('gameReset', () => this.reset());
@@ -161,11 +162,12 @@ class MarketEventConsolidatorClass {
     this.inbox.reset();
   }
 
-  private publish(sourceTimestamp: number): void {
+  private publish(sourceTimestamp: number, sourceSequence?: number): void {
     const receivedAt = Date.now();
     this.nextSequence += 1;
     this.frame.revision = this.nextSequence;
     this.frame.sequence = this.nextSequence;
+    this.frame.sourceSequence = sourceSequence ?? this.nextSequence;
     this.frame.sourceTimestamp = sourceTimestamp;
     this.frame.receivedAt = receivedAt;
     this.frame.price = this.payload.price;

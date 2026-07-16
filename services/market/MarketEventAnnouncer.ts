@@ -48,7 +48,7 @@ const ANNOUNCER_CONFIG = {
     PRICE_SHOCK: 4000,
     RSI: 3500,
     LIQUIDATION: 5000,
-    FAVORABLE: 3000,
+    FAVORABLE: 1800,
   },
 } as const;
 
@@ -227,29 +227,34 @@ class MarketEventAnnouncerClass {
 
     // Detect transitions
     if (currentRsiState !== this.lastRsiState) {
-      if (currentRsiState === 'OVERSOLD' && this.lastRsiState !== 'OVERSOLD') {
-        this.emit('RSI_OVERSOLD', now, {
-          message: `RSI OVERSOLD (${data.rsi.toFixed(0)}) - Buyers Incoming`,
-          color: '#00ffff',
-          icon: '\u{1F9CA}',
-          duration: ANNOUNCER_CONFIG.DURATION.RSI,
-          priority: 6,
-        });
-      } else if (
-        currentRsiState === 'OVERBOUGHT' &&
-        this.lastRsiState !== 'OVERBOUGHT'
-      ) {
-        this.emit('RSI_OVERBOUGHT', now, {
-          message: `RSI OVERBOUGHT (${data.rsi.toFixed(0)}) - Sellers Incoming`,
-          color: '#ff8800',
-          icon: '\u{1F525}',
-          duration: ANNOUNCER_CONFIG.DURATION.RSI,
-          priority: 6,
-        });
-      }
+      const isFavorable = this.checkFavorableOnTransition(
+        currentRsiState,
+        position,
+        now
+      );
 
-      // Check favorable market on RSI transition
-      this.checkFavorableOnTransition(currentRsiState, position, now);
+      if (!isFavorable) {
+        if (currentRsiState === 'OVERSOLD' && this.lastRsiState !== 'OVERSOLD') {
+          this.emit('RSI_OVERSOLD', now, {
+            message: `RSI OVERSOLD (${data.rsi.toFixed(0)}) - Buyers Incoming`,
+            color: '#00ffff',
+            icon: '\u{1F9CA}',
+            duration: ANNOUNCER_CONFIG.DURATION.RSI,
+            priority: 6,
+          });
+        } else if (
+          currentRsiState === 'OVERBOUGHT' &&
+          this.lastRsiState !== 'OVERBOUGHT'
+        ) {
+          this.emit('RSI_OVERBOUGHT', now, {
+            message: `RSI OVERBOUGHT (${data.rsi.toFixed(0)}) - Sellers Incoming`,
+            color: '#ff8800',
+            icon: '\u{1F525}',
+            duration: ANNOUNCER_CONFIG.DURATION.RSI,
+            priority: 6,
+          });
+        }
+      }
 
       this.lastRsiState = currentRsiState;
     }
@@ -259,23 +264,28 @@ class MarketEventAnnouncerClass {
     rsiState: RSIState,
     position: MarketPosition,
     now: number
-  ): void {
+  ): boolean {
     const isFavorable =
       (position === 'LONG' && rsiState === 'OVERSOLD') ||
       (position === 'SHORT' && rsiState === 'OVERBOUGHT');
 
     if (isFavorable && !this.favorableMarketActive) {
       this.favorableMarketActive = true;
+      const isLong = position === 'LONG';
       this.emit('FAVORABLE_MARKET', now, {
-        message: `Market Aligned - ${position} Advantage`,
-        color: '#ffd700',
-        icon: '\u{2B50}',
+        message: isLong
+          ? 'LONG EDGE // BULL SIGNAL LOCKED'
+          : 'SHORT EDGE // BEAR SIGNAL LOCKED',
+        color: isLong ? '#fbbf24' : '#fb7185',
+        icon: isLong ? '\u{25B2}' : '\u{25BC}',
         duration: ANNOUNCER_CONFIG.DURATION.FAVORABLE,
         priority: 5,
       });
     } else if (!isFavorable) {
       this.favorableMarketActive = false;
     }
+
+    return isFavorable;
   }
 
   // checkWhaleDetection removed — whale spawn is communicated via screen shake

@@ -162,6 +162,7 @@ export interface IPhysicsConstants {
   HIT_STOP_CRIT: number;
   NEAR_MISS_THRESHOLD: number;
   getGameTime(): number;
+  getGameTimeSeconds(): number;
 }
 
 /**

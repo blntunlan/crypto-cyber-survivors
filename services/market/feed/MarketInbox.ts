@@ -14,6 +14,7 @@ const DEFAULT_STALE_AFTER_MS = 10_000;
 const createEmptyFrame = (): CanonicalMarketFrame => ({
   revision: 0,
   sequence: 0,
+  sourceSequence: 0,
   sourceTimestamp: 0,
   receivedAt: 0,
   quality: 'STALE',
@@ -37,6 +38,7 @@ const copyFrame = (
 ): void => {
   target.revision = source.revision;
   target.sequence = source.sequence;
+  target.sourceSequence = source.sourceSequence;
   target.sourceTimestamp = source.sourceTimestamp;
   target.receivedAt = source.receivedAt;
   target.quality = source.quality;

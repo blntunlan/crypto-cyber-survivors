@@ -20,6 +20,7 @@ import {
 } from '../../types/lootbox';
 
 import { type TrendAlignment } from '../../types/runtimeDifficulty';
+import { DIFFICULTY_RUNTIME_CONFIG } from '../../config/difficulty/DifficultyRuntimeConfig';
 
 /**
  * LootboxServiceClass - Internal implementation for managing rewards
@@ -30,13 +31,17 @@ class LootboxServiceClass {
   private currentProfileId: string | null = null;
   private sessionFlags: Set<string> = new Set();
   private currentTrendAlignment: TrendAlignment = 'neutral';
-  private currentLootboxDropChance: number = 0.03;
+  private currentLootboxDropChance: number =
+    DIFFICULTY_RUNTIME_CONFIG.compatibility.baseLootboxDropChance;
+  private lastDifficultyRevision = 0;
 
   constructor() {
     // Subscribe to game reset
     EventBus.subscribe('gameReset', () => this.handleGameReset());
 
     EventBus.subscribe('difficultyUpdated', data => {
+      if (data.sourceSnapshotRevision <= this.lastDifficultyRevision) return;
+      this.lastDifficultyRevision = data.sourceSnapshotRevision;
       if (data.trendAlignment) {
         this.currentTrendAlignment = data.trendAlignment as TrendAlignment;
       }
@@ -363,7 +368,9 @@ class LootboxServiceClass {
   private handleGameReset(): void {
     this.sessionFlags.clear();
     this.currentTrendAlignment = 'neutral';
-    this.currentLootboxDropChance = 0.03;
+    this.currentLootboxDropChance =
+      DIFFICULTY_RUNTIME_CONFIG.compatibility.baseLootboxDropChance;
+    this.lastDifficultyRevision = 0;
     Logger.debug('[LootboxService] Session flags cleared');
   }
 
@@ -375,7 +382,9 @@ class LootboxServiceClass {
     this.sessionFlags.clear();
     this.currentProfileId = null;
     this.currentTrendAlignment = 'neutral';
-    this.currentLootboxDropChance = 0.03;
+    this.currentLootboxDropChance =
+      DIFFICULTY_RUNTIME_CONFIG.compatibility.baseLootboxDropChance;
+    this.lastDifficultyRevision = 0;
   }
 
   /**

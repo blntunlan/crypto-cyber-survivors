@@ -39,6 +39,13 @@ export {
 } from './GameConfig';
 export type { WavePhase } from './GameConfig';
 
+// Loot cache
+export {
+  LOOT_CACHE_CONFIG,
+  getLootCacheFragmentChance,
+  getLootCacheRarityWeights,
+} from './LootCacheConfig';
+
 // Market runtime
 export {
   getMarketRuntimeConfig,
@@ -48,6 +55,7 @@ export {
 export type { MarketRuntimeMode, MarketRuntimeConfig } from './marketRuntime';
 export { getDirectorRuntimeConfig } from './directorRuntime';
 export type {
+  DifficultyRuntimeMode,
   DirectorRuntimeMode,
   DirectorRuntimePlan,
 } from '../services/director/DirectorRuntimeMode';

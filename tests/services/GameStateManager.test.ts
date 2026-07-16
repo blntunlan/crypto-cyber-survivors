@@ -110,7 +110,7 @@ describe('GameStateManager', () => {
       const startParams = {
         position: MarketPosition.LONG,
         entryPrice: 50000,
-        leverage: 25,
+        leverage: 25 as const,
         pair: 'BTC' as const,
       };
 
@@ -138,6 +138,14 @@ describe('GameStateManager', () => {
       expect(EventBus.emit).toHaveBeenCalledWith('gameInitialized', {
         ...startParams,
         sessionId: 'mock-session-id',
+      });
+      expect(EventBus.emit).toHaveBeenCalledWith('difficultyRunInitialized', {
+        runId: 'mock-session-id',
+        seed: expect.any(Number),
+        side: 'LONG',
+        leverage: 25,
+        entryPrice: 50000,
+        liquidationPrice: 48000,
       });
     });
 

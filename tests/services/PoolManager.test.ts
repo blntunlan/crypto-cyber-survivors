@@ -61,6 +61,94 @@ describe('PoolManager', () => {
     });
   });
 
+  describe('getLootCache', () => {
+    it('initializes the pooled Market Cache contract', () => {
+      const cache = pool.getLootCache(7, 'epic', 'runtime', 120, 240, '#a855f7');
+
+      expect(cache).toMatchObject({
+        active: true,
+        type: 'LOOT_CRATE',
+        x: 120,
+        y: 240,
+        radius: 20,
+        color: '#a855f7',
+        health: 1,
+        maxHealth: 1,
+        lootCacheId: 7,
+        lootCacheRarity: 'epic',
+        lootCachePhase: 'closed',
+        lootCacheSource: 'runtime',
+        lootCachePhaseElapsedMs: 0,
+        lootCacheIdleElapsedMs: 0,
+        lootCacheProximity: false,
+        lootCacheProximityTickElapsedMs: 0,
+        lootCacheCoreFlashPending: false,
+        lootCacheSecondaryReward: null,
+        lootCacheFragmentPreview: false,
+      });
+      expect(cache.lootCachePrimaryReward).toBeUndefined();
+    });
+
+    it('clears prior cache state when reusing an interactable', () => {
+      const firstCache = pool.getLootCache(1, 'legendary', 'debug', 20, 30, '#fbbf24');
+      firstCache.lootCachePhase = 'reward';
+      firstCache.lootCachePhaseElapsedMs = 640;
+      firstCache.lootCacheIdleElapsedMs = 123;
+      firstCache.lootCacheProximity = true;
+      firstCache.lootCacheProximityTickElapsedMs = 99;
+      firstCache.lootCacheCoreFlashPending = true;
+      firstCache.lootCachePrimaryReward = 'data_dividend';
+      firstCache.lootCacheSecondaryReward = 'circuit_breaker';
+      firstCache.lootCacheFragmentPreview = true;
+
+      pool.releaseInteractable(firstCache);
+      const reusedCache = pool.getLootCache(2, 'rare', 'runtime', 80, 90, '#00d4ff');
+
+      expect(reusedCache).toBe(firstCache);
+      expect(reusedCache).toMatchObject({
+        active: true,
+        type: 'LOOT_CRATE',
+        x: 80,
+        y: 90,
+        radius: 20,
+        color: '#00d4ff',
+        health: 1,
+        maxHealth: 1,
+        isHit: false,
+        hitTimer: 0,
+        lootCacheId: 2,
+        lootCacheRarity: 'rare',
+        lootCachePhase: 'closed',
+        lootCacheSource: 'runtime',
+        lootCachePhaseElapsedMs: 0,
+        lootCacheIdleElapsedMs: 0,
+        lootCacheProximity: false,
+        lootCacheProximityTickElapsedMs: 0,
+        lootCacheCoreFlashPending: false,
+        lootCacheSecondaryReward: null,
+        lootCacheFragmentPreview: false,
+      });
+      expect(reusedCache.lootCachePrimaryReward).toBeUndefined();
+    });
+  });
+
+  describe('getFloatingText', () => {
+    it('clears cache reveal presentation state when reusing pooled text', () => {
+      const firstText = pool.getFloatingText(10, 20, 'FIRST', '#fff', 18);
+      firstText.stationary = true;
+      firstText.alwaysVisible = true;
+      firstText.velocityOnly = true;
+
+      pool.releaseFloatingText(firstText);
+      const reusedText = pool.getFloatingText(30, 40, 'SECOND', '#0ff', 14);
+
+      expect(reusedText).toBe(firstText);
+      expect(reusedText.stationary).toBe(false);
+      expect(reusedText.alwaysVisible).toBe(false);
+      expect(reusedText.velocityOnly).toBe(false);
+    });
+  });
+
   describe('getEnemy', () => {
     it('should create a new enemy', () => {
       const enemy = pool.getEnemy(100, 200, 1.5, MarketPosition.LONG);
@@ -90,6 +178,19 @@ describe('PoolManager', () => {
       expect(enemy2.hitImpactTimer).toBe(0);
       expect(enemy2.hitRecoilX).toBe(0);
       expect(enemy2.hitRecoilY).toBe(0);
+    });
+
+    it('should clear movement slow state when reusing enemies', () => {
+      const enemy1 = pool.getEnemy(0, 0, 1, MarketPosition.LONG);
+      enemy1.movementSlowTimerMs = 2500;
+      enemy1.movementSlowMultiplier = 0.5;
+
+      pool.releaseEnemy(enemy1);
+      const enemy2 = pool.getEnemy(10, 20, 1, MarketPosition.LONG);
+
+      expect(enemy2).toBe(enemy1);
+      expect(enemy2.movementSlowTimerMs).toBe(0);
+      expect(enemy2.movementSlowMultiplier).toBe(1);
     });
 
     it('should create a whale enemy with tier multipliers', () => {

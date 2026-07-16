@@ -10,6 +10,8 @@ import { type ICollectionSystem } from '../../interfaces/IPhysicsSubsystems';
 import { GAME_ENGINE } from '../../../constants';
 import { ECONOMY_CONFIG } from '../../../config';
 import { LeverageEngine } from '../../gameplay/LeverageEngine';
+import { type ILootCacheSystem } from '../../interfaces/ILootCacheSystem';
+import { type RuntimeDifficultySnapshot } from '../../../types/runtimeDifficulty';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -22,9 +24,17 @@ import { LeverageEngine } from '../../gameplay/LeverageEngine';
  */
 export class CollectionSystem implements ICollectionSystem {
   private ctx: IPhysicsContext;
+  private readonly lootCacheSystem: ILootCacheSystem | null;
+  private readonly getDifficultySnapshot: () => RuntimeDifficultySnapshot | null;
 
-  constructor(context: IPhysicsContext = getPhysicsContext()) {
+  constructor(
+    context: IPhysicsContext = getPhysicsContext(),
+    lootCacheSystem: ILootCacheSystem | null = null,
+    getDifficultySnapshot: () => RuntimeDifficultySnapshot | null = () => null
+  ) {
     this.ctx = context;
+    this.lootCacheSystem = lootCacheSystem;
+    this.getDifficultySnapshot = getDifficultySnapshot;
   }
 
   /**
@@ -48,13 +58,54 @@ export class CollectionSystem implements ICollectionSystem {
     pool: IPoolManager,
     player: Player,
     state: GameState,
-    dtFactor: number
+    dtFactor: number,
+    reducedMotion = false
   ): void {
     const rawMagnet = this.ctx.stats.getMagnet(player);
     const effectiveMagnet = Math.min(rawMagnet, this.ctx.statCaps.MAX_MAGNET);
 
     this.handleGemCollections(pool, player, state, dtFactor, effectiveMagnet);
     this.handleBuffGemCollections(pool, player, state, dtFactor, effectiveMagnet);
+    this.handleLootCacheCollections(pool, player, state, reducedMotion);
+  }
+
+  private handleLootCacheCollections(
+    pool: IPoolManager,
+    player: Player,
+    state: GameState,
+    reducedMotion: boolean
+  ): void {
+    if (this.lootCacheSystem === null) {
+      return;
+    }
+
+    const interactables = pool.activeInteractables;
+    for (let index = 0; index < interactables.length; index++) {
+      const cache = interactables[index];
+      if (
+        !cache?.active ||
+        cache.type !== 'LOOT_CRATE' ||
+        cache.lootCachePhase !== 'closed'
+      ) {
+        continue;
+      }
+
+      const deltaX = player.x - cache.x;
+      const deltaY = player.y - cache.y;
+      const combinedRadius = player.radius + cache.radius;
+      if (deltaX * deltaX + deltaY * deltaY >= combinedRadius * combinedRadius) {
+        continue;
+      }
+
+      this.lootCacheSystem.tryOpen(cache, {
+        elapsedSeconds: this.ctx.constants.getGameTimeSeconds(),
+        reducedMotion,
+        pool,
+        player,
+        state,
+      });
+      return;
+    }
   }
 
   /**
@@ -137,8 +188,13 @@ export class CollectionSystem implements ICollectionSystem {
 
     // Apply the run-locked leverage and player progression multipliers.
     const levMult = LeverageEngine.getMultipliers();
-    const adjustedGemValue = gem.value * levMult.gemValue;
-    const expMultiplier = player.expMultiplier ?? 1;
+    const difficultySnapshot = this.getDifficultySnapshot();
+    const adjustedGemValue =
+      gem.value *
+      levMult.gemValue *
+      (difficultySnapshot?.rewards.gemDropMultiplier ?? 1);
+    const expMultiplier =
+      (player.expMultiplier ?? 1) * (difficultySnapshot?.rewards.xpMultiplier ?? 1);
 
     // Apply leverage XP gain multiplier (higher leverage = faster leveling)
     const xpGain = Math.floor(

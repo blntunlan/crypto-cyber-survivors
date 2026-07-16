@@ -4,11 +4,7 @@ import {
   DirectorConfigValidationError,
   validateDirectorConfig,
 } from '../../../services/director/config/DirectorConfigV1';
-import {
-  createDirectorRuntimeState,
-  resolveDirectorRuntimePlan,
-  transitionDirectorRuntimeState,
-} from '../../../services/director/DirectorRuntimeMode';
+import { resolveDirectorRuntimePlan } from '../../../services/director/DirectorRuntimeMode';
 import { getDirectorRuntimeConfig } from '../../../config/directorRuntime';
 import { createMarketScenarioArtifact } from '../../golden/helpers/scenarios';
 
@@ -39,55 +35,26 @@ describe('Director runtime configuration', () => {
     );
   });
 
-  it('keeps the legacy path authoritative when the feature flag is off', () => {
-    const legacyGoldenHash = createMarketScenarioArtifact().contentHash;
-    const config = getDirectorRuntimeConfig('legacy');
-    const plan = resolveDirectorRuntimePlan(config.mode);
+  it.each([
+    ['current', 'current', true, false, false],
+    ['shadow', 'shadow', true, true, false],
+    ['modular', 'modular', false, true, true],
+    ['runtime', 'current', true, false, false],
+    ['invalid', 'current', true, false, false],
+  ] as const)(
+    'resolves %s without consulting market runtime mode',
+    (rawMode, mode, runsCurrentAdapter, runsModularShadow, appliesModularSnapshot) => {
+      const legacyGoldenHash = createMarketScenarioArtifact().contentHash;
+      const config = getDirectorRuntimeConfig(rawMode);
 
-    expect(config).toMatchObject({
-      mode: 'LEGACY',
-      runsLegacyPipeline: true,
-      runsShadowDirector: false,
-      appliesDirectorSnapshot: false,
-    });
-    expect(plan).toEqual(config);
-    expect(createMarketScenarioArtifact().contentHash).toBe(legacyGoldenHash);
-  });
-
-  it('runs shadow calculations without applying gameplay side effects', () => {
-    const config = getDirectorRuntimeConfig('dual');
-
-    expect(config).toMatchObject({
-      mode: 'SHADOW',
-      runsLegacyPipeline: true,
-      runsShadowDirector: true,
-      appliesDirectorSnapshot: false,
-    });
-  });
-
-  it('makes the director the sole gameplay authority only in runtime mode', () => {
-    const config = getDirectorRuntimeConfig('runtime');
-
-    expect(config).toMatchObject({
-      mode: 'NEW_AUTHORITY',
-      runsLegacyPipeline: false,
-      runsShadowDirector: true,
-      appliesDirectorSnapshot: true,
-    });
-  });
-
-  it('resets only director-owned state when rolling back to legacy', () => {
-    const state = {
-      ...createDirectorRuntimeState('NEW_AUTHORITY'),
-      lastProcessedTick: 240,
-      latestSnapshotRevision: 12,
-    };
-
-    expect(transitionDirectorRuntimeState(state, 'LEGACY')).toEqual({
-      mode: 'LEGACY',
-      transitionGeneration: 1,
-      lastProcessedTick: null,
-      latestSnapshotRevision: null,
-    });
-  });
+      expect(config).toMatchObject({
+        mode,
+        runsCurrentAdapter,
+        runsModularShadow,
+        appliesModularSnapshot,
+      });
+      expect(resolveDirectorRuntimePlan(config.mode)).toEqual(config);
+      expect(createMarketScenarioArtifact().contentHash).toBe(legacyGoldenHash);
+    }
+  );
 });

@@ -1,7 +1,52 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createGameRuntime,
+  type GameRuntime,
+} from '../../../services/gameplay/GameRuntime';
+import { LootCacheSystem } from '../../../services/gameplay/loot/LootCacheSystem';
+import { type ILootCacheSystem } from '../../../services/interfaces/ILootCacheSystem';
+
+type RuntimeWithLootCache = GameRuntime & {
+  lootCacheSystem: ILootCacheSystem;
+};
+
+type PhysicsWithCollection = {
+  collectionSystem: {
+    lootCacheSystem: ILootCacheSystem | null;
+  };
+};
 
 describe('GameRuntime dependency ownership', () => {
+  it('owns one loot cache system across collection, reset, and disposal', () => {
+    const resetSpy = vi.spyOn(LootCacheSystem.prototype, 'reset');
+    const disposeSpy = vi.spyOn(LootCacheSystem.prototype, 'dispose');
+    const runtime = createGameRuntime() as RuntimeWithLootCache;
+    const physicsSystem = runtime.physicsSystem as unknown as PhysicsWithCollection;
+
+    expect(runtime.lootCacheSystem).toBeInstanceOf(LootCacheSystem);
+    expect(physicsSystem.collectionSystem.lootCacheSystem).toBe(
+      runtime.lootCacheSystem
+    );
+
+    resetSpy.mockClear();
+    runtime.reset();
+    expect(resetSpy).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('begins each changed director run with the derived seed exactly once', () => {
+    const source = readFileSync('components/GameEngine.tsx', 'utf8');
+
+    expect(
+      source.match(
+        /lootCacheSystem\.beginRun\(\s*deriveDirectorSeed\(runId\),\s*TimeService\.getGameTimeSeconds\(\)\s*\)/g
+      )
+    ).toHaveLength(1);
+  });
+
   it('constructs and owns runtime services without the EngineRegistry locator', () => {
     const source = readFileSync('services/gameplay/GameRuntime.ts', 'utf8');
 
@@ -47,6 +92,8 @@ describe('GameRuntime dependency ownership', () => {
     expect(source).not.toContain('resolveSpawnAuthority');
     expect(source).not.toContain('getDirectorRuntimeConfig');
     expect(source).not.toContain('PlayerPowerAnalyzer');
+    expect(source).not.toContain('directorSpawnOrchestratorRef.current.update');
+    expect(source).not.toContain('directorSpawnInputRef');
   });
 
   it('does not construct obsolete legacy-authority telemetry in GameRuntime', () => {
@@ -80,6 +127,22 @@ describe('GameRuntime dependency ownership', () => {
 
     for (const consumer of consumers) {
       expect(readFileSync(consumer, 'utf8')).not.toContain('DifficultyManager');
+    }
+  });
+
+  it('keeps raw difficulty authorities out of migrated consumers', () => {
+    const consumers = [
+      'services/director/SpawnPlanBuilder.ts',
+      'services/combat/SpawnExecutor.ts',
+      'services/presentation/PresentationDirector.ts',
+      'services/combat/physics/CollectionSystem.ts',
+      'hooks/useDifficultyV2.ts',
+    ];
+
+    for (const consumer of consumers) {
+      const source = readFileSync(consumer, 'utf8');
+      expect(source).not.toContain('UnifiedDirector');
+      expect(source).not.toContain('DifficultyManager.calculate');
     }
   });
 });

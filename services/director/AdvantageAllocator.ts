@@ -53,7 +53,7 @@ export class AdvantageAllocator {
   private availableCredits = UNIT_MINIMUM;
   private active: ActiveAdvantage | null = null;
   private readonly cooldownEndsAt = new Map<AdvantageMechanic, number>();
-  private snapshot: AdvantageAllocationSnapshot;
+  private readonly snapshot: AdvantageAllocationSnapshot;
 
   public constructor(
     config: DirectorConfigV1 = DIRECTOR_CONFIG_V1,
@@ -61,7 +61,12 @@ export class AdvantageAllocator {
   ) {
     this.config = config;
     this.catalog = catalog;
-    this.snapshot = this.createSnapshot(UNIT_MINIMUM, UNIT_MINIMUM);
+    this.snapshot = {
+      creditRate: UNIT_MINIMUM,
+      availableCredits: UNIT_MINIMUM,
+      maximumCredits: UNIT_MINIMUM,
+      activeMechanic: null,
+    };
   }
 
   public update(input: AdvantageAllocationInput): AdvantageAllocationSnapshot {
@@ -81,7 +86,7 @@ export class AdvantageAllocator {
       maximumCredits,
       Math.max(UNIT_MINIMUM, this.availableCredits + accruedCredits)
     );
-    this.snapshot = this.createSnapshot(creditRate, maximumCredits);
+    this.writeSnapshot(creditRate, maximumCredits);
     return this.snapshot;
   }
 
@@ -124,11 +129,8 @@ export class AdvantageAllocator {
     this.availableCredits -= plan.costCredits;
     this.active = plan;
     this.cooldownEndsAt.set(plan.mechanic, plan.endsAtSeconds + card.cooldownSeconds);
-    this.snapshot = {
-      ...this.snapshot,
-      availableCredits: this.availableCredits,
-      activeMechanic: plan.mechanic,
-    };
+    this.snapshot.availableCredits = this.availableCredits;
+    this.snapshot.activeMechanic = plan.mechanic;
     return true;
   }
 
@@ -140,7 +142,7 @@ export class AdvantageAllocator {
     this.availableCredits = UNIT_MINIMUM;
     this.active = null;
     this.cooldownEndsAt.clear();
-    this.snapshot = this.createSnapshot(UNIT_MINIMUM, UNIT_MINIMUM);
+    this.writeSnapshot(UNIT_MINIMUM, UNIT_MINIMUM);
   }
 
   private clearExpiredActive(elapsedSeconds: number): void {
@@ -157,15 +159,10 @@ export class AdvantageAllocator {
     return cards[index] ?? null;
   }
 
-  private createSnapshot(
-    creditRate: number,
-    maximumCredits: number
-  ): AdvantageAllocationSnapshot {
-    return {
-      creditRate,
-      availableCredits: this.availableCredits,
-      maximumCredits,
-      activeMechanic: this.active?.mechanic ?? null,
-    };
+  private writeSnapshot(creditRate: number, maximumCredits: number): void {
+    this.snapshot.creditRate = creditRate;
+    this.snapshot.availableCredits = this.availableCredits;
+    this.snapshot.maximumCredits = maximumCredits;
+    this.snapshot.activeMechanic = this.active?.mechanic ?? null;
   }
 }
