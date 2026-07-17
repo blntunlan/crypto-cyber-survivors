@@ -159,7 +159,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return;
         }
 
-        Logger.warn('[UserContext] Railway auth missing. Clearing stored user.');
+
+        console.warn('[UserContext] Railway auth missing. Clearing stored user.');
         UserPersistenceService.clear();
         await RailwayAuthService.signOut();
         if (mounted) commitUser(null);
@@ -199,7 +200,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       if (!isRemoteMode()) {
-        Logger.warn('[UserContext] Local environment detected, using local-only mode');
+
+        console.warn('[UserContext] Local environment detected, using local-only mode');
         const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, normalizedNickname);
         UserPersistenceService.saveUser(localUser);
         commitUser(localUser);

@@ -24,6 +24,8 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
 vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     debug: mocks.debug,
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
