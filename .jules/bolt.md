@@ -1,0 +1,3 @@
+## 2025-06-26 - Zero-allocation Spatial Queries in CombatSystem
+**Learning:** In 60 FPS hot paths like automatic weapon aiming (`CombatSystem.findNearestEnemy`), allocating a closure per-frame for spatial grid queries (`enemyGrid.forEachInRange`) combined with intermediate target candidate objects (`{ x, y, distSq, speed }`) creates significant garbage collection pressure.
+**Action:** Use context-aware iterators (e.g. `forEachInRangeWithContext`) in combination with static primitive fields (`bestX`, `bestY`, `bestDistSq`, etc.) on a dedicated context object to track iteration state without any dynamic object or function allocations.
