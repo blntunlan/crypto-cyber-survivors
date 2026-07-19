@@ -1,0 +1,3 @@
+## 2024-05-18 - [MovementSystem Optimization]
+**Learning:** High-frequency loop paths (e.g. 60 FPS update loops in MovementSystem.ts) use `Array.prototype.forEach`, which creates closure function allocations and adds GC pressure every frame.
+**Action:** Replaced `forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in `MovementSystem.ts` arrays (`activeEnemies`, `activeSpeedLines`, `activeImpactRings`, `activeParticles`, `activeFloatingTexts`, etc.) to eliminate closure allocations and reduce GC pressure. Return statements in callbacks were updated to `continue` to preserve logic.
