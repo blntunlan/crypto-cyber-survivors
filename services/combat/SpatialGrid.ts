@@ -30,14 +30,20 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
 
   /**
    * Clear the grid for a new frame.
-   * Reuses the arrays in the pool to avoid GC pressure.
+   * Hybrid clearing strategy: retains map entries for active cells,
+   * but reclaims empty cells to prevent unbounded Map growth.
    */
   public clear(): void {
-    for (const cell of this.grid.values()) {
-      cell.length = 0; // Empty the array without deallocating
-      this.arrayPool.push(cell);
+    for (const [key, cell] of this.grid.entries()) {
+      if (cell.length === 0) {
+        // Cell was empty last frame, reclaim the array and delete the key
+        this.arrayPool.push(cell);
+        this.grid.delete(key);
+      } else {
+        // Cell was active, keep the key but empty the array
+        cell.length = 0;
+      }
     }
-    this.grid.clear();
   }
 
   /**
@@ -119,8 +125,9 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
 
     for (let dx = -radius; dx <= radius; dx++) {
+      const shiftedX = (cellX + dx) << 16;
       for (let dy = -radius; dy <= radius; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = shiftedX | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           const len = cell.length;
@@ -143,8 +150,9 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
 
     for (let dx = -radius; dx <= radius; dx++) {
+      const shiftedX = (cellX + dx) << 16;
       for (let dy = -radius; dy <= radius; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = shiftedX | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           const len = cell.length;
