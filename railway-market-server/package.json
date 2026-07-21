@@ -78,6 +78,7 @@
     "@esbuild/sunos-x64": "^0.28.1",
     "@esbuild/win32-arm64": "^0.28.1",
     "@esbuild/win32-ia32": "^0.28.1",
-    "@esbuild/win32-x64": "^0.28.1"
+    "@esbuild/win32-x64": "^0.28.1",
+    "esbuild": "^0.28.1"
   }
 }
