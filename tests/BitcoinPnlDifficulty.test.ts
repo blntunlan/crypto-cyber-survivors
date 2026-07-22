@@ -122,7 +122,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
   describe('Difficulty Response to PNL', () => {
     it('should make game EASIER when player is profiting', () => {
-      const neutralDifficulty = DifficultyManager.calculate(
+      const neutralDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0,
         0,
         1,
@@ -132,7 +132,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       );
 
       DifficultyManager.startGame();
-      const profitDifficulty = DifficultyManager.calculate(
+      const profitDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0.005,
         0,
         1,
@@ -151,7 +151,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     });
 
     it('should make game HARDER when player is losing', () => {
-      const neutralDifficulty = DifficultyManager.calculate(
+      const neutralDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0,
         0,
         1,
@@ -161,7 +161,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       );
 
       DifficultyManager.startGame();
-      const lossDifficulty = DifficultyManager.calculate(
+      const lossDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         -0.05,
         0,
         1,
@@ -181,16 +181,16 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
     it('should scale difficulty with loss magnitude', () => {
       DifficultyManager.startGame();
-      const smallLoss = DifficultyManager.calculate(-0.02, 0, 1, 1.0, undefined, true);
+      const smallLoss = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */-0.02, 0, 1, 1.0, undefined, true);
 
       DifficultyManager.startGame();
-      const largeLoss = DifficultyManager.calculate(-0.1, 0, 1, 1.0, undefined, true);
+      const largeLoss = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */-0.1, 0, 1, 1.0, undefined, true);
 
       expect(largeLoss.total).toBeGreaterThan(smallLoss.total);
     });
 
     it('should not go below minimum difficulty even with huge profits', () => {
-      const hugeProfitDifficulty = DifficultyManager.calculate(
+      const hugeProfitDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0.5,
         0,
         1,
@@ -203,7 +203,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     });
 
     it('should not exceed maximum difficulty even with huge losses', () => {
-      const hugeLossDifficulty = DifficultyManager.calculate(
+      const hugeLossDifficulty = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         -0.5,
         0,
         1,
@@ -218,7 +218,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
   describe('Volatility (ATR) Effect', () => {
     it('should increase difficulty during high volatility', () => {
-      const lowVolatility = DifficultyManager.calculate(
+      const lowVolatility = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0,
         0.002,
         1,
@@ -228,7 +228,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       ); // 0.2% ATR
 
       DifficultyManager.startGame();
-      const highVolatility = DifficultyManager.calculate(
+      const highVolatility = DifficultyManager.calculate(/* eslint-disable-next-line @typescript-eslint/no-deprecated */
         0,
         0.03,
         1,
