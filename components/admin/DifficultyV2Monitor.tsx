@@ -49,6 +49,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 export const DifficultyV2Monitor: React.FC = () => {
   const { output, total } = useDifficultyV2();
 
+  // output is always truthy because it's initialized with RUNTIME_OUTPUT
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!output) {
     return (
       <LazyMotion features={domAnimation}>
