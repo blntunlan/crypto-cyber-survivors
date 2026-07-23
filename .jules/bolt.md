@@ -1,0 +1,3 @@
+## 2025-02-28 - SpatialGrid hybrid map clearing to reduce overhead
+**Learning:** In the hot path of 60 FPS combat loops, `SpatialGrid.clear()` was returning all inner arrays to a pool and executing `Map.clear()`, forcing the grid to reallocate Map entries for every active cell on the next frame. This resulted in unnecessary Map insertion/deletion overhead, as many entities stay in the same cell frame-to-frame.
+**Action:** Use a hybrid clearing strategy in spatial hash grids: remove empty cells from the map (`Map.delete(key)`) while retaining active cells by simply clearing their contents in-place (`cell.length = 0`). This prevents unbounded Map growth while preserving existing Map allocations.
