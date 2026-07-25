@@ -145,6 +145,14 @@ class RuleBasedDirector {
     return { ...this.smoothedOutputs };
   }
 
+  /**
+   * Returns a direct read-only reference to smoothed outputs without object allocation.
+   * Hot-path safe for 60 FPS callers that do not mutate outputs.
+   */
+  public getOutputsRef(): Readonly<UnifiedOutputs> {
+    return this.smoothedOutputs;
+  }
+
   public reset(): void {
     this.outputs = this.getDefaultOutputs();
     this.smoothedOutputs = this.getDefaultOutputs();

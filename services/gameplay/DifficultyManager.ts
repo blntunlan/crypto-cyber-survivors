@@ -463,6 +463,7 @@ class DifficultyManagerClass {
 
     difficultyContext.resetForCycleContinue();
     UnifiedDirector.reset();
+    UnifiedDirector.snapToTargets();
     Logger.info('[DifficultyManager] Cycle continue state reset');
   }
 
