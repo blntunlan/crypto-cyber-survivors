@@ -27,14 +27,16 @@ npm run test:e2e                          # auto-starts `npx vite` webServer (re
 npm run test:e2e:ui | test:e2e:debug | test:e2e:headed
 npm run test:e2e:beta:critical            # smoke gate (chromium + mobile-chrome)
 npm run test:e2e:triage                   # run-e2e-triage.mjs
+npm run test:e2e:ui-contract              # Chromium visual gate: 1440×900 + 390×844, both skins
+npm run test:e2e:ui-contract:update       # explicit baseline refresh; never use in ordinary CI
 
 # Code quality / gates
-npm run lint | lint:fix | format | typecheck | lint:ui
+npm run lint | lint:fix | format | typecheck | lint:ui | check:ui-contract
 npm run check:architecture                # new singletons must be in config/architecture/singleton-whitelist.json or CI fails
 npm run check:reset-coverage              # every singleton with reset() must have coverage
 npm run security:check
 
-npm run check:baseline                    # THE full gate: typecheck → check:architecture → check:reset-coverage → lint → test → build
+npm run check:baseline                    # THE full gate: typecheck → architecture → reset coverage → UI contract → lint → test → build
                                           # (this is what CI runs — do not substitute lint+test+build)
 
 # Deploy
@@ -98,16 +100,25 @@ Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE 
 - ESLint relaxation specifics: bitwise, labels, and `++` in for-loops are allowed for game code; `no-console` warns (allowed: `warn`, `error`).
 - Test files relax `no-explicit-any`, `no-non-null-assertion`, `no-console`.
 
+## Production UI Contract
+
+- Player-facing UI composes semantic tokens → themed primitives → structural components → shared patterns → screens. Admin, debug, performance, preview-lab and vfx-lab are exempt.
+- Use `components/themed/` primitives for actions, fields, text and surfaces. Use `components/ui/` structural components once a layout repeats. Do not add direct `isRetro` presentation branches to production components; skin resolution belongs to the themed layer.
+- `className` on themed primitives is layout-only: flow, grid/flex, sizing, positioning, overflow and order. Do not override colors, radius, shadows, typography, padding, border appearance or motion; add a typed variant instead.
+- Use `lucide-react` for navigation/utility icons and `CardIcons` for game or brand content. Keep one primary CTA per surface, 44px targets, visible focus and reduced-motion support.
+- `npm run check:ui-contract` is a hard gate. Legacy debt needs an owner, reason, rule list and expiry in `config/ui-contract/legacy-allowlist.json`; exemptions are temporary and only shrink.
+- UI work must not add React state or allocations to HUD/requestAnimationFrame paths.
+
 ## Testing Quirks
 
 - Unit/integration: `tests/**/*.test.ts(x)` — Vitest, jsdom, `pool: 'forks'`, `SKIP_INTEGRATION=true` injected via config. Setup in `tests/setup.ts` mocks Canvas, Howler, localStorage, `matchMedia`, `AudioContext`, `import.meta.env`, `requestAnimationFrame`, `WebSocket`, `fetch`, ResizeObserver. MSW handlers in `tests/mocks/handlers.ts`.
-- E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects). `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. `?no-sw=true` base URL disables the service worker. CI only runs the `@smoke` subset on chromium; full matrix (`chromium`, `mobile-chrome`, `firefox`, `webkit`) locally.
+- E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects). `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. `?no-sw=true` base URL disables the service worker. CI only runs the `@smoke` subset on chromium; full matrix (`chromium`, `mobile-chrome`, `firefox`, `webkit`) locally. `test:e2e:ui-contract` runs the committed critical-flow screenshots on Chromium; baseline writes require the explicit `:update` command.
 - Singletons with `reset()` must call it in `beforeEach` — `check:reset-coverage` enforces coverage. Coverage target: services/components/factories, global 70%+.
 
 ## Workflow & Architecture Guardrails
 
 - **Conventional Commits** enforced by commitlint (`feat:`, `fix:`, `perf:`, `test:`, `docs:`, `chore:`; optional scopes like `feat(auth):`).
-- **Pre-commit** (husky + lint-staged): eslint --fix, prettier, `vitest related --run --pool=forks --maxWorkers=1 --bail=1` on changed `*.{ts,tsx}`, ui-consistency-audit on `components/**/*.tsx`. Market-server changes run `scripts/run-market-typecheck.js`.
+- **Pre-commit** (husky + lint-staged): eslint --fix, prettier, `vitest related --run --pool=forks --maxWorkers=1 --bail=1` on changed `*.{ts,tsx}`, `check:ui-contract` on production UI. Market-server changes run `scripts/run-market-typecheck.js`.
 - **Pre-push**: re-runs `npm run build`; if `railway-market-server/` changed, installs deps there and runs typecheck + build.
 - **New singletons** must be added to `config/architecture/singleton-whitelist.json` or `check:architecture` fails CI. Prefer `GameRuntime` or explicit DI for session state instead of new singletons.
 - **Anti-cheat**: extend `services/gameplay/validators/` (`GameplayValidator`, actively used by `MetaProgressionService` / `InventoryService`) — do **not** reintroduce optimistic `CoinService.creditCoins` reward calls; rewards are server-verified via `POST /api/v1/sessions/verify` (`railway-market-server/src/routes/sessions.ts`), which now consumes `exitType`/`portalType`/`maxStreak`.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '../test-utils';
+import { render, screen, fireEvent, act, within } from '../test-utils';
 import { MainMenu } from '../../components/screens/MainMenu';
 import { GameMode } from '../../types/gameMode';
 import { audio } from '../../services/audio';
@@ -92,6 +92,38 @@ describe('MainMenu', () => {
     expect(screen.getByText('common.menu.lev_safe')).toBeInTheDocument();
   });
 
+  it('renders the complete leverage ladder with the leverage visual variant', () => {
+    renderMainMenu();
+
+    const leverageOptions = screen.getByTestId('main-menu-leverage-options');
+    const buttons = within(leverageOptions).getAllByRole('button');
+
+    expect(buttons.map(button => button.textContent)).toEqual([
+      'common.menu.lev_spot',
+      '2x',
+      '5x',
+      '10x',
+      '25x',
+      '50x',
+      '100x',
+    ]);
+    expect(buttons.every(button => button.dataset.uiVariant === 'leverage')).toBe(true);
+  });
+
+  it('renders Long and Short as position tickets with the selected leverage', () => {
+    renderMainMenu();
+
+    const longButton = screen.getByRole('button', { name: /common\.long/i });
+    const shortButton = screen.getByRole('button', { name: /common\.short/i });
+
+    expect(longButton).toHaveAttribute('data-ui-variant', 'position');
+    expect(longButton).toHaveTextContent('common.long');
+    expect(longButton).toHaveTextContent('10x');
+    expect(shortButton).toHaveAttribute('data-ui-variant', 'position');
+    expect(shortButton).toHaveTextContent('common.short');
+    expect(shortButton).toHaveTextContent('10x');
+  });
+
   it('should call onPairChange when an asset is clicked', () => {
     renderMainMenu();
     // Find ETH button in CryptoSelector
@@ -171,9 +203,19 @@ describe('MainMenu', () => {
       vi.advanceTimersByTime(100);
     });
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    });
 
     fireEvent.click(screen.getByRole('button', { name: '25x' }));
     expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /common\.long/i }));
     expect(onStart).toHaveBeenCalledWith('LONG', 25);

@@ -18,6 +18,13 @@ describe('CashOutQuoteSigner', () => {
     expect(signer.verify(quote, signature, 1_014)).toBe(true);
   });
 
+  it('expires the quote at the signed wall-clock boundary', () => {
+    const signer = new CashOutQuoteSigner('server-only-secret');
+    const signature = signer.sign(quote);
+
+    expect(signer.verify(quote, signature, quote.expiresAtSeconds)).toBe(false);
+  });
+
   it('rejects a tampered reward or an expired quote', () => {
     const signer = new CashOutQuoteSigner('server-only-secret');
     const signature = signer.sign(quote);

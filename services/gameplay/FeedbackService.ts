@@ -1,6 +1,7 @@
 import { getEffectPolicy } from '../../config/EffectRegistry';
 import { type GameEvent } from '../../types/events';
 import { EventBus } from '../core/EventBus';
+import { TimeService } from '../core/TimeService';
 import { haptic, type HapticType } from '../system/HapticService';
 
 export type FeedbackServiceConfig = {
@@ -66,7 +67,7 @@ class FeedbackServiceClass {
 
     const baseEvent = key.split(':')[0];
     const cooldownMs = getEffectPolicy(baseEvent as GameEvent)?.cooldownMs ?? 120;
-    const now = this.nowMs();
+    const now = TimeService.getGameTime();
     const last = this.lastHapticAt.get(key) ?? Number.NEGATIVE_INFINITY;
     if (now - last < cooldownMs) return;
 
@@ -88,10 +89,6 @@ class FeedbackServiceClass {
       default:
         return type;
     }
-  }
-
-  private nowMs(): number {
-    return typeof performance !== 'undefined' ? performance.now() : Date.now();
   }
 }
 

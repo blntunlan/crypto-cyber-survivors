@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createGameRuntime } from '../../../services/gameplay/GameRuntime';
 import { DifficultyPhase } from '../../../services/gameplay/phases/DifficultyPhase';
@@ -10,6 +10,7 @@ import {
 } from '../../../services/gameplay/contracts';
 import { GameStatus, MarketPosition, type GameState } from '../../../types';
 import { createInitialPlayer } from '../../../config/PlayerConfig';
+import { EventBus } from '../../../services/core/EventBus';
 
 const createPhaseInput = (frame = 40, elapsedMs = 4_000): PhaseInput<'difficulty'> => {
   const context: TickContext = {
@@ -76,6 +77,10 @@ const createPhaseInput = (frame = 40, elapsedMs = 4_000): PhaseInput<'difficulty
 };
 
 describe('DifficultyPhase authority boundary', () => {
+  beforeEach(() => {
+    EventBus.clear();
+  });
+
   it('runs current authority through the phase decision', () => {
     const runtime = createGameRuntime({ difficultyMode: 'current' });
     const phase = new DifficultyPhase(runtime.difficultyRuntime);
@@ -108,5 +113,40 @@ describe('DifficultyPhase authority boundary', () => {
 
     expect(source).not.toContain('directorSpawnOrchestratorRef.current.update');
     expect(source).not.toContain('directorSpawnInputRef');
+  });
+
+  it('applies authoritative Greed to current Director on the next tick', () => {
+    const runtime = createGameRuntime({ difficultyMode: 'current' });
+    const phase = new DifficultyPhase(runtime.difficultyRuntime);
+
+    const initial = phase.execute(createPhaseInput(40, 4_000));
+    const initialDecision = initial.shared?.difficultyPhaseDecision as
+      | DifficultyPhaseDecision
+      | undefined;
+    const initialThreat = initialDecision?.currentSnapshot?.threat.target ?? 0;
+
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-1',
+      canonicalSequence: 42,
+      decision: 'reject',
+      greedLevel: 2,
+    });
+
+    const sameTick = phase.execute(createPhaseInput(40, 4_000));
+    const sameTickDecision = sameTick.shared?.difficultyPhaseDecision as
+      | DifficultyPhaseDecision
+      | undefined;
+    const sameTickThreat = sameTickDecision?.currentSnapshot?.threat.target ?? 0;
+
+    const nextTick = phase.execute(createPhaseInput(41, 4_000));
+    const nextTickDecision = nextTick.shared?.difficultyPhaseDecision as
+      | DifficultyPhaseDecision
+      | undefined;
+    const nextTickThreat = nextTickDecision?.currentSnapshot?.threat.target ?? 0;
+
+    expect(sameTickThreat).toBe(initialThreat);
+    expect(nextTickThreat).toBeGreaterThan(sameTickThreat);
+    runtime.dispose();
   });
 });

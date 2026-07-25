@@ -27,31 +27,29 @@ export interface ServerSessionResponse {
   sessionSecret: string;
 }
 
-export type CashOutPacingState =
-  | 'BUILD_UP'
-  | 'PEAK'
-  | 'PEAK_FADE'
-  | 'RECOVERY'
-  | 'DOOM';
-export type CashOutDecision = 'accept' | 'reject' | 'safe_exit';
+export type CashOutDecision = 'accept' | 'reject' | 'safe_exit' | 'timeout';
 
 export type CashOutQuoteResponse = {
   quote: {
     quoteId: string;
+    sessionId: string;
     canonicalSequence: number;
     rewardPoints: number;
-    issuedAtSeconds?: number;
-    expiresAtSeconds?: number;
+    issuedAtSeconds: number;
+    expiresAtSeconds: number;
   };
   signature: string;
   shouldForceRecovery: boolean;
   safeExitOnly: boolean;
+  greedLevel: number;
 };
 
 export type CashOutDecisionResponse = {
   state: 'active' | 'settled' | 'failed';
   rewardPoints: number;
   greedDelta: number;
+  greedLevel: number;
+  canonicalSequence: number;
 };
 
 export type CashOutFailureResponse = {
@@ -233,7 +231,9 @@ export class GameSessionService {
     error?: string;
     newlyUnlockedAchievements?: UnlockedAchievement[];
   }> {
-    if (!this.currentSessionId || !this.currentSessionSecret) {
+    const sessionId = this.currentSessionId;
+    const sessionSecret = this.currentSessionSecret;
+    if (!sessionId || !sessionSecret) {
       Logger.warn('[GameSession] Cannot submit: No active session found');
       return { success: false, error: 'NO_ACTIVE_SESSION' };
     }
@@ -246,9 +246,7 @@ export class GameSessionService {
     this.isSubmitting = true;
 
     try {
-      Logger.info(
-        `[GameSession] Submitting results to verify session: ${this.currentSessionId}`
-      );
+      Logger.info(`[GameSession] Submitting results to verify session: ${sessionId}`);
 
       const auditFlush = await this.flushRuntimeAuditQueue('before_submit');
       if (!auditFlush.ok) {
@@ -259,13 +257,13 @@ export class GameSessionService {
         Logger.warn(
           '[GameSession] Submission paused until runtime sync flush completes',
           {
-            sessionId: this.currentSessionId,
+            sessionId,
             auditFlush,
             error,
           }
         );
         EventBus.emit('verification:queued', {
-          sessionId: this.currentSessionId,
+          sessionId,
           source: 'market_sync',
           error,
           auditFlush,
@@ -278,7 +276,7 @@ export class GameSessionService {
       );
 
       const payload = {
-        sessionId: this.currentSessionId,
+        sessionId,
         pair: results.pair,
         position: results.position,
         leverage: results.leverage,
@@ -329,13 +327,13 @@ export class GameSessionService {
       // Generate HMAC signature over deterministic field subset (must match server)
       const signature = await signPayload(
         createSignablePayload(payload as unknown as Record<string, unknown>),
-        this.currentSessionSecret
+        sessionSecret
       );
 
       const data = await railwayClient.post<
         RewardVerificationResponse & { pnl?: number }
       >('/api/v1/sessions/verify', {
-        sessionId: this.currentSessionId,
+        sessionId,
         signature,
         payload,
       });
@@ -344,7 +342,7 @@ export class GameSessionService {
 
       void ProductAnalyticsService.track({
         eventType: 'leaderboard_submitted',
-        sessionId: this.currentSessionId,
+        sessionId,
         metadata: {
           pair: results.pair,
           position: results.position,
@@ -354,7 +352,7 @@ export class GameSessionService {
         },
       });
 
-      this.clearSession();
+      this.clearSession(sessionId);
 
       return {
         success: true,
@@ -368,7 +366,7 @@ export class GameSessionService {
 
       if (import.meta.env.DEV) {
         Logger.warn('[GameSession] DEV mode fallback: Simulating success');
-        this.clearSession();
+        this.clearSession(sessionId);
         return { success: true, reward: 0 };
       }
 
@@ -385,16 +383,13 @@ export class GameSessionService {
     return this.currentSessionId;
   }
 
-  static async requestCashOutQuote(
-    pacingState: CashOutPacingState
-  ): Promise<CashOutQuoteResponse> {
+  static async requestCashOutQuote(): Promise<CashOutQuoteResponse> {
     if (!this.currentSessionId || this.currentSessionId.startsWith('local-')) {
       throw new Error('NO_SERVER_SESSION');
     }
 
     return railwayClient.post<CashOutQuoteResponse>('/api/v1/economy/cash-out/quote', {
       session_id: this.currentSessionId,
-      pacing_state: pacingState,
     });
   }
 
@@ -441,7 +436,13 @@ export class GameSessionService {
     return this.currentSessionSecret;
   }
 
-  static clearSession(): void {
+  static clearSession(expectedSessionId?: string): void {
+    if (
+      expectedSessionId !== undefined &&
+      this.currentSessionId !== expectedSessionId
+    ) {
+      return;
+    }
     void this.flushRuntimeAuditQueue('clear_session');
     this.currentSessionId = null;
     this.currentSessionSecret = null;

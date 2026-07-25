@@ -445,7 +445,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('reset() clears polluted smoothedOutputs to defaults', () => {
       // Pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
       const polluted = UnifiedDirector.getOutputs();
       // At least one value should have moved away from default
@@ -463,7 +463,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('gameOver event resets UnifiedDirector (belt-and-suspenders via DifficultyManager)', () => {
       // Pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       // gameOver event should trigger DifficultyManager's listener
@@ -474,7 +474,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('gameReset event resets UnifiedDirector via DifficultyManager.reset()', () => {
       // Pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       EventBus.emit('gameReset', {});
@@ -484,7 +484,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('ResetOrchestrator.orchestrateReset() resets UnifiedDirector', () => {
       // Pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       ResetOrchestrator.orchestrateReset();
@@ -495,7 +495,7 @@ describe('DifficultyContext Reset Regression', () => {
     it('DifficultyManager.reset() resets both DifficultyContext and UnifiedDirector', () => {
       // Pollute both
       polluteAllState();
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       DifficultyManager.reset();
@@ -506,7 +506,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('DifficultyManager.resetForCycleContinue() resets UnifiedDirector', () => {
       // Pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       DifficultyManager.resetForCycleContinue();
@@ -516,7 +516,7 @@ describe('DifficultyContext Reset Regression', () => {
 
     it('UnifiedDirector does not leak across gameOver → new game cycle', () => {
       // First game: pollute
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       // Game over
@@ -527,7 +527,7 @@ describe('DifficultyContext Reset Regression', () => {
       EventBus.emit('gameStart', { leverage: 10, position: 'LONG', entryPrice: 50000 });
 
       // Pollute again in second game
-      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.update(extremeInputs, 1000 / 60);
       UnifiedDirector.snapToTargets();
 
       // Second death

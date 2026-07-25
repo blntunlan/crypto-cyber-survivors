@@ -5,7 +5,6 @@ import { DIRECTOR_CONFIG_V1, type DirectorConfigV1 } from './config/DirectorConf
 import {
   type GameplayRunMode,
   type GameplaySnapshot,
-  type PacingState,
   type PositionRiskSnapshot,
   type SpawnPlan,
 } from './contracts';
@@ -14,6 +13,7 @@ import { ExperienceDirector } from './ExperienceDirector';
 import { PositionRiskModel } from './position/PositionRiskModel';
 import { SpawnPlanBuilder, type SpawnPlanWorldInput } from './SpawnPlanBuilder';
 import { type CanonicalMarketFrame } from '../../types/marketCanonical';
+import { PacingStateMachine } from './PacingStateMachine';
 
 export type DirectorSpawnOrchestratorInput = {
   tick: number;
@@ -96,6 +96,7 @@ export class DirectorSpawnOrchestrator {
   private marketRegime: MarketRegimeEngine;
   private positionRisk: PositionRiskModel;
   private readonly intensity = new IntensityModel();
+  private readonly pacing: PacingStateMachine;
   private readonly director: ExperienceDirector;
   private readonly planBuilder: SpawnPlanBuilder;
   private readonly emptyPlan: SpawnPlan = { ...EMPTY_SPAWN_PLAN };
@@ -110,11 +111,13 @@ export class DirectorSpawnOrchestrator {
   };
   private lastUpdatedElapsedSeconds = -Infinity;
   private lastMarketRevision = -1;
+  private lastGreedLevel = -1;
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.config = config;
     this.marketRegime = new MarketRegimeEngine(config);
     this.positionRisk = new PositionRiskModel(config);
+    this.pacing = new PacingStateMachine(config);
     this.director = new ExperienceDirector(config);
     this.planBuilder = new SpawnPlanBuilder(config);
     this.output = {
@@ -133,7 +136,13 @@ export class DirectorSpawnOrchestrator {
       return this.output;
     }
 
-    const market = this.marketRegime.update(input.marketFrame).snapshot;
+    const market = this.marketRegime.update(
+      input.marketFrame,
+      input.run.elapsedSeconds
+    ).snapshot;
+    if (input.marketFrame.quality === 'STALE') {
+      this.pacing.clearQueuedMarketSurge();
+    }
     const position = this.positionRisk.update({
       sequence: input.marketFrame.sequence,
       deltaSeconds: input.deltaSeconds,
@@ -157,7 +166,13 @@ export class DirectorSpawnOrchestrator {
       buildPower: input.player.buildPower,
       mobilityUsage: input.player.mobilityUsage,
     });
-    const pacing = this.getPacing(input.run.elapsedSeconds);
+    if (input.marketFrame.quality !== 'STALE' && market.activeEventFamily !== null) {
+      this.pacing.requestMarketSurge(
+        market.activeEventFamily,
+        input.run.elapsedSeconds
+      );
+    }
+    const pacing = this.pacing.update(input.run.elapsedSeconds, input.run.seed);
     const snapshot = this.director.update(
       this.inputBuilder.build({
         tick: input.tick,
@@ -170,8 +185,8 @@ export class DirectorSpawnOrchestrator {
           activeThreat: input.world.activeEnemies,
           activePrimaryEncounters: input.world.activePrimaryEncounters,
           activeSupportEncounters: input.world.activeSupportEncounters,
-          queuedEventFamily: null,
-          doomStacks: 0,
+          queuedEventFamily: pacing.queuedEventFamily,
+          doomStacks: pacing.doomStacks,
         },
         run: {
           runId: input.run.runId,
@@ -183,20 +198,36 @@ export class DirectorSpawnOrchestrator {
         },
       })
     );
+    if (
+      snapshot.encounter.phase === 'IDLE' &&
+      market.activeEventFamily === null &&
+      this.pacing.clearQueuedMarketSurge()
+    ) {
+      snapshot.encounter.queuedEventFamily = null;
+    }
 
     this.lastUpdatedElapsedSeconds = input.run.elapsedSeconds;
     this.lastMarketRevision = input.marketFrame.revision;
+    this.lastGreedLevel = input.run.greedLevel;
     this.output.snapshot = snapshot;
     this.output.position = position;
-    this.output.plan =
-      input.marketFrame.quality === 'STALE' || snapshot.validFromTick !== input.tick
-        ? this.createEmptyPlan(snapshot, input)
-        : this.planBuilder.buildCurrent({
-            tick: input.tick,
-            seed: input.run.seed,
-            snapshot,
-            world: this.updatePlanWorld(input),
-          });
+    if (snapshot.validFromTick !== input.tick) {
+      this.output.plan = this.createEmptyPlan(snapshot, input);
+      return this.output;
+    }
+
+    const plan = this.planBuilder.buildCurrent({
+      tick: input.tick,
+      seed: input.run.seed,
+      snapshot,
+      world: this.updatePlanWorld(input),
+    });
+    let requestedThreat = 0;
+    for (let index = 0; index < plan.intents.length; index += 1) {
+      requestedThreat += plan.intents[index]?.threatCost ?? 0;
+    }
+    plan.spendableThreat = this.director.reserveThreatCredits(requestedThreat);
+    this.output.plan = plan;
     return this.output;
   }
 
@@ -204,67 +235,19 @@ export class DirectorSpawnOrchestrator {
     this.marketRegime = new MarketRegimeEngine(this.config);
     this.positionRisk = new PositionRiskModel(this.config);
     this.intensity.reset();
+    this.pacing.reset();
     this.director.reset();
     this.output.snapshot = this.director.getSnapshot();
     this.output.plan = this.emptyPlan;
     this.output.position = this.emptyPositionRisk;
     this.lastUpdatedElapsedSeconds = -Infinity;
     this.lastMarketRevision = -1;
-  }
-
-  private getPacing(elapsedSeconds: number): {
-    state: PacingState;
-    threatMultiplier: number;
-    remainingSeconds: number;
-  } {
-    if (elapsedSeconds >= this.config.survival.doomStartsAtSeconds) {
-      return {
-        state: 'DOOM',
-        threatMultiplier: this.config.pacing.peak.threatMultiplier,
-        remainingSeconds: 0,
-      };
-    }
-
-    const buildUp = this.config.pacing.buildUp;
-    const peak = this.config.pacing.peak;
-    const peakFade = this.config.pacing.peakFade;
-    const recovery = this.config.pacing.recovery;
-    const cycleSeconds =
-      buildUp.maxSeconds + peak.maxSeconds + peakFade.maxSeconds + recovery.maxSeconds;
-    const cycleElapsed = elapsedSeconds % cycleSeconds;
-
-    if (cycleElapsed < buildUp.maxSeconds) {
-      return {
-        state: 'BUILD_UP',
-        threatMultiplier: buildUp.threatMultiplier,
-        remainingSeconds: buildUp.maxSeconds - cycleElapsed,
-      };
-    }
-    if (cycleElapsed < buildUp.maxSeconds + peak.maxSeconds) {
-      return {
-        state: 'PEAK',
-        threatMultiplier: peak.threatMultiplier,
-        remainingSeconds: buildUp.maxSeconds + peak.maxSeconds - cycleElapsed,
-      };
-    }
-    if (cycleElapsed < buildUp.maxSeconds + peak.maxSeconds + peakFade.maxSeconds) {
-      return {
-        state: 'PEAK_FADE',
-        threatMultiplier: peakFade.threatMultiplier,
-        remainingSeconds:
-          buildUp.maxSeconds + peak.maxSeconds + peakFade.maxSeconds - cycleElapsed,
-      };
-    }
-
-    return {
-      state: 'RECOVERY',
-      threatMultiplier: recovery.threatMultiplier,
-      remainingSeconds: cycleSeconds - cycleElapsed,
-    };
+    this.lastGreedLevel = -1;
   }
 
   private shouldUpdate(input: DirectorSpawnOrchestratorInput): boolean {
     if (input.marketFrame.revision !== this.lastMarketRevision) return true;
+    if (input.run.greedLevel !== this.lastGreedLevel) return true;
     return (
       input.run.elapsedSeconds - this.lastUpdatedElapsedSeconds >=
       1 / this.config.runtime.updateFrequencyHz

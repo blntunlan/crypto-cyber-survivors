@@ -31,6 +31,25 @@ export const cyberpunkTheme: ThemeConfig = {
     combo: '#d6b85c',
   },
 
+  semanticTokens: {
+    'surface.canvas': '#020617',
+    'surface.default': 'rgba(15, 23, 42, 0.82)',
+    'surface.raised': 'rgba(15, 23, 42, 0.96)',
+    'surface.inset': 'rgba(2, 6, 23, 0.7)',
+    'text.primary': '#f8fafc',
+    'text.muted': '#94a3b8',
+    'action.primary.surface': '#0891b2',
+    'action.primary.surface-hover': '#06b6d4',
+    'action.primary.text': '#ffffff',
+    'action.primary.border': 'rgba(34, 211, 238, 0.45)',
+    'focus.ring': '#22d3ee',
+    'status.success': '#34d399',
+    'status.warning': '#fbbf24',
+    'status.danger': '#f87171',
+    'motion.duration-fast': '150ms',
+    'motion.duration-normal': '240ms',
+  },
+
   fonts: {
     display: '"Orbitron", system-ui, sans-serif',
     primary: '"Chakra Petch", sans-serif',

@@ -9,6 +9,7 @@ import {
   PhysicsPhase,
   SpawnPhase,
 } from '../../../services/gameplay/phases';
+import { createNeutralRuntimeDifficultySnapshot } from '../../../types/runtimeDifficulty';
 
 type ScaffoldPhaseName = 'input' | 'combat' | 'spawn' | 'physics' | 'effects';
 
@@ -161,5 +162,100 @@ describe('Gameplay scaffold phases', () => {
 
     expect(execute).toHaveBeenCalledWith(shared.spawnPlan, shared.spawnWorld);
     expect(shared.spawnExecution).toEqual({ executedCount: 2, spentThreat: 2 });
+  });
+
+  it('accumulates presentation delta between snapshot revisions', () => {
+    const observedDeltas: number[] = [];
+    const director = {
+      update: vi.fn((input: { deltaSeconds: number }) => {
+        observedDeltas.push(input.deltaSeconds);
+        return {
+          isEnabled: true,
+          ambience: { favorable: 0, volatility: 0, bpm: 0, liquidationTension: 0 },
+          sensory: { shake: 0, flash: 0, hitStop: 0, audioAccent: 0 },
+          cues: [],
+        };
+      }),
+    };
+    const target = { apply: vi.fn() };
+    const phase = new EffectsPhase(director as never, target);
+    const context = createFakeTickContext();
+    context.clock.deltaMs = 100;
+    context.clock.elapsedMs = 100;
+    const snapshot = structuredClone(
+      createNeutralRuntimeDifficultySnapshot({
+        tick: 1,
+        inputRevision: 1,
+      })
+    ) as any;
+    snapshot.meta.revision = 1;
+    const shared = {
+      difficultyPhaseDecision: { snapshot },
+    } as unknown as Record<string, never>;
+
+    phase.execute({ phase: 'effects', context, shared });
+    context.clock.elapsedMs = 200;
+    phase.execute({ phase: 'effects', context, shared });
+    snapshot.meta.revision = 2;
+    context.clock.elapsedMs = 300;
+    phase.execute({ phase: 'effects', context, shared });
+
+    expect(observedDeltas).toEqual([0.1, 0.2]);
+  });
+
+  it('feeds the current authority snapshot into presentation', () => {
+    const presentation = {
+      isEnabled: true,
+      ambience: { favorable: 0, volatility: 0, bpm: 0, liquidationTension: 0 },
+      sensory: { shake: 0, flash: 0, hitStop: 0, audioAccent: 0 },
+      cues: [],
+    };
+    const updateCurrent = vi.fn(() => presentation);
+    const director = { update: vi.fn(), updateCurrent };
+    const target = { apply: vi.fn() };
+    const phase = new EffectsPhase(director as never, target);
+    const context = createFakeTickContext();
+    const currentSnapshot = {
+      revision: 7,
+      validFromTick: 1,
+      pacing: { state: 'BUILD_UP', threatMultiplier: 0.75, remainingSeconds: 40 },
+      threat: { target: 0.4, creditRate: 1, availableCredits: 0, maximumCredits: 8 },
+      advantage: {
+        creditRate: 0,
+        availableCredits: 0,
+        maximumCredits: 0,
+        activeMechanic: null,
+      },
+      environment: {
+        regime: 'CALM',
+        presentationIntensity: 0.4,
+        isFavorable: true,
+      },
+      encounter: {
+        activeEventFamily: null,
+        canStartMarketSurge: false,
+        queuedEventFamily: null,
+        phase: 'IDLE',
+        primaryCardId: null,
+        supportCardId: null,
+        headwindChannels: [],
+      },
+    };
+    const shared = {
+      canonicalMarketFrame: { quality: 'LIVE' },
+      difficultyPhaseDecision: {
+        authority: 'current',
+        activeRevision: 7,
+        snapshot: null,
+        currentSnapshot,
+      },
+    } as unknown as Record<string, never>;
+
+    phase.execute({ phase: 'effects', context, shared });
+
+    expect(updateCurrent).toHaveBeenCalledWith(
+      expect.objectContaining({ snapshot: currentSnapshot, marketStale: false })
+    );
+    expect(target.apply).toHaveBeenCalledWith(presentation);
   });
 });

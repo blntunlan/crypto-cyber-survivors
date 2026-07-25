@@ -80,11 +80,12 @@ describe('MarketEventMapperV2', () => {
   });
 
   it('expires lifecycle events without publishing modifier-removal effects', () => {
-    vi.useFakeTimers();
     getMarketEventListener()({ type: 'FLASH_CRASH', intensity: 1, durationMs: 1_000 });
 
-    vi.advanceTimersByTime(1_100);
-    mapper.update(1_100);
+    mapper.update(400);
+    expect(mapper.getActiveEffects()[0]?.timeRemaining).toBe(600);
+
+    mapper.update(600);
 
     expect(mapper.isEventActive('FLASH_CRASH')).toBe(false);
     expect(EventBus.emit).not.toHaveBeenCalled();

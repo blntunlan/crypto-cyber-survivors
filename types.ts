@@ -331,7 +331,6 @@ export interface GameState {
   critFlashColor: string;
   currentBg: { r: number; g: number; b: number };
   lastTime: number;
-  bgUpdateFrameCounter: number; // Frame counter for background optimization
 
   levelUpFreeze: number;
   isDashing: boolean;

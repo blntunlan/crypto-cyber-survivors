@@ -16,10 +16,14 @@ export type SpawnExecutionResult = {
 /** Applies an already-authorized SpawnPlan; it never reads market or player state. */
 export class SpawnExecutor {
   private readonly result: SpawnExecutionResult = { executedCount: 0, spentThreat: 0 };
+  private lastExecutedRevision = -1;
 
   public execute(plan: SpawnPlan, world: SpawnExecutorWorld): SpawnExecutionResult {
     this.result.executedCount = 0;
     this.result.spentThreat = 0;
+    if (plan.revision <= this.lastExecutedRevision) return this.result;
+    this.lastExecutedRevision = plan.revision;
+
     let activeEnemies = world.pool.activeEnemies.length;
     const activeLimit = Math.min(plan.maxActiveEnemies, world.maxActiveEnemies);
 
@@ -46,5 +50,9 @@ export class SpawnExecutor {
     }
 
     return this.result;
+  }
+
+  public reset(): void {
+    this.lastExecutedRevision = -1;
   }
 }

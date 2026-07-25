@@ -65,9 +65,7 @@ export class SpawnPlanBuilder {
       capacity,
       Math.floor(spendableThreat / MINIMUM_ENEMY_COST)
     );
-    const rng = new SeededRng(
-      snapshot.spawn.seed ^ input.tick ^ snapshot.meta.revision
-    );
+    const rng = new SeededRng(snapshot.spawn.seed ^ snapshot.meta.revision);
     const intents: SpawnIntent[] = [];
     const directives = snapshot.spawn.directives;
     const composition: readonly string[] =
@@ -126,7 +124,7 @@ export class SpawnPlanBuilder {
       capacity,
       Math.floor(spendableThreat / MINIMUM_ENEMY_COST)
     );
-    const rng = new SeededRng(input.seed ^ input.tick ^ input.snapshot.revision);
+    const rng = new SeededRng(input.seed ^ input.snapshot.revision);
     const intents: SpawnIntent[] = [];
     const useCounterComposition = input.snapshot.encounter.headwindChannels.includes(
       'MULTI_DIRECTIONAL_ENTRIES'

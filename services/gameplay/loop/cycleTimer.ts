@@ -1,4 +1,5 @@
 import { GAME_MODE_CONFIGS, GameMode } from '../../../types/gameMode';
+import { type DifficultyPhaseDecision } from '../../difficulty/runtime/DifficultyRuntime';
 
 export interface CycleTimerResult {
   /** Current cycle number (1-based) */
@@ -33,4 +34,22 @@ export function evaluateCycleTimer(
     currentCycle,
     shouldEmit: currentCycle > lastEmittedCycle,
   };
+}
+
+/**
+ * Cash-out is a recovery affordance, not an arbitrary wall-clock interrupt.
+ * Fail closed until the active Director has committed a pacing decision.
+ */
+export function isCashOutRecoveryEligible(
+  decision: DifficultyPhaseDecision | undefined
+): boolean {
+  if (decision?.authority === 'current') {
+    return decision.currentSnapshot?.pacing.state === 'RECOVERY';
+  }
+
+  if (decision?.authority === 'modular') {
+    return decision.snapshot?.signals.pacing.phase === 'RECOVERY';
+  }
+
+  return false;
 }

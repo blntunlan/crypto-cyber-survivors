@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpawnSystem } from '../../services/combat/SpawnSystem';
 import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { MarketPosition } from '../../types';
+import { EventBus } from '../../services/core/EventBus';
 
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
@@ -59,6 +60,23 @@ describe('SpawnSystem', () => {
     // 100ms delta, threshold around 1000ms
     spawnSystem.updateLegacy(100, 1.0, 800, 600, MarketPosition.LONG, mockPool);
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
+  });
+
+  it('expires market events from accumulated game delta', () => {
+    EventBus.emit('gameMarketEvent', {
+      type: 'VOLUME_SPIKE',
+      intensity: 1,
+      durationMs: 1000,
+    });
+
+    spawnSystem.updateLegacy(0, 1, 800, 600, MarketPosition.LONG, mockPool);
+    expect((spawnSystem as any).activeEvents.has('VOLUME_SPIKE')).toBe(true);
+
+    spawnSystem.updateLegacy(999, 1, 800, 600, MarketPosition.LONG, mockPool);
+    expect((spawnSystem as any).activeEvents.has('VOLUME_SPIKE')).toBe(true);
+
+    spawnSystem.updateLegacy(1, 1, 800, 600, MarketPosition.LONG, mockPool);
+    expect((spawnSystem as any).activeEvents.has('VOLUME_SPIKE')).toBe(false);
   });
 
   it('should spawn regular enemy when threshold reached', () => {

@@ -22,7 +22,7 @@ type MutableInputView = {
   revisions: DifficultyRevisionVector;
   market: { frame: CanonicalMarketFrame | null };
   player: MutablePlayerTelemetry;
-  run: { constants: DifficultyRunConstants | null };
+  run: { constants: DifficultyRunConstants | null; greedLevel: number };
   world: DifficultyWorldPressure;
 };
 
@@ -167,7 +167,7 @@ export class DifficultyInputInbox {
     revisions: this.revisions,
     market: { frame: null },
     player: this.playerView,
-    run: { constants: null },
+    run: { constants: null, greedLevel: 0 },
     world: this.worldView,
   };
 
@@ -180,6 +180,7 @@ export class DifficultyInputInbox {
   private marketEligibleTick = NO_ELIGIBLE_TICK;
   private playerEligibleTick = NO_ELIGIBLE_TICK;
   private runEligibleTick = NO_ELIGIBLE_TICK;
+  private greedEligibleTick = NO_ELIGIBLE_TICK;
   private worldEligibleTick = NO_ELIGIBLE_TICK;
   private resetEligibleTick = NO_ELIGIBLE_TICK;
   private cycleResetEligibleTick = NO_ELIGIBLE_TICK;
@@ -189,6 +190,10 @@ export class DifficultyInputInbox {
   private pendingDashes = 0;
   private pendingShots = 0;
   private pendingLevel = 1;
+  private pendingGreedLevel = 0;
+  private greedDirty = false;
+  private lastGreedCanonicalSequence = -1;
+  private lastGreedQuoteId = '';
   private pendingActiveEnemies = 0;
   private pendingMaximumEnemies = 0;
   private pendingActiveEncounters = 0;
@@ -221,6 +226,37 @@ export class DifficultyInputInbox {
     copyRunConstants(this.pendingRunConstants, constants);
     this.hasPendingRun = true;
     this.runEligibleTick = eligibleFromTick;
+  }
+
+  public recordAuthoritativeGreed(
+    event: Pick<
+      EventDataMap['cashOutDecisionCommitted'],
+      'quoteId' | 'canonicalSequence' | 'greedLevel'
+    >,
+    eligibleFromTick: number
+  ): void {
+    const minimumGreedLevel = Math.max(
+      this.view.run.greedLevel,
+      this.pendingGreedLevel
+    );
+    if (
+      event.quoteId.length === 0 ||
+      !Number.isSafeInteger(event.canonicalSequence) ||
+      event.canonicalSequence < 0 ||
+      !Number.isSafeInteger(event.greedLevel) ||
+      event.greedLevel <= minimumGreedLevel ||
+      event.canonicalSequence < this.lastGreedCanonicalSequence ||
+      event.quoteId === this.lastGreedQuoteId ||
+      !Number.isSafeInteger(eligibleFromTick)
+    ) {
+      return;
+    }
+
+    this.pendingGreedLevel = event.greedLevel;
+    this.lastGreedCanonicalSequence = event.canonicalSequence;
+    this.lastGreedQuoteId = event.quoteId;
+    this.greedDirty = true;
+    this.greedEligibleTick = Math.min(this.greedEligibleTick, eligibleFromTick);
   }
 
   public recordMarketFrame(
@@ -344,15 +380,25 @@ export class DifficultyInputInbox {
       this.resetForCycleContinue();
     }
 
+    let runRevisionDirty = false;
     let playerRevisionDirty = false;
     if (this.hasPendingRun && this.runEligibleTick <= tick) {
       copyRunConstants(this.committedRunConstants, this.pendingRunConstants);
       this.hasCommittedRun = true;
       this.hasPendingRun = false;
       this.view.run.constants = this.committedRunConstants;
-      this.revisions.run += 1;
+      runRevisionDirty = true;
       playerRevisionDirty = true;
       this.runEligibleTick = NO_ELIGIBLE_TICK;
+    }
+    if (this.greedDirty && this.greedEligibleTick <= tick) {
+      this.view.run.greedLevel = this.pendingGreedLevel;
+      this.greedDirty = false;
+      this.greedEligibleTick = NO_ELIGIBLE_TICK;
+      runRevisionDirty = true;
+    }
+    if (runRevisionDirty) {
+      this.revisions.run += 1;
     }
     if (this.marketDirty && this.marketEligibleTick <= tick) {
       copyFrame(this.committedMarketFrame, this.pendingMarketFrame);
@@ -402,11 +448,17 @@ export class DifficultyInputInbox {
     this.marketEligibleTick = NO_ELIGIBLE_TICK;
     this.playerEligibleTick = NO_ELIGIBLE_TICK;
     this.runEligibleTick = NO_ELIGIBLE_TICK;
+    this.greedEligibleTick = NO_ELIGIBLE_TICK;
     this.worldEligibleTick = NO_ELIGIBLE_TICK;
     this.resetEligibleTick = NO_ELIGIBLE_TICK;
     this.cycleResetEligibleTick = NO_ELIGIBLE_TICK;
     this.view.market.frame = null;
     this.view.run.constants = null;
+    this.view.run.greedLevel = 0;
+    this.pendingGreedLevel = 0;
+    this.greedDirty = false;
+    this.lastGreedCanonicalSequence = -1;
+    this.lastGreedQuoteId = '';
     this.clearPlayerView();
     this.clearPendingPlayerTelemetry();
     this.clearWorldView();

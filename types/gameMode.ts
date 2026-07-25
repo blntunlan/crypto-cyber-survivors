@@ -49,6 +49,19 @@ export interface CycleCompleteData {
   level: number;
   pnl: number;
   effectivePnl: number;
-  coinsEarned: number;
-  continueMultiplier: number;
 }
+
+export type CashOutOfferData = {
+  cycle: CycleCompleteData;
+  quote: {
+    quoteId: string;
+    sessionId: string;
+    canonicalSequence: number;
+    rewardPoints: number;
+    issuedAtSeconds: number;
+    expiresAtSeconds: number;
+  };
+  signature: string;
+  safeExitOnly: boolean;
+  greedLevel: number;
+};

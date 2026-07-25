@@ -1,4 +1,5 @@
 import { LEVERAGE_OPTIONS } from '../../../types';
+import { DIRECTOR_CONTENT_MANIFEST_HASH } from './DirectorContentManifest';
 
 export type DirectorVersionInfo = {
   directorVersion: string;
@@ -83,6 +84,7 @@ export type DirectorConfigV1 = {
     };
     minimum: number;
     maximum: number;
+    staleDecaySeconds: number;
   };
   advantage: {
     baseCreditsPerSecond: number;
@@ -147,10 +149,10 @@ export type DirectorConfigV1 = {
   };
   regime: {
     minimumDurationSeconds: number;
-    volatilityReferenceAtrPercent: number;
     macdConfirmationFrames: number;
     minimumTrendStrength: number;
     whaleEventMinimumTier: number;
+    volatilityWindowSamples: number;
   };
 };
 
@@ -165,7 +167,7 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
   versions: {
     directorVersion: 'director-v1',
     configVersion: 'director-config-v1',
-    contentManifestHash: 'content-manifest-pending',
+    contentManifestHash: DIRECTOR_CONTENT_MANIFEST_HASH,
   },
   runtime: {
     updateFrequencyHz: 5,
@@ -228,6 +230,7 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
     },
     minimum: 0,
     maximum: 1,
+    staleDecaySeconds: 30,
   },
   advantage: {
     baseCreditsPerSecond: 1,
@@ -290,10 +293,10 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
   },
   regime: {
     minimumDurationSeconds: 3,
-    volatilityReferenceAtrPercent: 0.02,
     macdConfirmationFrames: 2,
     minimumTrendStrength: 0.6,
     whaleEventMinimumTier: 2,
+    volatilityWindowSamples: 60 * 60,
   },
 };
 
@@ -629,8 +632,13 @@ export const validateDirectorConfig = (config: DirectorConfigV1): DirectorConfig
     'regime.minimumDurationSeconds'
   );
   assertFinitePositive(
-    config.regime.volatilityReferenceAtrPercent,
-    'regime.volatilityReferenceAtrPercent'
+    config.marketPressure.staleDecaySeconds,
+    'marketPressure.staleDecaySeconds'
+  );
+  assertIntegerAtLeast(
+    config.regime.volatilityWindowSamples,
+    2,
+    'regime.volatilityWindowSamples'
   );
   assertIntegerAtLeast(
     config.regime.macdConfirmationFrames,

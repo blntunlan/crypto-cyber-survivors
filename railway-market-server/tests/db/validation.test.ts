@@ -7,9 +7,21 @@ import {
   errorReportSchema,
   saveReplaySchema,
   purchaseUpgradeSchema,
+  cashOutQuoteSchema,
 } from '../../src/db/validation';
 
 describe('validation schemas', () => {
+  describe('cashOutQuoteSchema', () => {
+    it('rejects client-declared pacing authority', () => {
+      const result = cashOutQuoteSchema.safeParse({
+        session_id: '11111111-1111-4111-8111-111111111111',
+        pacing_state: 'RECOVERY',
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('createProfileSchema — nickname', () => {
     it('accepts valid nicknames (3-16 chars, alphanumeric + underscore + hyphen)', () => {
       const validNames = ['abc', 'Player_1', 'my-name', 'A1B2C3D4E5F6G7H8', 'a_b-c'];
@@ -114,6 +126,7 @@ describe('validation schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
   });
 
   describe('syncSessionSchema', () => {

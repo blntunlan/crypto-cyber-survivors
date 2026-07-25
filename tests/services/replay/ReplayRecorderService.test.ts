@@ -214,6 +214,23 @@ describe('ReplayRecorderService', () => {
       expect(spawnEvent!.data).toMatchObject({ id: 42, type: 'bear', x: 100, y: 200 });
     });
 
+    it('timestamps events from accumulated replay delta instead of wall time', () => {
+      ReplayRecorderService.startRecording('s1', 1, 'LONG', 'BTC');
+      ReplayRecorderService.tick(100, 0, 0, 100, 1, []);
+      vi.advanceTimersByTime(1000);
+
+      EventBus.emit('enemySpawned', {
+        spawnId: 42,
+        enemyType: 'bear',
+        x: 100,
+        y: 200,
+        isElite: false,
+      });
+
+      const data = ReplayRecorderService.stopRecording();
+      expect(data.events[0]?.t).toBe(100);
+    });
+
     it('should record kill events from EventBus', () => {
       ReplayRecorderService.startRecording('s1', 1, 'LONG', 'BTC');
 

@@ -66,6 +66,11 @@ export class DifficultyEventBridge {
         { scope: 'gameplay' }
       ),
       EventBus.on(
+        'cashOutDecisionCommitted',
+        event => this.inbox.recordAuthoritativeGreed(event, this.nextTick()),
+        { scope: 'gameplay' }
+      ),
+      EventBus.on(
         'difficultyRunInitialized',
         constants => this.inbox.initializeRun(constants, this.nextTick()),
         { scope: 'gameplay' }

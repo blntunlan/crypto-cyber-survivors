@@ -42,7 +42,6 @@ class ReplayRecorderServiceClass {
   private snapshots: PlaybackSnapshot[] = [];
   private events: PlaybackEvent[] = [];
   private enemyFrames: EnemyFrame[] = [];
-  private startTime = 0;
   private snapshotTimer = 0;
   private enemyFrameTimer = 0;
   private elapsedMs = 0;
@@ -65,7 +64,6 @@ class ReplayRecorderServiceClass {
     this.snapshots = [];
     this.events = [];
     this.enemyFrames = [];
-    this.startTime = Date.now();
     this.snapshotTimer = 0;
     this.enemyFrameTimer = 0;
     this.elapsedMs = 0;
@@ -88,7 +86,7 @@ class ReplayRecorderServiceClass {
       EventBus.on('enemySpawned', data => {
         if (!this.recording) return;
         this.events.push({
-          t: Date.now() - this.startTime,
+          t: this.elapsedMs,
           type: 'spawn',
           data: {
             id: data.spawnId,
@@ -102,7 +100,7 @@ class ReplayRecorderServiceClass {
       EventBus.on('enemyKilled', data => {
         if (!this.recording) return;
         this.events.push({
-          t: Date.now() - this.startTime,
+          t: this.elapsedMs,
           type: 'kill',
           data: {
             id: parseSpawnId(data.enemyId),
@@ -125,7 +123,7 @@ class ReplayRecorderServiceClass {
    */
   recordEvent(type: PlaybackEvent['type'], data: Record<string, unknown>): void {
     if (!this.recording) return;
-    this.events.push({ t: Date.now() - this.startTime, type, data });
+    this.events.push({ t: this.elapsedMs, type, data });
   }
 
   /**

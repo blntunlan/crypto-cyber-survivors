@@ -1,12 +1,10 @@
 /**
- * CycleCompleteScreen - Displayed when a 5-minute cycle ends in COMPETITIVE mode
+ * CycleCompleteScreen - Live server-signed cash-out offer.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
-import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
-import { ComboSystem } from '../../services/combat/ComboSystem';
 import { COLORS } from '../../config/Colors';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { audio } from '../../services/audio';
@@ -19,7 +17,7 @@ import {
   IconBitcoin,
   IconMonitor,
 } from '../icons/CardIcons';
-import { type CycleCompleteData } from '../../types/gameMode';
+import { type CashOutOfferData } from '../../types/gameMode';
 import { Logger } from '../../services/system/Logger';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ThemedButton } from '../themed/ThemedButton';
@@ -27,26 +25,29 @@ import { OverlayChrome, OverlaySectionRail } from '../ui/OverlayChrome';
 import { cn } from '../../utils/classnames';
 
 interface CycleCompleteScreenProps {
-  data: CycleCompleteData;
+  offer: CashOutOfferData;
   onCashOut: () => void | Promise<void>;
-  onContinue: () => void | Promise<void>;
+  onReject: () => void | Promise<void>;
 }
 
 export function CycleCompleteScreen({
-  data,
+  offer,
   onCashOut,
-  onContinue,
+  onReject,
 }: CycleCompleteScreenProps): React.JSX.Element {
   const { isRetro } = useTheme();
   const sizes = useThemeSize();
   const { t } = useLanguage();
+  const data = offer.cycle;
 
-  const [coinCalculation, setCoinCalculation] = useState<CoinCalculation | null>(null);
-  const [showBreakdown, setShowBreakdown] = useState(false);
-
+  const [timeRemaining, setTimeRemaining] = useState(() =>
+    Math.max(0, Math.ceil(offer.quote.expiresAtSeconds - Date.now() / 1_000))
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selectedIndexRef = useRef(0);
   const hasSelectedRef = useRef(false);
+  const onCashOutEvent = useEffectEvent(onCashOut);
+  const onRejectEvent = useEffectEvent(onReject);
 
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
@@ -54,19 +55,27 @@ export function CycleCompleteScreen({
 
   useEffect(() => {
     Logger.info('[CycleCompleteScreen] Mounted');
+    audio.playLevelUp();
   }, []);
 
   useEffect(() => {
-    const calc = CoinService.calculateCycleReward({
-      survivalTimeSeconds: data.survivalTimeSeconds,
-      kills: data.totalKills,
-      level: data.level,
-      pnl: data.effectivePnl,
-      maxStreak: ComboSystem.getMaxStreak(),
-    });
-    setCoinCalculation(calc);
-    audio.playLevelUp();
-  }, [data]);
+    let timerId: number | null = null;
+    const updateRemaining = (): void => {
+      const remaining = Math.max(
+        0,
+        Math.ceil(offer.quote.expiresAtSeconds - Date.now() / 1_000)
+      );
+      setTimeRemaining(remaining);
+      if (remaining > 0) {
+        timerId = window.setTimeout(updateRemaining, 1_000);
+      }
+    };
+
+    updateRemaining();
+    return () => {
+      if (timerId !== null) window.clearTimeout(timerId);
+    };
+  }, [offer.quote.expiresAtSeconds]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,9 +121,9 @@ export function CycleCompleteScreen({
           hasSelectedRef.current = true;
           audio.playButton();
           if (currentIdx === 0) {
-            void onCashOut();
+            void onCashOutEvent();
           } else {
-            void onContinue();
+            void onRejectEvent();
           }
           break;
         }
@@ -123,7 +132,7 @@ export function CycleCompleteScreen({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCashOut, onContinue]);
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -132,8 +141,6 @@ export function CycleCompleteScreen({
   };
 
   const pnlColor = data.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
-  const continueRisk = Math.min(0.5 + data.cycleNumber * 0.1, 0.9);
-
   return (
     <OverlayChrome
       zIndex={Z_LAYERS.CYCLE_COMPLETE}
@@ -145,6 +152,13 @@ export function CycleCompleteScreen({
       accentColor={COLORS.JACKPOT_YELLOW}
     >
       <div className="space-y-6">
+        <div className="flex items-center justify-between gap-4 text-sm uppercase tracking-[0.16em] text-slate-300">
+          <span>Greed {offer.greedLevel}</span>
+          <span className="font-numbers text-2xl font-black text-yellow-400">
+            {timeRemaining}s
+          </span>
+        </div>
+
         <section className="space-y-3">
           <OverlaySectionRail
             label={t('common.cycle_complete_screen.subtitle') as string}
@@ -206,57 +220,30 @@ export function CycleCompleteScreen({
           </div>
         </section>
 
-        {coinCalculation && (
-          <section className="space-y-3">
-            <OverlaySectionRail
-              label={t('common.cycle_complete_screen.coins_earned')}
-              color={COLORS.JACKPOT_YELLOW}
-            />
+        <section className="space-y-3">
+          <OverlaySectionRail
+            label={t('common.cycle_complete_screen.coins_earned')}
+            color={COLORS.JACKPOT_YELLOW}
+          />
+          <div
+            className={cn(
+              'space-y-3 p-4',
+              isRetro
+                ? 'border-2 border-yellow-500/50 bg-[#0a0a12]/80'
+                : 'rounded-sm border border-yellow-500/20 bg-yellow-500/5'
+            )}
+          >
+            <span className="font-cyber text-sm font-black uppercase tracking-[0.18em] text-slate-300">
+              {t('common.cycle_complete_screen.cycle_reward') as string}
+            </span>
             <div
-              className={cn(
-                'space-y-3 p-4',
-                isRetro
-                  ? 'border-2 border-yellow-500/50 bg-[#0a0a12]/80'
-                  : 'rounded-sm border border-yellow-500/20 bg-yellow-500/5'
-              )}
+              className={`${sizes.heading} font-cyber font-black`}
+              style={{ color: COLORS.JACKPOT_YELLOW }}
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-cyber text-sm font-black uppercase tracking-[0.18em] text-slate-300">
-                  {t('common.cycle_complete_screen.cycle_reward') as string}
-                </span>
-                <ThemedButton
-                  intent="ghost"
-                  onClick={() => setShowBreakdown(!showBreakdown)}
-                  className="text-xs uppercase tracking-[0.18em]"
-                >
-                  {showBreakdown
-                    ? t('common.cycle_complete_screen.hide')
-                    : t('common.cycle_complete_screen.details')}
-                </ThemedButton>
-              </div>
-              <div
-                className={`${sizes.heading} font-cyber font-black`}
-                style={{ color: COLORS.JACKPOT_YELLOW }}
-              >
-                {coinCalculation.total.toLocaleString()} META
-              </div>
-              {showBreakdown && (
-                <div className="space-y-2 border-t border-white/10 pt-3">
-                  {Object.entries(coinCalculation.breakdown).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="uppercase tracking-[0.12em] text-slate-500">
-                        {key}
-                      </span>
-                      <span className="font-numbers font-bold text-slate-100">
-                        +{value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {offer.quote.rewardPoints.toLocaleString()} META
             </div>
-          </section>
-        )}
+          </div>
+        </section>
 
         <div
           className={cn(
@@ -266,9 +253,7 @@ export function CycleCompleteScreen({
               : 'rounded-sm border border-orange-500/40 bg-orange-500/10 text-orange-400'
           )}
         >
-          {t('common.cycle_complete_screen.continue_risk', {
-            val: Math.round(continueRisk * 100),
-          })}
+          Greed {offer.greedLevel + 1}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -298,7 +283,7 @@ export function CycleCompleteScreen({
               if (hasSelectedRef.current) return;
               hasSelectedRef.current = true;
               audio.playButton();
-              void onContinue();
+              void onReject();
             }}
             className={cn(
               'min-h-[52px] text-xs font-black uppercase tracking-[0.22em] transition-transform',
@@ -314,12 +299,6 @@ export function CycleCompleteScreen({
               {t('common.cycle_complete_screen.continue')}
             </span>
           </ThemedButton>
-        </div>
-
-        <div className="text-center text-[11px] uppercase tracking-[0.18em] text-slate-500">
-          {t('common.cycle_complete_screen.multiplier_hint', {
-            val: Math.round((1 + data.cycleNumber * 0.5) * 100),
-          })}
         </div>
       </div>
     </OverlayChrome>

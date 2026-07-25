@@ -2,16 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventRecorderService } from '../../services/core/EventRecorderService';
 import { EventBus } from '../../services/core/EventBus';
 import { ReplayEventType } from '../../types/replay';
+import { TimeService } from '../../services/core/TimeService';
 
 describe('EventRecorderService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    TimeService.reset();
+    TimeService.setGameTime(0);
     // @ts-expect-error:  reset private static
     EventRecorderService.constructor.resetForTesting();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
+    TimeService.reset();
     vi.useRealTimers();
   });
 
@@ -51,6 +55,20 @@ describe('EventRecorderService', () => {
   });
 
   describe('Hash Chain Integrity', () => {
+    it('timestamps recorded events from game time', () => {
+      EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
+      TimeService.setGameTime(100);
+      vi.advanceTimersByTime(1000);
+
+      EventRecorderService.record(ReplayEventType.XP_GAINED, {
+        amount: 10,
+        source: 'test',
+      });
+
+      // @ts-expect-error: testing
+      expect(EventRecorderService.events[1]!.timestamp).toBe(100);
+    });
+
     it('overwrites capped events without shifting the backing array', () => {
       EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
       // @ts-expect-error: inspect the hot-path backing store

@@ -1,15 +1,17 @@
 import React from 'react';
-import { useTheme } from '../../contexts/useTheme';
-import { INPUT_VARIANTS } from '../../config/themeVariants';
+import { cn } from '../../utils/classnames';
+import { useUiSkin } from './useUiSkin';
 
 type ThemedInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
-export const ThemedInput: React.FC<ThemedInputProps> = ({
-  className = '',
-  ...props
-}) => {
-  const { isRetro } = useTheme();
-  const variantClass = isRetro ? INPUT_VARIANTS.retro : INPUT_VARIANTS.modern;
+export const ThemedInput: React.FC<ThemedInputProps> = ({ className, ...props }) => {
+  const skin = useUiSkin();
 
-  return <input className={`${variantClass} ${className}`} {...props} />;
+  return (
+    <input
+      {...props}
+      className={cn(skin.control.base, skin.control.input, className)}
+      data-ui-component="input"
+    />
+  );
 };

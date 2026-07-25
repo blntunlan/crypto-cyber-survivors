@@ -8,6 +8,7 @@ import {
   type Candle,
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
+import { type WeaponMarketContext } from '../types/weapons';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { useGameInput } from '../hooks/useGameInput';
 import { ComboSystem } from '../services/combat/ComboSystem';
@@ -37,7 +38,11 @@ import { checkPortalCollision } from '../services/gameplay/portal/portalCollisio
 import { type RewardPayload } from '../types/reward';
 import { GameEndReason } from '../types/metrics';
 import { GameMode } from '../types/gameMode';
-import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
+import {
+  evaluateCycleTimer,
+  isCashOutRecoveryEligible,
+} from '../services/gameplay/loop/cycleTimer';
+import { type DifficultyPhaseDecision } from '../services/difficulty/runtime/DifficultyRuntime';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { FeedbackService } from '../services/gameplay/FeedbackService';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
@@ -159,6 +164,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const directorRunSeedRef = useRef(0);
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
   const lastCycleRef = useRef(1);
+  const pendingCashOutCycleRef = useRef<number | null>(null);
+  const cashOutRetryNotBeforeRef = useRef(0);
 
   const {
     getMovementVector,
@@ -207,7 +214,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     critFlashColor: COLORS.CRIT,
     currentBg: { r: 2, g: 6, b: 23 },
     lastTime: 0,
-    bgUpdateFrameCounter: 0, // Add frame counter for background updates
 
     levelUpFreeze: 0,
     isDashing: false,
@@ -323,6 +329,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     pool: runtimeRef.current.poolManager,
     player: playerRef.current as Player,
     state: state.current,
+  });
+  const weaponMarketContextRef = useRef<WeaponMarketContext>({
+    atrPercent: marketData.atrPercent ?? 0,
+    rsiState: marketData.rsiState ?? 'NEUTRAL',
+    pnl: marketData.pnl,
+    volumeNorm: marketData.difficulty,
+    isFavorable: marketData.pnl >= 0,
   });
 
   const gameLoopCoordinatorRef = useLazyRef(() => {
@@ -484,7 +497,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     movementMagnitude: 0,
     didAttack: false,
     isDashing: false,
-    nowMs: 0,
+    elapsedMs: 0,
   });
 
   useEffect(() => {
@@ -509,9 +522,36 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
+      pendingCashOutCycleRef.current = null;
+      cashOutRetryNotBeforeRef.current = 0;
       lastRawFrameTimeRef.current = null;
     }
   }, [phaseProfilerRef, status, coreLoopRef, hitStopGovernorRef, lootCacheSystem]);
+
+  useEffect(() => {
+    const unsubscribeOpened = EventBus.on('cashOutOfferOpened', ({ cycleNumber }) => {
+      lastCycleRef.current = Math.max(lastCycleRef.current, cycleNumber);
+      if (pendingCashOutCycleRef.current === cycleNumber) {
+        pendingCashOutCycleRef.current = null;
+      }
+      cashOutRetryNotBeforeRef.current = 0;
+    });
+    const unsubscribeFailed = EventBus.on(
+      'cashOutOfferQuoteFailed',
+      ({ cycleNumber }) => {
+        if (pendingCashOutCycleRef.current === cycleNumber) {
+          pendingCashOutCycleRef.current = null;
+          cashOutRetryNotBeforeRef.current =
+            performance.now() + GAME_ENGINE.CASH_OUT_QUOTE_RETRY_DELAY_MS;
+        }
+      }
+    );
+
+    return () => {
+      unsubscribeOpened();
+      unsubscribeFailed();
+    };
+  }, []);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -794,9 +834,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       const p = pool.current;
 
       const deltaTime = TimeService.update(time);
+      const gameTimeMs = TimeService.getGameTime();
 
       const dtFactor = updateNearMissFeedbackTimers(s, deltaTime);
-      s.lastTime = time;
+      s.lastTime = gameTimeMs;
 
       gameplayFrameRef.current += 1;
 
@@ -998,22 +1039,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         }
 
-        // Cycle Timer: auto-emit cycleComplete at cycle boundaries (COMPETITIVE mode)
-        {
-          const elapsed = TimeService.getGameTimeSeconds();
-          const cycle = evaluateCycleTimer(elapsed, lastCycleRef.current, gameMode);
-          if (cycle.shouldEmit) {
-            lastCycleRef.current = cycle.currentCycle;
-            Logger.info(
-              `[GameEngine] Cycle ${cycle.currentCycle} complete at ${elapsed.toFixed(0)}s`
-            );
-            EventBus.emit('cycleComplete', {
-              cycleNumber: cycle.currentCycle,
-              totalElapsedSeconds: elapsed,
-            });
-          }
-        }
-
         // Combo, BuffManager, and MetricsService updates are now in MetricsPhase (Step 5).
         // BuffManager.updateBaseStats needs direct player ref, keep it here.
         BuffManager.updateBaseStats(player);
@@ -1023,7 +1048,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         BuffGemSpawner.update(marketDataRef.current.difficulty, deltaTime);
 
         // Update Speed Lines
-        speedLineSpawner.current.update(p, s, player, width, height, time);
+        speedLineSpawner.current.update(p, s, player, width, height, deltaTime);
 
         // Low HP Heartbeat Logic
         if (hpPercent < GAME_ENGINE.LOW_HP_THRESHOLD_PERCENT) {
@@ -1033,9 +1058,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             GAME_ENGINE.HEARTBEAT_INTERVAL_BASE -
             urgency * GAME_ENGINE.HEARTBEAT_INTERVAL_SHIFT;
 
-          if (time - s.lastHeartbeatTime > interval) {
+          if (gameTimeMs - s.lastHeartbeatTime > interval) {
             audio.playHeartbeat();
-            s.lastHeartbeatTime = time;
+            s.lastHeartbeatTime = gameTimeMs;
           }
         }
 
@@ -1047,7 +1072,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const shared = phaseSharedRef.current;
         shared.deltaTime = deltaTime;
         shared.dtFactor = dtFactor;
-        shared.timeMs = time;
+        shared.timeMs = gameTimeMs;
         shared.width = width;
         shared.height = height;
         shared.deviceIsMobile = device.isMobile;
@@ -1112,7 +1137,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         tick.clock.frame = gameplayFrameRef.current;
         tick.clock.nowMs = time;
         tick.clock.deltaMs = deltaTime;
-        tick.clock.elapsedMs = TimeService.getGameTime();
+        tick.clock.elapsedMs = gameTimeMs;
         tick.status = status;
         tick.dimensions.width = width;
         tick.dimensions.height = height;
@@ -1142,6 +1167,31 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         }
 
+        // Cycle boundaries become cash-out offers only in an authored recovery window.
+        // A cycle is acknowledged after the signed quote opens, so failed requests can retry.
+        {
+          const elapsed = TimeService.getGameTimeSeconds();
+          const cycle = evaluateCycleTimer(elapsed, lastCycleRef.current, gameMode);
+          const difficultyDecision = shared.difficultyPhaseDecision as
+            | DifficultyPhaseDecision
+            | undefined;
+          if (
+            cycle.shouldEmit &&
+            pendingCashOutCycleRef.current !== cycle.currentCycle &&
+            time >= cashOutRetryNotBeforeRef.current &&
+            isCashOutRecoveryEligible(difficultyDecision)
+          ) {
+            pendingCashOutCycleRef.current = cycle.currentCycle;
+            Logger.info(
+              `[GameEngine] Cycle ${cycle.currentCycle} cash-out recovery at ${elapsed.toFixed(0)}s`
+            );
+            EventBus.emit('cycleComplete', {
+              cycleNumber: cycle.currentCycle,
+              totalElapsedSeconds: elapsed,
+            });
+          }
+        }
+
         const movementVector = phaseSharedRef.current.inputVector as
           | { dx: number; dy: number }
           | undefined;
@@ -1163,7 +1213,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         coreInput.movementMagnitude = movementMagnitude;
         coreInput.didAttack = didAttack;
         coreInput.isDashing = s.isDashing;
-        coreInput.nowMs = Date.now();
+        coreInput.elapsedMs = gameTimeMs;
 
         const coreLoopOutput = coreLoopRef.current.update(coreInput);
 
@@ -1189,35 +1239,31 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness
         const minVal = device.isMobile ? 12 : 2;
 
-        // Only update background every 3 frames to optimize performance
-        s.bgUpdateFrameCounter = (s.bgUpdateFrameCounter + 1) % 3;
-        if (s.bgUpdateFrameCounter === 0) {
-          if (marketDataRef.current.pnl >= 0) {
-            s.targetBg.r = minVal;
-            s.targetBg.g = lerp(
-              minVal + 4,
-              45,
-              Math.min(1, marketDataRef.current.pnl * 20)
-            );
-            s.targetBg.b = minVal + 8;
-          } else {
-            s.targetBg.r = lerp(
-              minVal,
-              45,
-              Math.min(
-                1,
-                Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
-              )
-            );
-            s.targetBg.g = minVal;
-            s.targetBg.b = minVal;
-          }
-
-          const bgLerpFactor = 1 - Math.pow(1 - GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
-          s.currentBg.r = lerp(s.currentBg.r, s.targetBg.r, bgLerpFactor);
-          s.currentBg.g = lerp(s.currentBg.g, s.targetBg.g, bgLerpFactor);
-          s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);
+        if (marketDataRef.current.pnl >= 0) {
+          s.targetBg.r = minVal;
+          s.targetBg.g = lerp(
+            minVal + 4,
+            45,
+            Math.min(1, marketDataRef.current.pnl * 20)
+          );
+          s.targetBg.b = minVal + 8;
+        } else {
+          s.targetBg.r = lerp(
+            minVal,
+            45,
+            Math.min(
+              1,
+              Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
+            )
+          );
+          s.targetBg.g = minVal;
+          s.targetBg.b = minVal;
         }
+
+        const bgLerpFactor = 1 - Math.pow(1 - GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
+        s.currentBg.r = lerp(s.currentBg.r, s.targetBg.r, bgLerpFactor);
+        s.currentBg.g = lerp(s.currentBg.g, s.targetBg.g, bgLerpFactor);
+        s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);
 
         // 0. Sync Market Metadata from marketDataRef
         state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
@@ -1258,18 +1304,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         FPSMonitor.recordPhysics(physicsDurationMs);
 
         // Update Weapon System (market-driven weapon firing via shared pipeline)
+        const weaponMarketContext = weaponMarketContextRef.current;
+        weaponMarketContext.atrPercent = marketDataRef.current.atrPercent ?? 0;
+        weaponMarketContext.rsiState = marketDataRef.current.rsiState ?? 'NEUTRAL';
+        weaponMarketContext.pnl = marketDataRef.current.pnl;
+        weaponMarketContext.volumeNorm = marketDataRef.current.difficulty;
+        weaponMarketContext.isFavorable = marketDataRef.current.pnl >= 0;
         WeaponSystem.update(
           deltaTime,
           player.x,
           player.y,
           player.baseDamage,
-          {
-            atrPercent: marketDataRef.current.atrPercent ?? 0,
-            rsiState: marketDataRef.current.rsiState ?? 'NEUTRAL',
-            pnl: marketDataRef.current.pnl,
-            volumeNorm: marketDataRef.current.difficulty,
-            isFavorable: marketDataRef.current.pnl >= 0,
-          },
+          weaponMarketContext,
           pool.current,
           width,
           height
@@ -1297,12 +1343,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         if (shouldSync) {
           updatePlayerStats({ ...player });
-          lastSyncedStats.current = {
-            hp: player.hp,
-            exp: player.exp,
-            level: player.level,
-            lastTime: time,
-          };
+          lastSyncedStats.current.hp = player.hp;
+          lastSyncedStats.current.exp = player.exp;
+          lastSyncedStats.current.level = player.level;
+          lastSyncedStats.current.lastTime = time;
         }
 
         // PERF: Report Entity Counts to Monitor

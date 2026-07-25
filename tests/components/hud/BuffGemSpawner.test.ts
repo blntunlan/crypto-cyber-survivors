@@ -5,6 +5,14 @@ describe('BuffGemSpawner', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     BuffGemSpawner.reset();
+    BuffGemSpawner.configure({
+      volatilityThreshold: 0.15,
+      spawnCooldown: 3000,
+      maxActiveGems: 3,
+      gemLifetime: 5000,
+      gemRadius: 20,
+      debuffChance: 0.1,
+    });
     BuffGemSpawner.initialize(800, 600);
     vi.clearAllMocks();
   });
@@ -21,23 +29,29 @@ describe('BuffGemSpawner', () => {
     });
 
     it('should spawn gem when volatility exceeds threshold after grace period', () => {
-      // 1. Skip grace period
-      vi.advanceTimersByTime(11000);
+      BuffGemSpawner.update(1.0, 11000);
 
-      // 2. Initial update to set lastDifficulty
-      BuffGemSpawner.update(1.0, 100);
-
-      // 3. Volatility spike (Threshold is 0.15)
-      BuffGemSpawner.update(1.2, 100);
+      BuffGemSpawner.update(1.2, 0);
 
       expect(BuffGemSpawner.getActiveGems().length).toBeGreaterThan(0);
     });
 
-    it('should respect maxActiveGems limit', () => {
+    it('does not advance the grace period from wall-clock time', () => {
       vi.advanceTimersByTime(11000);
+      BuffGemSpawner.update(2.0, 0);
+
+      expect(BuffGemSpawner.getActiveGems()).toHaveLength(0);
+
+      BuffGemSpawner.update(1.0, 10000);
+      BuffGemSpawner.update(1.2, 0);
+
+      expect(BuffGemSpawner.getActiveGems()).toHaveLength(1);
+    });
+
+    it('should respect maxActiveGems limit', () => {
       BuffGemSpawner.configure({ maxActiveGems: 1, spawnCooldown: 0 });
 
-      BuffGemSpawner.update(1.0, 100);
+      BuffGemSpawner.update(1.0, 11000);
       BuffGemSpawner.update(1.5, 100); // Trigger 1
       BuffGemSpawner.update(2.0, 100); // Trigger 2 (should be blocked)
 
@@ -73,8 +87,6 @@ describe('BuffGemSpawner', () => {
 
   describe('Permanent Buff Protection', () => {
     it('should not spawn permanent buffs again once collected', () => {
-      vi.advanceTimersByTime(11000);
-
       // Force spawn a diamond gem (permanent)
       const gem = BuffGemSpawner.spawnGem('diamond', 100, 100);
       expect(BuffGemSpawner.getActiveGems()).toContain(gem);

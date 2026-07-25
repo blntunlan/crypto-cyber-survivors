@@ -15,6 +15,8 @@ import { LandingTeam } from './landing/LandingTeam';
 import { LandingFaq } from './landing/LandingFaq';
 import { LandingFooter } from './landing/LandingFooter';
 import { LandingBackground } from './landing/LandingBackground';
+import { ThemedButton } from '../themed/ThemedButton';
+import { ThemedIconButton } from '../themed/ThemedIconButton';
 interface LandingPageProps {
   onLaunch: () => void;
   onViewPrivacy: () => void;
@@ -40,11 +42,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }, []);
 
   const framedNavButtonClass =
-    'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 xl:px-4 text-slate-300 transition-all duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]';
+    'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] xl:px-4';
   const navAccentLineClass =
-    'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/55 to-transparent opacity-80 transition-all duration-300 group-hover:via-[#ffd86a] group-hover:opacity-100';
+    'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-80 transition-all duration-300 group-hover:opacity-100';
   const desktopNavLabelClass = 'font-cyber text-[13px] tracking-[0.09em]';
-  const desktopCtaClass = 'font-cyber text-[13px] tracking-[0.11em]';
 
   return (
     <m.div
@@ -52,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="allow-scroll min-h-screen overflow-x-hidden bg-[#020617] font-sans text-white selection:bg-[#d6b85c]/30"
+      className="allow-scroll min-h-screen overflow-x-hidden bg-[color:var(--ui-surface-canvas)] font-sans text-[color:var(--ui-text-primary)]"
     >
       {/* --- 00. BACKGROUND ARCHITECTURE --- */}
       <LandingBackground />
@@ -64,9 +65,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Branding Sub-module */}
         <a
           href="#top"
-          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:pr-0"
+          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] lg:pr-0"
         >
-          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-2xl">
+          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-[color:var(--ui-action-primary-surface)] sm:text-2xl">
             CRYPTO
           </span>
           <span className="cyber-sway-text -mt-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
@@ -75,13 +76,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </a>
 
         {/* Mobile Menu Button */}
-        <button
+        <ThemedIconButton
           onClick={() => setIsMobileMenuOpen(true)}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] xl:hidden"
           aria-label="Open menu"
+          className="xl:hidden"
         >
           <Menu className="h-6 w-6" />
-        </button>
+        </ThemedIconButton>
 
         {/* Desktop Nav Menu */}
         <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-3 xl:flex">
@@ -102,22 +103,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span className={desktopNavLabelClass}>TEAM</span>
             <span className={navAccentLineClass} />
           </a>
-          <button
+          <ThemedButton
             id="docs-nav-link"
             onClick={onViewDocs}
-            className={`${framedNavButtonClass} w-[146px]`}
+            intent="ghost"
+            size="sm"
+            className="hidden w-[146px] xl:inline-flex"
           >
             <span className={desktopNavLabelClass}>Documentation</span>
-            <span className={navAccentLineClass} />
-          </button>
+          </ThemedButton>
         </div>
         {/* Desktop CTA */}
-        <button
+        <ThemedButton
           onClick={onLaunch}
-          className={`hidden h-12 min-w-[182px] items-center justify-center bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-7 font-black uppercase text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white xl:flex ${desktopCtaClass}`}
+          intent="primary"
+          size="lg"
+          className="hidden min-w-[182px] xl:inline-flex"
         >
           PLAY THE BETA
-        </button>
+        </ThemedButton>
       </nav>
 
       {/* --- MOBILE MENU DRAWER --- */}
@@ -128,7 +132,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm xl:hidden"
+            className="bg-[color:var(--ui-surface-canvas)]/90 fixed inset-0 z-[100] backdrop-blur-sm xl:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <m.nav
@@ -136,77 +140,81 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-              className="absolute right-0 top-0 flex h-full w-[280px] flex-col border-l border-[#b22222]/20 bg-[#020617] p-6"
+              className="absolute right-0 top-0 flex h-full w-[280px] flex-col border-l border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-canvas)] p-6"
               onClick={e => e.stopPropagation()}
             >
               {/* Close Button */}
-              <button
+              <ThemedIconButton
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute right-4 top-4 flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 aria-label="Close menu"
+                className="absolute right-4 top-4"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </ThemedIconButton>
 
               {/* Mobile Menu Items */}
               <div className="mt-16 flex flex-col gap-2 font-mono text-sm font-black uppercase tracking-widest">
                 <a
                   href="#engine"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Engine</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
                 </a>
 
                 <a
                   href="#pipeline"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Pipeline</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
                 </a>
 
                 <a
                   href="#dev"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Solo Dev</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
                 </a>
                 <a
                   href="#team"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>TEAM</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
                 </a>
 
-                <button
+                <ThemedButton
                   onClick={() => {
                     onViewDocs();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  intent="secondary"
+                  className="w-full justify-start"
                 >
                   <span>Documentation</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
-                </button>
+                </ThemedButton>
               </div>
 
               {/* Mobile CTA */}
-              <button
-                onClick={() => {
-                  onLaunch();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="mt-auto min-h-[48px] w-full border border-[#d6b85c] bg-[#d6b85c] p-4 text-center font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
-              >
-                PLAY THE BETA
-              </button>
+              <div className="mt-auto">
+                <ThemedButton
+                  onClick={() => {
+                    onLaunch();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  intent="primary"
+                  size="lg"
+                  className="w-full"
+                >
+                  PLAY THE BETA
+                </ThemedButton>
+              </div>
             </m.nav>
           </m.div>
         )}

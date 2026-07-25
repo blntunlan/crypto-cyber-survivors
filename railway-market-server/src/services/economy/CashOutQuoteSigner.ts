@@ -23,7 +23,7 @@ export class CashOutQuoteSigner {
 
   public verify(quote: CashOutQuote, signature: string, nowSeconds: number): boolean {
     if (
-      nowSeconds > quote.expiresAtSeconds ||
+      nowSeconds >= quote.expiresAtSeconds ||
       quote.expiresAtSeconds - quote.issuedAtSeconds !== MAX_QUOTE_LIFETIME_SECONDS
     ) {
       return false;

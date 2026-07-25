@@ -25,6 +25,7 @@ vi.mock('../../contexts/useTheme', () => ({
   useTheme: () => ({
     theme: { colors: { primary: '#00ffff' } },
     isRetro: mockThemeState.isRetro,
+    themeName: mockThemeState.isRetro ? 'retro-16bit' : 'cyberpunk',
   }),
   useIsRetro: () => mockThemeState.isRetro,
 }));

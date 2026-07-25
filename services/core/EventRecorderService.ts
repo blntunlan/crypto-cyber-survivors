@@ -33,6 +33,7 @@
  */
 
 import { EventBus } from './EventBus';
+import { TimeService } from './TimeService';
 import { Logger } from '../system/Logger';
 import {
   ReplayEventType,
@@ -133,7 +134,7 @@ class EventRecorderServiceClass {
     // Initialize state
     this.sessionId = data.sessionId ?? `local-${Date.now()}`;
     this.sessionSecret = sessionSecret;
-    this.sessionStartTime = performance.now();
+    this.sessionStartTime = TimeService.getGameTime();
     this.events = [];
     this.eventWriteIndex = 0;
     this.previousHash = '0';
@@ -170,7 +171,7 @@ class EventRecorderServiceClass {
       return;
     }
 
-    const timestamp = performance.now() - this.sessionStartTime;
+    const timestamp = TimeService.getGameTime() - this.sessionStartTime;
 
     // Compute hash synchronously for performance
     // Incorporate sessionSecret for signing

@@ -14,7 +14,7 @@ describe('Director runtime configuration', () => {
     expect(DIRECTOR_CONFIG_V1.versions).toEqual({
       directorVersion: 'director-v1',
       configVersion: 'director-config-v1',
-      contentManifestHash: 'content-manifest-pending',
+      contentManifestHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
   });
 

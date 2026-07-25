@@ -3,11 +3,12 @@ import type { Player, GameState } from '../../types';
 import { screenService } from '../system/ScreenService';
 
 export class SpeedLineSpawner {
-  private lastSpawnTime = 0;
+  private spawnElapsedMs = 0;
   private isMobile = false;
 
   constructor() {
     this.isMobile = screenService.isMobile();
+    this.spawnElapsedMs = this.getSpawnInterval();
   }
 
   public update(
@@ -16,20 +17,30 @@ export class SpeedLineSpawner {
     player: Player,
     width: number,
     height: number,
-    currentTime: number
+    deltaMs: number
   ): void {
-    // Only spawn lines when dashing or highly active
-    if (!state.isDashing) return;
-
     // Device-specific settings
-    const spawnInterval = this.isMobile ? 60 : 20; // Faster spawn rate everywhere
+    const spawnInterval = this.getSpawnInterval();
     const spawnCount = this.isMobile ? 3 : 6; // Significantly more lines
+    const safeDeltaMs = Math.max(0, Number.isFinite(deltaMs) ? deltaMs : 0);
+
+    // Only spawn lines when dashing or highly active
+    if (!state.isDashing) {
+      this.spawnElapsedMs = Math.min(spawnInterval, this.spawnElapsedMs + safeDeltaMs);
+      return;
+    }
+
+    this.spawnElapsedMs += safeDeltaMs;
 
     // Spawn rate limiter
-    if (currentTime - this.lastSpawnTime < spawnInterval) return;
+    while (this.spawnElapsedMs >= spawnInterval) {
+      this.spawnElapsedMs -= spawnInterval;
+      this.spawnDashLines(pool, player, width, height, spawnCount);
+    }
+  }
 
-    this.lastSpawnTime = currentTime;
-    this.spawnDashLines(pool, player, width, height, spawnCount);
+  private getSpawnInterval(): number {
+    return this.isMobile ? 60 : 20;
   }
 
   private spawnDashLines(

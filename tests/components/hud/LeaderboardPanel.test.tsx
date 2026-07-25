@@ -66,7 +66,10 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
 }));
 
 // Mock Theme
-const mockUseTheme = vi.fn().mockReturnValue({ isRetro: false });
+const mockUseTheme = vi.fn().mockReturnValue({
+  isRetro: false,
+  themeName: 'cyberpunk',
+});
 vi.mock('../../../contexts/useTheme', () => ({
   useTheme: () => mockUseTheme(),
 }));
@@ -107,7 +110,7 @@ describe('LeaderboardPanel', () => {
     vi.clearAllMocks();
     LeaderboardService.invalidateCache();
     mockRailwayGet.mockResolvedValue({ entries: mockEntries });
-    mockUseTheme.mockReturnValue({ isRetro: false });
+    mockUseTheme.mockReturnValue({ isRetro: false, themeName: 'cyberpunk' });
   });
 
   afterEach(() => {
@@ -203,7 +206,7 @@ describe('LeaderboardPanel', () => {
   });
 
   it('should render in retro mode', async () => {
-    mockUseTheme.mockReturnValue({ isRetro: true });
+    mockUseTheme.mockReturnValue({ isRetro: true, themeName: 'retro-16bit' });
 
     render(<LeaderboardPanel isVisible={true} />);
 

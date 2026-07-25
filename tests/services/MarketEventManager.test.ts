@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MarketEventManager } from '../../services/market/MarketEventManager';
 import { EventBus } from '../../services/core/EventBus';
+import { TimeService } from '../../services/core/TimeService';
 import { Logger } from '../../services/system/Logger';
 import { type MarketStateUpdatedEvent as MarketState } from '../../types/events';
 
@@ -18,6 +19,8 @@ describe('MarketEventManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    TimeService.reset();
+    TimeService.setGameTime(0);
 
     // Use spyOn instead of vi.mock for EventBus to avoid singleton/import timing issues.
     // This allows us to trigger real events that the singleton is already listening to.
@@ -31,6 +34,7 @@ describe('MarketEventManager', () => {
   });
 
   afterEach(() => {
+    TimeService.reset();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -144,13 +148,19 @@ describe('MarketEventManager', () => {
     );
     expect(gameMarketEvents.length).toBe(1);
 
-    // Advance 61 seconds
+    // Wall-clock time must not advance a gameplay cooldown.
     vi.advanceTimersByTime(61000);
-
-    // Third event - should fire
     EventBus.emit('marketStateUpdated', { ...mockState, volumePercentile: 0.97 });
 
-    const gameMarketEventsAfter = (EventBus.emit as any).mock.calls.filter(
+    let gameMarketEventsAfter = (EventBus.emit as any).mock.calls.filter(
+      (c: any[]) => c[0] === 'gameMarketEvent'
+    );
+    expect(gameMarketEventsAfter.length).toBe(1);
+
+    TimeService.setGameTime(61000);
+    EventBus.emit('marketStateUpdated', { ...mockState, volumePercentile: 0.98 });
+
+    gameMarketEventsAfter = (EventBus.emit as any).mock.calls.filter(
       (c: any[]) => c[0] === 'gameMarketEvent'
     );
     expect(gameMarketEventsAfter.length).toBe(2);

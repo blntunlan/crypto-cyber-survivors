@@ -1,26 +1,49 @@
 import React from 'react';
-import { useTheme } from '../../contexts/useTheme';
-import { BUTTON_VARIANTS } from '../../config/themeVariants';
+import {
+  type UiButtonIntent,
+  type UiButtonSize,
+} from '../../config/ui/componentVariants';
+import { cn } from '../../utils/classnames';
+import { useUiSkin } from './useUiSkin';
 
-interface ThemedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  intent?: keyof typeof BUTTON_VARIANTS;
+export type ThemedButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  intent?: UiButtonIntent;
+  size?: UiButtonSize;
   children: React.ReactNode;
-}
+  loading?: boolean;
+  selected?: boolean;
+};
 
-export const ThemedButton: React.FC<ThemedButtonProps> = ({
+export function ThemedButton({
   intent = 'primary',
+  size = 'md',
   children,
-  className = '',
+  className,
+  loading = false,
+  selected = false,
+  disabled,
   ...props
-}) => {
-  const { isRetro } = useTheme();
-  const variantClass = isRetro
-    ? BUTTON_VARIANTS[intent].retro
-    : BUTTON_VARIANTS[intent].modern;
+}: ThemedButtonProps): React.JSX.Element {
+  const skin = useUiSkin();
 
   return (
-    <button className={`${variantClass} ${className}`} {...props}>
+    <button
+      {...props}
+      className={cn(
+        skin.button.base,
+        skin.button.size[size],
+        skin.button.intent[intent],
+        selected && skin.button.selected,
+        className
+      )}
+      disabled={disabled === true || loading}
+      aria-busy={loading || undefined}
+      data-ui-component="button"
+      data-ui-intent={intent}
+      data-ui-size={size}
+      data-ui-selected={selected || undefined}
+    >
       {children}
     </button>
   );
-};
+}

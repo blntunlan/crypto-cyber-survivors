@@ -5,13 +5,13 @@ export type CoreLoopPhase = 'build' | 'release';
 
 export interface CoreGameplayLoopInput {
   deltaMs: number;
+  elapsedMs: number;
   hpPercent: number;
   enemyCount: number;
   killStreak: number;
   movementMagnitude: number;
   isDashing: boolean;
   didAttack?: boolean;
-  nowMs?: number;
 }
 
 export interface CoreGameplayLoopOutput {
@@ -43,6 +43,7 @@ export const CORE_GAMEPLAY_LOOP_CONFIG = {
   BUILD_ENEMY_THRESHOLD: 16,
   RELEASE_ENEMY_THRESHOLD: 32,
   PLAYER_PULSE_SCALE: 0.06,
+  MAX_UPDATE_DELTA_MS: 250,
 } as const;
 
 const FRAME_MS = 1000 / 60;
@@ -67,6 +68,18 @@ export class CoreGameplayLoop {
   private pulse = 0;
   private pendingShakeBoost = 0;
   private smoothedMarketIntensity = 0;
+  private simulationAccumulatorMs = 0;
+  private readonly output: CoreGameplayLoopOutput = {
+    flowState: 'flow',
+    phase: 'build',
+    flowScore: 1,
+    playerScaleTargetX: 1,
+    playerScaleTargetY: 1,
+    pulse: 0,
+    shakeBoost: 0,
+    marketIntensity: 0,
+    suggestedBPM: 80,
+  };
 
   public reset(): void {
     this.phase = 'build';
@@ -74,12 +87,19 @@ export class CoreGameplayLoop {
     this.pulse = 0;
     this.pendingShakeBoost = 0;
     this.smoothedMarketIntensity = 0;
+    this.simulationAccumulatorMs = 0;
     FlowStateManager.reset();
   }
 
   public update(input: CoreGameplayLoopInput): CoreGameplayLoopOutput {
-    const nowMs = input.nowMs ?? Date.now();
-    const deltaMs = Math.max(0, input.deltaMs);
+    const elapsedMs = Math.max(
+      0,
+      Number.isFinite(input.elapsedMs) ? input.elapsedMs : 0
+    );
+    const deltaMs = Math.min(
+      CORE_GAMEPLAY_LOOP_CONFIG.MAX_UPDATE_DELTA_MS,
+      Math.max(0, input.deltaMs)
+    );
     const attackActivity = input.didAttack
       ? CORE_GAMEPLAY_LOOP_CONFIG.INPUT_ACTIVITY_THRESHOLD + 0.01
       : 0;
@@ -90,46 +110,34 @@ export class CoreGameplayLoop {
     );
 
     if (activity > CORE_GAMEPLAY_LOOP_CONFIG.INPUT_ACTIVITY_THRESHOLD) {
-      FlowStateManager.recordInput(nowMs);
+      FlowStateManager.recordInput(elapsedMs);
     }
 
-    const flowAnalysis = FlowStateManager.update(input.hpPercent, nowMs);
-    this.phaseElapsedMs += deltaMs;
+    const flowAnalysis = FlowStateManager.update(input.hpPercent, elapsedMs);
 
     // Get price momentum state (cached, zero allocation)
     const momentum = PriceMomentumEngine.getLatest();
     const mIntensity = momentum.intensity;
-
-    // Smooth market intensity for visual/audio (avoids jarring jumps)
-    const iAlpha = this.getSmoothingAlpha(deltaMs) * 0.5; // Slower smoothing for market
-    this.smoothedMarketIntensity = lerp(
-      this.smoothedMarketIntensity,
-      mIntensity,
-      iAlpha
+    this.simulationAccumulatorMs += deltaMs;
+    const simulationSteps = Math.floor(
+      (this.simulationAccumulatorMs + Number.EPSILON) / FRAME_MS
     );
+    if (simulationSteps > 0) {
+      this.simulationAccumulatorMs -= simulationSteps * FRAME_MS;
+      if (Math.abs(this.simulationAccumulatorMs) < Number.EPSILON) {
+        this.simulationAccumulatorMs = 0;
+      }
 
-    this.maybeSwitchPhase(
-      flowAnalysis.state,
-      input.hpPercent,
-      input.enemyCount,
-      mIntensity
-    );
-
-    const phaseDuration = this.getPhaseDuration(flowAnalysis.state, mIntensity);
-    const progress = clamp(this.phaseElapsedMs / phaseDuration, 0, 1);
-    const phaseCurve = 0.5 - 0.5 * Math.cos(progress * Math.PI);
-    const signedSwing = this.phase === 'build' ? phaseCurve : -phaseCurve;
-
-    // Pulse is amplified by market intensity for a breathing effect
-    const targetPulse = clamp(
-      Math.abs(signedSwing) *
-        (0.55 + activity * 0.3 + this.smoothedMarketIntensity * 0.3),
-      0,
-      1
-    );
-
-    const smoothingAlpha = this.getSmoothingAlpha(deltaMs);
-    this.pulse = lerp(this.pulse, targetPulse, smoothingAlpha);
+      for (let step = 0; step < simulationSteps; step += 1) {
+        this.advanceFixedStep(
+          flowAnalysis.state,
+          input.hpPercent,
+          input.enemyCount,
+          activity,
+          mIntensity
+        );
+      }
+    }
 
     const pulseScale = this.pulse * CORE_GAMEPLAY_LOOP_CONFIG.PLAYER_PULSE_SCALE;
     const playerScaleTargetX =
@@ -146,17 +154,50 @@ export class CoreGameplayLoop {
         1
       );
 
-    return {
-      flowState: flowAnalysis.state,
-      phase: this.phase,
-      flowScore,
-      playerScaleTargetX,
-      playerScaleTargetY,
-      pulse: this.pulse,
-      shakeBoost,
-      marketIntensity: this.smoothedMarketIntensity,
-      suggestedBPM: momentum.suggestedBPM,
-    };
+    const output = this.output;
+    output.flowState = flowAnalysis.state;
+    output.phase = this.phase;
+    output.flowScore = flowScore;
+    output.playerScaleTargetX = playerScaleTargetX;
+    output.playerScaleTargetY = playerScaleTargetY;
+    output.pulse = this.pulse;
+    output.shakeBoost = shakeBoost;
+    output.marketIntensity = this.smoothedMarketIntensity;
+    output.suggestedBPM = momentum.suggestedBPM;
+    return output;
+  }
+
+  private advanceFixedStep(
+    flowState: FlowState,
+    hpPercent: number,
+    enemyCount: number,
+    activity: number,
+    marketIntensity: number
+  ): void {
+    this.phaseElapsedMs += FRAME_MS;
+
+    // Fixed-step smoothing keeps the presentation rhythm independent of RAF rate.
+    const intensityAlpha = this.getSmoothingAlpha(FRAME_MS) * 0.5;
+    this.smoothedMarketIntensity = lerp(
+      this.smoothedMarketIntensity,
+      marketIntensity,
+      intensityAlpha
+    );
+
+    this.maybeSwitchPhase(flowState, hpPercent, enemyCount, marketIntensity);
+
+    const phaseDuration = this.getPhaseDuration(flowState, marketIntensity);
+    const progress = clamp(this.phaseElapsedMs / phaseDuration, 0, 1);
+    const phaseCurve = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+    const signedSwing = this.phase === 'build' ? phaseCurve : -phaseCurve;
+    const targetPulse = clamp(
+      Math.abs(signedSwing) *
+        (0.55 + activity * 0.3 + this.smoothedMarketIntensity * 0.3),
+      0,
+      1
+    );
+
+    this.pulse = lerp(this.pulse, targetPulse, this.getSmoothingAlpha(FRAME_MS));
   }
 
   private maybeSwitchPhase(

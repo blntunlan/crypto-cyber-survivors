@@ -49,6 +49,7 @@ const createView = (marketRevision = 1): DifficultyRuntimeInputView => ({
       entryPrice: 100,
       liquidationPrice: 50,
     },
+    greedLevel: 0,
   },
   world: { activeEnemies: 10, maximumEnemies: 60, activeEncounters: 0 },
 });

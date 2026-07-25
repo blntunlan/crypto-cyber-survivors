@@ -57,7 +57,7 @@ describe('UnifiedDirector', () => {
 
       // Update multiple times to move through smoothing
       for (let i = 0; i < 100; i++) {
-        UnifiedDirector.update(inputs, i * 100);
+        UnifiedDirector.update(inputs, 100);
       }
 
       const outputs = UnifiedDirector.getOutputs();
@@ -75,11 +75,11 @@ describe('UnifiedDirector', () => {
       inputsHigh.volumeNorm = 0.9;
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, 100);
       const lowOut = UnifiedDirector.getOutputs().spawnRate;
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, 100);
       const highOut = UnifiedDirector.getOutputs().spawnRate;
 
       expect(highOut).toBeGreaterThan(lowOut);
@@ -93,11 +93,11 @@ describe('UnifiedDirector', () => {
       inputsHigh.atrPercent = 0.08;
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, 100);
       const lowOut = UnifiedDirector.getOutputs().enemySpeed;
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, 100);
       const highOut = UnifiedDirector.getOutputs().enemySpeed;
 
       expect(highOut).toBeGreaterThan(lowOut);
@@ -113,11 +113,11 @@ describe('UnifiedDirector', () => {
       inputsHigh.leverage = 1.0; // 100x
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, 100);
       const lowOut = UnifiedDirector.getOutputs();
 
       UnifiedDirector.reset();
-      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, 100);
       const highOut = UnifiedDirector.getOutputs();
 
       expect(highOut.spawnRate).toBeGreaterThan(lowOut.spawnRate);
@@ -138,6 +138,27 @@ describe('UnifiedDirector', () => {
 
       expect(secondOut).toBeGreaterThan(firstOut);
       expect(secondOut).toBeLessThan(5.0); // Should not jump to max immediately
+    });
+
+    it('produces the same result after equal elapsed time at different frame rates', () => {
+      const inputs = createDefaultInputs();
+      inputs.volumeNorm = 1;
+
+      const simulate = (fps: number): number => {
+        UnifiedDirector.reset();
+        const deltaMs = 1000 / fps;
+        for (let frame = 0; frame < fps; frame += 1) {
+          UnifiedDirector.update(inputs, deltaMs);
+        }
+        return UnifiedDirector.getOutputs().spawnRate;
+      };
+
+      const at30Fps = simulate(30);
+      const at60Fps = simulate(60);
+      const at120Fps = simulate(120);
+
+      expect(at30Fps).toBeCloseTo(at60Fps, 10);
+      expect(at120Fps).toBeCloseTo(at60Fps, 10);
     });
   });
 });

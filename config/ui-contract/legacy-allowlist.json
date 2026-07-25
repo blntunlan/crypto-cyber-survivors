@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "baselineCommit": "cac5fbe3",
+  "enforcedPaths": [
+    "components/themed/**",
+    "components/settings/ThemeSection.tsx",
+    "components/screens/LandingPage.tsx",
+    "components/hub/HubMenu.tsx",
+    "components/hub/HubMenuV2.tsx",
+    "components/ui/OverlayChrome.tsx",
+    "components/ui/StatePanel.tsx",
+    "components/screens/MarketDisconnectedScreen.tsx",
+    "components/screens/ReplayListScreen.tsx"
+  ],
+  "entries": []
+}

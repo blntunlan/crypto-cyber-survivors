@@ -142,6 +142,9 @@ export type GameEvent =
   | 'fpsUpdated'
   | 'cycleDecisionScreen'
   | 'cycleDecisionMade'
+  | 'cashOutOfferOpened'
+  | 'cashOutOfferQuoteFailed'
+  | 'cashOutDecisionCommitted'
   | 'hudValuesUpdated'
   | 'marketReconnectRequest'
   | 'marketConnectionStateChanged'
@@ -900,6 +903,15 @@ export interface EventDataMap {
   fpsUpdated: { avgFps: number };
   cycleDecisionScreen: { cycleNumber: number; options: string[] };
   cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
+  cashOutOfferOpened: { cycleNumber: number };
+  cashOutOfferQuoteFailed: { cycleNumber: number };
+  cashOutDecisionCommitted: {
+    sessionId: string;
+    quoteId: string;
+    canonicalSequence: number;
+    decision: 'accept' | 'reject' | 'safe_exit' | 'timeout';
+    greedLevel: number;
+  };
   hudValuesUpdated: Record<string, number>;
   marketReconnectRequest: { pair?: string };
   gameMarketEvent: {

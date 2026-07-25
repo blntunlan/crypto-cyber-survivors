@@ -29,8 +29,6 @@ import { LeverageEngine } from '../../gameplay/LeverageEngine';
 export class CollisionSystem implements ICollisionSystem {
   private ctx: IPhysicsContext;
   private static instance: CollisionSystem | null = null;
-  private damageBufferUpdateCounter: number = 0;
-  private readonly DAMAGE_BUFFER_UPDATE_INTERVAL: number = 3;
   private nearbyPool: IPoolManager | null = null;
   private nearbyEnemy: Enemy | null = null;
   private nearbyInteractable: Interactable | null = null;
@@ -87,20 +85,9 @@ export class CollisionSystem implements ICollisionSystem {
     if (player.invulnerabilityTimer > 0) {
       player.invulnerabilityTimer = Math.max(
         0,
-        player.invulnerabilityTimer - 16.6 * dtFactor
+        player.invulnerabilityTimer - GAME_ENGINE.MS_PER_FRAME * dtFactor
       );
     }
-
-    // Legacy damage-buffer cleanup path (kept for backward compatibility)
-    this.damageBufferUpdateCounter++;
-    const shouldUpdateDamageBuffers =
-      this.damageBufferUpdateCounter >= this.DAMAGE_BUFFER_UPDATE_INTERVAL;
-    if (shouldUpdateDamageBuffers) {
-      this.damageBufferUpdateCounter = 0;
-    }
-
-    // Always update damage buffers in tests to ensure reliability
-    const updateDamageThisFrame = shouldUpdateDamageBuffers || dtFactor === 1; // dtFactor === 1 is common in tests
 
     // Capture vulnerability state at frame start.
     // This allows ALL colliding enemies to deal damage in the same frame.
@@ -157,12 +144,8 @@ export class CollisionSystem implements ICollisionSystem {
       }
 
       // 4. Legacy Damage Buffer Decay (for pre-existing buffered values)
-      if (
-        updateDamageThisFrame &&
-        enemy.damageBufferTimer !== undefined &&
-        enemy.damageBufferTimer > 0
-      ) {
-        enemy.damageBufferTimer -= 0.05 * dtFactor * this.DAMAGE_BUFFER_UPDATE_INTERVAL; // Compensate for batching
+      if (enemy.damageBufferTimer !== undefined && enemy.damageBufferTimer > 0) {
+        enemy.damageBufferTimer -= 0.05 * dtFactor;
         if (enemy.damageBufferTimer <= 0) {
           this.flushDamageBuffer(pool, enemy);
         }

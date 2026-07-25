@@ -51,7 +51,7 @@ describe('SpeedLineSpawner', () => {
 
   it('should spawn lines when dashing', () => {
     state.isDashing = true;
-    spawner.update(pool, state, player, 800, 600, 1000);
+    spawner.update(pool, state, player, 800, 600, 0);
 
     // Default desktop spawn count is 6
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(6);
@@ -61,15 +61,15 @@ describe('SpeedLineSpawner', () => {
     state.isDashing = true;
 
     // First update spawns
-    spawner.update(pool, state, player, 800, 600, 1000);
+    spawner.update(pool, state, player, 800, 600, 0);
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(6);
 
     // Second update immediately after (interval is 20ms for desktop)
-    spawner.update(pool, state, player, 800, 600, 1010);
+    spawner.update(pool, state, player, 800, 600, 10);
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(6); // Total count unchanged
 
     // Update after interval
-    spawner.update(pool, state, player, 800, 600, 1030);
+    spawner.update(pool, state, player, 800, 600, 10);
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(12); // Spawned again
   });
 
@@ -79,22 +79,22 @@ describe('SpeedLineSpawner', () => {
     const mobileSpawner = new SpeedLineSpawner();
 
     state.isDashing = true;
-    mobileSpawner.update(pool, state, player, 800, 600, 1000);
+    mobileSpawner.update(pool, state, player, 800, 600, 0);
 
     // Mobile spawn count is 3
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(3);
 
     // Mobile interval is 60ms
-    mobileSpawner.update(pool, state, player, 800, 600, 1030); // only 30ms passed
+    mobileSpawner.update(pool, state, player, 800, 600, 30);
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(3);
 
-    mobileSpawner.update(pool, state, player, 800, 600, 1070); // 70ms passed
+    mobileSpawner.update(pool, state, player, 800, 600, 30);
     expect(pool.getSpeedLine).toHaveBeenCalledTimes(6);
   });
 
   it('should position lines around the player', () => {
     state.isDashing = true;
-    spawner.update(pool, state, player, 800, 600, 1000);
+    spawner.update(pool, state, player, 800, 600, 0);
 
     const callArgs = vi.mocked(pool.getSpeedLine).mock.calls[0]!;
     const spawnX = callArgs[0];
@@ -107,7 +107,7 @@ describe('SpeedLineSpawner', () => {
 
   it('should set velocity towards the player', () => {
     state.isDashing = true;
-    spawner.update(pool, state, player, 800, 600, 1000);
+    spawner.update(pool, state, player, 800, 600, 0);
 
     const callArgs = vi.mocked(pool.getSpeedLine).mock.calls[0]!;
     const spawnX = callArgs[0];

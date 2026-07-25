@@ -1,15 +1,7 @@
-export type CashOutPacingState =
-  | 'BUILD_UP'
-  | 'PEAK'
-  | 'PEAK_FADE'
-  | 'RECOVERY'
-  | 'DOOM';
-
 export type CashOutPolicyInput = {
   elapsedSeconds: number;
   lastDecisionAtSeconds: number | null;
   greedLevel: number;
-  pacingState: CashOutPacingState;
   marketStaleSeconds: number;
 };
 
@@ -47,12 +39,10 @@ export class CashOutPolicy {
     const marketIsFresh = marketStaleSeconds === 0;
 
     return {
-      canIssueQuote:
-        eligibilityDue && input.pacingState === 'RECOVERY' && marketIsFresh,
+      canIssueQuote: eligibilityDue && marketIsFresh,
       shouldForceRecovery:
         eligibilityDue &&
         elapsedSinceDecision >= nextEligibilitySeconds + RECOVERY_GRACE_SECONDS &&
-        input.pacingState !== 'RECOVERY' &&
         marketIsFresh,
       safeExitAvailable,
       nextEligibilitySeconds,

@@ -23,6 +23,7 @@
  */
 
 import { EventBus } from '../core/EventBus';
+import { TimeService } from '../core/TimeService';
 import { Logger } from '../system/Logger';
 
 /**
@@ -193,6 +194,18 @@ class FlowStateManagerClass {
     type: 'dealt' | 'taken';
   }> = [];
 
+  private readonly corrections: FlowStateCorrections = { ...DEFAULT_CORRECTIONS };
+  private readonly analysis: FlowStateAnalysis = {
+    state: 'flow',
+    engagementScore: 0,
+    frustrationScore: 0,
+    isAFK: false,
+    isNearDeath: false,
+    isComfortable: false,
+    timeInCurrentState: 0,
+    suggestedCorrections: this.corrections,
+  };
+
   private constructor() {
     this.metrics = this.getDefaultMetrics();
 
@@ -216,7 +229,10 @@ class FlowStateManagerClass {
    * Update flow state with current player data
    * Call this every game tick (or at least every 100ms)
    */
-  update(hpPercent: number, currentTime: number = Date.now()): FlowStateAnalysis {
+  update(
+    hpPercent: number,
+    currentTime: number = TimeService.getGameTime()
+  ): FlowStateAnalysis {
     // Update HP metrics
     this.metrics.hpPercent = hpPercent;
     this.metrics.currentHP = hpPercent / 100;
@@ -269,42 +285,48 @@ class FlowStateManagerClass {
   /**
    * Get latest analysis without updating
    */
-  getLastAnalysis(currentTime: number = Date.now()): FlowStateAnalysis {
+  getLastAnalysis(currentTime: number = TimeService.getGameTime()): FlowStateAnalysis {
     return this.analyze(currentTime);
   }
 
   /**
    * Record a kill event
    */
-  recordKill(timestamp: number = Date.now()): void {
+  recordKill(timestamp: number = TimeService.getGameTime()): void {
     this.killTimestamps.push(timestamp);
   }
 
   /**
    * Record a dash event
    */
-  recordDash(timestamp: number = Date.now()): void {
+  recordDash(timestamp: number = TimeService.getGameTime()): void {
     this.dashTimestamps.push(timestamp);
   }
 
   /**
    * Record damage taken
    */
-  recordDamageTaken(amount: number, timestamp: number = Date.now()): void {
+  recordDamageTaken(
+    amount: number,
+    timestamp: number = TimeService.getGameTime()
+  ): void {
     this.damageEvents.push({ time: timestamp, amount, type: 'taken' });
   }
 
   /**
    * Record damage dealt
    */
-  recordDamageDealt(amount: number, timestamp: number = Date.now()): void {
+  recordDamageDealt(
+    amount: number,
+    timestamp: number = TimeService.getGameTime()
+  ): void {
     this.damageEvents.push({ time: timestamp, amount, type: 'dealt' });
   }
 
   /**
    * Record a level-up event
    */
-  recordLevelUp(newLevel: number, timestamp: number = Date.now()): void {
+  recordLevelUp(newLevel: number, timestamp: number = TimeService.getGameTime()): void {
     const previousLevel = this.metrics.currentLevel;
     this.metrics.levelUpInterval = (timestamp - this.metrics.lastLevelUpTime) / 1000;
     this.metrics.lastLevelUpTime = timestamp;
@@ -318,7 +340,7 @@ class FlowStateManagerClass {
   /**
    * Record player input (for AFK detection)
    */
-  recordInput(timestamp: number = Date.now()): void {
+  recordInput(timestamp: number = TimeService.getGameTime()): void {
     this.metrics.lastInputTime = timestamp;
   }
 
@@ -326,13 +348,14 @@ class FlowStateManagerClass {
    * Reset all state (call on game start)
    */
   reset(): void {
-    this.metrics = this.getDefaultMetrics();
+    const now = TimeService.getGameTime();
+    this.metrics = this.getDefaultMetrics(now);
     this.currentState = 'flow';
-    this.stateStartTime = Date.now();
+    this.stateStartTime = now;
     this.lastAnalysisTime = 0;
-    this.killTimestamps = [];
-    this.dashTimestamps = [];
-    this.damageEvents = [];
+    this.killTimestamps.length = 0;
+    this.dashTimestamps.length = 0;
+    this.damageEvents.length = 0;
 
     Logger.debug('[FlowStateManager] Reset');
   }
@@ -341,7 +364,7 @@ class FlowStateManagerClass {
    * Get debug information
    */
   getDebugState(): Record<string, unknown> {
-    const analysis = this.analyze(Date.now());
+    const analysis = this.analyze(TimeService.getGameTime());
     return {
       state: this.currentState,
       hpPercent: this.metrics.hpPercent.toFixed(1),
@@ -361,8 +384,7 @@ class FlowStateManagerClass {
 
   // --- Private Methods ---
 
-  private getDefaultMetrics(): PlayerMetrics {
-    const now = Date.now();
+  private getDefaultMetrics(now: number = 0): PlayerMetrics {
     return {
       currentHP: 1,
       maxHP: 100,
@@ -392,9 +414,35 @@ class FlowStateManagerClass {
     const dashCutoff = currentTime - 10000; // 10s
     const damageCutoff = currentTime - 10000; // 10s
 
-    this.killTimestamps = this.killTimestamps.filter(t => t >= killCutoff);
-    this.dashTimestamps = this.dashTimestamps.filter(t => t >= dashCutoff);
-    this.damageEvents = this.damageEvents.filter(e => e.time >= damageCutoff);
+    let writeIndex = 0;
+    for (let readIndex = 0; readIndex < this.killTimestamps.length; readIndex += 1) {
+      const timestamp = this.killTimestamps[readIndex];
+      if (timestamp !== undefined && timestamp >= killCutoff) {
+        this.killTimestamps[writeIndex] = timestamp;
+        writeIndex += 1;
+      }
+    }
+    this.killTimestamps.length = writeIndex;
+
+    writeIndex = 0;
+    for (let readIndex = 0; readIndex < this.dashTimestamps.length; readIndex += 1) {
+      const timestamp = this.dashTimestamps[readIndex];
+      if (timestamp !== undefined && timestamp >= dashCutoff) {
+        this.dashTimestamps[writeIndex] = timestamp;
+        writeIndex += 1;
+      }
+    }
+    this.dashTimestamps.length = writeIndex;
+
+    writeIndex = 0;
+    for (let readIndex = 0; readIndex < this.damageEvents.length; readIndex += 1) {
+      const event = this.damageEvents[readIndex];
+      if (event !== undefined && event.time >= damageCutoff) {
+        this.damageEvents[writeIndex] = event;
+        writeIndex += 1;
+      }
+    }
+    this.damageEvents.length = writeIndex;
   }
 
   /**
@@ -409,13 +457,18 @@ class FlowStateManagerClass {
     this.metrics.dashesLast10s = this.dashTimestamps.length;
 
     // Damage tracking
-    this.metrics.damageTakenLast10s = this.damageEvents
-      .filter(e => e.type === 'taken')
-      .reduce((sum, e) => sum + e.amount, 0);
-
-    this.metrics.damageDealtLast10s = this.damageEvents
-      .filter(e => e.type === 'dealt')
-      .reduce((sum, e) => sum + e.amount, 0);
+    let damageTaken = 0;
+    let damageDealt = 0;
+    for (let index = 0; index < this.damageEvents.length; index += 1) {
+      const event = this.damageEvents[index];
+      if (event?.type === 'taken') {
+        damageTaken += event.amount;
+      } else if (event?.type === 'dealt') {
+        damageDealt += event.amount;
+      }
+    }
+    this.metrics.damageTakenLast10s = damageTaken;
+    this.metrics.damageDealtLast10s = damageDealt;
 
     // Time tracking
     const deltaTime =
@@ -470,16 +523,16 @@ class FlowStateManagerClass {
       frustrationScore
     );
 
-    return {
-      state,
-      engagementScore,
-      frustrationScore,
-      isAFK,
-      isNearDeath,
-      isComfortable,
-      timeInCurrentState,
-      suggestedCorrections,
-    };
+    const analysis = this.analysis;
+    analysis.state = state;
+    analysis.engagementScore = engagementScore;
+    analysis.frustrationScore = frustrationScore;
+    analysis.isAFK = isAFK;
+    analysis.isNearDeath = isNearDeath;
+    analysis.isComfortable = isComfortable;
+    analysis.timeInCurrentState = timeInCurrentState;
+    analysis.suggestedCorrections = suggestedCorrections;
+    return analysis;
   }
 
   /**
@@ -608,7 +661,15 @@ class FlowStateManagerClass {
     frustrationScore: number
   ): FlowStateCorrections {
     // Start with defaults
-    const corrections: FlowStateCorrections = { ...DEFAULT_CORRECTIONS };
+    const corrections = this.corrections;
+    corrections.spawnRateMultiplier = DEFAULT_CORRECTIONS.spawnRateMultiplier;
+    corrections.enemySpeedMultiplier = DEFAULT_CORRECTIONS.enemySpeedMultiplier;
+    corrections.enemyDamageMultiplier = DEFAULT_CORRECTIONS.enemyDamageMultiplier;
+    corrections.enemyHPMultiplier = DEFAULT_CORRECTIONS.enemyHPMultiplier;
+    corrections.xpMultiplier = DEFAULT_CORRECTIONS.xpMultiplier;
+    corrections.gemDropMultiplier = DEFAULT_CORRECTIONS.gemDropMultiplier;
+    corrections.mercyActive = DEFAULT_CORRECTIONS.mercyActive;
+    corrections.mercyReduction = DEFAULT_CORRECTIONS.mercyReduction;
 
     // AFK players get no mercy
     if (isAFK) {

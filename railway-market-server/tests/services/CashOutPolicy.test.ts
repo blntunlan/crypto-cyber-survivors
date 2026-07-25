@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { CashOutPolicy } from '../../src/services/economy/CashOutPolicy';
 
 describe('CashOutPolicy', () => {
+  it('issues an eligible fresh quote without client pacing input', () => {
+    const policy = new CashOutPolicy();
+
+    const result = policy.evaluate({
+      elapsedSeconds: 300,
+      lastDecisionAtSeconds: null,
+      greedLevel: 0,
+      marketStaleSeconds: 0,
+    });
+
+    expect(result.canIssueQuote).toBe(true);
+    expect(result.quoteTtlSeconds).toBe(15);
+  });
+
   it('allows the first quote only in recovery after five minutes', () => {
     const policy = new CashOutPolicy();
 
@@ -10,7 +24,6 @@ describe('CashOutPolicy', () => {
         elapsedSeconds: 299,
         lastDecisionAtSeconds: null,
         greedLevel: 0,
-        pacingState: 'RECOVERY',
         marketStaleSeconds: 0,
       }).canIssueQuote
     ).toBe(false);
@@ -20,7 +33,6 @@ describe('CashOutPolicy', () => {
         elapsedSeconds: 300,
         lastDecisionAtSeconds: null,
         greedLevel: 0,
-        pacingState: 'RECOVERY',
         marketStaleSeconds: 0,
       }).canIssueQuote
     ).toBe(true);
@@ -33,11 +45,10 @@ describe('CashOutPolicy', () => {
       elapsedSeconds: 345,
       lastDecisionAtSeconds: null,
       greedLevel: 0,
-      pacingState: 'PEAK',
       marketStaleSeconds: 0,
     });
 
-    expect(result.canIssueQuote).toBe(false);
+    expect(result.canIssueQuote).toBe(true);
     expect(result.shouldForceRecovery).toBe(true);
   });
 
@@ -48,7 +59,6 @@ describe('CashOutPolicy', () => {
       elapsedSeconds: 570,
       lastDecisionAtSeconds: 300,
       greedLevel: 1,
-      pacingState: 'RECOVERY',
       marketStaleSeconds: 0,
     });
 
@@ -63,7 +73,6 @@ describe('CashOutPolicy', () => {
       elapsedSeconds: 600,
       lastDecisionAtSeconds: null,
       greedLevel: 0,
-      pacingState: 'RECOVERY',
       marketStaleSeconds: 60,
     });
 

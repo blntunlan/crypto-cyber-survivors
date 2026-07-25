@@ -77,6 +77,16 @@ describe('SpawnPlanBuilder and SpawnExecutor', () => {
     );
   });
 
+  it('keeps seeded composition independent from render tick count', () => {
+    const builder = new SpawnPlanBuilder();
+    const at30Fps = builder.build(createBuildInput(3));
+    const at120Fps = builder.build({ ...createBuildInput(3), tick: 120 });
+
+    expect(
+      at30Fps.intents.map(intent => [intent.enemyType, intent.x, intent.y])
+    ).toEqual(at120Fps.intents.map(intent => [intent.enemyType, intent.x, intent.y]));
+  });
+
   it('keeps active-enemy and threat-credit caps in the plan', () => {
     const creditLimited = new SpawnPlanBuilder().build(createBuildInput(2));
     const activeLimited = new SpawnPlanBuilder().build(createBuildInput(10, 2));
@@ -114,6 +124,28 @@ describe('SpawnPlanBuilder and SpawnExecutor', () => {
     expect(getEnemy).toHaveBeenCalledTimes(1);
     expect(getEnemy.mock.calls[0]?.[0]).toBe(plan.intents[0]?.x);
     expect(getEnemy.mock.calls[0]?.[1]).toBe(plan.intents[0]?.y);
+  });
+
+  it('rejects replay of an already executed plan revision', () => {
+    const plan = new SpawnPlanBuilder().build(createBuildInput(3));
+    const getEnemy = vi.fn();
+    const executor = new SpawnExecutor();
+    const world = {
+      pool: { activeEnemies: [], getEnemy } as never,
+      position: MarketPosition.LONG,
+      maxActiveEnemies: 3,
+    };
+
+    const first = { ...executor.execute(plan, world) };
+    const replay = { ...executor.execute(plan, world) };
+
+    expect(first.executedCount).toBe(3);
+    expect(replay).toEqual({ executedCount: 0, spentThreat: 0 });
+    expect(getEnemy).toHaveBeenCalledTimes(3);
+
+    executor.reset();
+    executor.execute(plan, world);
+    expect(getEnemy).toHaveBeenCalledTimes(6);
   });
 
   it('keeps the Director as authority when a production plan is temporarily unavailable', () => {

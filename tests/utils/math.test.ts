@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { lerp, clamp, mapRange, roundTo, smoothstep } from '../../utils/math';
+import {
+  lerp,
+  clamp,
+  mapRange,
+  roundTo,
+  scalePerFrameRatio,
+  smoothstep,
+} from '../../utils/math';
 
 describe('math utilities', () => {
   describe('lerp', () => {
@@ -93,6 +100,18 @@ describe('math utilities', () => {
 
     it('should calculate smooth transition inside range', () => {
       expect(smoothstep(0, 1, 0.25)).toBe(0.15625);
+    });
+  });
+
+  describe('scalePerFrameRatio', () => {
+    it('preserves the same accumulated ratio across frame rates', () => {
+      const fullFrame = scalePerFrameRatio(0.3, 1);
+      const halfFrame = scalePerFrameRatio(0.3, 0.5);
+      const twoHalfFrames = 1 - (1 - halfFrame) * (1 - halfFrame);
+
+      expect(twoHalfFrames).toBeCloseTo(fullFrame, 12);
+      expect(scalePerFrameRatio(0.3, 0)).toBe(0);
+      expect(scalePerFrameRatio(2, 1)).toBe(1);
     });
   });
 });

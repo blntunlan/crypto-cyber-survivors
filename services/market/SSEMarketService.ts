@@ -81,6 +81,10 @@ export class SSEMarketService {
   }
 
   private getMarketBaseUrl(): string {
+    if (import.meta.env.MODE === 'development') {
+      return '';
+    }
+
     const aggregatorUrl = (
       import.meta.env.VITE_MARKET_AGGREGATOR_URL as string | undefined
     )?.trim();

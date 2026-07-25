@@ -75,7 +75,6 @@ export const GAME_STATE_DEFAULTS = {
   nearMissCooldown: 0,
   // Visual tracking
   damageIndicators: [],
-  bgUpdateFrameCounter: 0,
   lastHeartbeatTime: 0,
   rsiVisualState: 'NEUTRAL',
   whaleEventTimer: 0,

@@ -39,3 +39,10 @@ Add screenshots to help explain your changes.
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing baseline gates pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
+
+## 🎨 Production UI Review
+- [ ] Each surface has one primary CTA and deliberate visual hierarchy
+- [ ] Modern and retro preserve the same structure and interaction behavior
+- [ ] Mobile layout, 44px touch targets and visible keyboard focus are verified
+- [ ] Reduced-motion behavior is verified where motion is present
+- [ ] No raw interactive element, direct theme branch or visual primitive override bypasses `check:ui-contract`

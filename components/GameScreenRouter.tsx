@@ -15,7 +15,7 @@ import {
   type LeverageOption,
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
-import { type GameMode, type CycleCompleteData } from '../types/gameMode';
+import { type GameMode, type CashOutOfferData } from '../types/gameMode';
 import { type GameEndReason } from '../types/metrics';
 import { type RewardPayload } from '../types/reward';
 import { type Card } from '../services/cards/types';
@@ -83,13 +83,13 @@ export interface GameScreenRouterProps {
   handleLevelUp: () => void;
   handlePauseToggle: () => void;
   handleCashOut: () => Promise<void>;
-  handleContinue: () => void;
+  handleRejectCashOut: () => Promise<void>;
   selectUpgrade: (card: Card) => void;
   resetGame: () => void;
   startGame: (choice: MarketPosition, leverage: LeverageOption) => Promise<void>;
 
   upgradeChoices: Card[];
-  cycleData: CycleCompleteData | null;
+  cashOutOffer: CashOutOfferData | null;
   pauseMenuStats: PauseMenuStats;
   frozenPnlRef: React.RefObject<number>;
   pauseBudget: PauseBudgetState;
@@ -127,12 +127,12 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   handleLevelUp,
   handlePauseToggle,
   handleCashOut,
-  handleContinue,
+  handleRejectCashOut,
   selectUpgrade,
   resetGame,
   startGame,
   upgradeChoices,
-  cycleData,
+  cashOutOffer,
   pauseMenuStats,
   frozenPnlRef,
   pauseBudget,
@@ -308,12 +308,13 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
           </React.Suspense>
         )}
 
-        {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
+        {gameStatus === GameStatus.PLAYING && cashOutOffer !== null && (
           <React.Suspense fallback={<UIFallback />}>
             <CycleCompleteScreen
-              data={cycleData}
+              key={cashOutOffer.quote.quoteId}
+              offer={cashOutOffer}
               onCashOut={handleCashOut}
-              onContinue={handleContinue}
+              onReject={handleRejectCashOut}
             />
           </React.Suspense>
         )}

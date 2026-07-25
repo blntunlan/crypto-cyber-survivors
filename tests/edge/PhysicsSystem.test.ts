@@ -180,7 +180,6 @@ describe('PhysicsSystem Edge Cases', () => {
       bgCandles: [],
       currentBg: { r: 15, g: 23, b: 42 },
       lastTime: 0,
-      bgUpdateFrameCounter: 0,
       levelUpFreeze: 0,
       lastHeartbeatTime: 0,
       doubleDashQueued: false,

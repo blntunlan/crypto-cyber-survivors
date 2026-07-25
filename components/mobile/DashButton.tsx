@@ -10,6 +10,7 @@ import { EventBus } from '../../services/core/EventBus';
 import { useTheme } from '../../contexts/useTheme';
 import { Zap } from 'lucide-react';
 import { GAME_ENGINE } from '../../constants';
+import { TimeService } from '../../services/core/TimeService';
 
 interface DashButtonProps {
   /** Called when dash is triggered (press start) */
@@ -56,11 +57,11 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
   // Update isReady if disabled prop changes
   useEffect(() => {
-    setIsReady(!disabled && performance.now() >= cooldownEndRef.current);
+    setIsReady(!disabled && TimeService.getGameTime() >= cooldownEndRef.current);
   }, [disabled]);
 
   const updateCooldownVisual = useCallback(() => {
-    const now = performance.now();
+    const now = TimeService.getGameTime();
     const remaining = Math.max(0, cooldownEndRef.current - now);
 
     if (remaining <= 0) {
@@ -93,7 +94,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
   const startCooldown = useCallback(
     (duration: number) => {
-      cooldownEndRef.current = performance.now() + duration;
+      cooldownEndRef.current = TimeService.getGameTime() + duration;
       totalCooldownDurationRef.current = duration;
       setIsReady(false);
 
@@ -119,7 +120,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
         setIsDoubleDashReady(false);
       } else {
         doubleDashWindowEndRef.current =
-          performance.now() + Math.max(data.duration, doubleDashWindowMs);
+          TimeService.getGameTime() + Math.max(data.duration, doubleDashWindowMs);
         doubleDashConsumedRef.current = false;
         setIsDoubleDashReady(true);
       }
@@ -138,7 +139,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
       const canQueueDoubleDash =
         !doubleDashConsumedRef.current &&
         doubleDashWindowEndRef.current > 0 &&
-        performance.now() <= doubleDashWindowEndRef.current;
+        TimeService.getGameTime() <= doubleDashWindowEndRef.current;
 
       if (disabled || (!isReady && !canQueueDoubleDash)) return;
 

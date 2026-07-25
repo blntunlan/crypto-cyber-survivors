@@ -87,7 +87,7 @@ const runPacingSimulation = (fps: FrameRate): PacingRun => {
       movementMagnitude: nowMs < 16_000 ? 0.65 : 0.25,
       isDashing: nowMs >= 8_000 && nowMs < 16_000,
       didAttack: frame % Math.max(1, Math.round(fps / 4)) === 0,
-      nowMs,
+      elapsedMs: nowMs,
     });
 
     if (output.phase !== previousPhase) {

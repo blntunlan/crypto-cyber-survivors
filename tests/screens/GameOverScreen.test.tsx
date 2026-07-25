@@ -10,7 +10,10 @@ const motionState = vi.hoisted(() => ({ reducedMotion: false }));
 
 vi.mock('../../contexts/useTheme', () => ({
   useIsRetro: () => themeState.isRetro,
-  useTheme: () => ({ isRetro: themeState.isRetro }),
+  useTheme: () => ({
+    isRetro: themeState.isRetro,
+    themeName: themeState.isRetro ? 'retro-16bit' : 'cyberpunk',
+  }),
 }));
 
 // Mock framer-motion to avoid animation issues in tests

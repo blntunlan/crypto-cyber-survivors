@@ -87,3 +87,13 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
 }
+
+/**
+ * Converts a ratio defined for one normalized 60 FPS frame to any delta factor.
+ * Useful for smoothing and probability checks without changing behavior by FPS.
+ */
+export function scalePerFrameRatio(perFrameRatio: number, dtFactor: number): number {
+  const ratio = clamp(perFrameRatio, 0, 1);
+  const frames = Math.max(0, Number.isFinite(dtFactor) ? dtFactor : 0);
+  return 1 - Math.pow(1 - ratio, frames);
+}

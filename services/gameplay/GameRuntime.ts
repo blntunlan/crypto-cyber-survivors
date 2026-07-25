@@ -103,6 +103,7 @@ export function createGameRuntime(options: CreateGameRuntimeOptions = {}): GameR
     lootCacheSystem.reset();
     poolManager.clearAll();
     spawnSystem.reset();
+    spawnExecutor.reset();
     difficultyRuntime.reset();
     difficultySnapshotRef.current = null;
     difficultyContext.reset();

@@ -1,28 +1,31 @@
 import React from 'react';
-import { useTheme } from '../../contexts/useTheme';
-import { TEXT_VARIANTS } from '../../config/themeVariants';
+import { type UiTextVariant } from '../../config/ui/componentVariants';
+import { cn } from '../../utils/classnames';
+import { useUiSkin } from './useUiSkin';
 
-interface ThemedTextProps extends React.HTMLAttributes<HTMLElement> {
-  variant?: keyof typeof TEXT_VARIANTS;
+export type ThemedTextProps = React.HTMLAttributes<HTMLElement> & {
+  variant?: UiTextVariant;
   as?: React.ElementType;
   children: React.ReactNode;
-}
+};
 
-export const ThemedText: React.FC<ThemedTextProps> = ({
+export function ThemedText({
   variant = 'body',
   as: Component = 'p',
   children,
-  className = '',
+  className,
   ...props
-}) => {
-  const { isRetro } = useTheme();
-  const variantClass = isRetro
-    ? TEXT_VARIANTS[variant].retro
-    : TEXT_VARIANTS[variant].modern;
+}: ThemedTextProps): React.JSX.Element {
+  const skin = useUiSkin();
 
   return (
-    <Component className={`${variantClass} ${className}`} {...props}>
+    <Component
+      {...props}
+      className={cn(skin.text[variant], className)}
+      data-ui-component="text"
+      data-ui-variant={variant}
+    >
       {children}
     </Component>
   );
-};
+}

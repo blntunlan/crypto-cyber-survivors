@@ -1,4 +1,7 @@
-import { AdvantageAllocator } from './AdvantageAllocator';
+import {
+  AdvantageAllocator,
+  type AdvantageAllocationInput,
+} from './AdvantageAllocator';
 import { DIRECTOR_CONFIG_V1, type DirectorConfigV1 } from './config/DirectorConfigV1';
 import {
   type DirectorInputFrame,
@@ -106,6 +109,15 @@ export class ExperienceDirector {
   private lastUpdatedElapsedSeconds = ZERO_SECONDS;
   private lastEventFamily: MarketEventFamily | null = null;
   private lastEventRevision: number | null = null;
+  private lastGreedLevel = -1;
+  private readonly advantageInput: AdvantageAllocationInput = {
+    deltaSeconds: 0,
+    advantage: 0,
+    regime: 'CALM',
+    regimeConfidence: 0,
+    elapsedSeconds: 0,
+    seed: 0,
+  };
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.config = config;
@@ -119,13 +131,11 @@ export class ExperienceDirector {
     if (!this.shouldUpdate(frame)) return this.snapshot;
 
     const updateDeltaSeconds = this.getUpdateDeltaSeconds(frame);
-    const marketPressure = frame.run.isMarketStale
-      ? ZERO_SECONDS
-      : clamp(
-          frame.market.pressure,
-          this.config.marketPressure.minimum,
-          this.config.marketPressure.maximum
-        );
+    const marketPressure = clamp(
+      frame.market.pressure,
+      this.config.marketPressure.minimum,
+      this.config.marketPressure.maximum
+    );
     const greedPressure = Math.min(
       this.config.greed.maximumPressure,
       this.config.greed.pressurePerLevel * Math.max(ZERO_SECONDS, frame.run.greedLevel)
@@ -150,14 +160,21 @@ export class ExperienceDirector {
       encounterPressure,
       pacingThreatMultiplier: frame.pacing.threatMultiplier,
     });
-    const advantage = this.advantageAllocator.update({
-      deltaSeconds: updateDeltaSeconds,
-      advantage: frame.position.advantage,
-      regime: frame.market.regime,
-      regimeConfidence: frame.market.confidence,
-      elapsedSeconds: frame.run.elapsedSeconds,
-      seed: frame.run.seed,
-    });
+    const advantageInput = this.advantageInput;
+    advantageInput.deltaSeconds = updateDeltaSeconds;
+    advantageInput.advantage = frame.position.advantage;
+    advantageInput.regime = frame.market.regime;
+    advantageInput.regimeConfidence = frame.market.confidence;
+    advantageInput.elapsedSeconds = frame.run.elapsedSeconds;
+    advantageInput.seed = frame.run.seed;
+    if (frame.run.isMarketStale) {
+      this.advantageAllocator.freeze(frame.run.elapsedSeconds);
+    } else {
+      this.advantageAllocator.update(advantageInput);
+      const advantagePlan = this.advantageAllocator.planNext(advantageInput);
+      if (advantagePlan !== null) this.advantageAllocator.activate(advantagePlan);
+    }
+    const advantage = this.advantageAllocator.getSnapshot();
 
     this.writeSnapshot(frame, encounter, threat, advantage);
     this.writeTrace(frame, threat.isTargetClamped);
@@ -167,7 +184,15 @@ export class ExperienceDirector {
       ? null
       : frame.market.activeEventFamily;
     this.lastEventRevision = frame.run.isMarketStale ? null : frame.market.revision;
+    this.lastGreedLevel = frame.run.greedLevel;
     return this.snapshot;
+  }
+
+  public reserveThreatCredits(requestedCredits: number): number {
+    const reservedCredits = this.threatAllocator.spend(requestedCredits);
+    this.snapshot.threat.availableCredits =
+      this.threatAllocator.getSnapshot().availableCredits;
+    return reservedCredits;
   }
 
   public getSnapshot(): GameplaySnapshot {
@@ -185,6 +210,7 @@ export class ExperienceDirector {
     this.lastUpdatedElapsedSeconds = ZERO_SECONDS;
     this.lastEventFamily = null;
     this.lastEventRevision = null;
+    this.lastGreedLevel = -1;
     this.trace.tick = FIRST_REVISION;
     this.trace.revision = FIRST_REVISION;
     this.trace.reasonCodes.length = ZERO_SECONDS;
@@ -197,6 +223,7 @@ export class ExperienceDirector {
   private shouldUpdate(frame: DirectorInputFrame): boolean {
     if (this.lastProcessedTick === null) return true;
     if (frame.tick === this.lastProcessedTick) return false;
+    if (frame.run.greedLevel !== this.lastGreedLevel) return true;
     if (this.isNewMarketEvent(frame)) return true;
 
     const minimumUpdateSeconds = 1 / this.config.runtime.updateFrequencyHz;

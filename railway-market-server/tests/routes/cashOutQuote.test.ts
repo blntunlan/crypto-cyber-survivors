@@ -72,18 +72,17 @@ describe('cash-out quote route', () => {
 
     const response = await request(makeApp()).post('/api/v1/economy/cash-out/quote').send({
       session_id: SESSION_ID,
-      pacing_state: 'RECOVERY',
-      market_stale_seconds: 0,
     });
 
     expect(response.status).toBe(200);
+    expect(response.body.greedLevel).toBe(0);
     expect(response.body.quote.canonicalSequence).toBe(42);
     expect(response.body.quote.expiresAtSeconds - response.body.quote.issuedAtSeconds).toBe(15);
     expect(response.body.signature).toMatch(/^[a-f0-9]{64}$/);
     expect(client.query).toHaveBeenCalledTimes(8);
   });
 
-  it('ignores a client-claimed stale duration when the canonical price is fresh', async () => {
+  it('rejects a client-claimed stale duration', async () => {
     const client = {
       query: vi
         .fn()
@@ -102,11 +101,11 @@ describe('cash-out quote route', () => {
 
     const response = await request(makeApp()).post('/api/v1/economy/cash-out/quote').send({
       session_id: SESSION_ID,
-      pacing_state: 'RECOVERY',
       market_stale_seconds: 60,
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    expect(client.query).not.toHaveBeenCalled();
   });
 
   it('reuses an unexpired open quote instead of issuing a second signed quote', async () => {
@@ -134,7 +133,6 @@ describe('cash-out quote route', () => {
 
     const response = await request(makeApp()).post('/api/v1/economy/cash-out/quote').send({
       session_id: SESSION_ID,
-      pacing_state: 'RECOVERY',
     });
 
     expect(response.status).toBe(200);
@@ -163,7 +161,6 @@ describe('cash-out quote route', () => {
 
     const response = await request(makeApp()).post('/api/v1/economy/cash-out/quote').send({
       session_id: SESSION_ID,
-      pacing_state: 'DOOM',
     });
 
     expect(response.status).toBe(200);

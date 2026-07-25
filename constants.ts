@@ -420,6 +420,7 @@ export const GAME_ENGINE = {
   DASH_SPEED_MULTIPLIER: 3.5,
   BG_LERP_FACTOR: 0.05,
   STATS_SYNC_THROTTLE_MS: 100,
+  CASH_OUT_QUOTE_RETRY_DELAY_MS: 1000,
 };
 
 /**
@@ -428,8 +429,6 @@ export const GAME_ENGINE = {
  * Uses SpatialGrid for O(1) neighbor lookups.
  */
 export const SEPARATION = {
-  /** How often to apply separation (every N frames). Higher = less CPU, slightly less smooth. */
-  THROTTLE_FRAMES: 1,
   /** Force multiplier for separation. 0.3-0.6 is ideal for smooth movement. */
   STRENGTH: 2.5,
   /** Extra buffer distance beyond combined radii to start repelling. */

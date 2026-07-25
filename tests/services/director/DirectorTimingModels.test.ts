@@ -33,4 +33,51 @@ describe('Director timing models', () => {
     expect(pacing.requestMarketSurge('WHALE_EVENT', 90)).toBe(false);
     expect(pacing.getSnapshot().queuedEventFamily).toBe('VOLUME_SURGE');
   });
+
+  it('clears a completed or stale queued event so it cannot replay on reconnect', () => {
+    const pacing = new PacingStateMachine();
+    expect(pacing.requestMarketSurge('VOLUME_SURGE', 90)).toBe(true);
+
+    expect(pacing.clearQueuedMarketSurge('VOLUME_SURGE')).toBe(true);
+    expect(pacing.getSnapshot().queuedEventFamily).toBeNull();
+    expect(pacing.clearQueuedMarketSurge('VOLUME_SURGE')).toBe(false);
+    expect(pacing.requestMarketSurge('WHALE_EVENT', 91)).toBe(true);
+  });
+
+  it('uses seeded pacing durations inside the authored phase ranges', () => {
+    const first = new PacingStateMachine();
+    const second = new PacingStateMachine();
+
+    const buildDuration = first.update(0, 17).remainingSeconds;
+    expect(buildDuration).toBeGreaterThanOrEqual(45);
+    expect(buildDuration).toBeLessThanOrEqual(70);
+    expect(second.update(0, 17).remainingSeconds).toBe(buildDuration);
+
+    const peak = first.update(buildDuration, 17);
+    const peakDuration = peak.remainingSeconds;
+    expect(peak.state).toBe('PEAK');
+    expect(peakDuration).toBeGreaterThanOrEqual(20);
+    expect(peakDuration).toBeLessThanOrEqual(35);
+
+    const fade = first.update(buildDuration + peakDuration, 17);
+    const fadeDuration = fade.remainingSeconds;
+    expect(fade.state).toBe('PEAK_FADE');
+    expect(fadeDuration).toBeGreaterThanOrEqual(8);
+    expect(fadeDuration).toBeLessThanOrEqual(12);
+
+    const recovery = first.update(buildDuration + peakDuration + fadeDuration, 17);
+    expect(recovery.state).toBe('RECOVERY');
+    expect(recovery.remainingSeconds).toBeGreaterThanOrEqual(25);
+    expect(recovery.remainingSeconds).toBeLessThanOrEqual(40);
+  });
+
+  it('adds Doom stacks without reducing recovery below eight seconds', () => {
+    const pacing = new PacingStateMachine();
+    const late = pacing.update(1_800, 29);
+
+    expect(late.doomStacks).toBe(1);
+    if (late.state === 'RECOVERY') {
+      expect(late.remainingSeconds).toBeGreaterThanOrEqual(8);
+    }
+  });
 });

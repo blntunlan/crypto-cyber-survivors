@@ -1,4 +1,5 @@
 import { EventBus } from '../core/EventBus';
+import { TimeService } from '../core/TimeService';
 import { Logger } from '../system/Logger';
 import { type MarketStateUpdatedEvent as MarketState } from '../../types/events';
 
@@ -46,7 +47,7 @@ class MarketEventManagerClass {
   }
 
   private analyze(state: MarketState): void {
-    const now = Date.now();
+    const now = TimeService.getGameTime();
 
     // 1. VOLUME SPIKE -> "Flash Mob"
     // Use volumePercentile > 0.9 (Top 10%)
@@ -93,7 +94,7 @@ class MarketEventManagerClass {
 
   private canFire(type: GameMarketEvent, now: number): boolean {
     const cooldown = this.eventCooldowns.get(type) ?? 0;
-    if (now > cooldown) {
+    if (now >= cooldown) {
       // Set cooldown (e.g., 60s for most events to avoid spam)
       this.eventCooldowns.set(type, now + 60000);
       return true;

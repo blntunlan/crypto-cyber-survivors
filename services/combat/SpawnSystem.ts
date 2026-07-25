@@ -22,6 +22,8 @@ import { type EnemyId } from '../../config/EnemyRegistry';
 import { EventBus } from '../core/EventBus';
 import { ResetOrchestrator, RESET_PRIORITY } from '../core/ResetOrchestrator';
 import { type GameMarketEvent } from '../market/MarketEventManager';
+import { scalePerFrameRatio } from '../../utils/math';
+import { GAME_ENGINE } from '../../constants';
 
 export interface SpawnMarketSignals {
   rsi?: number;
@@ -58,8 +60,10 @@ export class SpawnSystem implements ISpawnSystem {
   private static instance: SpawnSystem | null = null;
   private spawnTimer: number = 0;
   private whaleCooldownTimer: number = 0;
-  private activeEvents: Map<GameMarketEvent, { intensity: number; expiry: number }> =
-    new Map();
+  private activeEvents: Map<
+    GameMarketEvent,
+    { intensity: number; remainingMs: number }
+  > = new Map();
   private previousRSIState: RSIState = 'NEUTRAL';
   private rsiSpawnCooldownTimer: number = 0;
   private readonly enemyResponse: EnemyResponseProfile = {
@@ -102,7 +106,7 @@ export class SpawnSystem implements ISpawnSystem {
       EventBus.on('gameMarketEvent', data => {
         this.activeEvents.set(data.type, {
           intensity: data.intensity,
-          expiry: Date.now() + data.durationMs,
+          remainingMs: data.durationMs,
         });
         Logger.info(`[SpawnSystem] Active Event Received: ${data.type}`);
       }),
@@ -160,11 +164,12 @@ export class SpawnSystem implements ISpawnSystem {
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
 
     // 0. Cleanup Expired Events (Optimized for performance)
-    const now = Date.now();
     if (this.activeEvents.size > 0) {
       for (const type of this.activeEvents.keys()) {
         const data = this.activeEvents.get(type);
-        if (data && now > data.expiry) {
+        if (!data) continue;
+        data.remainingMs -= deltaTime;
+        if (data.remainingMs <= 0) {
           this.activeEvents.delete(type);
         }
       }
@@ -275,12 +280,12 @@ export class SpawnSystem implements ISpawnSystem {
     if (!whaleConfig) return;
 
     const eventBoost = eventIntensity > 0 ? 5.0 : 1.0;
-    const frameTargetMs = 16.66;
-    const probPerFrame =
-      whaleConfig.spawnChance *
-      ENEMY_SPAWN.WHALE_PROBABILITY_MODIFIER *
-      eventBoost *
-      (deltaTime / frameTargetMs);
+    const baseProbability =
+      whaleConfig.spawnChance * ENEMY_SPAWN.WHALE_PROBABILITY_MODIFIER * eventBoost;
+    const probPerFrame = scalePerFrameRatio(
+      baseProbability,
+      deltaTime / GAME_ENGINE.MS_PER_FRAME
+    );
 
     // Count active whales (avoid .filter() allocation in hot path)
     let activeWhales = 0;

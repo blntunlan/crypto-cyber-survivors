@@ -146,7 +146,7 @@ export class GameRenderer implements IGameRenderer {
     if (!portal.isActive) return;
 
     const { x, y, radius, type } = portal;
-    const time = Date.now() / 1000;
+    const time = TimeService.getGameTimeSeconds();
 
     ctx.save();
     ctx.translate(x, y);

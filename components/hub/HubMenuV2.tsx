@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
-import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useDevice } from '../../hooks/useDevice';
@@ -16,6 +15,7 @@ import { HubMenuButton } from './HubMenuButton.tsx';
 import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
 import { audio } from '../../services/audio';
 import { COLORS } from '../../config/Colors';
+import { useHubSkin } from './useHubSkin';
 import { type HubScreen } from './HubMenu';
 import {
   useResponsiveHubColumns,
@@ -36,7 +36,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
   onBack,
 }) => {
   trackRender('HubMenuV2');
-  const { isRetro } = useTheme();
+  const skin = useHubSkin();
   const { t } = useLanguage();
   const sizes = useThemeSize();
   const device = useDevice();
@@ -62,7 +62,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
     consumableCount,
     lootboxCount,
     iconClass,
-    isRetro,
+    isRetro: skin.isRetroIconStyle,
     t,
   });
 
@@ -169,7 +169,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
       transition={{ duration: 0.4 }}
       className={cn(
         'allow-scroll absolute inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-5',
-        isRetro ? 'bg-[#0a0a12]/80' : 'bg-slate-950'
+        skin.backdrop
       )}
     >
       <div
@@ -195,35 +195,15 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1
-            className={cn(
-              isRetro
-                ? 'font-retro-pixel text-[#FFD600]'
-                : 'cyber-sway-text font-cyber',
-              sizes.title,
-              'leading-relaxed tracking-tight text-white'
-            )}
+            className={cn(skin.header, sizes.title, 'leading-relaxed tracking-tight')}
           >
             {t('common.menu.title')}
             <br />
-            <span
-              className={cn(
-                isRetro
-                  ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
-                  : 'text-pump-green'
-              )}
-              style={{ color: isRetro ? COLORS.ELECTRIC_BLUE : COLORS.PUMP_GREEN }}
-            >
-              HUB TERMINAL
-            </span>
+            <span className={cn(skin.headerAccent)}>HUB TERMINAL</span>
           </h1>
 
           <div className="flex flex-col items-center gap-2">
-            <p
-              className={cn(
-                isRetro ? 'font-retro-pixel text-[10px] text-[#39FF14]' : 'font-cyber',
-                'font-medium uppercase tracking-[0.3em] text-slate-500'
-              )}
-            >
+            <p className={cn(skin.subtitle, 'font-medium uppercase tracking-[0.3em]')}>
               {t('common.menu.sentiment_engine')}
             </p>
             <OptimizationBadge sizes={sizes} />
@@ -231,19 +211,13 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
         </motion.header>
 
         <ThemedPanel
-          className={cn(
-            'relative space-y-5 overflow-hidden p-4 sm:p-5',
-            !isRetro &&
-              'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
-          )}
+          surface="raised"
+          padding="md"
+          className="relative space-y-5 overflow-hidden"
         >
-          {!isRetro && (
-            <>
-              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
-              <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
-              <div className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </>
-          )}
+          <div aria-hidden="true" className={skin.panelDecoration} />
+          <div aria-hidden="true" className={skin.panelInnerDecoration} />
+          <div aria-hidden="true" className={skin.panelTopDecoration} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="hub-grid-item">
@@ -265,7 +239,6 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
                   label={card.label}
                   value={card.value}
                   accent={card.accent}
-                  isRetro={isRetro}
                 />
               ))}
             </div>
@@ -301,12 +274,10 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           <div
             className={cn(
               'hub-grid-item relative z-10 pt-1 text-center uppercase tracking-widest text-slate-400',
-              isRetro
-                ? 'font-retro-pixel text-[9px]'
-                : 'font-display text-[9px] sm:text-[10px]'
+              skin.navigationHelp
             )}
           >
-            {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
+            {t(skin.navigationHelpKey)}
           </div>
         </ThemedPanel>
       </div>
@@ -318,40 +289,22 @@ interface HubMetricCardProps {
   label: string;
   value: string;
   accent: string;
-  isRetro: boolean;
 }
 
-const HubMetricCard: React.FC<HubMetricCardProps> = ({
-  label,
-  value,
-  accent,
-  isRetro,
-}) => (
-  <div
-    className={cn(
-      'flex flex-col justify-between rounded-lg border border-white/5 p-2.5 text-left transition-shadow duration-300 sm:p-3',
-      !isRetro && 'bg-white/5 hover:shadow-[0_0_25px_rgba(148,163,184,0.25)]',
-      isRetro && 'border-2 border-[#39FF14]/30 bg-zinc-900/70'
-    )}
-  >
-    <span
+const HubMetricCard: React.FC<HubMetricCardProps> = ({ label, value, accent }) => {
+  const skin = useHubSkin();
+
+  return (
+    <div
       className={cn(
-        isRetro
-          ? 'font-retro-pixel text-[9px]'
-          : 'font-cyber text-xs uppercase tracking-[0.25em]',
-        'text-slate-400'
+        'flex flex-col justify-between p-2.5 text-left sm:p-3',
+        skin.metric
       )}
     >
-      {label}
-    </span>
-    <span
-      className={cn(
-        isRetro ? 'font-retro-pixel text-xl' : 'font-numbers text-2xl font-black',
-        'mt-1'
-      )}
-      style={{ color: accent }}
-    >
-      {value}
-    </span>
-  </div>
-);
+      <span className={skin.metricLabel}>{label}</span>
+      <span className={cn('mt-1', skin.metricValue)} style={{ color: accent }}>
+        {value}
+      </span>
+    </div>
+  );
+};

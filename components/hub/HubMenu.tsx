@@ -15,8 +15,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { trackRender } from '../../utils/trackRender';
-import { useTheme } from '../../contexts/useTheme';
-import { COLORS } from '../../config/Colors';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import { audio } from '../../services/audio/AudioService';
 import { HubMenuButton } from './HubMenuButton.tsx';
@@ -27,6 +25,7 @@ import { OptimizationBadge } from '../ui/OptimizationBadge';
 import { cn } from '../../utils/classnames';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { OverlayBackButton } from '../ui/OverlayChrome';
+import { useHubSkin } from './useHubSkin';
 
 import { HubPlayerCard } from './HubPlayerCard.tsx';
 import { LootboxService } from '../../services/lootbox/LootboxService';
@@ -64,13 +63,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   onBack,
 }) => {
   trackRender('HubMenu');
-  const { isRetro } = useTheme();
+  const skin = useHubSkin();
   const { t } = useLanguage();
   const sizes = useThemeSize();
   const device = useDevice();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const pairConfig = CRYPTO_PAIRS[selectedPair];
-  const accentColor = isRetro ? COLORS.ELECTRIC_BLUE : pairConfig.color;
+  const accentColor = skin.resolveAccentColor(pairConfig.color);
 
   const [lootboxCount] = useState(() => LootboxService.getTotalUnopenedCount());
   const [consumableCount] = useState(() => InventoryService.getConsumables().length);
@@ -85,7 +84,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
     consumableCount,
     lootboxCount,
     iconClass,
-    isRetro,
+    isRetro: skin.isRetroIconStyle,
     t,
   });
 
@@ -172,13 +171,15 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
   return (
     <div
-      className={`
+      className={cn(
+        `
         allow-scroll absolute inset-0 z-[100] flex flex-col items-center
         justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))]
         sm:justify-center sm:p-6 sm:pb-6
         landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2
-        ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/95'}
-      `}
+      `,
+        skin.backdrop
+      )}
     >
       {/* Back Button (Top Left) */}
       {onBack && (
@@ -193,23 +194,12 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         {/* Title */}
         <header className="space-y-2.5 text-center sm:space-y-5">
           <h1
-            className={cn(
-              isRetro ? 'font-retro-pixel' : 'font-cyber',
-              sizes.title,
-              'leading-relaxed tracking-tight',
-              isRetro
-                ? 'text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]'
-                : 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]'
-            )}
+            className={cn(skin.header, sizes.title, 'leading-relaxed tracking-tight')}
           >
             {t('common.menu.title')}
             <br />
             <span
-              className={cn(
-                isRetro
-                  ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
-                  : 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]'
-              )}
+              className={cn(skin.headerAccentEffect)}
               style={{ color: accentColor }}
             >
               {t('common.menu.subtitle')}
@@ -218,7 +208,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`${isRetro ? 'font-retro-pixel text-[10px] text-[#39FF14]' : 'font-cyber text-slate-500'} font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+              className={cn(
+                skin.subtitle,
+                'font-medium uppercase tracking-[0.2em]',
+                sizes.tiny
+              )}
             >
               HUB TERMINAL
             </p>
@@ -228,25 +222,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         </header>
 
         <ThemedPanel
-          className={cn(
-            'relative space-y-3.5 overflow-hidden p-3.5 transition-colors duration-200 sm:space-y-5 sm:p-6',
-            !isRetro &&
-              'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
-          )}
+          surface="raised"
+          padding="md"
+          className="relative space-y-3.5 overflow-hidden sm:space-y-5"
         >
-          {!isRetro && (
-            <>
-              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
-              <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
-              <div
-                className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                style={{
-                  backgroundColor: accentColor,
-                  boxShadow: `0 0 20px ${accentColor}40`,
-                }}
-              />
-            </>
-          )}
+          <div aria-hidden="true" className={skin.panelDecoration} />
+          <div aria-hidden="true" className={skin.panelInnerDecoration} />
+          <div aria-hidden="true" className={skin.panelTopDecoration} />
 
           {/* Player Card */}
           <div className="relative z-10">
@@ -265,18 +247,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
           {/* Button Grid */}
           <div className="relative z-10 flex items-center gap-2">
-            <div
-              className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
-            />
-            <span
-              className={`text-[9px] uppercase sm:text-[10px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} font-bold tracking-[0.15em] sm:tracking-[0.2em]`}
-              style={{ color: isRetro ? COLORS.NEON_GREEN : accentColor }}
-            >
+            <div className={cn('h-px flex-1', skin.accessRailStart)} />
+            <span className={skin.accessLabel} style={{ color: accentColor }}>
               HUB ACCESS
             </span>
-            <div
-              className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
-            />
+            <div className={cn('h-px flex-1', skin.accessRailEnd)} />
           </div>
           <div className={cn('relative z-10', hubGridClass)}>
             {buttons.map((btn, index) => (
@@ -305,12 +280,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           <div
             className={cn(
               'relative z-10 pt-1 text-center uppercase tracking-widest text-slate-500',
-              isRetro
-                ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[9px]'
-                : 'font-display text-[9px] sm:text-[10px]'
+              skin.navigationHelp
             )}
           >
-            {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
+            {t(skin.navigationHelpKey)}
           </div>
         </ThemedPanel>
       </div>

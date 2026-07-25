@@ -8,6 +8,7 @@ import {
   type MarketRegimeSnapshot,
 } from '../../director/contracts';
 import { type CanonicalMarketFrame } from '../../../types/marketCanonical';
+import { RollingAtrPercentile } from './RollingAtrPercentile';
 
 export type RsiZone = 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
 
@@ -52,18 +53,42 @@ export class MarketRegimeEngine {
   private volumeConfirmationCount = 0;
   private macdConfirmationCount = 0;
   private lastEventAt: Partial<Record<MarketEventFamily, number>> = {};
+  private readonly volatilityWindow: RollingAtrPercentile;
+  private lastAcceptedFrame: CanonicalMarketFrame | null = null;
+  private lastVolatilityPercentile = 0.5;
+  private lastLivePressure = 0;
+  private lastLiveElapsedSeconds = 0;
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.config = config;
+    this.volatilityWindow = new RollingAtrPercentile(
+      config.regime.volatilityWindowSamples
+    );
   }
 
   public update(frame: CanonicalMarketFrame, elapsedSeconds = 0): MarketRegimeUpdate {
     if (frame.quality === 'STALE') {
-      return this.createUpdate(frame, null, elapsedSeconds);
+      return this.createStaleUpdate(frame, elapsedSeconds);
     }
 
+    if (
+      this.lastAcceptedFrame !== null &&
+      frame.sourceSequence <= this.lastAcceptedFrame.sourceSequence
+    ) {
+      return this.createUpdate(
+        this.lastAcceptedFrame,
+        null,
+        elapsedSeconds,
+        this.lastVolatilityPercentile
+      );
+    }
+
+    const volatilityPercentile = this.volatilityWindow.update(
+      frame.sourceSequence,
+      frame.atrPercent
+    );
     const rsiEvent = this.updateRsi(frame);
-    const volatilityEvent = this.updateVolatility(frame);
+    const volatilityEvent = this.updateVolatility(frame, volatilityPercentile);
     const volumeEvent = this.updateVolume(frame);
     const breakoutEvent = this.updateTrend(frame);
     const whaleEvent = this.updateWhale(frame);
@@ -71,7 +96,17 @@ export class MarketRegimeEngine {
       rsiEvent ?? volatilityEvent ?? volumeEvent ?? breakoutEvent ?? whaleEvent;
 
     this.updateRegime(frame);
-    return this.createUpdate(frame, event, elapsedSeconds);
+    const update = this.createUpdate(
+      frame,
+      event,
+      elapsedSeconds,
+      volatilityPercentile
+    );
+    this.lastAcceptedFrame = frame;
+    this.lastVolatilityPercentile = volatilityPercentile;
+    this.lastLivePressure = update.snapshot.pressure;
+    this.lastLiveElapsedSeconds = Math.max(0, elapsedSeconds);
+    return update;
   }
 
   public reset(): void {
@@ -86,6 +121,11 @@ export class MarketRegimeEngine {
     this.volumeConfirmationCount = 0;
     this.macdConfirmationCount = 0;
     this.lastEventAt = {};
+    this.volatilityWindow.reset();
+    this.lastAcceptedFrame = null;
+    this.lastVolatilityPercentile = 0.5;
+    this.lastLivePressure = 0;
+    this.lastLiveElapsedSeconds = 0;
   }
 
   private updateRsi(frame: CanonicalMarketFrame): MarketRegimeEvent | null {
@@ -117,11 +157,12 @@ export class MarketRegimeEngine {
     return this.emitIfReady('RSI_EXTREMITY', frame);
   }
 
-  private updateVolatility(frame: CanonicalMarketFrame): MarketRegimeEvent | null {
+  private updateVolatility(
+    frame: CanonicalMarketFrame,
+    volatilityPercentile: number
+  ): MarketRegimeEvent | null {
     const { volatility } = this.config.regimeThresholds;
-    const score = clampUnit(
-      frame.atrPercent / this.config.regime.volatilityReferenceAtrPercent
-    );
+    const score = clampUnit(volatilityPercentile);
 
     if (this.volatilityHigh) {
       if (score < volatility.highExit) this.volatilityHigh = false;
@@ -223,11 +264,11 @@ export class MarketRegimeEngine {
   private createUpdate(
     frame: CanonicalMarketFrame,
     event: MarketRegimeEvent | null,
-    elapsedSeconds: number
+    elapsedSeconds: number,
+    volatilityPercentile: number,
+    pressureOverride?: number
   ): MarketRegimeUpdate {
-    const volatility = clampUnit(
-      frame.atrPercent / this.config.regime.volatilityReferenceAtrPercent
-    );
+    const volatility = clampUnit(volatilityPercentile);
     const confidence = Math.max(
       volatility,
       frame.normalizedVolume,
@@ -235,14 +276,17 @@ export class MarketRegimeEngine {
       clampUnit(Math.abs(frame.rsi - 50) / 30),
       frame.whaleTier / 3
     );
-    const pressure = clampUnit(
-      volatility * this.config.marketPressure.weights.volatility +
-        frame.normalizedVolume * this.config.marketPressure.weights.volume +
-        frame.trendStrength * this.config.marketPressure.weights.trend +
-        clampUnit(Math.abs(frame.rsi - 50) / 30) *
-          this.config.marketPressure.weights.rsiExtremity +
-        (frame.whaleTier / 3) * this.config.marketPressure.weights.whale
-    );
+    const pressure =
+      pressureOverride === undefined
+        ? clampUnit(
+            volatility * this.config.marketPressure.weights.volatility +
+              frame.normalizedVolume * this.config.marketPressure.weights.volume +
+              frame.trendStrength * this.config.marketPressure.weights.trend +
+              clampUnit(Math.abs(frame.rsi - 50) / 30) *
+                this.config.marketPressure.weights.rsiExtremity +
+              (frame.whaleTier / 3) * this.config.marketPressure.weights.whale
+          )
+        : clampUnit(pressureOverride);
 
     return {
       snapshot: {
@@ -273,5 +317,25 @@ export class MarketRegimeEngine {
       },
       event,
     };
+  }
+
+  private createStaleUpdate(
+    staleFrame: CanonicalMarketFrame,
+    elapsedSeconds: number
+  ): MarketRegimeUpdate {
+    const semanticFrame = this.lastAcceptedFrame ?? staleFrame;
+    const staleAgeSeconds = Math.max(0, elapsedSeconds - this.lastLiveElapsedSeconds);
+    const pressureScale = Math.max(
+      0,
+      1 - staleAgeSeconds / this.config.marketPressure.staleDecaySeconds
+    );
+
+    return this.createUpdate(
+      semanticFrame,
+      null,
+      elapsedSeconds,
+      this.lastVolatilityPercentile,
+      this.lastLivePressure * pressureScale
+    );
   }
 }

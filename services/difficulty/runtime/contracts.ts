@@ -62,6 +62,7 @@ export type DifficultyRuntimeInputView = ReadonlyDeep<{
   player: DifficultyPlayerTelemetry;
   run: {
     constants: DifficultyRunConstants | null;
+    greedLevel: number;
   };
   world: DifficultyWorldPressure;
 }>;

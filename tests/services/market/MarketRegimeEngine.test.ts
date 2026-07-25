@@ -118,4 +118,47 @@ describe('MarketRegimeEngine', () => {
 
     expect(replay()).toEqual(replay());
   });
+
+  it('ranks ATR against rolling canonical history instead of a fixed reference', () => {
+    const engine = new MarketRegimeEngine();
+
+    expect(
+      engine.update(createFrame(1, { atrPercent: 0.01 })).snapshot.volatility
+    ).toBe(0.5);
+    expect(
+      engine.update(createFrame(2, { atrPercent: 0.02 })).snapshot.volatility
+    ).toBe(1);
+    expect(
+      engine.update(createFrame(3, { atrPercent: 0.005 })).snapshot.volatility
+    ).toBe(0);
+  });
+
+  it('does not count the same canonical sequence as multiple confirmations', () => {
+    const engine = new MarketRegimeEngine();
+    const first = createFrame(1, { normalizedVolume: 0.8 });
+
+    expect(engine.update(first).event).toBeNull();
+    expect(engine.update(first).event).toBeNull();
+    expect(engine.update(first).event).toBeNull();
+    expect(engine.update(createFrame(2, { normalizedVolume: 0.8 })).event).toBeNull();
+    expect(
+      engine.update(createFrame(3, { normalizedVolume: 0.8 })).event
+    ).toMatchObject({
+      family: 'VOLUME_SURGE',
+    });
+  });
+
+  it('preserves the live regime while stale market pressure decays', () => {
+    const engine = new MarketRegimeEngine();
+    engine.update(createFrame(1, { normalizedVolume: 0.9 }), 8);
+    engine.update(createFrame(2, { normalizedVolume: 0.9 }), 9);
+    const live = engine.update(createFrame(3, { normalizedVolume: 0.9 }), 10);
+    const earlyStale = engine.update(createFrame(4, { quality: 'STALE' }), 20);
+    const lateStale = engine.update(createFrame(5, { quality: 'STALE' }), 35);
+
+    expect(earlyStale.snapshot.regime).toBe(live.snapshot.regime);
+    expect(earlyStale.snapshot.activeEventFamily).toBeNull();
+    expect(earlyStale.snapshot.pressure).toBeLessThan(live.snapshot.pressure);
+    expect(lateStale.snapshot.pressure).toBeLessThan(earlyStale.snapshot.pressure);
+  });
 });

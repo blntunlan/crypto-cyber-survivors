@@ -1,13 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InventoryService } from '../../services/inventory/InventoryService';
 import { EventBus } from '../../services/core/EventBus';
+import { TimeService } from '../../services/core/TimeService';
 import { CONSUMABLE_DEFINITIONS } from '../../types/inventory';
 
 describe('InventoryService', () => {
   beforeEach(() => {
     InventoryService.resetForTests();
+    TimeService.reset();
+    TimeService.setGameTime(0);
     vi.useFakeTimers();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    TimeService.reset();
+    vi.useRealTimers();
   });
 
   describe('Player Context', () => {
@@ -78,9 +86,11 @@ describe('InventoryService', () => {
       const multiplier = InventoryService.getEffectMultiplier('damage_boost');
       expect(multiplier).toBeGreaterThan(1.0);
 
-      // Advance time 31 seconds
+      // Wall-clock time must not expire a pause-aware gameplay effect.
       vi.advanceTimersByTime(31000);
+      expect(InventoryService.getEffectMultiplier('damage_boost')).toBeGreaterThan(1.0);
 
+      TimeService.setGameTime(31000);
       expect(InventoryService.getEffectMultiplier('damage_boost')).toBe(1.0);
     });
 

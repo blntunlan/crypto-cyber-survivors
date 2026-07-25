@@ -81,10 +81,6 @@ function restoreEventSource() {
   globalThis.EventSource = originalEventSource;
 }
 
-// ── Mock import.meta.env ─────────────────────────────────────────────────
-
-vi.stubEnv('VITE_MARKET_AGGREGATOR_URL', 'https://market.test.local');
-
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function createService(overrides: Partial<SSEMarketServiceConfig> = {}): {
@@ -129,6 +125,7 @@ function createMarketUpdate(overrides: Partial<SSEMarketUpdate> = {}): SSEMarket
 describe('SSEMarketService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.stubEnv('VITE_MARKET_AGGREGATOR_URL', 'https://market.test.local');
     installMockEventSource();
 
     // Mock document visibility API
@@ -141,6 +138,7 @@ describe('SSEMarketService', () => {
   afterEach(() => {
     vi.useRealTimers();
     restoreEventSource();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -188,11 +186,18 @@ describe('SSEMarketService', () => {
       expect(service.isConnected()).toBe(false);
     });
 
-    it('constructs correct SSE URL with pair parameter', () => {
+    it('uses the same-origin Vite proxy URL in development', () => {
+      vi.stubEnv('MODE', 'development');
       const { service } = createService({ pair: 'ETH' as never });
       service.connect();
 
-      // SSEMarketService uses absolute URL if VITE_MARKET_AGGREGATOR_URL is configured
+      expect(mockEs.url).toBe('/api/v1/market/stream?pair=ETH');
+    });
+
+    it('uses the configured aggregator URL outside development', () => {
+      const { service } = createService({ pair: 'ETH' as never });
+      service.connect();
+
       expect(mockEs.url).toBe(
         'https://market.test.local/api/v1/market/stream?pair=ETH'
       );

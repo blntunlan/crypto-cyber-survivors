@@ -5,7 +5,6 @@
 import React, { useEffect, useState } from 'react';
 import { ReplayPlayerService } from '../../services/replay/ReplayPlayerService';
 import { type ReplaySummary } from '../../types/replayPlayback';
-import { useTheme } from '../../contexts/useTheme';
 import { ThemedButton } from '../themed/ThemedButton';
 import {
   OverlayBackButton,
@@ -13,9 +12,9 @@ import {
   OverlaySectionRail,
 } from '../ui/OverlayChrome';
 import { COLORS } from '../../config/Colors';
-import { cn } from '../../utils/classnames';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { StatePanel } from '../ui/StatePanel';
 
 interface ReplayListScreenProps {
   onBack: () => void;
@@ -28,7 +27,6 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
 }) => {
   const [replays, setReplays] = useState<ReplaySummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isRetro } = useTheme();
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -63,30 +61,26 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
           />
 
           {loading && (
-            <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
-              {t('common.menu_pages.replays.loading')}
-            </ThemedPanel>
+            <StatePanel
+              state="loading"
+              title={t('common.menu_pages.replays.loading')}
+            />
           )}
 
           {!loading && replays.length === 0 && (
-            <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
-              {t('common.menu_pages.replays.empty_state')}
-            </ThemedPanel>
+            <StatePanel
+              state="empty"
+              title={t('common.menu_pages.replays.empty_state')}
+            />
           )}
 
           <div className="space-y-3">
             {replays.map(replay => (
               <ThemedPanel
                 key={replay.id}
-                className={cn(
-                  'flex flex-col gap-4 overflow-hidden p-4 transition-all sm:flex-row sm:items-center sm:justify-between',
-                  isRetro ? 'font-retro-pixel' : 'font-cyber'
-                )}
-                style={{
-                  background: !isRetro
-                    ? `linear-gradient(120deg, ${COLORS.WHALE}10, rgba(2,6,23,0.85))`
-                    : undefined,
-                }}
+                padding="md"
+                surface="raised"
+                className="flex flex-col gap-4 overflow-hidden sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
@@ -124,10 +118,7 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
                 <ThemedButton
                   intent="secondary"
                   onClick={() => onWatch(replay.id)}
-                  className={cn(
-                    'min-h-[44px] shrink-0 px-5 text-xs font-black uppercase tracking-[0.22em]',
-                    !isRetro && 'border-[#8b5cf6]/30 text-[#c4b5fd] hover:text-white'
-                  )}
+                  className="shrink-0"
                 >
                   {t('common.menu_pages.replays.watch')}
                 </ThemedButton>

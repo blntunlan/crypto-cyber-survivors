@@ -25,6 +25,7 @@ import { ELITE_CONFIG } from '../../config/EliteConfig';
 import { WhaleTier } from '../../types/indicators';
 import { TIER_CONFIG } from '../cards/CardSystem';
 import { LOOT_CACHE_CONFIG } from '../../config/LootCacheConfig';
+import { TimeService } from '../core/TimeService';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -428,7 +429,7 @@ export class EntityRenderer implements IRenderer {
         alpha = remainingRatio / fadeStartThreshold;
         // Add a "blinking" effect when very close to expiry
         if (remainingRatio < 0.1) {
-          alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+          alpha *= Math.sin(TimeService.getGameTime() * 0.02) * 0.5 + 0.5;
         }
       }
 
@@ -458,7 +459,7 @@ export class EntityRenderer implements IRenderer {
     bounds: ViewportBounds
   ): void {
     const buffGems = BuffGemSpawner.getActiveGems();
-    const now = Date.now();
+    const now = TimeService.getGameTime();
 
     buffGems.forEach(gem => {
       if (!gem.active) {
@@ -632,8 +633,10 @@ export class EntityRenderer implements IRenderer {
     const impact = e.hitImpactTimer ?? 0;
     const recoilX = (e.hitRecoilX ?? 0) * impact;
     const recoilY = (e.hitRecoilY ?? 0) * impact;
-    const ex = Math.round(e.x + recoilX);
-    const ey = Math.round(e.y + recoilY);
+    const rawX = e.x + recoilX;
+    const rawY = e.y + recoilY;
+    const ex = isRetro ? Math.round(rawX) : rawX;
+    const ey = isRetro ? Math.round(rawY) : rawY;
 
     // 1. Check if we need complex transforms (spawning or hit rotation)
     const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
@@ -709,7 +712,7 @@ export class EntityRenderer implements IRenderer {
   ): void {
     const r = e.radius;
     const tier = e.whaleTier ?? WhaleTier.WHALE;
-    const phase = performance.now() * 0.003;
+    const phase = TimeService.getGameTime() * 0.003;
     const tailWag = Math.sin(phase * 2) * 0.15;
     const fill = isHit ? '#FFFFFF' : e.color;
     const isBaby = tier === WhaleTier.BABY_WHALE;
@@ -877,7 +880,7 @@ export class EntityRenderer implements IRenderer {
     ctx.save();
 
     // Gold glow circle behind the enemy
-    const pulseTime = performance.now() * 0.004;
+    const pulseTime = TimeService.getGameTime() * 0.004;
     const pulseAlpha = 0.3 + Math.sin(pulseTime) * 0.1;
     const glowRadius = e.radius + ELITE_CONFIG.visualGlowRadius;
 
@@ -1105,7 +1108,7 @@ export class EntityRenderer implements IRenderer {
 
     // Hurt flash effect (High-frequency blinking for first 200ms of I-frame)
     if (player.invulnerabilityTimer > 200) {
-      const isVisible = Math.floor(Date.now() / 50) % 2 === 0;
+      const isVisible = Math.floor(TimeService.getGameTime() / 50) % 2 === 0;
       if (!isVisible) return;
       ctx.fillStyle = '#FFFFFF';
     } else {
@@ -1136,7 +1139,7 @@ export class EntityRenderer implements IRenderer {
     ctx.translate(px, py);
 
     // 1. Outer Glow Ring (Always visible, pulsing)
-    const pulseTime = performance.now() * 0.003;
+    const pulseTime = TimeService.getGameTime() * 0.003;
     const pulseScale = 1 + Math.sin(pulseTime) * 0.1; // Subtle pulse
     const outerRingRadius = player.radius * 1.8 * pulseScale;
 

@@ -25,8 +25,11 @@ import { CurrentDifficultyRuntimeAdapter } from './CurrentDifficultyRuntimeAdapt
 import { DifficultyEventBridge } from './DifficultyEventBridge';
 import { DifficultyInputInbox } from './DifficultyInputInbox';
 import { DifficultyRuntimeOrchestrator } from './DifficultyRuntimeOrchestrator';
-import { type DifficultyRuntimeInputView } from './contracts';
-import { type DifficultyRunConstants } from './contracts';
+import {
+  type DifficultyRuntimeInputView,
+  type DifficultyRunConstants,
+  type DifficultyWorldPressure,
+} from './contracts';
 import { DifficultyV2CompatibilityAdapter } from './DifficultyV2CompatibilityAdapter';
 import {
   ShadowComparisonRecorder,
@@ -114,6 +117,19 @@ export class DifficultyRuntime {
     maxActiveEnemies: 0,
     position: MarketPosition.LONG,
   };
+  private readonly boundaryRunConstants: DifficultyRunConstants = {
+    runId: '',
+    seed: 0,
+    side: 'LONG',
+    leverage: 0,
+    entryPrice: 0,
+    liquidationPrice: 0,
+  };
+  private readonly boundaryWorldPressure: DifficultyWorldPressure = {
+    activeEnemies: 0,
+    maximumEnemies: 0,
+    activeEncounters: 0,
+  };
   private inputView: DifficultyRuntimeInputView;
   private previousCommittedSnapshot: RuntimeDifficultySnapshot | null = null;
   private disposed = false;
@@ -167,29 +183,27 @@ export class DifficultyRuntime {
       this.inbox.recordMarketFrame(input.marketFrame, input.tick);
     }
     if (input.run !== null) {
-      this.inbox.initializeRun(
-        {
-          runId: input.run.runId,
-          seed: input.run.seed,
-          side: input.position.side === MarketPosition.LONG ? 'LONG' : 'SHORT',
-          leverage: input.position.leverage,
-          entryPrice: input.position.entryPrice,
-          liquidationPrice: input.position.liquidationPrice,
-        },
-        input.tick
-      );
+      const runConstants = this.boundaryRunConstants;
+      runConstants.runId = input.run.runId;
+      runConstants.seed = input.run.seed;
+      runConstants.side =
+        input.position.side === MarketPosition.LONG ? 'LONG' : 'SHORT';
+      runConstants.leverage = input.position.leverage;
+      runConstants.entryPrice = input.position.entryPrice;
+      runConstants.liquidationPrice = input.position.liquidationPrice;
+      this.inbox.initializeRun(runConstants, input.tick);
     }
-    this.inbox.recordWorldPressure(
-      {
-        activeEnemies: input.world.activeEnemies,
-        maximumEnemies: input.world.maximumEnemies,
-        activeEncounters:
-          input.world.activePrimaryEncounters + input.world.activeSupportEncounters,
-      },
-      input.tick
-    );
+    const worldPressure = this.boundaryWorldPressure;
+    worldPressure.activeEnemies = input.world.activeEnemies;
+    worldPressure.maximumEnemies = input.world.maximumEnemies;
+    worldPressure.activeEncounters =
+      input.world.activePrimaryEncounters + input.world.activeSupportEncounters;
+    this.inbox.recordWorldPressure(worldPressure, input.tick);
     const inputView = this.inbox.drain(input.tick);
     this.inputView = inputView;
+    if (input.run !== null) {
+      input.run.greedLevel = inputView.run.greedLevel;
+    }
     const currentDecision = this.plan.runsCurrentAdapter
       ? this.currentAdapter.commitAtBoundary(input)
       : null;

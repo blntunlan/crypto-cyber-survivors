@@ -295,8 +295,9 @@ export class PredictiveStrategy implements MovementStrategy {
     }
 
     // Calculate player velocity
-    const pvx = playerX - this.lastPlayerX;
-    const pvy = playerY - this.lastPlayerY;
+    const inverseDelta = dtFactor > 0 ? 1 / dtFactor : 0;
+    const pvx = (playerX - this.lastPlayerX) * inverseDelta;
+    const pvy = (playerY - this.lastPlayerY) * inverseDelta;
 
     // Predict future position
     const predictX = playerX + pvx * this.leadFactor;
@@ -444,14 +445,14 @@ export class AbsorbStrategy implements MovementStrategy {
 
     // Periodic growth pulse (visual + hitbox expansion)
     this.pulseTimer += dtFactor;
-    if (
+    while (
       this.pulseTimer >= this.pulseCycle &&
       this.currentGrowth < this.maxGrowthFactor
     ) {
-      this.currentGrowth += 0.1;
+      this.currentGrowth = Math.min(this.maxGrowthFactor, this.currentGrowth + 0.1);
       enemy.radius = Math.round(enemy.radius * 1.05);
       enemy.damage = Math.round(enemy.damage * 1.08);
-      this.pulseTimer = 0;
+      this.pulseTimer -= this.pulseCycle;
     }
   }
 }

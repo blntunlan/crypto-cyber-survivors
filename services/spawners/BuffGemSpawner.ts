@@ -70,11 +70,11 @@ class BuffGemSpawnerClass {
 
   private lastDifficulty: number = 1;
   private lastSpawnTime: number = 0;
+  private elapsedGameTimeMs: number = 0;
   private screenWidth: number = 800;
   private screenHeight: number = 600;
 
-  /** Game start timestamp - no spawns for first 10 seconds */
-  private gameStartTime: number = 0;
+  /** No automatic spawns during the first 10 seconds of game time. */
   private static readonly GRACE_PERIOD_MS = 10000; // 10 seconds
 
   /** Track collected permanent buffs so they don't spawn again */
@@ -100,7 +100,7 @@ class BuffGemSpawnerClass {
     this.activeGems = [];
     this.lastDifficulty = 1;
     this.lastSpawnTime = 0;
-    this.gameStartTime = Date.now();
+    this.elapsedGameTimeMs = 0;
     this.collectedPermanentBuffs.clear();
     Logger.debug('[BuffGemSpawner] Initialized');
   }
@@ -119,14 +119,14 @@ class BuffGemSpawnerClass {
    * @param deltaMs Time since last frame in ms
    */
   update(difficulty: number, deltaMs: number): void {
-    const now = Date.now();
+    const safeDeltaMs = Math.max(0, Number.isFinite(deltaMs) ? deltaMs : 0);
+    this.elapsedGameTimeMs += safeDeltaMs;
 
     // Update existing gems (pulse animation, lifetime check)
-    this.updateActiveGems(deltaMs);
+    this.updateActiveGems(safeDeltaMs);
 
     // Grace period: no spawns for first 10 seconds
-    const timeSinceStart = now - this.gameStartTime;
-    if (timeSinceStart < BuffGemSpawnerClass.GRACE_PERIOD_MS) {
+    if (this.elapsedGameTimeMs < BuffGemSpawnerClass.GRACE_PERIOD_MS) {
       this.lastDifficulty = difficulty;
       return;
     }
@@ -134,12 +134,12 @@ class BuffGemSpawnerClass {
     // Check for volatility spike
     const diffChange = Math.abs(difficulty - this.lastDifficulty);
     const canSpawn =
-      now - this.lastSpawnTime >= this.config.spawnCooldown &&
+      this.elapsedGameTimeMs - this.lastSpawnTime >= this.config.spawnCooldown &&
       this.activeGems.length < this.config.maxActiveGems;
 
     if (diffChange >= this.config.volatilityThreshold && canSpawn) {
       this.spawnRandomBuffGem();
-      this.lastSpawnTime = now;
+      this.lastSpawnTime = this.elapsedGameTimeMs;
     }
 
     this.lastDifficulty = difficulty;
@@ -220,7 +220,6 @@ class BuffGemSpawnerClass {
    */
   spawnGem(buffType: BuffGemType, x: number, y: number): BuffGem {
     const config = BUFF_GEM_CONFIGS[buffType];
-    const now = Date.now();
 
     // Get from pool or create new
     let gem = this.freeGems.pop();
@@ -234,7 +233,7 @@ class BuffGemSpawnerClass {
         icon: config.icon,
         buffType,
         decoratorClass: BUFF_DECORATORS[buffType],
-        spawnTime: now,
+        spawnTime: this.elapsedGameTimeMs,
         elapsedLifetime: 0,
         lifetime: this.config.gemLifetime,
         pulsePhase: 0,
@@ -248,7 +247,7 @@ class BuffGemSpawnerClass {
       gem.icon = config.icon;
       gem.buffType = buffType;
       gem.decoratorClass = BUFF_DECORATORS[buffType];
-      gem.spawnTime = now;
+      gem.spawnTime = this.elapsedGameTimeMs;
       gem.elapsedLifetime = 0;
       gem.lifetime = this.config.gemLifetime;
       gem.pulsePhase = 0;
@@ -377,7 +376,7 @@ class BuffGemSpawnerClass {
     this.clearAll();
     this.lastDifficulty = 1;
     this.lastSpawnTime = 0;
-    this.gameStartTime = Date.now();
+    this.elapsedGameTimeMs = 0;
     this.collectedPermanentBuffs.clear();
   }
 

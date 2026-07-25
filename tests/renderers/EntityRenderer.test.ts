@@ -697,6 +697,29 @@ describe('EntityRenderer', () => {
       expect(renderEnemyLivingSpy).toHaveBeenCalled();
     });
 
+    it('preserves subpixel positions for smooth enemy movement', () => {
+      mockPool.activeEnemies = [
+        {
+          x: 300.25,
+          y: 300.75,
+          radius: 15,
+          color: '#ff0000',
+          health: 100,
+          maxHealth: 100,
+          isDying: false,
+        },
+      ];
+
+      (renderer as any).drawEnemies(mockCtx, mockPool, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.translate).toHaveBeenCalledWith(300.25, 300.75);
+    });
+
     it('should apply hit impact transform for damaged enemies', () => {
       mockPool.activeEnemies = [
         {

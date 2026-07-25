@@ -2,6 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { AuthoritativeQuoteService } from '../../src/services/economy/AuthoritativeQuoteService';
 
 describe('AuthoritativeQuoteService', () => {
+  it('uses server eligibility without a client pacing declaration', () => {
+    const service = new AuthoritativeQuoteService('server-only-secret');
+
+    const result = service.issue({
+      sessionId: 'session-1',
+      createdAtSeconds: 1_000,
+      nowSeconds: 1_300,
+      entryPrice: 100,
+      canonicalPrice: 101,
+      canonicalSequence: 42,
+      position: 'LONG',
+      leverage: 5,
+      greedLevel: 0,
+      marketStaleSeconds: 0,
+      combatMastery: 0.5,
+    });
+
+    expect(result.quote.expiresAtSeconds).toBe(1_315);
+  });
+
   it('issues a signed quote from server time and canonical price data', () => {
     const service = new AuthoritativeQuoteService('server-only-secret');
 
@@ -15,7 +35,6 @@ describe('AuthoritativeQuoteService', () => {
       position: 'LONG',
       leverage: 5,
       greedLevel: 0,
-      pacingState: 'RECOVERY',
       marketStaleSeconds: 0,
       combatMastery: 0.5,
     });
@@ -40,7 +59,6 @@ describe('AuthoritativeQuoteService', () => {
         position: 'LONG',
         leverage: 5,
         greedLevel: 0,
-        pacingState: 'RECOVERY',
         marketStaleSeconds: 0,
         combatMastery: 0.5,
       })
@@ -57,7 +75,6 @@ describe('AuthoritativeQuoteService', () => {
         position: 'LONG',
         leverage: 5,
         greedLevel: 0,
-        pacingState: 'RECOVERY',
         marketStaleSeconds: 1,
         combatMastery: 0.5,
       })
@@ -78,7 +95,6 @@ describe('AuthoritativeQuoteService', () => {
       position: 'LONG',
       leverage: 5,
       greedLevel: 0,
-      pacingState: 'DOOM',
       marketStaleSeconds: 60,
       combatMastery: 0.5,
     });
@@ -101,7 +117,6 @@ describe('AuthoritativeQuoteService', () => {
       position: 'LONG',
       leverage: 5,
       greedLevel: 0,
-      pacingState: 'PEAK',
       marketStaleSeconds: 0,
       combatMastery: 0.5,
     });

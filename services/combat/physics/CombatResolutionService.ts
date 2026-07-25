@@ -258,7 +258,7 @@ export class CombatResolutionService {
 
     // Primary Gem Spawn
     const lerpSize =
-      leverage >= 50 ? GEMS.RARE_SIZE : isRare ? GEMS.RARE_SIZE : GEMS.NORMAL_SIZE;
+      leverage >= 20 ? GEMS.RARE_SIZE : isRare ? GEMS.RARE_SIZE : GEMS.NORMAL_SIZE;
 
     pool.getGem(
       enemy.x,

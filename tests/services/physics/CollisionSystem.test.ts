@@ -227,6 +227,45 @@ describe('CollisionSystem', () => {
       // Buffer should reset
       expect(enemy.damageBuffer).toBe(0);
     });
+
+    it('advances legacy damage buffers consistently across split deltas', () => {
+      const enemy = {
+        x: 100,
+        y: 100,
+        radius: 10,
+        active: true,
+        isDying: false,
+        hasEnteredScreen: true,
+        damageBuffer: 50,
+        damageBufferTimer: 0.05,
+        maxHealth: 100,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+
+      collisionSystem.update(
+        mockPool,
+        mockPlayer,
+        mockState,
+        0.5,
+        800,
+        600,
+        onGameOver
+      );
+      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
+
+      collisionSystem.update(
+        mockPool,
+        mockPlayer,
+        mockState,
+        0.5,
+        800,
+        600,
+        onGameOver
+      );
+      expect(mockPool.getFloatingText).toHaveBeenCalledTimes(1);
+      expect(enemy.damageBuffer).toBe(0);
+    });
   });
 
   describe('Player-Enemy Collision', () => {

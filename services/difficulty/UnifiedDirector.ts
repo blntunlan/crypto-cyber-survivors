@@ -4,6 +4,8 @@ import {
   getDefaultSharedState,
 } from './rules/DifficultyRule';
 import { DEFAULT_RULE_ORDER } from './rules';
+import { GAME_ENGINE } from '../../constants';
+import { scalePerFrameRatio } from '../../utils/math';
 
 export interface UnifiedInputs {
   // Market Data
@@ -72,7 +74,7 @@ class RuleBasedDirector {
     this.rules = rules ?? DEFAULT_RULE_ORDER;
   }
 
-  public update(inputs: UnifiedInputs, _nowMs: number): void {
+  public update(inputs: UnifiedInputs, deltaMs: number): void {
     // Reset outputs to defaults before rule pipeline
     this.resetOutputs(this.outputs);
 
@@ -96,7 +98,7 @@ class RuleBasedDirector {
       this.rules[i]!.apply(this.ruleContext);
     }
 
-    this.applySmoothing();
+    this.applySmoothing(deltaMs);
   }
 
   /**
@@ -123,14 +125,17 @@ class RuleBasedDirector {
     'lootboxDropChance',
   ];
 
-  private applySmoothing(): void {
-    const LERP_SPEED = 0.05; // 5% approach per frame to prevent jerky game feel
+  private applySmoothing(deltaMs: number): void {
+    const lerpSpeed = scalePerFrameRatio(
+      0.05,
+      Math.max(0, deltaMs) / GAME_ENGINE.MS_PER_FRAME
+    );
     const s = this.smoothedOutputs as unknown as Record<string, number>;
     const o = this.outputs as unknown as Record<string, number>;
 
     for (let i = 0; i < RuleBasedDirector.NUMERIC_KEYS.length; i++) {
       const key = RuleBasedDirector.NUMERIC_KEYS[i] as string;
-      s[key] = s[key]! + (o[key]! - s[key]!) * LERP_SPEED;
+      s[key] = s[key]! + (o[key]! - s[key]!) * lerpSpeed;
     }
     // Non-numeric: copy directly
     this.smoothedOutputs.trendAlignment = this.outputs.trendAlignment;

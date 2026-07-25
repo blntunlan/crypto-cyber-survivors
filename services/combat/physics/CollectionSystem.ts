@@ -360,7 +360,7 @@ export class CollectionSystem implements ICollectionSystem {
     particleMultiplier: number
   ): void {
     const leverage = LeverageEngine.getLeverage();
-    if (leverage < 25) {
+    if (leverage < 20) {
       return;
     }
 

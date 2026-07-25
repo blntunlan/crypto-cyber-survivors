@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../../../services/core/EventBus';
 import { FeedbackService } from '../../../services/gameplay/FeedbackService';
 import { haptic } from '../../../services/system/HapticService';
+import { TimeService } from '../../../services/core/TimeService';
 
 vi.mock('../../../services/system/HapticService', () => ({
   haptic: {
@@ -17,12 +18,19 @@ describe('FeedbackService', () => {
     EventBus.clearEvent('critHit');
     EventBus.clearEvent('enemyKilled');
     EventBus.clearEvent('nearMiss');
+    TimeService.reset();
+    TimeService.setGameTime(0);
     FeedbackService.resetForTesting();
     FeedbackService.configure({
       hapticsEnabled: true,
       isMobile: true,
       reducedMotion: false,
     });
+  });
+
+  afterEach(() => {
+    TimeService.reset();
+    vi.useRealTimers();
   });
 
   it('does not trigger haptics when mobile feedback is disabled', () => {
@@ -58,6 +66,20 @@ describe('FeedbackService', () => {
     EventBus.emit('playerHit', { damage: 10, remainingHp: 80 });
 
     expect(haptic.vibrate).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses game time for haptic cooldowns', () => {
+    vi.useFakeTimers();
+    FeedbackService.start();
+
+    EventBus.emit('playerHit', { damage: 10, remainingHp: 90 });
+    vi.advanceTimersByTime(1_000);
+    EventBus.emit('playerHit', { damage: 10, remainingHp: 80 });
+    expect(haptic.vibrate).toHaveBeenCalledTimes(1);
+
+    TimeService.setGameTime(1_000);
+    EventBus.emit('playerHit', { damage: 10, remainingHp: 70 });
+    expect(haptic.vibrate).toHaveBeenCalledTimes(2);
   });
 
   it('scales heavy haptics down when reduced motion is enabled', () => {

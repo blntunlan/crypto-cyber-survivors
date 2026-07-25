@@ -25,6 +25,7 @@ import {
 import { type CharacterSkinId, type ConsumableEffectType } from '../../types/lootbox';
 import { nanoid } from 'nanoid';
 import { GameplayValidator } from '../gameplay/validators';
+import { TimeService } from '../core/TimeService';
 
 // =============================================================================
 // INVENTORY SERVICE CLASS
@@ -334,7 +335,7 @@ class InventoryServiceClass {
       case 'coin_boost':
         // Timed effects
         if (duration) {
-          this.setActiveEffect(effectType, value, Date.now() + duration);
+          this.setActiveEffect(effectType, value, TimeService.getGameTime() + duration);
         }
         break;
     }
@@ -357,7 +358,7 @@ class InventoryServiceClass {
     if (!effect) return 1.0;
 
     // Check if expired
-    if (effect.endTime !== -1 && Date.now() > effect.endTime) {
+    if (effect.endTime !== -1 && TimeService.getGameTime() > effect.endTime) {
       this.activeEffects.delete(effectType);
       return 1.0;
     }

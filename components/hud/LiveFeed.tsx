@@ -177,9 +177,9 @@ const DesktopLiveFeed: React.FC<
 
         <div className="flex items-center gap-2 font-feed text-[10px] text-white">
           <span
-            className={`border-l px-1 ${marketData.leverage >= 50 ? 'border-amber-400 font-black text-amber-300' : 'border-white/30 opacity-60'}`}
+            className={`border-l px-1 ${marketData.leverage >= 20 ? 'border-amber-400 font-black text-amber-300' : 'border-white/30 opacity-60'}`}
           >
-            {marketData.leverage >= 50 ? 'DEGEN' : ''} {marketData.leverage}X
+            {marketData.leverage >= 20 ? 'DEGEN' : ''} {marketData.leverage}X
           </span>
           <span style={{ color: pairConfig.color }} className="font-black">
             {pairConfig.id}
@@ -408,10 +408,10 @@ const MobileLiveFeed: React.FC<
             {pairConfig.id}
           </span>
           <span
-            className={`border-l px-1 font-black ${marketData.leverage >= 50 ? 'border-amber-400 text-amber-300' : 'border-white/30 text-slate-500'}`}
+            className={`border-l px-1 font-black ${marketData.leverage >= 20 ? 'border-amber-400 text-amber-300' : 'border-white/30 text-slate-500'}`}
             style={{ fontSize: rfs(8) }}
           >
-            {marketData.leverage >= 50 ? 'DEGEN ' : ''}
+            {marketData.leverage >= 20 ? 'DEGEN ' : ''}
             {marketData.leverage}X
           </span>
         </div>

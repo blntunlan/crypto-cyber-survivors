@@ -46,6 +46,7 @@ const createInput = (
   overrides: Partial<PresentationInput> = {}
 ): PresentationInput => ({
   deltaSeconds: 0.25,
+  elapsedSeconds: 0.25,
   tick: 10,
   snapshot: createSnapshot(),
   suggestedBpm: 128,
@@ -96,6 +97,34 @@ describe('PresentationDirector', () => {
         first.sensory.audioAccent
     ).toBeLessThanOrEqual(1);
     expect(repeated.cues).toEqual([]);
+  });
+
+  it('rate-limits cues by elapsed time instead of render tick distance', () => {
+    const director = new PresentationDirector();
+    const first = director.update(
+      createInput({
+        elapsedSeconds: 10,
+        snapshot: createSnapshot({ stale: true }),
+      })
+    );
+    const tooSoon = director.update(
+      createInput({
+        elapsedSeconds: 10.2,
+        tick: 100,
+        snapshot: createSnapshot({ stale: true }),
+      })
+    );
+    const afterCooldown = director.update(
+      createInput({
+        elapsedSeconds: 11,
+        tick: 101,
+        snapshot: createSnapshot({ stale: true }),
+      })
+    );
+
+    expect(first.cues.map(cue => cue.type)).toContain('MARKET_STALE');
+    expect(tooSoon.cues.map(cue => cue.type)).not.toContain('MARKET_STALE');
+    expect(afterCooldown.cues.map(cue => cue.type)).toContain('MARKET_STALE');
   });
 
   it('keeps gameplay bytes unchanged when presentation is disabled', () => {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateCycleTimer } from '../../../../services/gameplay/loop/cycleTimer';
+import {
+  evaluateCycleTimer,
+  isCashOutRecoveryEligible,
+} from '../../../../services/gameplay/loop/cycleTimer';
+import { type DifficultyPhaseDecision } from '../../../../services/difficulty/runtime/DifficultyRuntime';
 import { GameMode } from '../../../../types/gameMode';
 
 describe('evaluateCycleTimer', () => {
@@ -54,5 +58,43 @@ describe('evaluateCycleTimer', () => {
       expect(result.currentCycle).toBe(1);
       expect(result.shouldEmit).toBe(false);
     });
+  });
+});
+
+describe('isCashOutRecoveryEligible', () => {
+  it('allows the current Director only during RECOVERY', () => {
+    const recoveryDecision = {
+      authority: 'current',
+      currentSnapshot: { pacing: { state: 'RECOVERY' } },
+      snapshot: null,
+    } as DifficultyPhaseDecision;
+    const peakDecision = {
+      authority: 'current',
+      currentSnapshot: { pacing: { state: 'PEAK' } },
+      snapshot: null,
+    } as DifficultyPhaseDecision;
+
+    expect(isCashOutRecoveryEligible(recoveryDecision)).toBe(true);
+    expect(isCashOutRecoveryEligible(peakDecision)).toBe(false);
+  });
+
+  it('allows the modular Director only during RECOVERY', () => {
+    const recoveryDecision = {
+      authority: 'modular',
+      currentSnapshot: null,
+      snapshot: { signals: { pacing: { phase: 'RECOVERY' } } },
+    } as DifficultyPhaseDecision;
+    const buildUpDecision = {
+      authority: 'modular',
+      currentSnapshot: null,
+      snapshot: { signals: { pacing: { phase: 'BUILD_UP' } } },
+    } as DifficultyPhaseDecision;
+
+    expect(isCashOutRecoveryEligible(recoveryDecision)).toBe(true);
+    expect(isCashOutRecoveryEligible(buildUpDecision)).toBe(false);
+  });
+
+  it('fails closed before the first Director decision exists', () => {
+    expect(isCashOutRecoveryEligible(undefined)).toBe(false);
   });
 });

@@ -149,33 +149,51 @@ describe('GameSessionService', () => {
           startTime: new Date().toISOString(),
         })
         .mockResolvedValueOnce({
-          quote: { quoteId: 'quote-1', canonicalSequence: 42, rewardPoints: 120 },
+          quote: {
+            quoteId: 'quote-1',
+            sessionId: 's1',
+            canonicalSequence: 42,
+            rewardPoints: 120,
+            issuedAtSeconds: 1_000,
+            expiresAtSeconds: 1_015,
+          },
           signature: 'a'.repeat(64),
           shouldForceRecovery: false,
           safeExitOnly: false,
+          greedLevel: 0,
         })
-        .mockResolvedValueOnce({ state: 'settled', rewardPoints: 120, greedDelta: 0 });
+        .mockResolvedValueOnce({
+          state: 'active',
+          rewardPoints: 0,
+          greedDelta: 1,
+          greedLevel: 1,
+          canonicalSequence: 42,
+        });
 
       await GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
-      await GameSessionService.requestCashOutQuote('RECOVERY');
+      const quote = await GameSessionService.requestCashOutQuote();
       await GameSessionService.decideCashOut(
         'quote-1',
         'a'.repeat(64),
-        'accept',
-        'accept-key-123'
+        'timeout',
+        'timeout-key-123'
       );
 
       expect(railwayPostMock).toHaveBeenCalledWith('/api/v1/economy/cash-out/quote', {
         session_id: 's1',
-        pacing_state: 'RECOVERY',
       });
+      const quotePayload = railwayPostMock.mock.calls.find(
+        ([path]) => path === '/api/v1/economy/cash-out/quote'
+      )?.[1];
+      expect(quotePayload).not.toHaveProperty('pacing_state');
+      expect(quote.greedLevel).toBe(0);
       expect(railwayPostMock).toHaveBeenCalledWith(
         '/api/v1/economy/cash-out/decision',
         {
           quote_id: 'quote-1',
           signature: 'a'.repeat(64),
-          decision: 'accept',
-          idempotency_key: 'accept-key-123',
+          decision: 'timeout',
+          idempotency_key: 'timeout-key-123',
         }
       );
     });

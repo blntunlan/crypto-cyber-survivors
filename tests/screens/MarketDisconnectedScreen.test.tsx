@@ -8,8 +8,11 @@ describe('MarketDisconnectedScreen', () => {
 
     render(<MarketDisconnectedScreen onBackToMenu={onBackToMenu} />);
 
-    expect(screen.getByText('!')).toBeInTheDocument();
     expect(screen.getByText('market.disconnected_title')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveAttribute(
+      'data-ui-component',
+      'state-panel'
+    );
 
     const backBtn = screen.getByText('market.exit_terminal');
     fireEvent.click(backBtn);

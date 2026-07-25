@@ -4,6 +4,7 @@ import type { DifficultyConfig } from '../../types/admin';
 import { type DifficultyDebugState, getDebugTimestamp } from '../../types/DebugState';
 import { type WavePhase } from '../../types/metrics';
 import { DIFFICULTY_CONFIG as D_CONFIG } from '../../config';
+import { GAME_ENGINE } from '../../constants';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 import { difficultyContext, clamp, type LiquidationWarning } from '../difficulty';
@@ -37,6 +38,7 @@ class DifficultyManagerClass {
   private lastLiquidationWarning: LiquidationWarning = 'NONE';
   private lastLiquidationWarningDistance: number = 100;
   private lastLiquidationWarningEmitTime: number = -Infinity;
+  private lastDirectorUpdateTimeMs: number | null = null;
 
   // AI Director V2 Sensors
   private dashCount: number = 0;
@@ -230,7 +232,12 @@ class DifficultyManagerClass {
       side: 'long',
     };
 
-    UnifiedDirector.update(unifiedInputs, nowMs);
+    const directorDeltaMs =
+      this.lastDirectorUpdateTimeMs === null
+        ? GAME_ENGINE.MS_PER_FRAME
+        : Math.max(0, nowMs - this.lastDirectorUpdateTimeMs);
+    this.lastDirectorUpdateTimeMs = nowMs;
+    UnifiedDirector.update(unifiedInputs, directorDeltaMs);
     if (forceSnap) {
       UnifiedDirector.snapToTargets();
     }
@@ -433,10 +440,12 @@ class DifficultyManagerClass {
     this.lastLiquidationWarning = 'NONE';
     this.lastLiquidationWarningDistance = 100;
     this.lastLiquidationWarningEmitTime = -Infinity;
+    this.lastDirectorUpdateTimeMs = null;
     this.dashCount = 0;
     this.damageTakenSum = 0;
     this.killsInWindow = 0;
     this.windowStartTime = 0;
+    this.lastDirectorUpdateTimeMs = null;
 
     difficultyContext.reset();
     UnifiedDirector.reset();

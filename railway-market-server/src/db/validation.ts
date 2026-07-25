@@ -154,14 +154,15 @@ export const claimRunRewardSchema = z.object({
   idempotency_key: z.string().trim().min(8).max(128),
 });
 
-export const cashOutQuoteSchema = z.object({
-  session_id: z.string().uuid(),
-  pacing_state: z.enum(['BUILD_UP', 'PEAK', 'PEAK_FADE', 'RECOVERY', 'DOOM']),
-});
+export const cashOutQuoteSchema = z
+  .object({
+    session_id: z.string().uuid(),
+  })
+  .strict();
 
 export const cashOutDecisionSchema = z.object({
   quote_id: z.string().uuid().or(z.string().trim().min(1).max(128)),
-  decision: z.enum(['accept', 'reject', 'safe_exit']),
+  decision: z.enum(['accept', 'reject', 'safe_exit', 'timeout']),
   signature: z.string().regex(/^[a-f0-9]{64}$/i),
   idempotency_key: z.string().trim().min(8).max(128),
 });

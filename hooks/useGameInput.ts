@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TimeService } from '../services/core/TimeService';
 
 // Global AI Override State
 export const AI_INPUT_STATE = {
@@ -11,8 +12,9 @@ export const AI_INPUT_STATE = {
 export const useGameInput = () => {
   const keys = useRef<Record<string, boolean>>({});
   const touchVector = useRef({ dx: 0, dy: 0 });
+  const movementVector = useRef({ dx: 0, dy: 0 });
   const touchDash = useRef(false);
-  const touchDashTimestamp = useRef(0); // Timestamp of last touch start for buffering
+  const touchDashTimestamp = useRef<number | null>(null);
   const BUFFER_WINDOW = 400; // ms to keep dash input valid
 
   // Track if space was released since last dash (for double dash detection)
@@ -20,9 +22,12 @@ export const useGameInput = () => {
 
   const resetInputState = () => {
     keys.current = {};
-    touchVector.current = { dx: 0, dy: 0 };
+    touchVector.current.dx = 0;
+    touchVector.current.dy = 0;
+    movementVector.current.dx = 0;
+    movementVector.current.dy = 0;
     touchDash.current = false;
-    touchDashTimestamp.current = 0;
+    touchDashTimestamp.current = null;
     spaceConsumed.current = false;
   };
 
@@ -73,14 +78,15 @@ export const useGameInput = () => {
   }, []);
 
   const setTouchMovement = (dx: number, dy: number) => {
-    touchVector.current = { dx, dy };
+    touchVector.current.dx = dx;
+    touchVector.current.dy = dy;
   };
 
   const setTouchDash = (active: boolean) => {
     touchDash.current = active;
     if (active) {
       // Record timestamp for input buffering
-      touchDashTimestamp.current = Date.now();
+      touchDashTimestamp.current = TimeService.getGameTime();
     } else {
       spaceConsumed.current = false;
       // Do NOT clear timestamp on release - this is crucial for detecting fast taps (tap < frame time)
@@ -88,8 +94,11 @@ export const useGameInput = () => {
   };
 
   const getMovementVector = () => {
+    const output = movementVector.current;
     if (AI_INPUT_STATE.active) {
-      return { dx: AI_INPUT_STATE.dx, dy: AI_INPUT_STATE.dy };
+      output.dx = AI_INPUT_STATE.dx;
+      output.dy = AI_INPUT_STATE.dy;
+      return output;
     }
 
     // Keyboard input
@@ -107,14 +116,21 @@ export const useGameInput = () => {
       Math.abs(touchVector.current.dx) > TOUCH_EPSILON ||
       Math.abs(touchVector.current.dy) > TOUCH_EPSILON
     ) {
-      return { dx: touchVector.current.dx, dy: touchVector.current.dy };
+      output.dx = touchVector.current.dx;
+      output.dy = touchVector.current.dy;
+      return output;
     }
 
-    return { dx: kdx, dy: kdy };
+    output.dx = kdx;
+    output.dy = kdy;
+    return output;
   };
 
   const isTouchBuffered = () => {
-    return Date.now() - touchDashTimestamp.current < BUFFER_WINDOW;
+    return (
+      touchDashTimestamp.current !== null &&
+      TimeService.getGameTime() - touchDashTimestamp.current < BUFFER_WINDOW
+    );
   };
 
   const isSpacePressed = () => {
@@ -148,7 +164,7 @@ export const useGameInput = () => {
       return;
     }
     touchDash.current = false;
-    touchDashTimestamp.current = 0; // Clear buffer
+    touchDashTimestamp.current = null; // Clear buffer
     spaceConsumed.current = true; // Mark space as consumed until released
   };
 

@@ -34,7 +34,7 @@ describe('CoreGameplayLoop', () => {
       killStreak: 6,
       movementMagnitude: 0.6,
       isDashing: false,
-      nowMs: now,
+      elapsedMs: now,
     });
 
     for (let i = 0; i < 20; i += 1) {
@@ -46,7 +46,7 @@ describe('CoreGameplayLoop', () => {
         killStreak: 6,
         movementMagnitude: 0.6,
         isDashing: false,
-        nowMs: now,
+        elapsedMs: now,
       });
     }
 
@@ -65,7 +65,7 @@ describe('CoreGameplayLoop', () => {
       killStreak: 0,
       movementMagnitude: 0.9,
       isDashing: true,
-      nowMs: now,
+      elapsedMs: now,
     });
     let sawPhaseSwitchShake = false;
 
@@ -78,7 +78,7 @@ describe('CoreGameplayLoop', () => {
         killStreak: 0,
         movementMagnitude: 0.9,
         isDashing: true,
-        nowMs: now,
+        elapsedMs: now,
       });
       if (output.shakeBoost > 0) {
         sawPhaseSwitchShake = true;
@@ -101,7 +101,7 @@ describe('CoreGameplayLoop', () => {
         killStreak: 1,
         movementMagnitude: 0.8,
         isDashing: true,
-        nowMs: now,
+        elapsedMs: now,
       });
     }
 
@@ -114,10 +114,69 @@ describe('CoreGameplayLoop', () => {
       killStreak: 0,
       movementMagnitude: 0,
       isDashing: false,
-      nowMs: now + 1,
+      elapsedMs: now + 1,
     });
 
     expect(output.phase).toBe('build');
     expect(output.pulse).toBe(0);
+  });
+
+  it('reuses its output object on the RAF hot path', () => {
+    const input = {
+      deltaMs: 16,
+      hpPercent: 50,
+      enemyCount: 18,
+      killStreak: 0,
+      movementMagnitude: 0.5,
+      isDashing: false,
+      elapsedMs: 16,
+    };
+
+    const first = loop.update(input);
+    input.elapsedMs += input.deltaMs;
+    const second = loop.update(input);
+
+    expect(second).toBe(first);
+  });
+
+  it('produces equivalent pacing after equal elapsed time at 30, 60, and 120 FPS', () => {
+    const simulate = (fps: number) => {
+      const candidate = new CoreGameplayLoop();
+      candidate.reset();
+      const deltaMs = 1000 / fps;
+      let elapsedMs = 0;
+      let phase: string = 'build';
+      let pulse = 0;
+      let marketIntensity = 0;
+
+      for (let frame = 0; frame < fps * 8; frame += 1) {
+        elapsedMs += deltaMs;
+        const output = candidate.update({
+          deltaMs,
+          elapsedMs,
+          hpPercent: 52,
+          enemyCount: 20,
+          killStreak: 4,
+          movementMagnitude: 0.6,
+          isDashing: false,
+        });
+        phase = output.phase;
+        pulse = output.pulse;
+        marketIntensity = output.marketIntensity;
+      }
+
+      return { phase, pulse, marketIntensity };
+    };
+
+    const at30 = simulate(30);
+    const at60 = simulate(60);
+    const at120 = simulate(120);
+
+    expect(at30.phase).toBe(at60.phase);
+    expect(at120.phase).toBe(at60.phase);
+    expect(at30.pulse).toBeCloseTo(at60.pulse, 3);
+    expect(at120.pulse).toBeCloseTo(at60.pulse, 3);
+    expect(at30.marketIntensity).toBeCloseTo(at60.marketIntensity, 6);
+    expect(at120.marketIntensity).toBeCloseTo(at60.marketIntensity, 6);
   });
 });

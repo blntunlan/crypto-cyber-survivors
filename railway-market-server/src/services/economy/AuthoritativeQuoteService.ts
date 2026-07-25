@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { CashOutPolicy, type CashOutPacingState } from './CashOutPolicy';
+import { CashOutPolicy } from './CashOutPolicy';
 import { CashOutQuoteSigner, type CashOutQuote } from './CashOutQuoteSigner';
 import { RewardLedger } from './RewardLedger';
 
@@ -15,7 +15,6 @@ export type AuthoritativeQuoteInput = {
   position: 'LONG' | 'SHORT';
   leverage: number;
   greedLevel: number;
-  pacingState: CashOutPacingState;
   marketStaleSeconds: number;
   combatMastery: number;
   lastDecisionAtSeconds?: number | null;
@@ -47,7 +46,6 @@ export class AuthoritativeQuoteService {
       elapsedSeconds,
       lastDecisionAtSeconds: input.lastDecisionAtSeconds ?? null,
       greedLevel: input.greedLevel,
-      pacingState: input.pacingState,
       marketStaleSeconds: input.marketStaleSeconds,
     });
     const canIssueQuote =

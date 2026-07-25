@@ -29,6 +29,11 @@ export class InputPhase implements IGameplayPhase<'input'> {
   public readonly phase = 'input' as const;
   private readonly result = createBaselinePhaseResult(this.phase);
   private readonly inputVector = { dx: 0, dy: 0 };
+  private readonly dashTrailPoints = Array.from(
+    { length: Math.ceil(GAME_ENGINE.DASH_TRAIL_MAX_LENGTH * 1.5) },
+    () => ({ x: 0, y: 0 })
+  );
+  private nextDashTrailPoint = 0;
 
   public execute(input: PhaseInput<'input'>): BaselinePhaseResult<'input'> {
     const result = this.result;
@@ -109,12 +114,23 @@ export class InputPhase implements IGameplayPhase<'input'> {
         s.playerScaleY = 1.6;
       }
 
-      s.dashTrail.push({ x: player.x, y: player.y });
       const maxTrail = s.isDashing
         ? Math.floor(GAME_ENGINE.DASH_TRAIL_MAX_LENGTH * 1.5)
         : GAME_ENGINE.DASH_TRAIL_MAX_LENGTH;
-      if (s.dashTrail.length > maxTrail) {
-        s.dashTrail.shift();
+      s.dashTrailAccumulator += dtFactor;
+      while (s.dashTrailAccumulator >= 1) {
+        if (s.dashTrail.length >= maxTrail) {
+          s.dashTrail.shift();
+        }
+        const trailPoint = this.dashTrailPoints[this.nextDashTrailPoint];
+        if (trailPoint !== undefined) {
+          trailPoint.x = player.x;
+          trailPoint.y = player.y;
+          s.dashTrail.push(trailPoint);
+          this.nextDashTrailPoint =
+            (this.nextDashTrailPoint + 1) % this.dashTrailPoints.length;
+        }
+        s.dashTrailAccumulator -= 1;
       }
     } else {
       s.dashHaloOpacity = 0;

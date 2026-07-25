@@ -21,9 +21,17 @@ import {
   type Player,
   type MarketData,
 } from '../types';
-import { GameMode, type CycleCompleteData } from '../types/gameMode';
+import {
+  GameMode,
+  type CashOutOfferData,
+  type CycleCompleteData,
+} from '../types/gameMode';
 import { CoinService } from '../services/gameplay/CoinService';
-import { GameSessionService } from '../services/auth/GameSessionService';
+import {
+  GameSessionService,
+  type CashOutDecision,
+  type CashOutDecisionResponse,
+} from '../services/auth/GameSessionService';
 import { GameStateMachine } from '../services/core/GameStateMachine';
 import { TimeService } from '../services/core/TimeService';
 import { ExperienceService } from '../services/gameplay/ExperienceService';
@@ -66,7 +74,7 @@ type EndRunOptions = {
 
 interface UseGameFlowControllerResult {
   upgradeChoices: Card[];
-  cycleData: CycleCompleteData | null;
+  cashOutOffer: CashOutOfferData | null;
   pauseMenuStats: PauseMenuStats;
   frozenPnlRef: { current: number };
   handleLevelUp: () => void;
@@ -76,7 +84,7 @@ interface UseGameFlowControllerResult {
     rewardPayload?: RewardPayload
   ) => Promise<void>;
   handleCashOut: () => Promise<void>;
-  handleContinue: () => void;
+  handleRejectCashOut: () => Promise<void>;
   markRunStarted: () => void;
   resetFlowState: () => void;
 }
@@ -96,13 +104,20 @@ export const useGameFlowController = ({
   startOfRunLiquidationGraceMs = 3_000,
 }: UseGameFlowControllerParams): UseGameFlowControllerResult => {
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
-  const [cycleData, setCycleData] = useState<CycleCompleteData | null>(null);
+  const [cashOutOffer, setCashOutOffer] = useState<CashOutOfferData | null>(null);
+  const cashOutOfferRef = useRef<CashOutOfferData | null>(null);
+  const cashOutDecisionInFlightRef = useRef(false);
 
   const isGameOverProcessingRef = useRef(false);
   const frozenPnlRef = useRef<number>(0);
-  const liquidationGraceUntilRef = useRef<number>(0);
+  const liquidationGraceUntilGameSecondsRef = useRef<number>(0);
 
   const lastProcessedCycleRef = useRef<number>(0);
+
+  const updateCashOutOffer = useCallback((offer: CashOutOfferData | null): void => {
+    cashOutOfferRef.current = offer;
+    setCashOutOffer(offer);
+  }, []);
 
   const marketDataRef = useRef(marketData);
   useEffect(() => {
@@ -136,7 +151,8 @@ export const useGameFlowController = ({
     audio.playLevelUp();
   }, [healFull, playerRef]);
   const markRunStarted = useCallback(() => {
-    liquidationGraceUntilRef.current = Date.now() + startOfRunLiquidationGraceMs;
+    liquidationGraceUntilGameSecondsRef.current =
+      TimeService.getGameTimeSeconds() + startOfRunLiquidationGraceMs / 1000;
     AntiCheatService.registerCriticalValue('player_level', playerRef.current.level);
     AntiCheatService.registerCriticalValue('player_exp', playerRef.current.exp);
     AntiCheatService.registerCriticalValue('run_kills', runStatsTotalKills);
@@ -209,6 +225,7 @@ export const useGameFlowController = ({
       if (reason === GameEndReason.DEATH || reason === GameEndReason.LIQUIDATION) {
         const failureType =
           reason === GameEndReason.LIQUIDATION ? 'liquidation' : 'death';
+        const endingSessionId = GameSessionService.getCurrentSessionId();
         void GameSessionService.recordCashOutFailure(
           failureType,
           `failure:${failureType}:${survivalSeconds}`
@@ -217,7 +234,9 @@ export const useGameFlowController = ({
             Logger.error('[GameFlow] Authoritative failure settlement failed', error);
           })
           .finally(() => {
-            GameSessionService.clearSession();
+            if (endingSessionId !== null) {
+              GameSessionService.clearSession(endingSessionId);
+            }
             isGameOverProcessingRef.current = false;
           });
         return;
@@ -350,7 +369,11 @@ export const useGameFlowController = ({
 
   useEffect(() => {
     if (gameStatus !== GameStatus.PLAYING) return;
-    if (Date.now() < liquidationGraceUntilRef.current) return;
+    if (
+      TimeService.getGameTimeSeconds() < liquidationGraceUntilGameSecondsRef.current
+    ) {
+      return;
+    }
 
     if (marketData.effectivePnl <= -1) {
       Logger.warn(`[Liquidation] Player liquidated at price ${marketData.price}`);
@@ -363,109 +386,133 @@ export const useGameFlowController = ({
   }, [runStatsTotalKills]);
 
   useEffect(() => {
-    const handleCycleComplete = (data: {
+    const handleCycleComplete = async (data: {
       cycleNumber: number;
       totalElapsedSeconds: number;
-    }) => {
+    }): Promise<void> => {
       Logger.debug(`[App] handleCycleComplete triggered. Mode=${gameMode}`, data);
       if (gameMode !== GameMode.COMPETITIVE) return;
       if (gameStatus !== GameStatus.PLAYING) return;
       if (data.cycleNumber <= lastProcessedCycleRef.current) return;
-      if (!GameStateMachine.canTransition(GameStatus.CYCLE_COMPLETE)) return;
 
       const snapshot = cycleSnapshotRef.current;
       const previousProcessedCycle = lastProcessedCycleRef.current;
       lastProcessedCycleRef.current = data.cycleNumber;
-      setCycleData({
+      const cycle: CycleCompleteData = {
         cycleNumber: data.cycleNumber,
         survivalTimeSeconds: data.totalElapsedSeconds,
         totalKills: snapshot.totalKills,
         level: playerRef.current.level,
         pnl: snapshot.pnl,
         effectivePnl: snapshot.effectivePnl,
-        coinsEarned: 0,
-        continueMultiplier: 1 + data.cycleNumber * 0.5,
-      });
+      };
 
-      if (!GameStateMachine.transition(GameStatus.CYCLE_COMPLETE)) {
+      try {
+        const response = await GameSessionService.requestCashOutQuote();
+        updateCashOutOffer({
+          cycle,
+          quote: response.quote,
+          signature: response.signature,
+          safeExitOnly: response.safeExitOnly,
+          greedLevel: response.greedLevel,
+        });
+        EventBus.emit('cashOutOfferOpened', { cycleNumber: data.cycleNumber });
+      } catch (error) {
         lastProcessedCycleRef.current = previousProcessedCycle;
-        setCycleData(null);
+        EventBus.emit('cashOutOfferQuoteFailed', { cycleNumber: data.cycleNumber });
+        Logger.error('[GameFlow] Authoritative cash-out quote failed', error);
       }
     };
 
-    const unsubscribe = EventBus.on('cycleComplete', handleCycleComplete);
+    const unsubscribe = EventBus.on('cycleComplete', data => {
+      void handleCycleComplete(data);
+    });
     return () => unsubscribe();
-  }, [gameMode, gameStatus, playerRef]);
+  }, [gameMode, gameStatus, playerRef, updateCashOutOffer]);
+
+  const settleCashOutDecision = useCallback(
+    async (decision: CashOutDecision): Promise<CashOutDecisionResponse | null> => {
+      const offer = cashOutOfferRef.current;
+      if (offer === null || cashOutDecisionInFlightRef.current) return null;
+
+      cashOutDecisionInFlightRef.current = true;
+      try {
+        const settlement = await GameSessionService.decideCashOut(
+          offer.quote.quoteId,
+          offer.signature,
+          decision,
+          `${decision}:${offer.quote.quoteId}`
+        );
+        EventBus.emit('cashOutDecisionCommitted', {
+          sessionId: offer.quote.sessionId,
+          quoteId: offer.quote.quoteId,
+          canonicalSequence: settlement.canonicalSequence,
+          decision,
+          greedLevel: settlement.greedLevel,
+        });
+        return settlement;
+      } catch (error) {
+        Logger.error('[GameFlow] Authoritative cash-out decision failed', error);
+        return null;
+      } finally {
+        cashOutDecisionInFlightRef.current = false;
+      }
+    },
+    []
+  );
 
   const handleCashOut = useCallback(async () => {
-    if (!cycleData) return;
-
-    let settled = false;
-    try {
-      const quote = await GameSessionService.requestCashOutQuote('RECOVERY');
-      const settlement = await GameSessionService.decideCashOut(
-        quote.quote.quoteId,
-        quote.signature,
-        quote.safeExitOnly ? 'safe_exit' : 'accept',
-        `cash-out:${quote.quote.quoteId}`
-      );
-      if (settlement.state !== 'settled') {
-        throw new Error('CASH_OUT_NOT_SETTLED');
-      }
-      settled = true;
-    } catch (error) {
-      Logger.error('[GameFlow] Authoritative cash-out failed', error);
-    }
-
-    if (!settled) {
-      setCycleData(null);
-      GameStateMachine.transition(GameStatus.PLAYING);
-      return;
-    }
+    const offer = cashOutOfferRef.current;
+    if (offer === null) return;
+    const settlement = await settleCashOutDecision(
+      offer.safeExitOnly ? 'safe_exit' : 'accept'
+    );
+    if (settlement?.state !== 'settled') return;
 
     EventBus.emit('cycleDecisionMade', {
       decision: 'CASH_OUT',
-      cycleNumber: cycleData.cycleNumber,
+      cycleNumber: offer.cycle.cycleNumber,
     });
+    updateCashOutOffer(null);
     GameSessionService.clearSession();
     difficultyContext.reset();
     await handleGameOver(GameEndReason.CYCLE_COMPLETE, undefined, {
       skipServerSubmission: true,
     });
-  }, [cycleData, handleGameOver]);
+  }, [handleGameOver, settleCashOutDecision, updateCashOutOffer]);
 
-  const handleContinue = useCallback(() => {
-    if (cycleData) {
-      EventBus.emit('cycleDecisionMade', {
-        decision: 'CONTINUE',
-        cycleNumber: cycleData.cycleNumber,
-      });
-      // Reset per-cycle state before applying new cycle factor to prevent compounding
-      difficultyContext.resetForCycleContinue();
-      ComboSystem.resetCombo();
-      // Apply difficulty multiplier for continuing (risk/reward)
-      const cycleFactor = cycleData.continueMultiplier;
-      difficultyContext.updateInputs({ cycleFactor });
-      Logger.info(
-        `[GameFlow] Continue: cycle ${cycleData.cycleNumber}, difficulty x${cycleFactor.toFixed(1)}`
-      );
-
-      // Heal player to full as reward for continuing
-      healFull();
+  const handleRejectCashOut = useCallback(async () => {
+    const settlement = await settleCashOutDecision('reject');
+    if (settlement?.state === 'active') {
+      updateCashOutOffer(null);
     }
-    setCycleData(null);
-    GameStateMachine.transition(GameStatus.PLAYING);
-  }, [cycleData, healFull]);
+  }, [settleCashOutDecision, updateCashOutOffer]);
+
+  useEffect(() => {
+    if (cashOutOffer === null) return;
+    const delayMs = Math.max(
+      0,
+      cashOutOffer.quote.expiresAtSeconds * 1_000 - Date.now()
+    );
+    const timerId = window.setTimeout(() => {
+      void settleCashOutDecision('timeout').then(settlement => {
+        if (settlement?.state === 'active') {
+          updateCashOutOffer(null);
+        }
+      });
+    }, delayMs);
+    return () => window.clearTimeout(timerId);
+  }, [cashOutOffer, settleCashOutDecision, updateCashOutOffer]);
 
   const resetFlowState = useCallback(() => {
     isGameOverProcessingRef.current = false;
     frozenPnlRef.current = 0;
-    liquidationGraceUntilRef.current = 0;
+    liquidationGraceUntilGameSecondsRef.current = 0;
     lastProcessedCycleRef.current = 0;
-    setCycleData(null);
+    updateCashOutOffer(null);
     setUpgradeChoices([]);
     difficultyContext.reset();
-  }, []);
+  }, [updateCashOutOffer]);
 
   const pauseMenuStats = useMemo<PauseMenuStats>(
     () => ({
@@ -478,14 +525,14 @@ export const useGameFlowController = ({
 
   return {
     upgradeChoices,
-    cycleData,
+    cashOutOffer,
     pauseMenuStats,
     frozenPnlRef,
     handleLevelUp,
     selectUpgrade,
     handleGameOver,
     handleCashOut,
-    handleContinue,
+    handleRejectCashOut,
     markRunStarted,
     resetFlowState,
   };

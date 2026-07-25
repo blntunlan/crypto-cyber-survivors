@@ -37,6 +37,25 @@ export const retro16bitTheme: ThemeConfig = {
     combo: '#FFD600', // Jackpot yellow
   },
 
+  semanticTokens: {
+    'surface.canvas': '#0a0a12',
+    'surface.default': 'rgba(10, 10, 18, 0.95)',
+    'surface.raised': '#0a0a12',
+    'surface.inset': 'rgba(0, 0, 0, 0.6)',
+    'text.primary': '#DCDCDC',
+    'text.muted': '#7558A4',
+    'action.primary.surface': '#00BFFF',
+    'action.primary.surface-hover': '#39FF14',
+    'action.primary.text': '#ffffff',
+    'action.primary.border': '#FFD600',
+    'focus.ring': '#FFD600',
+    'status.success': '#39FF14',
+    'status.warning': '#FFD600',
+    'status.danger': '#FF3D00',
+    'motion.duration-fast': '0ms',
+    'motion.duration-normal': '0ms',
+  },
+
   fonts: {
     display: '"Bruno Ace", sans-serif',
     primary: '"Chakra Petch", system-ui, sans-serif',

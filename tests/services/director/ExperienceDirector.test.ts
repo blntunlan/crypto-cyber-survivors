@@ -184,6 +184,100 @@ describe('ExperienceDirector', () => {
     expect(recorder.getRecords()).toHaveLength(1);
   });
 
+  it('plans and activates one earned advantage mechanic in production update', () => {
+    const director = new ExperienceDirector();
+    const input = createInput({
+      deltaSeconds: 60,
+      position: {
+        ...createInput().position,
+        alignment: 1,
+        advantage: 1,
+        headwind: 0,
+      },
+      market: {
+        ...createInput().market,
+        activeEventFamily: null,
+        eventTelegraphEndsAtElapsedSeconds: null,
+      },
+    });
+
+    const snapshot = director.update(new DirectorInputBuilder().build(input));
+
+    expect(snapshot.advantage.activeMechanic).not.toBeNull();
+    expect(snapshot.advantage.availableCredits).toBeLessThan(
+      snapshot.advantage.maximumCredits
+    );
+  });
+
+  it('freezes Advantage accrual while the market is stale', () => {
+    const director = new ExperienceDirector();
+    const builder = new DirectorInputBuilder();
+    const favorablePosition = {
+      ...createInput().position,
+      alignment: 1,
+      advantage: 1,
+      headwind: 0,
+    };
+    const quietMarket = {
+      ...createInput().market,
+      activeEventFamily: null,
+      eventTelegraphEndsAtElapsedSeconds: null,
+    };
+    const live = director.update(
+      builder.build(
+        createInput({
+          deltaSeconds: 1,
+          position: favorablePosition,
+          market: quietMarket,
+        })
+      )
+    );
+    const creditsBeforeStale = live.advantage.availableCredits;
+    const stale = director.update(
+      builder.build(
+        createInput({
+          tick: 101,
+          deltaSeconds: 60,
+          position: favorablePosition,
+          market: { ...quietMarket, revision: 12 },
+          run: {
+            ...createInput().run,
+            elapsedSeconds: 660,
+            isMarketStale: true,
+          },
+        })
+      )
+    );
+
+    expect(stale.advantage.availableCredits).toBe(creditsBeforeStale);
+  });
+
+  it('uses the decaying market pressure supplied by stale snapshots', () => {
+    const makeStaleTarget = (pressure: number): number => {
+      const director = new ExperienceDirector();
+      const input = createInput({
+        market: {
+          ...createInput().market,
+          pressure,
+          activeEventFamily: null,
+          eventTelegraphEndsAtElapsedSeconds: null,
+        },
+        position: {
+          ...createInput().position,
+          headwind: 0,
+        },
+        run: {
+          ...createInput().run,
+          greedLevel: 0,
+          isMarketStale: true,
+        },
+      });
+      return director.update(new DirectorInputBuilder().build(input)).threat.target;
+    };
+
+    expect(makeStaleTarget(0.5)).toBeGreaterThan(makeStaleTarget(0));
+  });
+
   it('keeps the retired shadow runtime comparison-only', () => {
     const runtime = new ShadowDirectorRuntime();
     const modular = createNeutralRuntimeDifficultySnapshot({

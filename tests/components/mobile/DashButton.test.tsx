@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, act } from '../../test-utils';
 import { DashButton } from '../../../components/mobile/DashButton';
 import { EventBus } from '../../../services/core/EventBus';
+import { TimeService } from '../../../services/core/TimeService';
 
 vi.mock('../../../contexts/useTheme', () => ({
   useTheme: () => ({
@@ -17,10 +18,13 @@ vi.mock('../../../contexts/useTheme', () => ({
 describe('DashButton', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    TimeService.reset();
+    TimeService.setGameTime(0);
     vi.clearAllMocks();
   });
 
   afterEach(() => {
+    TimeService.reset();
     vi.useRealTimers();
   });
 
@@ -39,7 +43,7 @@ describe('DashButton', () => {
     expect(onDashRelease).toHaveBeenCalledTimes(1);
   });
 
-  it('shows cooldown overlay and clears after timer advances', () => {
+  it('advances the cooldown overlay from game time instead of wall time', () => {
     const { getByText, container } = render(
       <DashButton onDash={vi.fn()} cooldownMs={200} />
     );
@@ -50,6 +54,13 @@ describe('DashButton', () => {
 
     act(() => {
       vi.advanceTimersByTime(250);
+    });
+
+    expect(container.querySelector('div[style*="height: 100%"]')).toBeInTheDocument();
+
+    act(() => {
+      TimeService.setGameTime(250);
+      vi.advanceTimersByTime(20);
     });
 
     expect(

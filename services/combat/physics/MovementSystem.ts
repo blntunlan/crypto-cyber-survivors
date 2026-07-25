@@ -7,6 +7,7 @@ import { GAME_ENGINE, SEPARATION } from '../../../constants';
 import { type IMovementSystem } from '../../interfaces/IPhysicsSubsystems';
 import { enemyGrid } from '../SpatialGrid';
 import { createBulletTrailBuffer, updateBulletTrailBuffer } from '../BulletTrailBuffer';
+import { scalePerFrameRatio } from '../../../utils/math';
 
 /**
  * Phase 1 VFX — QuantumBullet trail tunables.
@@ -19,8 +20,6 @@ import { createBulletTrailBuffer, updateBulletTrailBuffer } from '../BulletTrail
 const QUANTUM_TRAIL_LIFE_MS = 180;
 const SPREAD_TRAIL_LIFE_MS = 200;
 const BOOMERANG_TRAIL_LIFE_MS = 380;
-/** 1000ms / 60fps ≈ 16.667ms per engine-normalized frame. */
-const QUANTUM_TRAIL_MS_PER_FRAME = 1000 / 60;
 const BOOMERANG_CURVE_AMOUNT = 40;
 const NUKE_SHOCKWAVE_LIFE_MS = 650;
 const NUKE_SHOCKWAVE_START_RADIUS = 5;
@@ -113,9 +112,6 @@ export class MovementSystem implements IMovementSystem {
     }
   }
 
-  /** Frame counter for throttled separation updates */
-  private frameCounter: number = 0;
-
   /**
    * Main update entry point for all moving entities.
    *
@@ -133,9 +129,6 @@ export class MovementSystem implements IMovementSystem {
     player: Player
   ): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
-
-    // Increment frame counter for throttled updates
-    this.frameCounter++;
 
     this.updateEnemies(pool, dtFactor, player, width, height);
     this.updateBullets(pool, dtFactor, width, height, perfConfig, player);
@@ -156,9 +149,6 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
-    // Check if this is a separation frame (throttled for performance)
-    const shouldApplySeparation = this.frameCounter % SEPARATION.THROTTLE_FRAMES === 0;
-
     pool.activeEnemies.forEach(e => {
       if (e.isDying) {
         e.movementSlowTimerMs = 0;
@@ -188,8 +178,8 @@ export class MovementSystem implements IMovementSystem {
       }
       e.behavior.move(e, player.x, player.y, movementDtFactor);
 
-      // Apply separation steering to prevent clumping (throttled)
-      if (shouldApplySeparation && e.hasEnteredScreen) {
+      // Apply separation steering to prevent clumping
+      if (e.hasEnteredScreen) {
         this.applySeparation(e, player, dtFactor);
       }
 
@@ -253,7 +243,11 @@ export class MovementSystem implements IMovementSystem {
     const particleMultiplier = perfConfig.particleMultiplier;
     // Convert engine-normalized dtFactor (1.0 == one 60fps frame) to ms for
     // time-based trail aging. Avoids reading raw timestamps (pause-safe).
-    const dtMs = dtFactor * QUANTUM_TRAIL_MS_PER_FRAME;
+    const dtMs = dtFactor * GAME_ENGINE.MS_PER_FRAME;
+    const trailSpawnChance = scalePerFrameRatio(
+      trailCfg.spawnChance * particleMultiplier,
+      dtFactor
+    );
 
     const bullets = pool.activeBullets;
     for (let i = 0; i < bullets.length; i++) {
@@ -278,7 +272,7 @@ export class MovementSystem implements IMovementSystem {
       }
 
       // Spawn trail particles based on performance settings
-      if (Math.random() < trailCfg.spawnChance * particleMultiplier) {
+      if (Math.random() < trailSpawnChance) {
         const offX =
           (Math.random() - GAME_ENGINE.TRAIL_SPAWN_OFFSET_FACTOR) *
           GAME_ENGINE.TRAIL_SPAWN_OFFSET_MAX;
@@ -524,7 +518,7 @@ export class MovementSystem implements IMovementSystem {
    * from nearby neighbors that are within their combined radii.
    *
    * Performance: Uses SpatialGrid.forEachNearby for O(1) cell lookups,
-   * and is called only every THROTTLE_FRAMES frames.
+   * and is called once per simulation update.
    *
    * @param enemy - The enemy to apply separation to
    * @param dtFactor - Delta time factor (1.0 = 60fps) for frame-rate independence

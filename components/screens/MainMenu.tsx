@@ -12,6 +12,7 @@ import { IconTrendUp, IconTrendDown, IconZap, IconTrophy } from '../icons/CardIc
 import { COLORS } from '../../config/Colors';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedPanel } from '../themed/ThemedPanel';
+import { ThemedSelectionCard } from '../themed/ThemedSelectionCard';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
 
@@ -54,7 +55,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     if (!container) return;
     const idx = LEVERAGE_OPTIONS.indexOf(lev);
     const btn = container.children[idx] as HTMLElement | undefined;
-    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }, []);
 
   // Scroll to default selection on mount
@@ -286,36 +287,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   mode === GameMode.CASUAL ? COLORS.WHALE : COLORS.CASINO_RED;
 
                 return (
-                  <button
+                  <ThemedSelectionCard
                     key={mode}
                     onClick={() => {
                       audio.playButton();
                       onModeChange(mode);
                     }}
-                    className={`group relative min-h-[56px] flex-1 touch-manipulation overflow-hidden p-3 text-left transition-all duration-300 active:scale-[0.98] sm:min-h-[62px] sm:p-3.5
-                      ${
-                        isRetro
-                          ? 'font-primary rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80 hover:border-[#39FF14]'
-                          : 'overflow-hidden rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
-                      } 
-                      ${isActive ? 'z-10 scale-[1.02]' : 'bg-white/5 opacity-40 hover:opacity-100 sm:hover:scale-[1.01]'}`}
-                    style={{
-                      boxShadow: isActive
-                        ? isRetro
-                          ? `4px 4px 0px rgba(0,0,0,0.5)`
-                          : `0 0 20px -2px ${modeColor}50, inset 0 0 10px ${modeColor}20`
-                        : 'none',
-                      backgroundColor: isActive
-                        ? isRetro
-                          ? modeColor
-                          : `${modeColor}15`
-                        : undefined,
-                      border: isActive
-                        ? `${isRetro ? '4px' : '1.5px'} solid ${isRetro ? '#ffffff' : modeColor}`
-                        : isRetro
-                          ? undefined
-                          : '1px solid rgba(255,255,255,0.05)',
-                    }}
+                    accentColor={modeColor}
+                    selected={isActive}
+                    className="flex-1 flex-col items-stretch"
                   >
                     {!isRetro && isActive && (
                       <div
@@ -359,7 +339,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         style={{ backgroundColor: modeColor }}
                       />
                     )}
-                  </button>
+                  </ThemedSelectionCard>
                 );
               })}
             </div>
@@ -389,6 +369,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <div
+            data-testid="main-menu-market-price"
             className={`font-numbers ${sizes.price} py-2.5 font-bold tracking-tight transition-colors duration-500 sm:py-5`}
             style={{
               color: pairConfig.color,
@@ -426,14 +407,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
             <div
               ref={leverageScrollRef}
-              className={`custom-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2 overflow-x-auto px-1.5 py-3 transition-all duration-500 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-2.5 sm:py-3.5 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-sm'}`}
+              data-testid="main-menu-leverage-options"
+              data-tutorial="leverage-selector"
+              className={`custom-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2 overflow-x-auto px-2 py-3 transition-all duration-500 sm:gap-2.5 sm:overflow-visible sm:px-3 sm:py-3.5 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-lg'}`}
               style={{
-                backgroundColor: !isRetro
-                  ? `${getLeverageColorHex(selectedLeverage)}05`
+                background: !isRetro
+                  ? `linear-gradient(90deg, ${COLORS.PUMP_GREEN}0D 0%, ${COLORS.JACKPOT_YELLOW}0D 45%, ${COLORS.NEON_ORANGE}0D 70%, ${COLORS.CASINO_RED}0D 100%)`
                   : undefined,
-                border: !isRetro
-                  ? `1px solid ${getLeverageColorHex(selectedLeverage)}15`
-                  : undefined,
+                border: !isRetro ? '1px solid rgba(148, 163, 184, 0.16)' : undefined,
               }}
             >
               {LEVERAGE_OPTIONS.map(lev => {
@@ -448,37 +429,20 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         : COLORS.CASINO_RED;
 
                 return (
-                  <button
+                  <ThemedSelectionCard
                     key={lev}
                     onClick={() => {
                       setSelectedLeverage(lev);
                       scrollToSelectedLeverage(lev);
                     }}
-                    className={`group relative min-h-[44px] min-w-[54px] shrink-0 touch-manipulation snap-start px-2.5 py-1.5 text-[11px] transition-all duration-200 active:scale-95 sm:min-h-[42px] sm:min-w-[50px] sm:px-2.5 sm:py-1 sm:text-[10px]
-                      ${isRetro ? 'rounded-none font-retro-pixel' : 'rounded-lg font-cyber tracking-[0.02em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:hover:scale-105'}
-                      ${isSelected ? 'z-10 scale-105' : 'bg-white/5 opacity-50 hover:opacity-80'}`}
-                    style={{
-                      boxShadow:
-                        isSelected && !isRetro
-                          ? `0 8px 20px -5px ${levColor}40, 0 0 12px -3px ${levColor}30`
-                          : isSelected && isRetro
-                            ? '2px 2px 0px rgba(0,0,0,0.5)'
-                            : 'none',
-                      backgroundColor: isSelected
-                        ? isRetro
-                          ? '#18181b'
-                          : `${levColor}20`
-                        : undefined,
-                      border: isSelected
-                        ? `${isRetro ? '2px' : '1px'} solid ${levColor}`
-                        : isRetro
-                          ? undefined
-                          : '1px solid transparent',
-                      color: isSelected ? levColor : '#64748b',
-                    }}
+                    accentColor={levColor}
+                    selected={isSelected}
+                    size="compact"
+                    variant="leverage"
+                    className="min-w-[58px] flex-none shrink-0 snap-center sm:min-w-0 sm:flex-1"
                   >
                     {lev === 1 ? t('common.menu.lev_spot') : `${lev}x`}
-                  </button>
+                  </ThemedSelectionCard>
                 );
               })}
             </div>
@@ -486,60 +450,58 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           {/* Position Selection */}
           <div className={`grid grid-cols-2 gap-2.5 sm:gap-4 landscape:gap-2`}>
-            <button
+            <ThemedSelectionCard
               onClick={() => void onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
-              className={`group flex min-h-[88px] touch-manipulation flex-col items-center p-4 transition-all duration-200 active:scale-95 sm:min-h-[96px] sm:p-5 landscape:min-h-[64px] landscape:p-2.5
-                ${isRetro ? 'rounded-none border-2 border-[#39FF14]/60 bg-[#39FF14]/10 font-retro-pixel hover:border-[#39FF14]' : 'rounded-sm border border-transparent bg-green-500/10 hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:border-green-500/30 sm:hover:shadow-[0_0_30px_rgba(34,197,94,0.25)]'}
-                ${
-                  price === 0 ? 'cursor-not-allowed opacity-50 grayscale' : ''
-                } ${activeRow === 3 && actionCol === 0 ? `scale-105 ${isRetro ? 'border-[3px] !border-[#39FF14] bg-[#39FF14]/20 shadow-[4px_4px_0px_rgba(57,255,20,0.4)] ring-0' : 'bg-green-500/20 shadow-[0_0_25px_rgba(34,197,94,0.5)] ring-1 ring-white'}` : ''}`}
+              size="large"
+              variant="position"
+              accentColor={COLORS.NEON_GREEN}
+              selected={activeRow === 3 && actionCol === 0}
+              className="items-center justify-between gap-3 landscape:min-h-[64px]"
             >
-              <div className="mb-1 transition-all duration-200 group-hover:scale-110 sm:mb-2 sm:group-hover:drop-shadow-[0_0_12px_rgba(74,222,128,0.6)]">
+              <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <IconTrendUp
-                  className="h-8 w-8 sm:h-10 sm:w-10 landscape:h-7 landscape:w-7"
-                  color={isRetro ? COLORS.NEON_GREEN : '#4ade80'}
+                  className="size-7 shrink-0 sm:size-8"
+                  color="currentColor"
                 />
-              </div>
-              <span
-                className={`text-xs uppercase tracking-tight transition-colors sm:text-sm sm:group-hover:text-green-400 ${isRetro ? 'font-retro-pixel text-[#39FF14]' : 'font-cyber text-green-500'}`}
-              >
-                {t('common.long')}
+                <span className="truncate text-sm font-black uppercase leading-none tracking-[0.08em]">
+                  {t('common.long')}
+                </span>
               </span>
-
-              <span
-                className={`mt-0.5 text-[11px] font-medium transition-colors sm:text-xs ${isRetro ? 'font-retro-pixel text-[#39FF14]/70 group-hover:text-[#39FF14]' : 'text-green-500/70 sm:group-hover:text-green-400/80'}`}
-              >
+              <span className="font-numbers shrink-0 text-xs font-bold leading-none opacity-75 sm:text-sm">
                 {selectedLeverage}x
               </span>
-            </button>
-            <button
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-3 bottom-2 h-px bg-current opacity-35"
+              />
+            </ThemedSelectionCard>
+            <ThemedSelectionCard
               onClick={() => void onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
-              className={`group flex min-h-[88px] touch-manipulation flex-col items-center p-4 transition-all duration-200 active:scale-95 sm:min-h-[96px] sm:p-5 landscape:min-h-[64px] landscape:p-2.5
-                ${isRetro ? 'rounded-none border-2 border-[#B22222]/60 bg-[#B22222]/10 font-retro-pixel hover:border-[#FF3D00]' : 'rounded-sm border border-transparent bg-red-500/10 hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:border-red-500/30 sm:hover:shadow-[0_0_30px_rgba(239,68,68,0.25)]'}
-                ${
-                  price === 0 ? 'cursor-not-allowed opacity-50 grayscale' : ''
-                } ${activeRow === 3 && actionCol === 1 ? `scale-105 ${isRetro ? 'border-[3px] !border-[#FF3D00] bg-[#B22222]/20 shadow-[4px_4px_0px_rgba(178,34,34,0.4)] ring-0' : 'bg-red-500/20 shadow-[0_0_25px_rgba(239,68,68,0.5)] ring-1 ring-white'}` : ''}`}
+              size="large"
+              variant="position"
+              accentColor={COLORS.CASINO_RED}
+              selected={activeRow === 3 && actionCol === 1}
+              className="items-center justify-between gap-3 landscape:min-h-[64px]"
             >
-              <div className="mb-1 transition-all duration-200 group-hover:scale-110 sm:mb-2 sm:group-hover:drop-shadow-[0_0_12px_rgba(248,113,113,0.6)]">
+              <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <IconTrendDown
-                  className="h-8 w-8 sm:h-10 sm:w-10 landscape:h-7 landscape:w-7"
-                  color={isRetro ? COLORS.CASINO_RED : '#f87171'}
+                  className="size-7 shrink-0 sm:size-8"
+                  color="currentColor"
                 />
-              </div>
-              <span
-                className={`text-xs uppercase tracking-tight transition-colors sm:text-sm ${isRetro ? 'font-retro-pixel text-[#FF3D00] group-hover:text-[#FF3D00]' : 'font-cyber text-red-500 sm:group-hover:text-red-400'}`}
-              >
-                {t('common.short')}
+                <span className="truncate text-sm font-black uppercase leading-none tracking-[0.08em]">
+                  {t('common.short')}
+                </span>
               </span>
-
-              <span
-                className={`mt-0.5 text-[11px] font-medium transition-colors sm:text-xs ${isRetro ? 'font-retro-pixel text-[#FF3D00]/70 group-hover:text-[#FF3D00]' : 'text-red-500/70 sm:group-hover:text-red-400/80'}`}
-              >
+              <span className="font-numbers shrink-0 text-xs font-bold leading-none opacity-75 sm:text-sm">
                 {selectedLeverage}x
               </span>
-            </button>
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-3 bottom-2 h-px bg-current opacity-35"
+              />
+            </ThemedSelectionCard>
           </div>
 
           <ThemedButton

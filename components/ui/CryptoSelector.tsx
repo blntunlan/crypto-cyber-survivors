@@ -1,25 +1,19 @@
 import React from 'react';
-import { audio } from '../../services/audio';
-import { motion } from 'framer-motion';
+import { audio } from '../../services/audio/AudioService';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
-import {
-  IconBitcoin,
-  IconEthereum,
-  IconSolana,
-  IconTrendUp,
-  IconTrendDown,
-} from '../icons/CardIcons';
-import { useTheme } from '../../contexts/useTheme';
+import { IconBitcoin, IconEthereum, IconSolana } from '../icons/CardIcons';
+import { ThemedSelectionCard } from '../themed/ThemedSelectionCard';
 
-// Icon lookup
-const getCryptoIcon = (id: CryptoPair, size: number = 32) => {
+const ASSET_ICON_CLASS = 'size-9 sm:size-10';
+
+const getCryptoIcon = (id: CryptoPair) => {
   switch (id) {
     case 'BTC':
-      return <IconBitcoin size={size} />;
+      return <IconBitcoin className={ASSET_ICON_CLASS} />;
     case 'ETH':
-      return <IconEthereum size={size} />;
+      return <IconEthereum className={ASSET_ICON_CLASS} />;
     case 'SOL':
-      return <IconSolana size={size} />;
+      return <IconSolana className={ASSET_ICON_CLASS} />;
     default:
       return null;
   }
@@ -38,114 +32,45 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
   disabled,
   isFocused: _isFocused = false,
 }) => {
-  const { isRetro } = useTheme();
   const pairs = Object.values(CRYPTO_PAIRS);
 
   return (
-    <div className="flex justify-center gap-3">
-      {pairs.map(pair => (
-        <motion.button
-          key={pair.id}
-          onClick={() => {
-            audio.playPairSelect();
-            onSelect(pair.id);
-          }}
-          disabled={disabled}
-          className={`
-            relative flex min-w-[60px] flex-col items-center gap-1 px-3 py-1.5 transition-all
-            ${isRetro ? `rounded-none border-2 border-zinc-700 bg-zinc-900/50` : 'rounded-lg'}
-            ${
-              selected === pair.id
-                ? `z-10 scale-105 ${isRetro ? '!border-white bg-zinc-800' : ''}`
-                : 'opacity-30 grayscale hover:opacity-60 hover:grayscale-0'
-            }
-          `}
-          style={{
-            background:
-              selected === pair.id && !isRetro
-                ? `radial-gradient(circle at center, ${pair.color}25 0%, transparent 70%)`
-                : 'transparent',
-            boxShadow:
-              selected === pair.id && !isRetro
-                ? `0 10px 30px -10px ${pair.color}50, inset 0 0 15px ${pair.color}20`
-                : 'none',
-          }}
-          whileHover={{ scale: selected === pair.id ? 1.1 : 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {/* Active indicator line */}
-          {selected === pair.id && (
-            <motion.div
-              layoutId="active-pair-indicator"
-              className={`absolute -bottom-0.5 h-0.5 w-6 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
-              style={{
-                backgroundColor: pair.color,
-                boxShadow: isRetro ? 'none' : `0 0 8px ${pair.color}`,
-              }}
-            />
-          )}
+    <div className="grid w-full grid-cols-3 gap-2 sm:mx-auto sm:max-w-[300px] sm:gap-3">
+      {pairs.map(pair => {
+        const isSelected = selected === pair.id;
 
-          <motion.div
-            animate={
-              selected === pair.id
-                ? {
-                    y: [0, -2, 0],
-                  }
-                : {}
-            }
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
+        return (
+          <ThemedSelectionCard
+            key={pair.id}
+            aria-label={pair.id}
+            accentColor={pair.color}
+            disabled={disabled}
+            onClick={() => {
+              audio.playPairSelect();
+              onSelect(pair.id);
             }}
+            selected={isSelected}
+            variant="asset"
+            className="w-full flex-col items-center justify-center gap-1.5"
           >
-            {getCryptoIcon(pair.id, 28)}
-          </motion.div>
-          <span
-            className={`text-[7px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
-            style={{ color: pair.color }}
-          >
-            {pair.id}
-          </span>
-        </motion.button>
-      ))}
+            <span data-asset-icon className="flex shrink-0 items-center justify-center">
+              {getCryptoIcon(pair.id)}
+            </span>
+            <span
+              data-asset-label={pair.id}
+              className="text-[10px] font-bold uppercase leading-none tracking-[0.12em]"
+            >
+              {pair.id}
+            </span>
+            {isSelected && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-3 bottom-2 h-px bg-current opacity-50"
+              />
+            )}
+          </ThemedSelectionCard>
+        );
+      })}
     </div>
   );
 };
-
-// Export position button icons for MainMenu
-export const LongIcon = ({ size: _size = 40 }: { size?: number }) => (
-  <div className="relative">
-    <motion.div
-      className="rounded-sm border border-green-500/30 bg-green-500/20 p-3"
-      animate={{
-        boxShadow: [
-          '0 0 0 rgba(34, 197, 94, 0)',
-          '0 0 20px rgba(34, 197, 94, 0.3)',
-          '0 0 0 rgba(34, 197, 94, 0)',
-        ],
-      }}
-      transition={{ duration: 2, repeat: Infinity }}
-    >
-      <IconTrendUp className="h-10 w-10 text-green-400" color="#4ade80" />
-    </motion.div>
-  </div>
-);
-
-export const ShortIcon = ({ size: _size = 40 }: { size?: number }) => (
-  <div className="relative">
-    <motion.div
-      className="rounded-sm border border-red-500/30 bg-red-500/20 p-3"
-      animate={{
-        boxShadow: [
-          '0 0 0 rgba(239, 68, 68, 0)',
-          '0 0 20px rgba(239, 68, 68, 0.3)',
-          '0 0 0 rgba(239, 68, 68, 0)',
-        ],
-      }}
-      transition={{ duration: 2, repeat: Infinity }}
-    >
-      <IconTrendDown className="h-10 w-10 text-red-400" color="#f87171" />
-    </motion.div>
-  </div>
-);

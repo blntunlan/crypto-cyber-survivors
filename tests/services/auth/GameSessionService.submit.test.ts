@@ -341,6 +341,52 @@ describe('GameSessionService.submitSession', () => {
     expect(GameSessionService.getCurrentSessionSecret()).toBeNull();
   });
 
+  it('does not clear a newer session when an older submit completes', async () => {
+    const startResponses = [
+      {
+        sessionId: 'old-session',
+        sessionSecret: 'old-secret',
+        startTime: new Date().toISOString(),
+      },
+      {
+        sessionId: 'new-session',
+        sessionSecret: 'new-secret',
+        startTime: new Date().toISOString(),
+      },
+    ];
+    let resolveVerify!: (value: unknown) => void;
+
+    railwayPostMock.mockImplementation((path: string) => {
+      if (path === '/api/v1/sessions/start') {
+        return Promise.resolve(startResponses.shift());
+      }
+      if (path === '/api/v1/sessions/verify') {
+        return new Promise(resolve => {
+          resolveVerify = resolve;
+        });
+      }
+      return Promise.reject(new Error(`Unexpected path: ${path}`));
+    });
+
+    await GameSessionService.startSession('BTC' as any, 10, 'LONG' as MarketPosition);
+    const oldSubmission = GameSessionService.submitSession(baseResults);
+
+    await vi.waitFor(() => {
+      expect(
+        railwayPostMock.mock.calls.some(([path]) => path === '/api/v1/sessions/verify')
+      ).toBe(true);
+    });
+
+    await GameSessionService.startSession('BTC' as any, 25, 'SHORT' as MarketPosition);
+    expect(GameSessionService.getCurrentSessionId()).toBe('new-session');
+
+    resolveVerify({ verified: true, reward: 10, metaShare: 1 });
+    await oldSubmission;
+
+    expect(GameSessionService.getCurrentSessionId()).toBe('new-session');
+    expect(GameSessionService.getCurrentSessionSecret()).toBe('new-secret');
+  });
+
   it('flushes runtime audit queue before submitting', async () => {
     await seedSession();
 

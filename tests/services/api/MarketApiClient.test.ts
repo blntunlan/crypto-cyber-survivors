@@ -64,6 +64,18 @@ describe('MarketApiClient', () => {
     ]);
   });
 
+  it('loads market history through the same-origin Vite proxy in development', async () => {
+    vi.stubEnv('MODE', 'development');
+    fetchSpy.mockResolvedValue(mockFetchResponse(200, []));
+
+    await marketApiClient.getHistory('BTC');
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/market/history?pair=BTC&limit=300',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+
   it('falls back to the API URL when aggregator URL is not configured', async () => {
     vi.unstubAllEnvs();
     vi.stubEnv('VITE_MARKET_AGGREGATOR_URL', '');

@@ -18,6 +18,8 @@ describe('MetricsService', () => {
 
     // Reset singleton state for clean tests
     MetricsService.resetStateForTesting();
+    TimeService.reset();
+    TimeService.setGameTime(0);
 
     // Clear any existing sessions
     MetricsService.clearSessions();
@@ -28,6 +30,7 @@ describe('MetricsService', () => {
   });
 
   afterEach(() => {
+    TimeService.reset();
     vi.useRealTimers();
   });
 
@@ -274,6 +277,7 @@ describe('MetricsService', () => {
 
       MetricsService.trackComboUpdate(1, 1.0);
       vi.advanceTimersByTime(1000);
+      TimeService.setGameTime(250);
       MetricsService.trackComboEnd(10, 500);
       MetricsService.trackComboEnd(5, 200);
 
@@ -281,6 +285,7 @@ describe('MetricsService', () => {
 
       expect(session?.combo.totalBonusXp).toBe(700);
       expect(session?.combo.streakSamples).toHaveLength(2);
+      expect(session?.combo.longestComboTime).toBe(250);
     });
   });
 

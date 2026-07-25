@@ -205,14 +205,14 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
 
     const {
       upgradeChoices,
-      cycleData,
+      cashOutOffer,
       pauseMenuStats,
       frozenPnlRef,
       handleLevelUp,
       selectUpgrade,
       handleGameOver,
       handleCashOut,
-      handleContinue,
+      handleRejectCashOut,
       markRunStarted,
       resetFlowState,
     } = useGameFlowController({
@@ -230,14 +230,21 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       startOfRunLiquidationGraceMs,
     });
 
+    const handleFatalDisconnect = useCallback(() => {
+      void handleGameOver(GameEndReason.DISCONNECT);
+    }, [handleGameOver]);
+
+    const handleDebugGameOver = useCallback(() => {
+      void handleGameOver();
+    }, [handleGameOver]);
+
     useMarketTimeout({
       playerRef,
-      onFatalDisconnect: () => void handleGameOver(GameEndReason.DISCONNECT),
+      onFatalDisconnect: handleFatalDisconnect,
     });
 
     const resetGame = useCallback(() => {
       GameStateManager.resetAll();
-      GameStateMachine.forceState(GameStatus.MENU);
       setEntryPrice(0);
       resetRunStats();
       resetPlayer();
@@ -284,11 +291,6 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           return;
         }
 
-        resetPlayer();
-
-        const boosted = MetaProgressionService.applyBonuses(playerRef.current);
-        Object.assign(playerRef.current, boosted);
-
         setLeverage(selectedLeverage);
         CoinService.resetSession();
         ComboSystem.startGame();
@@ -328,6 +330,9 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           });
           return;
         }
+
+        const boosted = MetaProgressionService.applyBonuses(playerRef.current);
+        Object.assign(playerRef.current, boosted);
 
         setPosition(choice);
         setEntryPrice(marketData.price);
@@ -372,7 +377,6 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         gameStatus,
         hasNickname,
         logout,
-        resetPlayer,
         setHubScreen,
         selectedPair,
         playerRef,
@@ -407,9 +411,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
 
     useDebugBridge({
       onLevelUp: handleLevelUp,
-      onGameOver: () => {
-        void handleGameOver();
-      },
+      onGameOver: handleDebugGameOver,
     });
 
     useBeforeUnload(gameStatus);
@@ -442,12 +444,12 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         handleLevelUp={handleLevelUp}
         handlePauseToggle={handlePauseToggle}
         handleCashOut={handleCashOut}
-        handleContinue={handleContinue}
+        handleRejectCashOut={handleRejectCashOut}
         selectUpgrade={selectUpgrade}
         resetGame={resetGame}
         startGame={startGame}
         upgradeChoices={upgradeChoices}
-        cycleData={cycleData}
+        cashOutOffer={cashOutOffer}
         pauseMenuStats={pauseMenuStats}
         frozenPnlRef={frozenPnlRef}
         pauseBudget={pauseBudget}

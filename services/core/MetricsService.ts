@@ -89,16 +89,18 @@ export class MetricsServiceClass {
     serverSigningKey?: string
   ): string {
     if (!this.config.enabled) return '';
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    const now = Date.now();
+    const wallClockNow = Date.now();
+    const gameTimeMs = TimeService.getGameTime();
+    const sessionId = `session_${wallClockNow}_${Math.random().toString(36).substring(2, 11)}`;
+    this.lastSampleTime = gameTimeMs;
 
     this.state = {
       sessionId,
       serverSessionId,
       serverSigningKey,
-      sessionStartTime: now,
+      sessionStartTime: wallClockNow,
       isActive: true,
-      lastUpdateTime: now,
+      lastUpdateTime: gameTimeMs,
       pair,
       position,
       entryPrice,
@@ -107,7 +109,7 @@ export class MetricsServiceClass {
       difficultyHistory: [],
       atrHistory: [],
       currentWavePhase: 'active',
-      wavePhaseStartTime: now,
+      wavePhaseStartTime: gameTimeMs,
       totalDamageDealt: 0,
       totalDamageTaken: 0,
       totalHealing: 0,
@@ -127,7 +129,7 @@ export class MetricsServiceClass {
       enemyLifetimes: [],
       cardsChosen: [],
       levelUpTimes: [],
-      lastLevelUpTime: now,
+      lastLevelUpTime: gameTimeMs,
       nearDeathActivations: 0,
       highDifficultyTime: 0,
       lowDifficultyTime: 0,
@@ -142,7 +144,7 @@ export class MetricsServiceClass {
       particleCountSamples: [],
     };
 
-    this.state.pnlHistory.push({ time: now, value: 0 });
+    this.state.pnlHistory.push({ time: gameTimeMs, value: 0 });
     InputLogger.getInstance().start();
     Logger.info(`[Metrics] Session started: ${sessionId}`, {
       pair,
@@ -256,7 +258,7 @@ export class MetricsServiceClass {
     if (!this.config.enabled || !this.state?.isActive) {
       return;
     }
-    const now = Date.now();
+    const now = TimeService.getGameTime();
     // Use hpPercent for future healing/health analytics if needed
     // For now we just acknowledge it to avoid unused variable warning
     void hpPercent;
@@ -337,7 +339,7 @@ export class MetricsServiceClass {
 
   public trackLevelUp(level: number, cardChosen: string, cardTier: string): void {
     if (!this.state?.isActive) return;
-    const now = Date.now();
+    const now = TimeService.getGameTime();
     this.state.levelUpTimes.push(now - this.state.lastLevelUpTime);
     this.state.lastLevelUpTime = now;
     this.state.cardsChosen.push({ card: cardChosen, tier: cardTier, level });
@@ -356,7 +358,7 @@ export class MetricsServiceClass {
       this.state.maxStreak = streak;
     }
     if (streak === 1) {
-      this.state.currentComboStartTime = Date.now();
+      this.state.currentComboStartTime = TimeService.getGameTime();
     }
   }
 
@@ -370,7 +372,7 @@ export class MetricsServiceClass {
     if (finalStreak > 0) {
       this.state.streakHistory.push(finalStreak);
       this.state.totalBonusXp += bonusXp;
-      const duration = Date.now() - this.state.currentComboStartTime;
+      const duration = TimeService.getGameTime() - this.state.currentComboStartTime;
       if (duration > this.state.longestComboTime) {
         this.state.longestComboTime = duration;
       }

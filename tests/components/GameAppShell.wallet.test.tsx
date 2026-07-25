@@ -10,6 +10,14 @@ const mocks = vi.hoisted(() => ({
   initializeNewGame: vi.fn(),
   challengeStartTracking: vi.fn(),
   validateChallengeConstraints: vi.fn(),
+  applyBonuses: vi.fn((player: unknown) => player),
+  forceState: vi.fn(),
+  resetAll: vi.fn(),
+  resetPlayer: vi.fn(),
+  handleGameOver: vi.fn(),
+  handleRejectCashOut: vi.fn(),
+  useDebugBridge: vi.fn(),
+  useMarketTimeout: vi.fn(),
 }));
 
 vi.mock('../../contexts/useUser', () => ({
@@ -62,7 +70,7 @@ vi.mock('../../hooks/usePlayerState', () => ({
     },
     uiStats: { level: 1, hp: 100 },
     setUiStats: vi.fn(),
-    resetPlayer: vi.fn(),
+    resetPlayer: mocks.resetPlayer,
     healFull: vi.fn(),
     setPositionColor: vi.fn(),
   }),
@@ -91,23 +99,47 @@ vi.mock('../../hooks/useMarketData', () => ({
 vi.mock('../../hooks/useGameFlowController', () => ({
   useGameFlowController: () => ({
     upgradeChoices: [],
-    cycleData: null,
+    cashOutOffer: {
+      cycle: {
+        cycleNumber: 1,
+        survivalTimeSeconds: 300,
+        totalKills: 10,
+        level: 3,
+        pnl: 0.1,
+        effectivePnl: 0.1,
+      },
+      quote: {
+        quoteId: 'quote-shell',
+        sessionId: 'session-shell',
+        canonicalSequence: 42,
+        rewardPoints: 120,
+        issuedAtSeconds: 1_000,
+        expiresAtSeconds: 1_015,
+      },
+      signature: 'a'.repeat(64),
+      safeExitOnly: false,
+      greedLevel: 1,
+    },
     pauseMenuStats: { totalKills: 0, maxStreak: 0, totalBonusXp: 0 },
     frozenPnlRef: { current: 0 },
     handleLevelUp: vi.fn(),
     selectUpgrade: vi.fn(),
-    handleGameOver: vi.fn(),
+    handleGameOver: mocks.handleGameOver,
     handleCashOut: vi.fn(),
-    handleContinue: vi.fn(),
+    handleRejectCashOut: mocks.handleRejectCashOut,
     markRunStarted: vi.fn(),
     resetFlowState: vi.fn(),
   }),
 }));
 
 vi.mock('../../hooks/useCheatManager', () => ({ useCheatManager: vi.fn() }));
-vi.mock('../../hooks/useDebugBridge', () => ({ useDebugBridge: vi.fn() }));
+vi.mock('../../hooks/useDebugBridge', () => ({
+  useDebugBridge: mocks.useDebugBridge,
+}));
 vi.mock('../../hooks/useBeforeUnload', () => ({ useBeforeUnload: vi.fn() }));
-vi.mock('../../hooks/useMarketTimeout', () => ({ useMarketTimeout: vi.fn() }));
+vi.mock('../../hooks/useMarketTimeout', () => ({
+  useMarketTimeout: mocks.useMarketTimeout,
+}));
 
 vi.mock('../../services/gameplay/WalletService', () => ({
   WalletService: {
@@ -139,21 +171,21 @@ vi.mock('../../services/gameplay/RailwayCoinProvider', () => ({
 vi.mock('../../services/core/GameStateMachine', () => ({
   GameStateMachine: {
     transition: vi.fn(() => true),
-    forceState: vi.fn(),
+    forceState: mocks.forceState,
   },
 }));
 
 vi.mock('../../services/core/GameStateManager', () => ({
   GameStateManager: {
-    resetAll: vi.fn(),
+    resetAll: mocks.resetAll,
     initializeNewGame: mocks.initializeNewGame,
   },
 }));
 
-vi.mock('../../services/gameplay/MetaProgressionService', () => ({
+vi.mock('../../services/progression/MetaProgressionService', () => ({
   MetaProgressionService: {
     getStartingLiquidationGraceMs: vi.fn((value: number) => value),
-    applyBonuses: vi.fn(player => player),
+    applyBonuses: mocks.applyBonuses,
   },
 }));
 
@@ -239,15 +271,26 @@ vi.mock('../../components/GameScreenRouter', () => ({
   GameScreenRouter: ({
     walletBalance,
     startGame,
+    resetGame,
+    cashOutOffer,
+    handleRejectCashOut,
   }: {
     walletBalance: number;
     startGame: (choice: MarketPosition, leverage: 10) => Promise<void>;
+    resetGame: () => void;
+    cashOutOffer: { quote: { quoteId: string } } | null;
+    handleRejectCashOut: () => Promise<void>;
   }) => (
     <div>
       <div data-testid="wallet-balance">{walletBalance}</div>
       <button onClick={() => void startGame(MarketPosition.LONG, 10)}>
         Start Shell Game
       </button>
+      <button onClick={resetGame}>Reset Shell Game</button>
+      <div data-testid="cash-out-offer">
+        {cashOutOffer?.quote.quoteId ?? 'no-offer'}
+      </div>
+      <button onClick={() => void handleRejectCashOut()}>Reject Offer</button>
     </div>
   ),
 }));
@@ -303,6 +346,14 @@ describe('GameAppShell wallet refresh', () => {
     mocks.challengeStartTracking.mockResolvedValue(undefined);
     mocks.validateChallengeConstraints.mockReset();
     mocks.validateChallengeConstraints.mockReturnValue(null);
+    mocks.applyBonuses.mockClear();
+    mocks.forceState.mockClear();
+    mocks.resetAll.mockClear();
+    mocks.resetPlayer.mockClear();
+    mocks.handleGameOver.mockClear();
+    mocks.handleRejectCashOut.mockClear();
+    mocks.useDebugBridge.mockClear();
+    mocks.useMarketTimeout.mockClear();
     EventBus.clearEvent('verification:success');
   });
 
@@ -329,6 +380,43 @@ describe('GameAppShell wallet refresh', () => {
     expect(mocks.walletGetBalance).toHaveBeenCalledTimes(2);
   });
 
+  it('threads the live offer and reject action into the screen router', async () => {
+    mocks.walletGetBalance.mockResolvedValue(10);
+
+    renderShell();
+
+    expect(await screen.findByTestId('cash-out-offer')).toHaveTextContent(
+      'quote-shell'
+    );
+    fireEvent.click(screen.getByText('Reject Offer'));
+    expect(mocks.handleRejectCashOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps market timeout and debug game-over callbacks stable across renders', async () => {
+    mocks.walletGetBalance.mockResolvedValueOnce(10).mockResolvedValueOnce(20);
+
+    renderShell();
+    await screen.findByText('10');
+
+    const firstTimeoutCallback =
+      mocks.useMarketTimeout.mock.calls.at(-1)?.[0].onFatalDisconnect;
+    const firstDebugCallback = mocks.useDebugBridge.mock.calls.at(-1)?.[0].onGameOver;
+
+    EventBus.emit('verification:success', {
+      sessionId: 'session-callback-stability',
+      verifiedAmount: 10,
+      serverVerified: true,
+    });
+    await screen.findByText('20');
+
+    expect(mocks.useMarketTimeout.mock.calls.at(-1)?.[0].onFatalDisconnect).toBe(
+      firstTimeoutCallback
+    );
+    expect(mocks.useDebugBridge.mock.calls.at(-1)?.[0].onGameOver).toBe(
+      firstDebugCallback
+    );
+  });
+
   it('blocks game start when active challenge constraints fail', async () => {
     mocks.walletGetBalance.mockResolvedValue(10);
     mocks.validateChallengeConstraints.mockReturnValue(
@@ -353,5 +441,31 @@ describe('GameAppShell wallet refresh', () => {
       message: 'This challenge requires SHORT position',
       type: 'warning',
     });
+  });
+
+  it('applies meta progression bonuses after the canonical new-game reset', async () => {
+    mocks.walletGetBalance.mockResolvedValue(10);
+
+    renderShell();
+    fireEvent.click(await screen.findByText('Start Shell Game'));
+
+    await waitFor(() => {
+      expect(mocks.initializeNewGame).toHaveBeenCalledTimes(1);
+      expect(mocks.applyBonuses).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mocks.initializeNewGame.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.applyBonuses.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('returns to menu through resetAll without forcing a duplicate state change', async () => {
+    mocks.walletGetBalance.mockResolvedValue(10);
+
+    renderShell();
+    fireEvent.click(await screen.findByText('Reset Shell Game'));
+
+    expect(mocks.resetAll).toHaveBeenCalledTimes(1);
+    expect(mocks.forceState).not.toHaveBeenCalled();
   });
 });

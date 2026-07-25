@@ -31,8 +31,8 @@ const DAILY_TEMPLATES: ChallengeTemplate[] = [
   },
   {
     name: 'Diamond Hands',
-    description: 'Reach level 10 in a LONG position with 50x+ leverage',
-    constraints: [{ type: 'position', value: 'LONG' }, { type: 'leverage_min', value: 50 }],
+    description: 'Reach level 10 in a LONG position with 20x leverage',
+    constraints: [{ type: 'position', value: 'LONG' }, { type: 'leverage_min', value: 20 }],
     objectives: [{ type: 'reach_level', target: 10 }],
     reward: { metaCoins: 350, bonusXp: 200 },
   },
@@ -59,8 +59,8 @@ const DAILY_TEMPLATES: ChallengeTemplate[] = [
   },
   {
     name: 'Degen Mode',
-    description: 'Survive 2 minutes at 100x leverage',
-    constraints: [{ type: 'leverage_min', value: 100 }],
+    description: 'Survive 2 minutes at 20x leverage',
+    constraints: [{ type: 'leverage_min', value: 20 }],
     objectives: [{ type: 'survive_seconds', target: 120 }],
     reward: { metaCoins: 500, bonusXp: 300 },
   },
@@ -76,8 +76,8 @@ const DAILY_TEMPLATES: ChallengeTemplate[] = [
 const WEEKLY_TEMPLATES: ChallengeTemplate[] = [
   {
     name: 'The Liquidator',
-    description: 'Survive 60 seconds in the liquidation zone at 100x SHORT',
-    constraints: [{ type: 'position', value: 'SHORT' }, { type: 'leverage_min', value: 100 }],
+    description: 'Survive 60 seconds in the liquidation zone at 20x SHORT',
+    constraints: [{ type: 'position', value: 'SHORT' }, { type: 'leverage_min', value: 20 }],
     objectives: [{ type: 'survive_liquidation_zone', target: 60 }],
     reward: { metaCoins: 1500, bonusXp: 500 },
   },

@@ -54,32 +54,62 @@ describe('CycleCompleteScreen', () => {
     level: 10,
     effectivePnl: 0.05, // 5% profit
     pnl: 0.05,
-    coinsEarned: 1000,
-    continueMultiplier: 1.5,
   };
 
+  const issuedAtSeconds = Math.floor(Date.now() / 1_000);
+  const mockOffer = {
+    cycle: mockData,
+    quote: {
+      quoteId: 'quote-1',
+      sessionId: 'session-1',
+      canonicalSequence: 42,
+      rewardPoints: 120,
+      issuedAtSeconds,
+      expiresAtSeconds: issuedAtSeconds + 15,
+    },
+    signature: 'a'.repeat(64),
+    safeExitOnly: false,
+    greedLevel: 0,
+  };
   const mockOnCashOut = vi.fn();
-  const mockOnContinue = vi.fn();
+  const mockOnReject = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     (useTheme as any).mockReturnValue({
+      themeName: 'cyberpunk',
       theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
       isRetro: false,
     });
   });
 
+  it('renders the signed reward, expiry, and reject action', () => {
+    render(
+      <CycleCompleteScreen
+        offer={mockOffer}
+        onCashOut={mockOnCashOut}
+        onReject={mockOnReject}
+      />
+    );
+
+    expect(screen.getByText('120 META')).toBeInTheDocument();
+    expect(screen.getByText(/1[45]s/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('common.cycle_complete_screen.continue'));
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
+  });
+
   it('renders correctly in Cyberpunk (Modern) mode', () => {
     (useTheme as any).mockReturnValue({
+      themeName: 'cyberpunk',
       theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
       isRetro: false,
     });
 
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
@@ -92,15 +122,16 @@ describe('CycleCompleteScreen', () => {
 
   it('renders correctly in Retro mode', () => {
     (useTheme as any).mockReturnValue({
+      themeName: 'retro-16bit',
       theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
       isRetro: true,
     });
 
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
@@ -111,9 +142,9 @@ describe('CycleCompleteScreen', () => {
   it('handles "Cash Out" click', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
@@ -122,111 +153,111 @@ describe('CycleCompleteScreen', () => {
     expect(mockOnCashOut).toHaveBeenCalled();
   });
 
-  it('handles "Continue" click', () => {
+  it('handles reject click', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     const continueBtn = screen.getByText('common.cycle_complete_screen.continue');
     fireEvent.click(continueBtn);
-    expect(mockOnContinue).toHaveBeenCalled();
+    expect(mockOnReject).toHaveBeenCalled();
   });
 
   it('selects Cash Out via Enter key (default selection is Cash Out)', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'Enter' });
     expect(mockOnCashOut).toHaveBeenCalledTimes(1);
-    expect(mockOnContinue).not.toHaveBeenCalled();
+    expect(mockOnReject).not.toHaveBeenCalled();
   });
 
-  it('navigates to Continue with ArrowRight and selects via Enter', () => {
+  it('navigates to reject with ArrowRight and selects via Enter', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
     expect(mockOnCashOut).not.toHaveBeenCalled();
   });
 
-  it('navigates to Continue with ArrowDown', () => {
+  it('navigates to reject with ArrowDown', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
   });
 
-  it('wraps from Cash Out to Continue with ArrowLeft', () => {
+  it('wraps from Cash Out to reject with ArrowLeft', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
   });
 
-  it('supports WASD navigation (d to Continue)', () => {
+  it('supports WASD navigation (d to reject)', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'd' });
     fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
   });
 
-  it('selects Continue with Space key', () => {
+  it('selects reject with Space key', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     fireEvent.keyDown(window, { key: ' ' });
-    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnReject).toHaveBeenCalledTimes(1);
   });
 
   it('prevents double activation on repeated Enter', () => {
     render(
       <CycleCompleteScreen
-        data={mockData}
+        offer={mockOffer}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
 
@@ -238,15 +269,16 @@ describe('CycleCompleteScreen', () => {
   // TODO: Fix mock setup for icons. These fail because CardIcons mock isn't rendering as expected in test env.
   it('displays correct icon for positive PnL', () => {
     (useTheme as any).mockReturnValue({
+      themeName: 'cyberpunk',
       theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
       isRetro: false,
     });
 
     render(
       <CycleCompleteScreen
-        data={{ ...mockData, effectivePnl: 0.1 }}
+        offer={{ ...mockOffer, cycle: { ...mockData, effectivePnl: 0.1 } }}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
     // StatBox renders icon twice (once as watermark, once as visible content)
@@ -258,15 +290,16 @@ describe('CycleCompleteScreen', () => {
 
   it('displays correct icon for negative PnL', () => {
     (useTheme as any).mockReturnValue({
+      themeName: 'cyberpunk',
       theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
       isRetro: false,
     });
 
     render(
       <CycleCompleteScreen
-        data={{ ...mockData, effectivePnl: -0.1 }}
+        offer={{ ...mockOffer, cycle: { ...mockData, effectivePnl: -0.1 } }}
         onCashOut={mockOnCashOut}
-        onContinue={mockOnContinue}
+        onReject={mockOnReject}
       />
     );
     const icons = screen.getAllByTestId('icon-trend-down');

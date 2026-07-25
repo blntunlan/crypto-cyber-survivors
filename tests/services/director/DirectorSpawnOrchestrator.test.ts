@@ -73,12 +73,40 @@ describe('DirectorSpawnOrchestrator', () => {
     expect(first.plan.intents).toEqual(second.plan.intents);
   });
 
-  it('does not emit a spawn plan from stale market input', () => {
+  it('keeps ordinary survival spawning active while market input is stale', () => {
     const orchestrator = new DirectorSpawnOrchestrator();
     const stale = createInput(11);
     stale.marketFrame.quality = 'STALE';
+    stale.deltaSeconds = 10;
 
-    expect(orchestrator.update(stale).plan.intents).toEqual([]);
+    const output = orchestrator.update(stale);
+
+    expect(output.snapshot.encounter.activeEventFamily).toBeNull();
+    expect(output.plan.intents.length).toBeGreaterThan(0);
+  });
+
+  it('keeps a newly detected market event in telegraph for the configured minimum', () => {
+    const orchestrator = new DirectorSpawnOrchestrator();
+
+    orchestrator.update(createInput(1));
+    const output = orchestrator.update(createInput(2));
+
+    expect(output.snapshot.encounter.activeEventFamily).not.toBeNull();
+    expect(output.snapshot.encounter.phase).toBe('TELEGRAPH');
+  });
+
+  it('reserves the threat credits exposed by an emitted spawn plan exactly once', () => {
+    const orchestrator = new DirectorSpawnOrchestrator();
+    const input = createInput(40);
+    input.deltaSeconds = 10;
+
+    const output = orchestrator.update(input);
+
+    expect(output.plan.spendableThreat).toBeGreaterThan(0);
+    expect(output.plan.spendableThreat).toBe(
+      output.plan.intents.reduce((total, intent) => total + intent.threatCost, 0)
+    );
+    expect(output.snapshot.threat.availableCredits).toBeLessThan(1);
   });
 
   it('reuses the latest result without duplicate spawn intents between Director updates', () => {

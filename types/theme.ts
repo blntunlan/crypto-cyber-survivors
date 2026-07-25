@@ -12,6 +12,7 @@ export interface ThemeConfig {
   name: ThemeName;
   displayName: string;
   colors: ThemeColors;
+  semanticTokens: SemanticTokenSet;
   fonts: ThemeFonts;
   effects: ThemeEffects;
   audio: ThemeAudio;
@@ -114,3 +115,4 @@ export interface ThemeSizeConfig {
   /** Card internal padding */
   cardPadding: string;
 }
+import { type SemanticTokenSet } from '../config/ui/semanticTokens';

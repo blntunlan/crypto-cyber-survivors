@@ -23,6 +23,7 @@ import { MetaProgressionService } from '../../services/progression/MetaProgressi
 import { GameSessionService } from '../../services/auth/GameSessionService';
 import { ChallengeService } from '../../services/challenges/ChallengeService';
 import { type RewardPayload } from '../../types/reward';
+import { TimeService } from '../../services/core/TimeService';
 
 vi.mock('../../services/cards/CardApplicator', () => ({
   applyCardEffect: vi.fn(),
@@ -70,17 +71,31 @@ vi.mock('../../services/gameplay/CoinService', () => ({
 
 vi.mock('../../services/auth/GameSessionService', () => ({
   GameSessionService: {
+    getCurrentSessionId: vi.fn(() => 'ending-session'),
     submitSession: vi.fn(async () => ({ success: false })),
-    requestCashOutQuote: vi.fn(async () => ({
-      quote: { quoteId: 'quote-1', canonicalSequence: 42, rewardPoints: 120 },
-      signature: 'a'.repeat(64),
-      shouldForceRecovery: false,
-      safeExitOnly: false,
-    })),
+    requestCashOutQuote: vi.fn(async () => {
+      const issuedAtSeconds = Math.floor(Date.now() / 1_000);
+      return {
+        quote: {
+          quoteId: 'quote-1',
+          sessionId: 'session-1',
+          canonicalSequence: 42,
+          rewardPoints: 120,
+          issuedAtSeconds,
+          expiresAtSeconds: issuedAtSeconds + 15,
+        },
+        signature: 'a'.repeat(64),
+        shouldForceRecovery: false,
+        safeExitOnly: false,
+        greedLevel: 0,
+      };
+    }),
     decideCashOut: vi.fn(async () => ({
       state: 'settled',
       rewardPoints: 120,
       greedDelta: 0,
+      greedLevel: 0,
+      canonicalSequence: 42,
     })),
     recordCashOutFailure: vi.fn(async () => ({
       state: 'failed',
@@ -217,6 +232,7 @@ const makeMarketData = (
 describe('useGameFlowController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(123);
     vi.mocked(GameStateMachine.canTransition).mockReturnValue(true);
     vi.mocked(GameStateMachine.transition).mockReturnValue(true);
     EventBus.clearEvent('cycleComplete');
@@ -347,8 +363,64 @@ describe('useGameFlowController', () => {
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
   });
 
-  it('sets cycleData on cycleComplete in competitive mode and clears on handleContinue', async () => {
+  it('rejects a live offer without resetting run state or healing', async () => {
     const playerRef = { current: makePlayer({ level: 5 }) };
+    const healFull = vi.fn();
+    vi.mocked(GameSessionService.decideCashOut).mockResolvedValueOnce({
+      state: 'active',
+      rewardPoints: 0,
+      greedDelta: 1,
+      greedLevel: 1,
+      canonicalSequence: 42,
+    });
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.35, effectivePnl: 0.4 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 22,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull,
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+    });
+
+    await waitFor(() => {
+      expect(result.current.cashOutOffer).not.toBeNull();
+    });
+
+    expect(result.current.cashOutOffer?.cycle.cycleNumber).toBe(2);
+    expect(result.current.cashOutOffer?.cycle.totalKills).toBe(22);
+    expect(result.current.cashOutOffer?.cycle.effectivePnl).toBe(0.4);
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
+      GameStatus.CYCLE_COMPLETE
+    );
+
+    await act(async () => {
+      await result.current.handleRejectCashOut();
+    });
+
+    expect(result.current.cashOutOffer).toBeNull();
+    expect(healFull).not.toHaveBeenCalled();
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const { ComboSystem } = await import('../../services/combat/ComboSystem');
+    expect(difficultyContext.resetForCycleContinue).not.toHaveBeenCalled();
+    expect(ComboSystem.resetCombo).not.toHaveBeenCalled();
+  });
+
+  it('opens a signed cash-out offer without pausing gameplay', async () => {
+    const playerRef = { current: makePlayer({ level: 5 }) };
+    const emitSpy = vi.spyOn(EventBus, 'emit');
 
     const { result } = renderHook(() =>
       useGameFlowController({
@@ -371,20 +443,136 @@ describe('useGameFlowController', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.cycleData).not.toBeNull();
+      expect(result.current.cashOutOffer).not.toBeNull();
     });
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledWith();
+    expect(result.current.cashOutOffer?.quote.rewardPoints).toBe(120);
+    expect(emitSpy).toHaveBeenCalledWith('cashOutOfferOpened', { cycleNumber: 2 });
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
+      GameStatus.CYCLE_COMPLETE
+    );
+  });
 
-    expect(result.current.cycleData?.cycleNumber).toBe(2);
-    expect(result.current.cycleData?.totalKills).toBe(22);
-    expect(result.current.cycleData?.effectivePnl).toBe(0.4);
-    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.CYCLE_COMPLETE);
+  it('rejects the signed offer without reset, combo clear, or healing', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const { ComboSystem } = await import('../../services/combat/ComboSystem');
+    vi.mocked(GameSessionService.decideCashOut).mockResolvedValueOnce({
+      state: 'active',
+      rewardPoints: 0,
+      greedDelta: 1,
+      greedLevel: 1,
+      canonicalSequence: 42,
+    });
+    const healFull = vi.fn();
+    const playerRef = { current: makePlayer({ level: 5 }) };
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 22,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull,
+      })
+    );
 
     act(() => {
-      result.current.handleContinue();
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+    });
+    await waitFor(() => expect(result.current.cashOutOffer).not.toBeNull());
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+    emitSpy.mockClear();
+
+    await act(async () => {
+      await result.current.handleRejectCashOut();
     });
 
-    expect(result.current.cycleData).toBeNull();
-    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
+    expect(GameSessionService.decideCashOut).toHaveBeenCalledWith(
+      'quote-1',
+      'a'.repeat(64),
+      'reject',
+      'reject:quote-1'
+    );
+    expect(result.current.cashOutOffer).toBeNull();
+    expect(healFull).not.toHaveBeenCalled();
+    expect(difficultyContext.resetForCycleContinue).not.toHaveBeenCalled();
+    expect(ComboSystem.resetCombo).not.toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalledWith('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-1',
+      canonicalSequence: 42,
+      decision: 'reject',
+      greedLevel: 1,
+    });
+  });
+
+  it('records timeout at the signed fifteen-second wall-clock expiry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const issuedAtSeconds = Math.floor(Date.now() / 1_000);
+    vi.mocked(GameSessionService.requestCashOutQuote).mockResolvedValueOnce({
+      quote: {
+        quoteId: 'quote-timeout',
+        sessionId: 'session-1',
+        canonicalSequence: 43,
+        rewardPoints: 140,
+        issuedAtSeconds,
+        expiresAtSeconds: issuedAtSeconds + 15,
+      },
+      signature: 'b'.repeat(64),
+      shouldForceRecovery: false,
+      safeExitOnly: false,
+      greedLevel: 0,
+    });
+    vi.mocked(GameSessionService.decideCashOut).mockResolvedValueOnce({
+      state: 'active',
+      rewardPoints: 0,
+      greedDelta: 1,
+      greedLevel: 1,
+      canonicalSequence: 43,
+    });
+    const playerRef = { current: makePlayer({ level: 5 }) };
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 22,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+      await Promise.resolve();
+    });
+    expect(result.current.cashOutOffer?.quote.quoteId).toBe('quote-timeout');
+
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(GameSessionService.decideCashOut).toHaveBeenCalledWith(
+      'quote-timeout',
+      'b'.repeat(64),
+      'timeout',
+      'timeout:quote-timeout'
+    );
+    expect(result.current.cashOutOffer).toBeNull();
   });
 
   it('ignores cycleComplete events outside active gameplay', () => {
@@ -410,7 +598,7 @@ describe('useGameFlowController', () => {
       EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 300 });
     });
 
-    expect(result.current.cycleData).toBeNull();
+    expect(result.current.cashOutOffer).toBeNull();
     expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
       GameStatus.CYCLE_COMPLETE
     );
@@ -461,6 +649,15 @@ describe('useGameFlowController', () => {
       });
     });
 
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(GameStatus.GAMEOVER);
+
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(127);
+    act(() => {
+      rerender({
+        marketData: makeMarketData({ effectivePnl: -1.4, price: 50300 }),
+      });
+    });
+
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
@@ -492,19 +689,19 @@ describe('useGameFlowController', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.cycleData).not.toBeNull();
+      expect(result.current.cashOutOffer).not.toBeNull();
     });
 
     await act(async () => {
       await result.current.handleCashOut();
     });
 
-    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledWith('RECOVERY');
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledWith();
     expect(GameSessionService.decideCashOut).toHaveBeenCalledWith(
       'quote-1',
       'a'.repeat(64),
       'accept',
-      'cash-out:quote-1'
+      'accept:quote-1'
     );
     expect(GameSessionService.clearSession).toHaveBeenCalled();
     expect(CoinService.creditCoins).not.toHaveBeenCalled();
@@ -513,11 +710,20 @@ describe('useGameFlowController', () => {
   });
 
   it('settles a stale-market quote through the Safe Exit decision', async () => {
+    const issuedAtSeconds = Math.floor(Date.now() / 1_000);
     vi.mocked(GameSessionService.requestCashOutQuote).mockResolvedValueOnce({
-      quote: { quoteId: 'safe-exit-quote', canonicalSequence: 42, rewardPoints: 120 },
+      quote: {
+        quoteId: 'safe-exit-quote',
+        sessionId: 'session-1',
+        canonicalSequence: 42,
+        rewardPoints: 120,
+        issuedAtSeconds,
+        expiresAtSeconds: issuedAtSeconds + 15,
+      },
       signature: 'b'.repeat(64),
       shouldForceRecovery: false,
       safeExitOnly: true,
+      greedLevel: 0,
     });
     const playerRef = { current: makePlayer({ level: 4 }) };
     const { result } = renderHook(() =>
@@ -539,7 +745,7 @@ describe('useGameFlowController', () => {
     act(() => {
       EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
     });
-    await waitFor(() => expect(result.current.cycleData).not.toBeNull());
+    await waitFor(() => expect(result.current.cashOutOffer).not.toBeNull());
 
     await act(async () => {
       await result.current.handleCashOut();
@@ -549,11 +755,11 @@ describe('useGameFlowController', () => {
       'safe-exit-quote',
       'b'.repeat(64),
       'safe_exit',
-      'cash-out:safe-exit-quote'
+      'safe_exit:safe-exit-quote'
     );
   });
 
-  it('keeps the run active when the authoritative quote cannot be issued', async () => {
+  it('keeps the run active and allows the same cycle to retry after quote failure', async () => {
     vi.mocked(GameSessionService.requestCashOutQuote).mockRejectedValueOnce(
       new Error('CASH_OUT_NOT_ELIGIBLE')
     );
@@ -577,15 +783,23 @@ describe('useGameFlowController', () => {
     act(() => {
       EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
     });
-    await waitFor(() => expect(result.current.cycleData).not.toBeNull());
+    await waitFor(() =>
+      expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledTimes(1)
+    );
 
-    await act(async () => {
-      await result.current.handleCashOut();
-    });
-
+    expect(result.current.cashOutOffer).toBeNull();
     expect(GameSessionService.clearSession).not.toHaveBeenCalled();
-    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(GameStatus.PLAYING);
     expect(GameStateMachine.transition).not.toHaveBeenCalledWith(GameStatus.GAMEOVER);
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
+    });
+    await waitFor(() => expect(result.current.cashOutOffer).not.toBeNull());
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledTimes(2);
+    expect(EventBus.emit).toHaveBeenCalledWith('cashOutOfferQuoteFailed', {
+      cycleNumber: 1,
+    });
   });
 
   it('ignores duplicate cycleComplete events with same cycleNumber', async () => {
@@ -612,24 +826,18 @@ describe('useGameFlowController', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.cycleData).not.toBeNull();
+      expect(result.current.cashOutOffer).not.toBeNull();
     });
 
-    expect(result.current.cycleData?.cycleNumber).toBe(2);
-    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.CYCLE_COMPLETE);
-
-    // Clear the mock to track new calls
-    vi.mocked(GameStateMachine.transition).mockClear();
+    expect(result.current.cashOutOffer?.cycle.cycleNumber).toBe(2);
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledTimes(1);
 
     // Emit duplicate cycleComplete with same cycleNumber
     act(() => {
       EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
     });
 
-    // GameStateMachine.transition should NOT have been called again
-    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
-      GameStatus.CYCLE_COMPLETE
-    );
+    expect(GameSessionService.requestCashOutQuote).toHaveBeenCalledTimes(1);
   });
 
   it('handleGameOver resets the runtime difficulty context', async () => {
@@ -904,7 +1112,7 @@ describe('useGameFlowController', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.cycleData).not.toBeNull();
+      expect(result.current.cashOutOffer).not.toBeNull();
     });
 
     const emitSpy = vi.spyOn(EventBus, 'emit');
@@ -920,52 +1128,7 @@ describe('useGameFlowController', () => {
     });
   });
 
-  it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
-    const { difficultyContext } =
-      await import('../../services/difficulty/DifficultyContext');
-    const { ComboSystem } = await import('../../services/combat/ComboSystem');
-    const playerRef = { current: makePlayer({ level: 4 }) };
-
-    const { result } = renderHook(() =>
-      useGameFlowController({
-        gameMode: GameMode.COMPETITIVE,
-        gameStatus: GameStatus.PLAYING,
-        leverage: 10,
-        marketData: makeMarketData({ pnl: 0.15, effectivePnl: 0.2 }),
-        position: MarketPosition.LONG,
-        entryPrice: 45000,
-        selectedPair: 'BTC',
-        runStatsTotalKills: 19,
-        playerRef,
-        setUiStats: vi.fn(),
-        healFull: vi.fn(),
-      })
-    );
-
-    act(() => {
-      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
-    });
-
-    await waitFor(() => {
-      expect(result.current.cycleData).not.toBeNull();
-    });
-
-    const emitSpy = vi.spyOn(EventBus, 'emit');
-    emitSpy.mockClear();
-    act(() => {
-      result.current.handleContinue();
-    });
-
-    expect(difficultyContext.resetForCycleContinue).toHaveBeenCalled();
-    expect(ComboSystem.resetCombo).toHaveBeenCalled();
-    expect(difficultyContext.updateInputs).toHaveBeenCalledWith({ cycleFactor: 2 });
-    expect(emitSpy).toHaveBeenCalledWith('cycleDecisionMade', {
-      decision: 'CONTINUE',
-      cycleNumber: 2,
-    });
-  });
-
-  it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {
+  it('resetFlowState clears frozen pnl, offer, upgrade choices, and difficulty', async () => {
     const { difficultyContext } =
       await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer({ level: 4 }) };
@@ -991,12 +1154,14 @@ describe('useGameFlowController', () => {
       EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 100 });
     });
 
+    await waitFor(() => expect(result.current.cashOutOffer).not.toBeNull());
+
     await act(async () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
     expect(result.current.upgradeChoices.length).toBeGreaterThan(0);
-    expect(result.current.cycleData).not.toBeNull();
+    expect(result.current.cashOutOffer).not.toBeNull();
     expect(result.current.frozenPnlRef.current).toBe(0.42);
 
     act(() => {
@@ -1004,7 +1169,7 @@ describe('useGameFlowController', () => {
     });
 
     expect(result.current.upgradeChoices).toEqual([]);
-    expect(result.current.cycleData).toBeNull();
+    expect(result.current.cashOutOffer).toBeNull();
     expect(result.current.frozenPnlRef.current).toBe(0);
     expect(difficultyContext.reset).toHaveBeenCalled();
   });
@@ -1054,6 +1219,7 @@ describe('useGameFlowController', () => {
     await waitFor(() => {
       // onRunEnd must NOT be called a second time after submission resolves
       expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(1);
+      expect(GameSessionService.clearSession).toHaveBeenCalledWith('ending-session');
     });
   });
 });

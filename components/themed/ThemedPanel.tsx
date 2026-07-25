@@ -1,22 +1,42 @@
 import React from 'react';
-import { useTheme } from '../../contexts/useTheme';
-import { PANEL_VARIANTS } from '../../config/themeVariants';
+import {
+  type UiPanelPadding,
+  type UiPanelSurface,
+} from '../../config/ui/componentVariants';
+import { cn } from '../../utils/classnames';
+import { useUiSkin } from './useUiSkin';
 
-interface ThemedPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+export type ThemedPanelProps = React.HTMLAttributes<HTMLDivElement> & {
   children: React.ReactNode;
-}
+  'data-ui-component'?: string;
+  padding?: UiPanelPadding;
+  surface?: UiPanelSurface;
+};
 
-export const ThemedPanel: React.FC<ThemedPanelProps> = ({
+export function ThemedPanel({
   children,
-  className = '',
+  className,
+  padding = 'none',
+  surface = 'default',
+  'data-ui-component': componentName,
   ...props
-}) => {
-  const { isRetro } = useTheme();
-  const variantClass = isRetro ? PANEL_VARIANTS.retro : PANEL_VARIANTS.modern;
+}: ThemedPanelProps): React.JSX.Element {
+  const skin = useUiSkin();
 
   return (
-    <div className={`${variantClass} ${className}`} {...props}>
+    <div
+      {...props}
+      className={cn(
+        skin.panel.base,
+        skin.panel.surface[surface],
+        skin.panel.padding[padding],
+        className
+      )}
+      data-ui-component={componentName ?? 'panel'}
+      data-ui-padding={padding}
+      data-ui-surface={surface}
+    >
       {children}
     </div>
   );
-};
+}

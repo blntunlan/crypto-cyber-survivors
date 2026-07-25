@@ -28,14 +28,14 @@ export const MARKET_EVENT_PRESENTATIONS: Record<
 
 type ActivePresentationEvent = {
   type: GameMarketEvent;
-  startTime: number;
-  endTime: number;
+  remainingMs: number;
   intensity: number;
 };
 
 class MarketEventMapperV2Class {
   private static instance: MarketEventMapperV2Class | null = null;
   private activeEvents: ActivePresentationEvent[] = [];
+  private elapsedMs: number = 0;
   private eventHistory: Array<{
     type: GameMarketEvent;
     timestamp: number;
@@ -54,11 +54,14 @@ class MarketEventMapperV2Class {
     return (MarketEventMapperV2Class.instance ??= new MarketEventMapperV2Class());
   }
 
-  public update(_deltaMs: number): void {
-    const now = Date.now();
+  public update(deltaMs: number): void {
+    const elapsedMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 0;
+    this.elapsedMs += elapsedMs;
     for (let index = this.activeEvents.length - 1; index >= 0; index -= 1) {
       const activeEvent = this.activeEvents[index];
-      if (activeEvent && now >= activeEvent.endTime) {
+      if (!activeEvent) continue;
+      activeEvent.remainingMs -= elapsedMs;
+      if (activeEvent.remainingMs <= 0) {
         this.activeEvents.splice(index, 1);
       }
     }
@@ -69,10 +72,9 @@ class MarketEventMapperV2Class {
     timeRemaining: number;
     intensity: number;
   }> {
-    const now = Date.now();
     return this.activeEvents.map(activeEvent => ({
       type: activeEvent.type,
-      timeRemaining: Math.max(0, activeEvent.endTime - now),
+      timeRemaining: Math.max(0, activeEvent.remainingMs),
       intensity: activeEvent.intensity,
     }));
   }
@@ -99,10 +101,10 @@ class MarketEventMapperV2Class {
   public reset(): void {
     this.activeEvents = [];
     this.eventHistory = [];
+    this.elapsedMs = 0;
   }
 
   private onMarketEvent(payload: MarketEventPayload): void {
-    const now = Date.now();
     const durationMs =
       payload.durationMs || MARKET_EVENT_PRESENTATIONS[payload.type].durationMs;
     const existingEvent = this.activeEvents.find(
@@ -110,20 +112,19 @@ class MarketEventMapperV2Class {
     );
 
     if (existingEvent) {
-      existingEvent.endTime = now + durationMs;
+      existingEvent.remainingMs = durationMs;
       existingEvent.intensity = Math.max(existingEvent.intensity, payload.intensity);
       return;
     }
 
     this.activeEvents.push({
       type: payload.type,
-      startTime: now,
-      endTime: now + durationMs,
+      remainingMs: durationMs,
       intensity: payload.intensity,
     });
     this.eventHistory.push({
       type: payload.type,
-      timestamp: now,
+      timestamp: this.elapsedMs,
       intensity: payload.intensity,
     });
   }

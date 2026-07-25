@@ -59,4 +59,70 @@ describe('DifficultyEventBridge', () => {
     expect(inbox.drain(3).run.constants?.runId).toBe('run-bridge');
     bridge.dispose();
   });
+
+  it('commits authoritative Greed at the next tick boundary', () => {
+    let tick = 20;
+    const inbox = new DifficultyInputInbox();
+    const bridge = new DifficultyEventBridge(inbox, () => tick);
+    bridge.start();
+
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-2',
+      canonicalSequence: 42,
+      decision: 'reject',
+      greedLevel: 2,
+    });
+
+    expect(inbox.drain(20).run.greedLevel).toBe(0);
+    tick = 21;
+    expect(inbox.drain(21).run.greedLevel).toBe(2);
+    bridge.dispose();
+  });
+
+  it('ignores duplicate, out-of-order, and decreasing Greed decisions', () => {
+    let tick = 10;
+    const inbox = new DifficultyInputInbox();
+    const bridge = new DifficultyEventBridge(inbox, () => tick);
+    bridge.start();
+
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-2',
+      canonicalSequence: 42,
+      decision: 'reject',
+      greedLevel: 2,
+    });
+    tick = 11;
+    const committed = inbox.drain(tick);
+    const committedRevision = committed.revisions.run;
+
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-2',
+      canonicalSequence: 42,
+      decision: 'reject',
+      greedLevel: 3,
+    });
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-1',
+      canonicalSequence: 41,
+      decision: 'reject',
+      greedLevel: 3,
+    });
+    EventBus.emit('cashOutDecisionCommitted', {
+      sessionId: 'session-1',
+      quoteId: 'quote-3',
+      canonicalSequence: 43,
+      decision: 'reject',
+      greedLevel: 1,
+    });
+
+    tick = 12;
+    const ignored = inbox.drain(tick);
+    expect(ignored.run.greedLevel).toBe(2);
+    expect(ignored.revisions.run).toBe(committedRevision);
+    bridge.dispose();
+  });
 });

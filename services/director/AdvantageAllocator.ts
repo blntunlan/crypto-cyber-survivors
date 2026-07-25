@@ -94,13 +94,7 @@ export class AdvantageAllocator {
     this.clearExpiredActive(input.elapsedSeconds);
     if (this.active !== null) return null;
 
-    const eligibleCards = this.catalog.filter(
-      card =>
-        card.eligibleRegimes.includes(input.regime) &&
-        this.availableCredits >= card.costCredits &&
-        (this.cooldownEndsAt.get(card.mechanic) ?? UNIT_MINIMUM) <= input.elapsedSeconds
-    );
-    const card = this.pickCard(eligibleCards, input.seed);
+    const card = this.pickEligibleCard(input);
     if (!card) return null;
 
     return {
@@ -115,16 +109,16 @@ export class AdvantageAllocator {
   }
 
   public activate(plan: AdvantagePlan): boolean {
+    const card = this.findCard(plan.mechanic);
     if (
       this.active !== null ||
       this.availableCredits < plan.costCredits ||
-      !this.catalog.some(card => card.mechanic === plan.mechanic)
+      card === null
     ) {
       return false;
     }
 
-    const card = this.catalog.find(candidate => candidate.mechanic === plan.mechanic);
-    if (card?.costCredits !== plan.costCredits) return false;
+    if (card.costCredits !== plan.costCredits) return false;
 
     this.availableCredits -= plan.costCredits;
     this.active = plan;
@@ -135,6 +129,14 @@ export class AdvantageAllocator {
   }
 
   public getSnapshot(): AdvantageAllocationSnapshot {
+    return this.snapshot;
+  }
+
+  public freeze(elapsedSeconds: number): AdvantageAllocationSnapshot {
+    this.clearExpiredActive(elapsedSeconds);
+    this.snapshot.creditRate = UNIT_MINIMUM;
+    this.snapshot.availableCredits = this.availableCredits;
+    this.snapshot.activeMechanic = this.active?.mechanic ?? null;
     return this.snapshot;
   }
 
@@ -150,13 +152,38 @@ export class AdvantageAllocator {
     this.active = null;
   }
 
-  private pickCard(
-    cards: readonly AdvantageCard[],
-    seed: number
-  ): AdvantageCard | null {
-    if (cards.length === UNIT_MINIMUM) return null;
-    const index = Math.abs(Math.trunc(seed)) % cards.length;
-    return cards[index] ?? null;
+  private pickEligibleCard(input: AdvantageAllocationInput): AdvantageCard | null {
+    let eligibleCount = 0;
+    for (let index = 0; index < this.catalog.length; index += 1) {
+      const card = this.catalog[index];
+      if (card !== undefined && this.isEligible(card, input)) eligibleCount += 1;
+    }
+    if (eligibleCount === 0) return null;
+
+    let targetIndex = Math.abs(Math.trunc(input.seed)) % eligibleCount;
+    for (let index = 0; index < this.catalog.length; index += 1) {
+      const card = this.catalog[index];
+      if (card === undefined || !this.isEligible(card, input)) continue;
+      if (targetIndex === 0) return card;
+      targetIndex -= 1;
+    }
+    return null;
+  }
+
+  private isEligible(card: AdvantageCard, input: AdvantageAllocationInput): boolean {
+    return (
+      card.eligibleRegimes.includes(input.regime) &&
+      this.availableCredits >= card.costCredits &&
+      (this.cooldownEndsAt.get(card.mechanic) ?? UNIT_MINIMUM) <= input.elapsedSeconds
+    );
+  }
+
+  private findCard(mechanic: AdvantageMechanic): AdvantageCard | null {
+    for (let index = 0; index < this.catalog.length; index += 1) {
+      const card = this.catalog[index];
+      if (card?.mechanic === mechanic) return card;
+    }
+    return null;
   }
 
   private writeSnapshot(creditRate: number, maximumCredits: number): void {

@@ -13,6 +13,7 @@
     ETH: 3488.21,
     SOL: 182.44,
   };
+  let activeSessionId = 'e2e-session-pending';
 
   function nowIso() {
     return new Date().toISOString();
@@ -173,22 +174,28 @@
       return jsonResponse({
         quote: {
           quoteId: `e2e-quote-${Date.now()}`,
+          sessionId: activeSessionId,
           canonicalSequence: 1,
           rewardPoints: 100,
           issuedAtSeconds,
           expiresAtSeconds: issuedAtSeconds + 30,
         },
-        signature: 'e2e-cash-out-signature',
+        signature: 'a'.repeat(64),
         shouldForceRecovery: false,
         safeExitOnly: false,
+        greedLevel: 0,
       });
     }
 
     if (pathname.includes('/api/v1/economy/cash-out/decision')) {
+      const body = decodeBody(init);
+      const continuesRun = body.decision === 'reject' || body.decision === 'timeout';
       return jsonResponse({
-        state: 'settled',
-        rewardPoints: 100,
-        greedDelta: 1,
+        state: continuesRun ? 'active' : 'settled',
+        rewardPoints: continuesRun ? 0 : 100,
+        greedDelta: continuesRun ? 1 : 0,
+        greedLevel: continuesRun ? 1 : 0,
+        canonicalSequence: 1,
       });
     }
 
@@ -249,6 +256,7 @@
     if (pathname.includes('/api/v1/sessions/start')) {
       const body = decodeBody(init);
       const sessionId = `e2e-session-${Date.now()}`;
+      activeSessionId = sessionId;
       return jsonResponse({
         sessionId,
         startTime: nowIso(),

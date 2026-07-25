@@ -22,6 +22,10 @@ const MAX_HISTORY_LIMIT = 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function getMarketBaseUrl(): string {
+  if (import.meta.env.MODE === 'development') {
+    return '';
+  }
+
   const aggregatorUrl = (
     import.meta.env.VITE_MARKET_AGGREGATOR_URL as string | undefined
   )?.trim();

@@ -272,3 +272,70 @@ describe('setTimeout usage audit (static)', () => {
     expect(violations).toEqual([]);
   });
 });
+
+describe('delta-time gameplay clock audit (static)', () => {
+  const GAMEPLAY_CLOCK_FILES = [
+    'components/mobile/DashButton.tsx',
+    'hooks/useGameInput.ts',
+    'hooks/useGameFlowController.ts',
+    'services/combat/SpawnSystem.ts',
+    'services/difficulty/FlowStateManager.ts',
+    'services/gameplay/CoreGameplayLoop.ts',
+    'services/gameplay/FeedbackService.ts',
+    'services/inventory/InventoryService.ts',
+    'services/market/MarketEventManager.ts',
+    'services/market/MarketEventMapperV2.ts',
+    'services/renderers/EntityRenderer.ts',
+    'services/renderers/GameRenderer.ts',
+    'services/replay/ReplayRecorderService.ts',
+    'services/spawners/BuffGemSpawner.ts',
+  ];
+
+  it('keeps gameplay progression off wall-clock APIs', () => {
+    const violations = GAMEPLAY_CLOCK_FILES.filter(filePath => {
+      const source = readFileSync(join(__dirname, '..', '..', '..', filePath), 'utf8');
+      let gameplaySource = source;
+      if (filePath.endsWith('InventoryService.ts')) {
+        gameplaySource = gameplaySource.replace(/Date\.now\(\).*nanoid/, 'nanoid');
+      }
+      if (filePath.endsWith('useGameFlowController.ts')) {
+        gameplaySource = gameplaySource.replace(
+          /cashOutOffer\.quote\.expiresAtSeconds\s*\*\s*1_000\s*-\s*Date\.now\(\)/,
+          '0'
+        );
+      }
+      return /Date\.now\(\)|performance\.now\(\)/.test(gameplaySource);
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it('does not use render-frame counters for gameplay timing or randomness', () => {
+    const gameEngine = readFileSync(
+      join(__dirname, '..', '..', '..', 'components/GameEngine.tsx'),
+      'utf8'
+    );
+    const movement = readFileSync(
+      join(__dirname, '..', '..', '..', 'services/combat/physics/MovementSystem.ts'),
+      'utf8'
+    );
+    const collision = readFileSync(
+      join(__dirname, '..', '..', '..', 'services/combat/physics/CollisionSystem.ts'),
+      'utf8'
+    );
+    const spawnPlan = readFileSync(
+      join(__dirname, '..', '..', '..', 'services/director/SpawnPlanBuilder.ts'),
+      'utf8'
+    );
+    const eventRecorder = readFileSync(
+      join(__dirname, '..', '..', '..', 'services/core/EventRecorderService.ts'),
+      'utf8'
+    );
+
+    expect(gameEngine).not.toContain('bgUpdateFrameCounter');
+    expect(movement).not.toContain('frameCounter');
+    expect(collision).not.toContain('damageBufferUpdateCounter');
+    expect(spawnPlan).not.toMatch(/seed\s*\^\s*input\.tick|input\.tick\s*\^/);
+    expect(eventRecorder).not.toContain('performance.now()');
+  });
+});

@@ -196,7 +196,7 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
   }
 
   const accountId = getRequiredAccountId(req);
-  const { session_id: sessionId, pacing_state: pacingState } = parsed.data;
+  const { session_id: sessionId } = parsed.data;
 
   try {
     const result = await withTransaction(async (client) => {
@@ -236,6 +236,8 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
         Math.floor((Date.now() - canonicalTimestampMs) / 1_000)
       );
       const nowSeconds = Math.floor(Date.now() / 1_000);
+      const sessionStartSeconds = Math.floor(session.created_at.getTime() / 1_000);
+      const elapsedSeconds = Math.max(0, nowSeconds - sessionStartSeconds);
       const effectiveRewardEndSeconds = Math.min(
         nowSeconds,
         Math.floor(canonicalTimestampMs / 1_000)
@@ -294,7 +296,10 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
         [escrow.id]
       );
       let greedLevel = escrow.greed_level;
-      let lastDecisionAtSeconds = escrow.last_decision_at_seconds;
+      let lastDecisionAtSeconds =
+        escrow.last_decision_at_seconds === null
+          ? null
+          : Math.max(0, escrow.last_decision_at_seconds - sessionStartSeconds);
       if (expiredQuoteResult.rows.length > 0) {
         const reactivatedEscrow = await client.query<{ greed_level: number }>(
           `UPDATE run_escrows
@@ -304,7 +309,7 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
           [escrow.id]
         );
         greedLevel = reactivatedEscrow.rows[0]?.greed_level ?? greedLevel + 1;
-        lastDecisionAtSeconds = nowSeconds;
+        lastDecisionAtSeconds = elapsedSeconds;
       }
 
       const openQuoteResult = await client.query<CashOutOpenQuoteRow>(
@@ -330,6 +335,7 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
             signature: openQuote.signature,
             shouldForceRecovery: false,
             safeExitOnly: marketStaleSeconds >= 60,
+            greedLevel,
           },
         };
       }
@@ -347,7 +353,6 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
         position: session.position,
         leverage: session.leverage,
         greedLevel,
-        pacingState,
         marketStaleSeconds,
         combatMastery: getVerifiedCombatMastery(session),
         lastDecisionAtSeconds,
@@ -384,6 +389,7 @@ router.post('/cash-out/quote', requireAuth, asyncHandler(async (req: Request, re
           signature: quoteResult.signature,
           shouldForceRecovery: quoteResult.shouldForceRecovery,
           safeExitOnly: quoteResult.safeExitOnly,
+          greedLevel,
         },
       };
     });
@@ -465,15 +471,18 @@ router.post('/cash-out/decision', requireAuth, asyncHandler(async (req: Request,
         signature,
         nowSeconds
       );
-      const expired = nowSeconds > Math.floor(quote.expires_at.getTime() / 1_000);
+      const expired = nowSeconds >= Math.floor(quote.expires_at.getTime() / 1_000);
       if (!quoteIsValid && !expired) {
         return { statusCode: 403, body: { error: 'Invalid cash-out quote signature' } };
       }
       if (decision === 'safe_exit' && quote.safe_exit_available_at === null) {
         return { statusCode: 409, body: { error: 'Safe Exit is unavailable' } };
       }
+      if (decision === 'timeout' && !expired) {
+        return { statusCode: 409, body: { error: 'Cash-out quote has not expired' } };
+      }
 
-      const resolvedDecision = expired ? 'expired' : decision;
+      const resolvedDecision = expired || decision === 'timeout' ? 'expired' : decision;
       const settlesPrimary = resolvedDecision === 'accept' || resolvedDecision === 'safe_exit';
       const greedDelta = resolvedDecision === 'reject' || resolvedDecision === 'expired' ? 1 : 0;
       const state = settlesPrimary ? 'settled' : 'active';
@@ -481,6 +490,8 @@ router.post('/cash-out/decision', requireAuth, asyncHandler(async (req: Request,
         state,
         rewardPoints: settlesPrimary ? quote.reward_points : 0,
         greedDelta,
+        greedLevel: quote.greed_level + greedDelta,
+        canonicalSequence: quote.canonical_sequence,
       };
 
       await client.query(

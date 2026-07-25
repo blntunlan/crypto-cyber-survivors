@@ -105,7 +105,6 @@ describe('PhysicsSystem', () => {
     bgCandles: [],
     currentBg: { r: 2, g: 6, b: 23 },
     lastTime: 0,
-    bgUpdateFrameCounter: 0,
     levelUpFreeze: 0,
     isDashing: false,
     dashTimer: 0,

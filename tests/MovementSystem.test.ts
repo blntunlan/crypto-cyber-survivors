@@ -17,6 +17,8 @@ import {
   SlowApproachStrategy,
   ExplosiveStrategy,
   GrowingStrategy,
+  AbsorbStrategy,
+  PredictiveStrategy,
   createMovementStrategy,
   createMarketMovementStrategy,
 } from '../strategies/EnemyBehaviors';
@@ -678,6 +680,56 @@ describe('Enemy Movement Strategies', () => {
     it('should have correct name', () => {
       expect(new GrowingStrategy().name).toBe('growing');
     });
+  });
+});
+
+describe('PredictiveStrategy', () => {
+  it('normalizes observed player velocity by delta time', () => {
+    const fullFrameStrategy = new PredictiveStrategy();
+    const halfFrameStrategy = new PredictiveStrategy();
+    const fullFrameEnemy = createMockEnemy({ x: 0, y: 0, speed: 10 });
+    const halfFrameEnemy = createMockEnemy({ x: 0, y: 0, speed: 10 });
+
+    fullFrameStrategy.move(fullFrameEnemy, 100, 0, 1);
+    halfFrameStrategy.move(halfFrameEnemy, 105, 5, 0.5);
+    fullFrameEnemy.x = 0;
+    fullFrameEnemy.y = 0;
+    halfFrameEnemy.x = 0;
+    halfFrameEnemy.y = 0;
+
+    fullFrameStrategy.move(fullFrameEnemy, 110, 10, 1);
+    halfFrameStrategy.move(halfFrameEnemy, 110, 10, 0.5);
+
+    expect(halfFrameEnemy.x * 2).toBeCloseTo(fullFrameEnemy.x, 10);
+    expect(halfFrameEnemy.y * 2).toBeCloseTo(fullFrameEnemy.y, 10);
+  });
+});
+
+describe('AbsorbStrategy', () => {
+  it('preserves every growth pulse across a large delta', () => {
+    const splitStrategy = new AbsorbStrategy();
+    const combinedStrategy = new AbsorbStrategy();
+    const splitEnemy = createMockEnemy({
+      x: 0,
+      y: 0,
+      speed: 0,
+      radius: 10,
+      damage: 10,
+    });
+    const combinedEnemy = createMockEnemy({
+      x: 0,
+      y: 0,
+      speed: 0,
+      radius: 10,
+      damage: 10,
+    });
+
+    splitStrategy.move(splitEnemy, 100, 0, 180);
+    splitStrategy.move(splitEnemy, 100, 0, 180);
+    combinedStrategy.move(combinedEnemy, 100, 0, 360);
+
+    expect(combinedEnemy.radius).toBe(splitEnemy.radius);
+    expect(combinedEnemy.damage).toBe(splitEnemy.damage);
   });
 });
 
