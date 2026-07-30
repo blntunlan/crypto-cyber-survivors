@@ -415,7 +415,7 @@ function spawnProjectileFan(
 interface WeaponTargetingContext {
   playerX: number;
   playerY: number;
-  viewportBounds: { x: number; y: number; w: number; h: number } | null;
+  viewportBounds: { left: number; right: number; top: number; bottom: number } | null;
   bestX: number;
   bestY: number;
   bestDistSq: number;
