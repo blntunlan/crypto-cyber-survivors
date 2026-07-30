@@ -489,12 +489,24 @@ function findNearestEnemy(
   WEAPON_TARGETING_CONTEXT.found = false;
 
   // Step 1: SpatialGrid 3x3 (immediate surroundings)
-  enemyGrid.forEachInRangeWithContext(playerX, playerY, 1, WEAPON_TARGETING_CONTEXT, checkEnemyForWeaponTargeting);
+  enemyGrid.forEachInRangeWithContext(
+    playerX,
+    playerY,
+    1,
+    WEAPON_TARGETING_CONTEXT,
+    checkEnemyForWeaponTargeting
+  );
 
   // Step 2: SpatialGrid 7x7 (extended range)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!WEAPON_TARGETING_CONTEXT.found) {
-    enemyGrid.forEachInRangeWithContext(playerX, playerY, 3, WEAPON_TARGETING_CONTEXT, checkEnemyForWeaponTargeting);
+    enemyGrid.forEachInRangeWithContext(
+      playerX,
+      playerY,
+      3,
+      WEAPON_TARGETING_CONTEXT,
+      checkEnemyForWeaponTargeting
+    );
   }
 
   // Step 3: Fallback brute-force for edge-of-viewport enemies
@@ -510,6 +522,11 @@ function findNearestEnemy(
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return WEAPON_TARGETING_CONTEXT.found
-    ? { x: WEAPON_TARGETING_CONTEXT.bestX, y: WEAPON_TARGETING_CONTEXT.bestY, dist: Math.sqrt(WEAPON_TARGETING_CONTEXT.bestDistSq), speed: WEAPON_TARGETING_CONTEXT.bestSpeed }
+    ? {
+        x: WEAPON_TARGETING_CONTEXT.bestX,
+        y: WEAPON_TARGETING_CONTEXT.bestY,
+        dist: Math.sqrt(WEAPON_TARGETING_CONTEXT.bestDistSq),
+        speed: WEAPON_TARGETING_CONTEXT.bestSpeed,
+      }
     : null;
 }

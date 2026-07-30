@@ -221,12 +221,24 @@ export class CombatSystem implements ICombatSystem {
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
     // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRangeWithContext(player.x, player.y, 1, TARGETING_CONTEXT, checkEnemyForTargeting);
+    enemyGrid.forEachInRangeWithContext(
+      player.x,
+      player.y,
+      1,
+      TARGETING_CONTEXT,
+      checkEnemyForTargeting
+    );
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!TARGETING_CONTEXT.found) {
-      enemyGrid.forEachInRangeWithContext(player.x, player.y, 3, TARGETING_CONTEXT, checkEnemyForTargeting);
+      enemyGrid.forEachInRangeWithContext(
+        player.x,
+        player.y,
+        3,
+        TARGETING_CONTEXT,
+        checkEnemyForTargeting
+      );
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
