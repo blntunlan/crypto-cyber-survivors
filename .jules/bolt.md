@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid dynamic closure allocations in hot loops
+**Learning:** In high-frequency operations like game rendering and physics loops (e.g. 60+ FPS spatial queries for auto-targeting), inline functions (e.g., closures passed to `Array.forEach` or `SpatialGrid.forEachInRange`) can trigger severe garbage collection pressure, leading to frame stutters.
+**Action:** Replace inline closures with statically defined functions and utilize context-aware zero-allocation iterators (`forEachInRangeWithContext`) alongside pre-allocated singleton context objects to maintain variable bindings without creating new objects per frame.

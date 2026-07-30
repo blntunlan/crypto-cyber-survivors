@@ -411,6 +411,61 @@ function spawnProjectileFan(
 
 // ─── Shared: Targeting (SpatialGrid + Viewport) ─────────────────────────
 
+// Pre-allocated context for zero-allocation enemy targeting spatial grid searches
+interface WeaponTargetingContext {
+  playerX: number;
+  playerY: number;
+  viewportBounds: { x: number; y: number; w: number; h: number } | null;
+  bestX: number;
+  bestY: number;
+  bestDistSq: number;
+  bestSpeed: number;
+  found: boolean;
+}
+
+const WEAPON_TARGETING_CONTEXT: WeaponTargetingContext = {
+  playerX: 0,
+  playerY: 0,
+  viewportBounds: null,
+  bestX: 0,
+  bestY: 0,
+  bestDistSq: Infinity,
+  bestSpeed: 0,
+  found: false,
+};
+
+// Shared zero-allocation callback for spatial grid queries in WeaponFiringPipeline
+const checkEnemyForWeaponTargeting = (
+  enemy: {
+    x: number;
+    y: number;
+    speed: number;
+    radius?: number;
+    isDying?: boolean;
+    active?: boolean;
+  },
+  ctx: WeaponTargetingContext
+) => {
+  if (enemy.isDying || !enemy.active) return;
+
+  if (ctx.viewportBounds) {
+    const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    if (!isCircleVisible(enemy.x, enemy.y, r, ctx.viewportBounds)) return;
+  }
+
+  const dx = enemy.x - ctx.playerX;
+  const dy = enemy.y - ctx.playerY;
+  const distSq = dx * dx + dy * dy;
+
+  if (distSq < ctx.bestDistSq) {
+    ctx.bestX = enemy.x;
+    ctx.bestY = enemy.y;
+    ctx.bestDistSq = distSq;
+    ctx.bestSpeed = enemy.speed;
+    ctx.found = true;
+  }
+};
+
 function findNearestEnemy(
   pool: IPoolManager,
   playerX: number,
@@ -423,60 +478,38 @@ function findNearestEnemy(
       ? createViewportBounds(screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
       : null;
 
-  let bestX = 0;
-  let bestY = 0;
-  let bestDistSq = Infinity;
-  let bestSpeed = 0;
-  let found = false;
-
-  const checkEnemy = (enemy: {
-    x: number;
-    y: number;
-    speed: number;
-    radius?: number;
-    isDying?: boolean;
-    active?: boolean;
-  }) => {
-    if (enemy.isDying || !enemy.active) return;
-
-    if (viewportBounds) {
-      const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-      if (!isCircleVisible(enemy.x, enemy.y, r, viewportBounds)) return;
-    }
-
-    const dx = enemy.x - playerX;
-    const dy = enemy.y - playerY;
-    const distSq = dx * dx + dy * dy;
-
-    if (distSq < bestDistSq) {
-      bestX = enemy.x;
-      bestY = enemy.y;
-      bestDistSq = distSq;
-      bestSpeed = enemy.speed;
-      found = true;
-    }
-  };
+  // Reset static context for zero-allocation iteration
+  WEAPON_TARGETING_CONTEXT.playerX = playerX;
+  WEAPON_TARGETING_CONTEXT.playerY = playerY;
+  WEAPON_TARGETING_CONTEXT.viewportBounds = viewportBounds;
+  WEAPON_TARGETING_CONTEXT.bestX = 0;
+  WEAPON_TARGETING_CONTEXT.bestY = 0;
+  WEAPON_TARGETING_CONTEXT.bestDistSq = Infinity;
+  WEAPON_TARGETING_CONTEXT.bestSpeed = 0;
+  WEAPON_TARGETING_CONTEXT.found = false;
 
   // Step 1: SpatialGrid 3x3 (immediate surroundings)
-  enemyGrid.forEachInRange(playerX, playerY, 1, checkEnemy);
+  enemyGrid.forEachInRangeWithContext(playerX, playerY, 1, WEAPON_TARGETING_CONTEXT, checkEnemyForWeaponTargeting);
 
   // Step 2: SpatialGrid 7x7 (extended range)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
-    enemyGrid.forEachInRange(playerX, playerY, 3, checkEnemy);
+  if (!WEAPON_TARGETING_CONTEXT.found) {
+    enemyGrid.forEachInRangeWithContext(playerX, playerY, 3, WEAPON_TARGETING_CONTEXT, checkEnemyForWeaponTargeting);
   }
 
   // Step 3: Fallback brute-force for edge-of-viewport enemies
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
+  if (!WEAPON_TARGETING_CONTEXT.found) {
     const enemies = pool.activeEnemies;
     for (let i = 0; i < enemies.length; i++) {
-      checkEnemy(enemies[i]!);
+      const enemy = enemies[i];
+      if (enemy === undefined) continue;
+      checkEnemyForWeaponTargeting(enemy, WEAPON_TARGETING_CONTEXT);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return found
-    ? { x: bestX, y: bestY, dist: Math.sqrt(bestDistSq), speed: bestSpeed }
+  return WEAPON_TARGETING_CONTEXT.found
+    ? { x: WEAPON_TARGETING_CONTEXT.bestX, y: WEAPON_TARGETING_CONTEXT.bestY, dist: Math.sqrt(WEAPON_TARGETING_CONTEXT.bestDistSq), speed: WEAPON_TARGETING_CONTEXT.bestSpeed }
     : null;
 }
