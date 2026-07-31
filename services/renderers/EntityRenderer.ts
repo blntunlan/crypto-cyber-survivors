@@ -407,16 +407,13 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
-    for (let i = 0, len = pool.activeGems.length; i < len; i++) {
-      const g = pool.activeGems[i];
-      if (g === undefined) continue;
-
+    pool.activeGems.forEach(g => {
       if (!g.active) {
-        continue;
+        return;
       }
 
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        continue;
+        return;
       }
 
       // Calculate fade-out alpha based on lifetime
@@ -450,7 +447,7 @@ export class EntityRenderer implements IRenderer {
       ctx.fill();
 
       ctx.restore();
-    }
+    });
   }
 
   /**
@@ -464,17 +461,14 @@ export class EntityRenderer implements IRenderer {
     const buffGems = BuffGemSpawner.getActiveGems();
     const now = TimeService.getGameTime();
 
-    for (let i = 0, len = buffGems.length; i < len; i++) {
-      const gem = buffGems[i];
-      if (gem === undefined) continue;
-
+    buffGems.forEach(gem => {
       if (!gem.active) {
-        continue;
+        return;
       }
 
       // Culling with buffer for animations
       if (!isCircleVisible(gem.x, gem.y, gem.radius * 1.5 + 10, bounds)) {
-        continue;
+        return;
       }
 
       const lifetimeRatio = BuffGemSpawner.getGemLifetimeRatio(gem);
@@ -557,7 +551,7 @@ export class EntityRenderer implements IRenderer {
       }
 
       ctx.restore();
-    }
+    });
   }
 
   /**
@@ -571,10 +565,7 @@ export class EntityRenderer implements IRenderer {
     const isRetro = ThemeService.isRetro();
     const retroSizeMult = GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
 
-    for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
-      const e = pool.activeEnemies[i];
-      if (e === undefined) continue;
-
+    pool.activeEnemies.forEach(e => {
       // Visibility Check: Buffer for large spawn glows
       const spawnPadding =
         e.spawnTimer !== undefined &&
@@ -583,7 +574,7 @@ export class EntityRenderer implements IRenderer {
           : 0;
 
       if (!isCircleVisible(e.x, e.y, e.radius + 8 + spawnPadding, bounds)) {
-        continue;
+        return;
       }
 
       if (e.isDying && e.deathProgress !== undefined) {
@@ -591,7 +582,7 @@ export class EntityRenderer implements IRenderer {
       } else {
         this.renderEnemyLiving(ctx, e, isRetro, retroSizeMult);
       }
-    }
+    });
   }
 
   /**
@@ -963,11 +954,8 @@ export class EntityRenderer implements IRenderer {
     // 1. Render Dash Ghosting/Trail (Theme-aware)
     const isRetro = ThemeService.isRetro();
 
-    for (let i = 0, len = state.dashTrail.length; i < len; i++) {
-      const pos = state.dashTrail[i];
-      if (pos === undefined) continue;
-
-      const progress = i / len;
+    state.dashTrail.forEach((pos, i) => {
+      const progress = i / state.dashTrail.length;
       ctx.globalAlpha = progress * 0.4;
 
       // Trail keeps the Market Position signal: Green for Long, Red for Short.
@@ -994,7 +982,7 @@ export class EntityRenderer implements IRenderer {
         );
         ctx.fill();
       }
-    }
+    });
     ctx.globalAlpha = 1;
 
     // 2. Dash Feedback Halo
