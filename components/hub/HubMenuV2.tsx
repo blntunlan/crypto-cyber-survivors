@@ -182,7 +182,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <OverlayBackButton
               onClick={onBack}
-              label={!device.isMobile ? 'Info' : undefined}
+              label="Back to landing page"
               className={device.isMobile ? 'top-auto' : undefined}
             />
           </motion.div>

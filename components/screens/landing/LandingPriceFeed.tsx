@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { MARKET } from '../../../constants';
+import {
+  marketApiClient,
+  type MarketHistoryRow,
+} from '../../../services/api/MarketApiClient';
 import {
   SSEMarketService,
   type SSEConnectionStatus,
@@ -21,6 +24,7 @@ type LandingMarketPoint = {
   trendDirection: string;
   timestamp: number;
   isSynthetic: boolean;
+  hasIndicators: boolean;
 };
 
 type ForecastBias = 'Bull pressure' | 'Bear pressure' | 'Chop zone';
@@ -36,8 +40,9 @@ type Forecast = {
 
 const MAX_FEED_POINTS = 48;
 const TRAIL_LENGTH = 10;
-const SEED_POINT_INTERVAL_MS = 1800;
-const FALLBACK_BTC_PRICE = MARKET.FALLBACK_PRICES.BTC;
+const HISTORY_FETCH_LIMIT = 9000;
+const MAX_HISTORY_AGE_MS = 24 * 60 * 60 * 1000;
+const FULL_DAY_TOLERANCE_MS = 5 * 60 * 1000;
 
 const FEED_STATUS_COPY: Record<FeedStatus, string> = {
   connecting: 'SYNCING',
@@ -70,61 +75,60 @@ const formatFullPrice = (price: number): string =>
   })}`;
 
 const formatDisplayPrice = (price: number, status: FeedStatus): string =>
-  status === 'connecting' ? 'SYNCING' : formatFullPrice(price);
+  status === 'connecting' || price <= 0 ? 'SYNCING' : formatFullPrice(price);
 
 const formatPercent = (value: number): string =>
   `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
-const generateSeedPoint = (
-  sequence: number,
-  previousPrice: number = FALLBACK_BTC_PRICE
-): LandingMarketPoint => {
-  const wave = Math.sin(sequence * 0.78) * 180 + Math.cos(sequence * 0.37) * 92;
-  const microMove = Math.sin(sequence * 1.7) * 34;
-  const price = Number((FALLBACK_BTC_PRICE + wave + microMove).toFixed(2));
+const EMPTY_POINT: LandingMarketPoint = {
+  price: 0,
+  volume: 0,
+  rsi: 50,
+  atrPercent: 0,
+  normalizedVolume: 0,
+  volumePercentile: 0,
+  whaleTier: 0,
+  trendStrength: 0,
+  trendDirection: 'SIDEWAYS',
+  timestamp: 0,
+  isSynthetic: false,
+  hasIndicators: false,
+};
+
+const getHistoryTrend = (price: number, previousPrice: number): string => {
+  if (previousPrice <= 0) return 'SIDEWAYS';
   const changePercent = ((price - previousPrice) / previousPrice) * 100;
-  const trendDirection =
-    changePercent > 0.16 ? 'UPTREND' : changePercent < -0.16 ? 'DOWNTREND' : 'SIDEWAYS';
-  const rsi = clamp(50 + changePercent * 82 + Math.sin(sequence * 0.5) * 10, 24, 78);
-  const atrPercent = clamp(
-    0.0028 + Math.abs(changePercent) / 100 + Math.sin(sequence) * 0.0007,
-    0.0015,
-    0.011
-  );
-  const normalizedVolume = clamp(
-    1 + Math.abs(changePercent) * 2.6 + Math.cos(sequence * 0.42) * 0.18,
-    0.72,
-    2.35
-  );
-  const volumePercentile = clamp(
-    0.42 + normalizedVolume * 0.18 + Math.sin(sequence * 0.25) * 0.08,
-    0.28,
-    0.92
-  );
-
-  return {
-    price,
-    volume: 0,
-    rsi: Number(rsi.toFixed(1)),
-    atrPercent: Number(atrPercent.toFixed(5)),
-    normalizedVolume: Number(normalizedVolume.toFixed(2)),
-    volumePercentile: Number(volumePercentile.toFixed(2)),
-    whaleTier: normalizedVolume > 1.8 ? 2 : normalizedVolume > 1.35 ? 1 : 0,
-    trendStrength: Number(clamp(Math.abs(changePercent) * 6.5, 0.08, 0.86).toFixed(2)),
-    trendDirection,
-    timestamp: Date.now() + sequence * SEED_POINT_INTERVAL_MS,
-    isSynthetic: true,
-  };
+  return changePercent > 0.16
+    ? 'UPTREND'
+    : changePercent < -0.16
+      ? 'DOWNTREND'
+      : 'SIDEWAYS';
 };
 
-const createInitialPoints = (): LandingMarketPoint[] => {
-  const points: LandingMarketPoint[] = [];
-  for (let index = 0; index < MAX_FEED_POINTS; index++) {
-    const previousPoint = points[points.length - 1];
-    points.push(generateSeedPoint(index - MAX_FEED_POINTS, previousPoint?.price));
-  }
-  return points;
-};
+const fromHistoryRows = (rows: MarketHistoryRow[]): LandingMarketPoint[] =>
+  rows.map((row, index) => {
+    const previousRow = rows[index - 1];
+    return {
+      price: row.price,
+      volume: row.volume,
+      rsi: 50,
+      atrPercent: 0.0028,
+      normalizedVolume: row.volume > 0 ? 1 : 0,
+      volumePercentile: row.volume > 0 ? 0.5 : 0,
+      whaleTier: 0,
+      trendStrength: previousRow
+        ? clamp(
+            Math.abs(((row.price - previousRow.price) / previousRow.price) * 100) * 6.5,
+            0,
+            1
+          )
+        : 0,
+      trendDirection: getHistoryTrend(row.price, previousRow?.price ?? 0),
+      timestamp: row.timestamp,
+      isSynthetic: false,
+      hasIndicators: false,
+    };
+  });
 
 const fromSseUpdate = (update: SSEMarketUpdate): LandingMarketPoint => ({
   price: update.price,
@@ -139,38 +143,35 @@ const fromSseUpdate = (update: SSEMarketUpdate): LandingMarketPoint => ({
   trendDirection: update.trendDirection,
   timestamp: update.timestamp,
   isSynthetic: update.isSynthetic ?? false,
+  hasIndicators: !(update.isSynthetic ?? false),
 });
 
-const appendPoint = (
+const trimTo24Hours = (
   points: LandingMarketPoint[],
-  point: LandingMarketPoint
-): LandingMarketPoint[] => [...points.slice(-(MAX_FEED_POINTS - 1)), point];
-
-const createSeedPointsAround = (
-  anchorPoint: LandingMarketPoint
-): LandingMarketPoint[] => {
-  const points: LandingMarketPoint[] = [];
-  for (let index = 0; index < MAX_FEED_POINTS; index++) {
-    const offset = index - (MAX_FEED_POINTS - 1);
-    const wavePercent =
-      Math.sin(offset * 0.63) * 0.0018 + Math.cos(offset * 0.27) * 0.0009;
-    points.push({
-      ...anchorPoint,
-      price:
-        index === MAX_FEED_POINTS - 1
-          ? anchorPoint.price
-          : Number((anchorPoint.price * (1 + wavePercent)).toFixed(2)),
-      timestamp: anchorPoint.timestamp + offset * SEED_POINT_INTERVAL_MS,
-    });
-  }
-  return points;
-};
+  referenceTimestamp: number
+): LandingMarketPoint[] =>
+  points.filter(point => point.timestamp >= referenceTimestamp - MAX_HISTORY_AGE_MS);
 
 const getLatestPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
-  points[points.length - 1] ?? generateSeedPoint(0);
+  points[points.length - 1] ?? EMPTY_POINT;
 
 const getPreviousPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
   points[points.length - 2] ?? getLatestPoint(points);
+
+const downsamplePoints = (
+  points: LandingMarketPoint[],
+  targetLength: number
+): LandingMarketPoint[] => {
+  if (points.length <= targetLength) return points;
+
+  const sampled: LandingMarketPoint[] = [];
+  const step = (points.length - 1) / (targetLength - 1);
+  for (let index = 0; index < targetLength; index++) {
+    const point = points[Math.round(index * step)];
+    if (point) sampled.push(point);
+  }
+  return sampled;
+};
 
 type ChartCoordinate = { x: number; y: number; isUp: boolean };
 
@@ -193,6 +194,7 @@ type ChartModel = {
   livePriceY: number;
   windowChangePercent: number;
   isWindowUp: boolean;
+  windowLabel: '24H' | 'WINDOW';
 };
 
 // Chart layout in the 0–100 SVG space: price plot on top, volume histogram below.
@@ -209,6 +211,7 @@ const EMPTY_CHART_MODEL: ChartModel = {
   livePriceY: 50,
   windowChangePercent: 0,
   isWindowUp: true,
+  windowLabel: 'WINDOW',
 };
 
 const formatAxisPrice = (price: number): string =>
@@ -229,7 +232,8 @@ const buildSmoothLinePath = (coordinates: ChartCoordinate[]): string => {
   return path;
 };
 
-const buildChartModel = (points: LandingMarketPoint[]): ChartModel => {
+const buildChartModel = (allPoints: LandingMarketPoint[]): ChartModel => {
+  const points = downsamplePoints(allPoints, MAX_FEED_POINTS);
   if (points.length === 0) return EMPTY_CHART_MODEL;
 
   const prices = points.map(point => point.price);
@@ -268,6 +272,10 @@ const buildChartModel = (points: LandingMarketPoint[]): ChartModel => {
 
   const firstPrice = prices[0] ?? 0;
   const lastPrice = prices[prices.length - 1] ?? 0;
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  const windowDuration =
+    firstPoint && lastPoint ? lastPoint.timestamp - firstPoint.timestamp : 0;
 
   return {
     coordinates,
@@ -279,6 +287,8 @@ const buildChartModel = (points: LandingMarketPoint[]): ChartModel => {
     windowChangePercent:
       firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0,
     isWindowUp: lastPrice >= firstPrice,
+    windowLabel:
+      windowDuration >= MAX_HISTORY_AGE_MS - FULL_DAY_TOLERANCE_MS ? '24H' : 'WINDOW',
   };
 };
 
@@ -356,36 +366,62 @@ const getBiasTone = (bias: ForecastBias): string => {
 };
 
 export const LandingPriceFeed: React.FC = () => {
-  const [points, setPoints] = useState<LandingMarketPoint[]>(createInitialPoints);
+  const [points, setPoints] = useState<LandingMarketPoint[]>([]);
   const [feedStatus, setFeedStatus] = useState<FeedStatus>('connecting');
   const feedStatusRef = useRef<FeedStatus>('connecting');
+  const hasLiveDataRef = useRef(false);
 
   useEffect(() => {
     feedStatusRef.current = feedStatus;
   }, [feedStatus]);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    void marketApiClient
+      .getHistory('BTC', HISTORY_FETCH_LIMIT)
+      .then(history => {
+        if (isCancelled) return;
+        const historyPoints = fromHistoryRows(history);
+        const latestHistoryTimestamp =
+          historyPoints[historyPoints.length - 1]?.timestamp ?? Date.now();
+        setPoints(currentPoints =>
+          trimTo24Hours(
+            [
+              ...historyPoints,
+              ...currentPoints.filter(
+                point => point.timestamp > latestHistoryTimestamp
+              ),
+            ],
+            latestHistoryTimestamp
+          )
+        );
+      })
+      .catch(() => {
+        // The live stream remains the source of truth when history is unavailable.
+      });
+
     const service = new SSEMarketService({
       pair: 'BTC',
       onData: update => {
         const nextPoint = fromSseUpdate(update);
+        if (!nextPoint.isSynthetic) {
+          hasLiveDataRef.current = true;
+        }
         setPoints(currentPoints => {
-          const latestPoint = getLatestPoint(currentPoints);
-          const shouldRebaseLiveHistory =
-            !nextPoint.isSynthetic &&
-            latestPoint.isSynthetic &&
-            latestPoint.price > 0 &&
-            Math.abs(nextPoint.price - latestPoint.price) / latestPoint.price > 0.08;
-
-          return shouldRebaseLiveHistory
-            ? createSeedPointsAround(nextPoint)
-            : appendPoint(currentPoints, nextPoint);
+          return trimTo24Hours([...currentPoints, nextPoint], nextPoint.timestamp);
         });
         setFeedStatus(update.isSynthetic ? 'cached' : 'live');
       },
       onStatusChange: (status: SSEConnectionStatus) => {
         if (status.state === 'connected') {
-          setFeedStatus(status.isUsingFallbackData ? 'cached' : 'live');
+          setFeedStatus(
+            status.isUsingFallbackData
+              ? 'cached'
+              : hasLiveDataRef.current
+                ? 'live'
+                : 'connecting'
+          );
           return;
         }
 
@@ -398,6 +434,7 @@ export const LandingPriceFeed: React.FC = () => {
     service.connect();
 
     return () => {
+      isCancelled = true;
       service.disconnect();
     };
   }, []);
@@ -563,7 +600,7 @@ export const LandingPriceFeed: React.FC = () => {
                     : 'border-[#b22222]/40 bg-[#b22222]/15 text-[#ff7777]'
                 }`}
               >
-                24H {formatPercent(chartModel.windowChangePercent)}
+                {chartModel.windowLabel} {formatPercent(chartModel.windowChangePercent)}
               </span>
               <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-600">
                 VOL
@@ -654,59 +691,70 @@ export const LandingPriceFeed: React.FC = () => {
         </div>
 
         <div className="landing-forecast-panel border border-[#d6b85c]/20 bg-black/30 p-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-                MARKET PRESSURE FORECAST
+          {!latestPoint.hasIndicators && (
+            <div className="border border-[#d6b85c]/30 bg-[#d6b85c]/10 p-3 text-[10px] font-black uppercase tracking-widest text-[#ffd86a]">
+              WARMING UP — waiting for live market indicators
+            </div>
+          )}
+          {latestPoint.hasIndicators && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                  MARKET PRESSURE FORECAST
+                </div>
+                <div
+                  className={`landing-forecast-bias mt-2 inline-flex border px-3 py-2 text-sm font-black uppercase tracking-widest ${getBiasTone(forecast.bias)}`}
+                >
+                  {forecast.bias}
+                </div>
               </div>
-              <div
-                className={`landing-forecast-bias mt-2 inline-flex border px-3 py-2 text-sm font-black uppercase tracking-widest ${getBiasTone(forecast.bias)}`}
-              >
-                {forecast.bias}
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300">
+                <div className="border border-white/10 bg-white/[0.03] p-2">
+                  <span className="block text-slate-500">Confidence</span>
+                  {forecast.confidence}%
+                </div>
+                <div className="border border-white/10 bg-white/[0.03] p-2">
+                  <span className="block text-slate-500">Score</span>
+                  {forecast.score}
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300">
-              <div className="border border-white/10 bg-white/[0.03] p-2">
-                <span className="block text-slate-500">Confidence</span>
-                {forecast.confidence}%
-              </div>
-              <div className="border border-white/10 bg-white/[0.03] p-2">
-                <span className="block text-slate-500">Score</span>
-                {forecast.score}
-              </div>
-            </div>
-          </div>
+          )}
 
-          <div className="mt-3 grid gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300 sm:grid-cols-3">
-            <div className="border border-white/10 bg-[#05070d]/70 p-2">
-              <span className="block text-slate-500">Projected range</span>
-              {formatCompactPrice(forecast.projectedLow)}–
-              {formatCompactPrice(forecast.projectedHigh)}
+          {latestPoint.hasIndicators && (
+            <div className="mt-3 grid gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300 sm:grid-cols-3">
+              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+                <span className="block text-slate-500">Projected range</span>
+                {formatCompactPrice(forecast.projectedLow)}–
+                {formatCompactPrice(forecast.projectedHigh)}
+              </div>
+              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+                <span className="block text-slate-500">RSI / ATR</span>
+                {latestPoint.rsi.toFixed(1)} /{' '}
+                {(latestPoint.atrPercent * 100).toFixed(2)}%
+              </div>
+              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+                <span className="block text-slate-500">Volume</span>
+                {latestPoint.normalizedVolume.toFixed(2)}x · T{latestPoint.whaleTier}
+              </div>
             </div>
-            <div className="border border-white/10 bg-[#05070d]/70 p-2">
-              <span className="block text-slate-500">RSI / ATR</span>
-              {latestPoint.rsi.toFixed(1)} / {(latestPoint.atrPercent * 100).toFixed(2)}
-              %
-            </div>
-            <div className="border border-white/10 bg-[#05070d]/70 p-2">
-              <span className="block text-slate-500">Volume</span>
-              {latestPoint.normalizedVolume.toFixed(2)}x · T{latestPoint.whaleTier}
-            </div>
-          </div>
+          )}
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            {forecast.reasons.map(reason => (
-              <span
-                key={reason}
-                className="border border-[#d6b85c]/20 bg-[#d6b85c]/10 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#ffd86a]"
-              >
-                {reason}
+          {latestPoint.hasIndicators && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {forecast.reasons.map(reason => (
+                <span
+                  key={reason}
+                  className="border border-[#d6b85c]/20 bg-[#d6b85c]/10 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#ffd86a]"
+                >
+                  {reason}
+                </span>
+              ))}
+              <span className="border border-white/10 bg-white/[0.03] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                Gameplay signal only
               </span>
-            ))}
-            <span className="border border-white/10 bg-white/[0.03] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
-              Gameplay signal only
-            </span>
-          </div>
+            </div>
+          )}
           <p className="mt-3 text-[9px] leading-relaxed tracking-wide text-slate-600">
             Not financial advice. Indicators shown are gameplay mechanics only and
             should not be used for trading decisions.

@@ -20,7 +20,10 @@ import { type GameEndReason } from '../types/metrics';
 import { type RewardPayload } from '../types/reward';
 import { type Card } from '../services/cards/types';
 import { type PauseBudgetState } from '../hooks/usePauseBudget';
-import { type PauseMenuStats } from '../hooks/useGameFlowController';
+import {
+  type PauseMenuStats,
+  type RewardSettlement,
+} from '../hooks/useGameFlowController';
 import { type useTutorial } from '../hooks/useTutorial';
 import GameEngine from './GameEngine';
 import { GameUI } from './GameUI';
@@ -35,7 +38,6 @@ import { LevelUpScreen } from './screens/LevelUpScreen/LevelUpScreen';
 import { NotificationSystem } from './hud/NotificationSystem';
 import { UserSessionService } from '../services/auth/UserSessionService';
 import { TimeService } from '../services/core/TimeService';
-import { CoinService } from '../services/gameplay/CoinService';
 import { useDevice } from '../hooks/useDevice';
 import { OverlayBackButton } from './ui/OverlayChrome';
 
@@ -92,6 +94,8 @@ export interface GameScreenRouterProps {
   cashOutOffer: CashOutOfferData | null;
   pauseMenuStats: PauseMenuStats;
   frozenPnlRef: React.RefObject<number>;
+  gameOverReason: GameEndReason;
+  rewardSettlement: RewardSettlement;
   pauseBudget: PauseBudgetState;
   audioState: { isMuted: boolean };
   toggleMute: () => void;
@@ -135,6 +139,8 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   cashOutOffer,
   pauseMenuStats,
   frozenPnlRef,
+  gameOverReason,
+  rewardSettlement,
   pauseBudget,
   audioState,
   toggleMute,
@@ -233,7 +239,8 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
               survivalTime={TimeService.getGameTimeSeconds()}
               kills={pauseMenuStats.totalKills}
               onRestart={resetGame}
-              coinsEarned={CoinService.getSessionCoins()}
+              endReason={gameOverReason}
+              rewardSettlement={rewardSettlement}
             />
           </React.Suspense>
         )}

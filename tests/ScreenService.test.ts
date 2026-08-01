@@ -94,6 +94,17 @@ describe('ScreenService', () => {
       });
       expect(screenService.isMobile()).toBe(false);
     });
+
+    it('uses the compact mobile layout for a narrow desktop viewport', () => {
+      mockDevice({
+        ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/116 Safari/537.36',
+        touchPoints: 0,
+        coarsePointer: false,
+        width: 390,
+        height: 844,
+      });
+      expect(screenService.isMobile()).toBe(true);
+    });
   });
 
   describe('isTablet', () => {

@@ -4,6 +4,7 @@ import { MainMenu } from '../../components/screens/MainMenu';
 import { PauseMenu } from '../../components/screens/PauseMenu';
 import { GameOverScreen } from '../../components/screens/GameOverScreen';
 import { GameMode } from '../../types/gameMode';
+import { GameEndReason } from '../../types/metrics';
 
 // Mock LanguageContext
 vi.mock('../../contexts/LanguageContext', () => ({
@@ -119,6 +120,12 @@ describe('UI Consistency Sync', () => {
           survivalTime={300}
           kills={50}
           onRestart={() => {}}
+          endReason={GameEndReason.LIQUIDATION}
+          rewardSettlement={{
+            status: 'rejected',
+            amount: 0,
+            message: 'No coins credited — the position reached its liquidation price.',
+          }}
         />
       );
 

@@ -15,6 +15,7 @@ import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedSelectionCard } from '../themed/ThemedSelectionCard';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
+import { getNumberLocale } from '../../utils/numberLocale';
 
 interface MainMenuProps {
   price: number;
@@ -44,9 +45,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   trackRender('MainMenu');
   const { isRetro } = useTheme();
   const sizes = useThemeSize();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const numberLocale = getNumberLocale(language);
 
-  const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
+  const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(1);
   const leverageScrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll selected leverage button into view on mobile
@@ -379,7 +381,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             }}
           >
             {price > 0
-              ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              ? `$${price.toLocaleString(numberLocale, { minimumFractionDigits: 2 })}`
               : t('common.menu.connecting')}
           </div>
 
@@ -457,14 +459,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               variant="position"
               accentColor={COLORS.NEON_GREEN}
               selected={activeRow === 3 && actionCol === 0}
-              className="items-center justify-between gap-3 landscape:min-h-[64px]"
+              className="items-center justify-between gap-1.5 sm:gap-3 landscape:min-h-[64px]"
             >
               <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <IconTrendUp
                   className="size-7 shrink-0 sm:size-8"
                   color="currentColor"
                 />
-                <span className="truncate text-sm font-black uppercase leading-none tracking-[0.08em]">
+                <span className="whitespace-nowrap text-sm font-black uppercase leading-none tracking-[0.04em] sm:tracking-[0.08em]">
                   {t('common.long')}
                 </span>
               </span>
@@ -483,14 +485,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               variant="position"
               accentColor={COLORS.CASINO_RED}
               selected={activeRow === 3 && actionCol === 1}
-              className="items-center justify-between gap-3 landscape:min-h-[64px]"
+              className="items-center justify-between gap-1.5 sm:gap-3 landscape:min-h-[64px]"
             >
               <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <IconTrendDown
                   className="size-7 shrink-0 sm:size-8"
                   color="currentColor"
                 />
-                <span className="truncate text-sm font-black uppercase leading-none tracking-[0.08em]">
+                <span className="whitespace-nowrap text-sm font-black uppercase leading-none tracking-[0.04em] sm:tracking-[0.08em]">
                   {t('common.short')}
                 </span>
               </span>

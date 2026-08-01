@@ -150,7 +150,7 @@ test.describe('Beta smoke checklist', () => {
       window.GameHelpers?.triggerGameOver?.();
     });
 
-    await expect(page.getByText(/LIQUIDATED|Run Summary/i).first()).toBeVisible({
+    await expect(page.getByRole('heading', { name: /ELIMINATED/i })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -167,6 +167,7 @@ test.describe('Beta smoke checklist', () => {
     await page.goto('/?no-sw=true');
 
     await goToMainMenuFromHub(page);
+    await page.getByRole('button', { name: /Competitive/i }).click();
     await startGameFromMainMenu(page, 'LONG');
     await triggerCycleComplete(page);
 
@@ -175,7 +176,7 @@ test.describe('Beta smoke checklist', () => {
     });
     await page.getByRole('button', { name: /Cash Out/i }).click();
 
-    await expect(page.getByText(/LIQUIDATED|Run Summary/i).first()).toBeVisible({
+    await expect(page.getByText(/CASHED OUT|Run Summary/i).first()).toBeVisible({
       timeout: 15_000,
     });
   });

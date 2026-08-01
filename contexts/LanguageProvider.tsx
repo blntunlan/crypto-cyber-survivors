@@ -14,7 +14,6 @@ import {
 import { getLanguageRouteInfo, isPublicRoutePath } from '../utils/seoRoutes';
 
 const LANGUAGE_STORAGE_KEY = 'game_lang';
-const HAS_SEEN_LANDING_STORAGE_KEY = 'has_seen_landing';
 
 async function fetchLanguageTranslations(
   language: Language
@@ -57,14 +56,6 @@ const getInitialLanguage = (): Language => {
   return 'en';
 };
 
-const hasSeenLanding = (): boolean => {
-  try {
-    return localStorage.getItem(HAS_SEEN_LANDING_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
-
 const getRouteLanguageOverride = (): Language | null => {
   const routeInfo = getLanguageRouteInfo(window.location.pathname);
 
@@ -73,7 +64,7 @@ const getRouteLanguageOverride = (): Language | null => {
   }
 
   if (routeInfo.routePath === '/') {
-    return hasSeenLanding() ? null : DEFAULT_LANGUAGE;
+    return DEFAULT_LANGUAGE;
   }
 
   if (isPublicRoutePath(routeInfo.routePath)) {

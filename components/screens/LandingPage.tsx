@@ -2,7 +2,7 @@
  * LandingPage.tsx - Public game landing and app entry surface.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
 import { Menu, X } from 'lucide-react';
@@ -32,6 +32,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   trackRender('LandingPage');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -41,6 +43,55 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const root = rootRef.current;
+    const backgroundSiblings = root
+      ? Array.from(root.children).filter(
+          child => !(child instanceof HTMLElement && child.dataset.mobileMenuOverlay)
+        )
+      : [];
+    backgroundSiblings.forEach(child => {
+      if (child instanceof HTMLElement) child.inert = true;
+    });
+
+    const menu = mobileMenuRef.current;
+    const focusable = menu?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsMobileMenuOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab' || !focusable || focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      backgroundSiblings.forEach(child => {
+        if (child instanceof HTMLElement) child.inert = false;
+      });
+      document.getElementById('landing-mobile-menu-trigger')?.focus();
+    };
+  }, [isMobileMenuOpen]);
+
   const framedNavButtonClass =
     'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] xl:px-4';
   const navAccentLineClass =
@@ -49,6 +100,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <m.div
+      ref={rootRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -77,8 +129,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Mobile Menu Button */}
         <ThemedIconButton
+          id="landing-mobile-menu-trigger"
           onClick={() => setIsMobileMenuOpen(true)}
           aria-label="Open menu"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="landing-mobile-menu"
           className="xl:hidden"
         >
           <Menu className="h-6 w-6" />
@@ -128,6 +183,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <AnimatePresence>
         {isMobileMenuOpen && (
           <m.div
+            data-mobile-menu-overlay="true"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -136,6 +192,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <m.nav
+              ref={mobileMenuRef}
+              id="landing-mobile-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

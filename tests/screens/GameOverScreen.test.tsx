@@ -4,6 +4,7 @@ import { GameOverScreen } from '../../components/screens/GameOverScreen';
 import { ComboSystem } from '../../services/combat/ComboSystem';
 import { audio } from '../../services/audio/AudioService';
 import { useGameStore } from '../../stores/gameStore';
+import { GameEndReason } from '../../types/metrics';
 
 const themeState = vi.hoisted(() => ({ isRetro: false }));
 const motionState = vi.hoisted(() => ({ reducedMotion: false }));
@@ -96,6 +97,12 @@ describe('GameOverScreen', () => {
     survivalTime: 120,
     kills: 50,
     onRestart: vi.fn(),
+    endReason: GameEndReason.DEATH,
+    rewardSettlement: {
+      status: 'rejected' as const,
+      amount: 0,
+      message: 'No coins credited — the run ended by HP elimination.',
+    },
   };
 
   beforeEach(() => {
@@ -126,7 +133,7 @@ describe('GameOverScreen', () => {
       'decision'
     );
     expect(screen.getByTestId('liquidation-result')).toContainElement(heading);
-    expect(heading).toHaveTextContent('common.game_over_screen.liquidated');
+    expect(heading).toHaveTextContent('ELIMINATED');
     expect(pnl).toHaveTextContent('50.00%');
     expect(runStats).toHaveTextContent('2:00');
     expect(runStats).toHaveTextContent('50');
@@ -154,21 +161,54 @@ describe('GameOverScreen', () => {
     );
   });
 
-  it('renders reward immediately and prefers verified coins', () => {
+  it('never presents a rejected client estimate as earned coins', () => {
     const { rerender } = render(<GameOverScreen {...defaultProps} />);
-    expect(screen.getByTestId('liquidation-reward-value')).not.toHaveTextContent('+0');
+    expect(screen.getByTestId('liquidation-reward-value')).toHaveTextContent(
+      'NOT CREDITED'
+    );
+    expect(screen.getByText(/HP elimination/i)).toBeVisible();
 
-    rerender(<GameOverScreen {...defaultProps} coinsEarned={1234} />);
+    rerender(
+      <GameOverScreen
+        {...defaultProps}
+        rewardSettlement={{
+          status: 'verified',
+          amount: 1234,
+          message: 'Reward verified and credited to your Hub balance.',
+        }}
+      />
+    );
     expect(screen.getByTestId('liquidation-reward-value')).toHaveTextContent('+1,234');
   });
 
   it('keeps reward details collapsed until requested', () => {
-    render(<GameOverScreen {...defaultProps} />);
+    render(
+      <GameOverScreen
+        {...defaultProps}
+        rewardSettlement={{
+          status: 'verified',
+          amount: 1234,
+          message: 'Reward verified and credited to your Hub balance.',
+        }}
+      />
+    );
     expect(
       screen.queryByTestId('liquidation-reward-breakdown')
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
     expect(screen.getByTestId('liquidation-reward-breakdown')).toBeVisible();
+  });
+
+  it('maps HP death and market liquidation to distinct result headings', () => {
+    const { rerender } = render(<GameOverScreen {...defaultProps} />);
+    expect(screen.getByTestId('liquidation-heading')).toHaveTextContent('ELIMINATED');
+
+    rerender(
+      <GameOverScreen {...defaultProps} endReason={GameEndReason.LIQUIDATION} />
+    );
+    expect(screen.getByTestId('liquidation-heading')).toHaveTextContent(
+      'common.game_over_screen.liquidated'
+    );
   });
 
   it('keeps the primary action outside the only scrollable result body', () => {

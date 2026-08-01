@@ -64,9 +64,11 @@ describe('KernelStatus Component', () => {
 
       render(<KernelStatus player={mockPlayer} />);
 
-      // Mobile view only shows Level number and short tag, no stats grid
+      // Mobile view keeps the compact level badge and the three critical stats visible.
       expect(screen.getByText('5')).toBeInTheDocument();
-      expect(screen.queryByText(/hud\.stat\.baseDamage/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/hud\.stat\.baseDamage/i)).toBeInTheDocument();
+      expect(screen.getByText(/hud\.stat\.critChance/i)).toBeInTheDocument();
+      expect(screen.getByText(/hud\.stat\.speed/i)).toBeInTheDocument();
     });
   });
 

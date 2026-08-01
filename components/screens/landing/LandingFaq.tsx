@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
@@ -37,7 +37,7 @@ export const LandingFaq: React.FC = () => {
   return (
     <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-3xl">
-        <motion.div
+        <m.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
@@ -50,9 +50,9 @@ export const LandingFaq: React.FC = () => {
           <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
             FAQ
           </div>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-50px' }}
@@ -60,17 +60,21 @@ export const LandingFaq: React.FC = () => {
           className="space-y-3"
         >
           {FAQ_ITEMS.map((faq, i) => (
-            <motion.div
-              key={i}
+            <m.div
+              key={faq.question}
               variants={fadeInUp}
-              className={`border transition-all duration-300 ${
+              className={`border transition-colors duration-300 ${
                 openFaqIndex === i
                   ? 'border-[#d6b85c]/30 bg-[#d6b85c]/5'
                   : 'border-white/10 bg-white/5 hover:border-white/20'
               }`}
             >
               <button
+                type="button"
+                id={`faq-trigger-${i}`}
                 onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                aria-expanded={openFaqIndex === i}
+                aria-controls={`faq-panel-${i}`}
                 className="flex w-full items-center justify-between gap-4 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:p-5"
               >
                 <span
@@ -84,24 +88,19 @@ export const LandingFaq: React.FC = () => {
                   }`}
                 />
               </button>
-              <AnimatePresence>
-                {openFaqIndex === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <p className="px-4 pb-4 font-mono text-sm leading-relaxed text-slate-400 sm:px-5 sm:pb-5">
-                      {faq.answer}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              <div
+                id={`faq-panel-${i}`}
+                role="region"
+                aria-labelledby={`faq-trigger-${i}`}
+                hidden={openFaqIndex !== i}
+              >
+                <p className="px-4 pb-4 font-mono text-sm leading-relaxed text-slate-400 sm:px-5 sm:pb-5">
+                  {faq.answer}
+                </p>
+              </div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

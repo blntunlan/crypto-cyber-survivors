@@ -58,9 +58,24 @@ describe('LandingPage', () => {
 
     const menuButton = screen.getByRole('button', { name: 'Open menu' });
     expect(menuButton).toHaveAttribute('data-ui-component', 'icon-button');
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(menuButton).toHaveAttribute('aria-controls', 'landing-mobile-menu');
     fireEvent.click(menuButton);
 
     const closeButton = screen.getByRole('button', { name: 'Close menu' });
     expect(closeButton).toHaveAttribute('data-ui-component', 'icon-button');
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('dialog', { name: 'Navigation menu' })).toHaveAttribute(
+      'aria-modal',
+      'true'
+    );
+    expect(menuButton.closest('nav')).toHaveProperty('inert', true);
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(
+      screen.queryByRole('dialog', { name: 'Navigation menu' })
+    ).not.toBeInTheDocument();
+    expect(menuButton).toHaveFocus();
   });
 });

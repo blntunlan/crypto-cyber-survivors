@@ -13,6 +13,8 @@ import { CoinService } from '../../services/gameplay/CoinService';
 import { ComboSystem } from '../../services/combat/ComboSystem';
 import { ThemedButton } from '../themed/ThemedButton';
 import { OverlayChrome } from '../ui/OverlayChrome';
+import { GameEndReason } from '../../types/metrics';
+import { type RewardSettlement } from '../../hooks/useGameFlowController';
 
 type GameOverScreenProps = {
   level: number;
@@ -20,7 +22,8 @@ type GameOverScreenProps = {
   survivalTime: number;
   kills: number;
   onRestart: () => void;
-  coinsEarned?: number;
+  endReason: GameEndReason;
+  rewardSettlement: RewardSettlement;
 };
 
 type RewardCalculation = ReturnType<typeof CoinService.calculateCycleReward>;
@@ -39,7 +42,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   survivalTime,
   kills,
   onRestart,
-  coinsEarned = 0,
+  endReason,
+  rewardSettlement,
 }) => {
   const isRetro = useIsRetro();
   const prefersReducedMotion = useReducedMotion();
@@ -64,7 +68,25 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       }),
     [finalPnl, kills, level, maxStreak, survivalTime]
   );
-  const displayedCoins = coinsEarned > 0 ? coinsEarned : coinCalc.total;
+  const resultCopy = React.useMemo(() => {
+    switch (endReason) {
+      case GameEndReason.LIQUIDATION:
+        return {
+          title: t('common.game_over_screen.liquidated') as string,
+          subtitle: 'POSITION REACHED LIQUIDATION PRICE',
+        };
+      case GameEndReason.CYCLE_COMPLETE:
+      case GameEndReason.PORTAL:
+        return { title: 'CASHED OUT', subtitle: 'AUTHORITATIVE SETTLEMENT COMPLETE' };
+      case GameEndReason.DISCONNECT:
+        return { title: 'DISCONNECTED', subtitle: 'RUN ENDED BEFORE SETTLEMENT' };
+      case GameEndReason.QUIT:
+        return { title: 'RUN ENDED', subtitle: 'PLAYER EXIT' };
+      case GameEndReason.DEATH:
+      default:
+        return { title: 'ELIMINATED', subtitle: 'HP DEPLETED' };
+    }
+  }, [endReason, t]);
 
   React.useEffect(() => {
     if (hasRecordedRef.current) return;
@@ -109,8 +131,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           <LiquidationHeader
             isRetro={isRetro}
             reducedMotion={Boolean(prefersReducedMotion)}
-            title={t('common.game_over_screen.liquidated') as string}
-            subtitle={t('common.session_halted') as string}
+            title={resultCopy.title}
+            subtitle={resultCopy.subtitle}
           />
           {isNewHighScore && (
             <CompactHighScore
@@ -127,7 +149,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           />
           <LiquidationReward
             coinCalc={coinCalc}
-            displayedCoins={displayedCoins}
+            settlement={rewardSettlement}
             isRetro={isRetro}
             expanded={showBreakdown}
             onToggle={() => setShowBreakdown(previous => !previous)}
@@ -263,11 +285,11 @@ const RunMetric: React.FC<{ label: string; value: string }> = ({ label, value })
 
 const LiquidationReward: React.FC<{
   coinCalc: RewardCalculation;
-  displayedCoins: number;
+  settlement: RewardSettlement;
   isRetro: boolean;
   expanded: boolean;
   onToggle: () => void;
-}> = ({ coinCalc, displayedCoins, isRetro, expanded, onToggle }) => {
+}> = ({ coinCalc, settlement, isRetro, expanded, onToggle }) => {
   const { t } = useLanguage();
 
   return (
@@ -278,7 +300,9 @@ const LiquidationReward: React.FC<{
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            {t('common.game_over_screen.coins_earned') as string}
+            {settlement.status === 'verified'
+              ? (t('common.game_over_screen.coins_earned') as string)
+              : 'REWARD STATUS'}
           </p>
           <p
             data-testid="liquidation-reward-value"
@@ -288,20 +312,29 @@ const LiquidationReward: React.FC<{
             )}
             style={{ color: HUD_WAR_ROOM.colors.gold }}
           >
-            +{displayedCoins.toLocaleString('en-US')}
+            {settlement.status === 'pending'
+              ? 'VERIFYING…'
+              : settlement.status === 'verified'
+                ? `+${settlement.amount.toLocaleString('en-US')}`
+                : 'NOT CREDITED'}
+          </p>
+          <p className="mt-1 text-[10px] leading-snug text-slate-400">
+            {settlement.message}
           </p>
         </div>
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={onToggle}
-          className="min-h-11 shrink-0 px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 underline decoration-slate-600 underline-offset-4"
-        >
-          {expanded ? 'Hide' : 'Details'}
-        </button>
+        {settlement.status === 'verified' && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={onToggle}
+            className="min-h-11 shrink-0 px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 underline decoration-slate-600 underline-offset-4"
+          >
+            {expanded ? 'Hide' : 'Details'}
+          </button>
+        )}
       </div>
 
-      {expanded && (
+      {settlement.status === 'verified' && expanded && (
         <div
           data-testid="liquidation-reward-breakdown"
           className="mt-2 space-y-1 border-t border-white/10 pt-2"

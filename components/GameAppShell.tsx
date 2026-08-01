@@ -93,10 +93,10 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       state => state.upgrades.GRACE_EXTENSION
     );
 
-    const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
+    const [gameMode, setGameMode] = useState<GameMode>(GameMode.CASUAL);
     const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
     const [entryPrice, setEntryPrice] = useState<number>(0);
-    const [leverage, setLeverage] = useState<LeverageOption>(10);
+    const [leverage, setLeverage] = useState<LeverageOption>(1);
     const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
     const [walletBalance, setWalletBalance] = useState<number>(0);
 
@@ -208,6 +208,8 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       cashOutOffer,
       pauseMenuStats,
       frozenPnlRef,
+      gameOverReason,
+      rewardSettlement,
       handleLevelUp,
       selectUpgrade,
       handleGameOver,
@@ -452,6 +454,8 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         cashOutOffer={cashOutOffer}
         pauseMenuStats={pauseMenuStats}
         frozenPnlRef={frozenPnlRef}
+        gameOverReason={gameOverReason}
+        rewardSettlement={rewardSettlement}
         pauseBudget={pauseBudget}
         audioState={audioState}
         toggleMute={toggleMute}

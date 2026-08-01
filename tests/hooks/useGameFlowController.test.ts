@@ -707,6 +707,12 @@ describe('useGameFlowController', () => {
     expect(CoinService.creditCoins).not.toHaveBeenCalled();
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
     expect(GameSessionService.submitSession).not.toHaveBeenCalled();
+    expect(result.current.gameOverReason).toBe(GameEndReason.CYCLE_COMPLETE);
+    expect(result.current.rewardSettlement).toMatchObject({
+      status: 'verified',
+      amount: 120,
+    });
+    expect(result.current.rewardSettlement.message).toMatch(/credited/i);
   });
 
   it('settles a stale-market quote through the Safe Exit decision', async () => {
@@ -984,6 +990,12 @@ describe('useGameFlowController', () => {
       'failure:death:123'
     );
     expect(GameSessionService.submitSession).not.toHaveBeenCalled();
+    expect(result.current.gameOverReason).toBe(GameEndReason.DEATH);
+    expect(result.current.rewardSettlement).toMatchObject({
+      status: 'rejected',
+      amount: 0,
+    });
+    expect(result.current.rewardSettlement.message).toMatch(/HP elimination/i);
   });
 
   it('handleGameOver submits portal reward payload for server reconciliation', async () => {

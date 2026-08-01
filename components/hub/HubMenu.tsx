@@ -185,7 +185,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
       {onBack && (
         <OverlayBackButton
           onClick={onBack}
-          label={!device.isMobile ? 'Info' : undefined}
+          label="Back to landing page"
           className={device.isMobile ? 'top-auto' : undefined}
         />
       )}

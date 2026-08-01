@@ -68,6 +68,12 @@ export interface PauseMenuStats {
   totalBonusXp: number;
 }
 
+export type RewardSettlement = {
+  status: 'pending' | 'verified' | 'rejected';
+  amount: number;
+  message: string;
+};
+
 type EndRunOptions = {
   skipServerSubmission?: boolean;
 };
@@ -77,6 +83,8 @@ interface UseGameFlowControllerResult {
   cashOutOffer: CashOutOfferData | null;
   pauseMenuStats: PauseMenuStats;
   frozenPnlRef: { current: number };
+  gameOverReason: GameEndReason;
+  rewardSettlement: RewardSettlement;
   handleLevelUp: () => void;
   selectUpgrade: (card: Card) => void;
   handleGameOver: (
@@ -105,6 +113,14 @@ export const useGameFlowController = ({
 }: UseGameFlowControllerParams): UseGameFlowControllerResult => {
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
   const [cashOutOffer, setCashOutOffer] = useState<CashOutOfferData | null>(null);
+  const [gameOverReason, setGameOverReason] = useState<GameEndReason>(
+    GameEndReason.DEATH
+  );
+  const [rewardSettlement, setRewardSettlement] = useState<RewardSettlement>({
+    status: 'rejected',
+    amount: 0,
+    message: 'No reward has been settled for this run.',
+  });
   const cashOutOfferRef = useRef<CashOutOfferData | null>(null);
   const cashOutDecisionInFlightRef = useRef(false);
 
@@ -201,6 +217,31 @@ export const useGameFlowController = ({
     ) => {
       if (isGameOverProcessingRef.current) return;
       isGameOverProcessingRef.current = true;
+
+      setGameOverReason(reason);
+      if (
+        reason === GameEndReason.DEATH ||
+        reason === GameEndReason.LIQUIDATION ||
+        reason === GameEndReason.DISCONNECT ||
+        reason === GameEndReason.QUIT
+      ) {
+        setRewardSettlement({
+          status: 'rejected',
+          amount: 0,
+          message:
+            reason === GameEndReason.LIQUIDATION
+              ? 'No coins credited — the position reached its liquidation price.'
+              : reason === GameEndReason.DEATH
+                ? 'No coins credited — the run ended by HP elimination.'
+                : 'No coins credited — the run ended before server settlement.',
+        });
+      } else if (!options.skipServerSubmission) {
+        setRewardSettlement({
+          status: 'pending',
+          amount: 0,
+          message: 'Waiting for authoritative server verification…',
+        });
+      }
 
       if (!GameStateMachine.transition(GameStatus.GAMEOVER)) {
         isGameOverProcessingRef.current = false;
@@ -324,10 +365,34 @@ export const useGameFlowController = ({
             submission.reward > 0
           ) {
             Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
-            await CoinService.creditVerifiedCoins(submission.reward, 'cycle_complete', {
-              exitType: rewardPayload?.exitType,
-              portalType: rewardPayload?.portalType,
-              serverVerified: true,
+            const credited = await CoinService.creditVerifiedCoins(
+              submission.reward,
+              'cycle_complete',
+              {
+                exitType: rewardPayload?.exitType,
+                portalType: rewardPayload?.portalType,
+                serverVerified: true,
+              }
+            );
+            setRewardSettlement(
+              credited
+                ? {
+                    status: 'verified',
+                    amount: submission.reward,
+                    message: 'Reward verified and credited to your Hub balance.',
+                  }
+                : {
+                    status: 'rejected',
+                    amount: 0,
+                    message: 'The verified reward could not be credited. Please retry.',
+                  }
+            );
+          } else {
+            setRewardSettlement({
+              status: 'rejected',
+              amount: 0,
+              message:
+                'Server verification did not approve a coin reward for this run.',
             });
           }
 
@@ -360,6 +425,11 @@ export const useGameFlowController = ({
             }
           }
         } catch (error) {
+          setRewardSettlement({
+            status: 'rejected',
+            amount: 0,
+            message: 'Reward verification failed. No coins were credited.',
+          });
           Logger.error('[App] Critical error during session submission:', error);
         }
       })();
@@ -476,6 +546,11 @@ export const useGameFlowController = ({
     updateCashOutOffer(null);
     GameSessionService.clearSession();
     difficultyContext.reset();
+    setRewardSettlement({
+      status: 'verified',
+      amount: settlement.rewardPoints,
+      message: 'Cash-out reward verified and credited to your Hub balance.',
+    });
     await handleGameOver(GameEndReason.CYCLE_COMPLETE, undefined, {
       skipServerSubmission: true,
     });
@@ -511,6 +586,12 @@ export const useGameFlowController = ({
     lastProcessedCycleRef.current = 0;
     updateCashOutOffer(null);
     setUpgradeChoices([]);
+    setGameOverReason(GameEndReason.DEATH);
+    setRewardSettlement({
+      status: 'rejected',
+      amount: 0,
+      message: 'No reward has been settled for this run.',
+    });
     difficultyContext.reset();
   }, [updateCashOutOffer]);
 
@@ -528,6 +609,8 @@ export const useGameFlowController = ({
     cashOutOffer,
     pauseMenuStats,
     frozenPnlRef,
+    gameOverReason,
+    rewardSettlement,
     handleLevelUp,
     selectUpgrade,
     handleGameOver,

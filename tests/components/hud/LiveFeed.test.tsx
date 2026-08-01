@@ -155,6 +155,13 @@ describe('LiveFeed', () => {
     expect(
       screen.getByText(content => content.includes(formatWholeNumber(48000)))
     ).toBeInTheDocument();
+
+    const rail = screen.getByTestId('war-room-market-intel');
+    expect(rail).toHaveClass('min-w-0', 'w-full', 'max-w-full');
+    expect(screen.getByTestId('mobile-live-feed-pills')).toHaveClass('flex-wrap');
+    expect(screen.getByTestId('mobile-live-feed-pills')).not.toHaveClass(
+      'overflow-x-auto'
+    );
   });
 
   it('should update server state via EventBus', async () => {

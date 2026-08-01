@@ -24,7 +24,7 @@ vi.mock('../../hooks/useDevice', () => ({
 
 describe('MainMenu', () => {
   const formatPrice = (price: number) =>
-    `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    `$${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   const defaultProps = {
     price: 50000,
@@ -118,10 +118,12 @@ describe('MainMenu', () => {
 
     expect(longButton).toHaveAttribute('data-ui-variant', 'position');
     expect(longButton).toHaveTextContent('common.long');
-    expect(longButton).toHaveTextContent('10x');
+    expect(longButton).toHaveTextContent('1x');
     expect(shortButton).toHaveAttribute('data-ui-variant', 'position');
     expect(shortButton).toHaveTextContent('common.short');
-    expect(shortButton).toHaveTextContent('10x');
+    expect(shortButton).toHaveTextContent('1x');
+    expect(screen.getByText('common.short')).not.toHaveClass('truncate');
+    expect(screen.getByText('common.short')).toHaveClass('whitespace-nowrap');
   });
 
   it('should call onPairChange when an asset is clicked', () => {
@@ -250,7 +252,9 @@ describe('MainMenu', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'ArrowDown' });
-    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    for (let step = 0; step < 4; step += 1) {
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+    }
     expect(screen.getByText('common.menu.lev_risky')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'ArrowDown' });

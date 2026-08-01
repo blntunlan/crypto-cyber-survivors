@@ -81,7 +81,6 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
   const { t } = useLanguage();
   const { rs, rfs, isSmallDevice } = useResponsiveUI();
 
-  // Minimal mobile UI: Only Level + XP bar, no stat grid
   return (
     <HudGhostRail
       testId="war-room-operator"
@@ -91,7 +90,8 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
       style={{
         padding: isSmallDevice ? rs(4) : rs(6),
         gap: isSmallDevice ? rs(2) : rs(4),
-        minWidth: isSmallDevice ? rs(50) : rs(70),
+        minWidth: isSmallDevice ? rs(84) : rs(100),
+        maxWidth: isSmallDevice ? rs(104) : rs(120),
       }}
     >
       {/* Compact Level Display */}
@@ -120,6 +120,28 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
         style={{ height: isSmallDevice ? rs(2) : rs(3) }}
       >
         <XpBar nextLevelExp={player.nextLevelExp} isRetro={isRetro} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-0.5 pt-1">
+        {Object.values(STAT_DEFINITIONS).map(stat => {
+          if (
+            !stat.showInKernel ||
+            !OPERATOR_STAT_ID_SET.has(
+              stat.id as (typeof HUD_WAR_ROOM.operatorStatIds)[number]
+            )
+          ) {
+            return null;
+          }
+          return (
+            <StatRow
+              key={stat.id}
+              label={text(t(`hud.stat.${stat.id}`))}
+              valueKey={stat.id}
+              color={stat.uiColor}
+              formatter={(val: number) => StatService.format(val, stat.id as StatKey)}
+            />
+          );
+        })}
       </div>
     </HudGhostRail>
   );
@@ -175,7 +197,7 @@ const XpBar: React.FC<{ nextLevelExp: number; isRetro: boolean }> = ({
 };
 
 export const KernelStatus: React.FC<KernelStatusProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
 
   useEffect(() => {
     const unsubscribe = screenService.onChange(() => {

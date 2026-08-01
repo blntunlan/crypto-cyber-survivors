@@ -16,6 +16,7 @@ import { HudGhostRail } from './HudGhostRail';
 import { LiveTicker } from '../themed/LiveTicker';
 import { ClientIndicatorService } from '../../services/indicators/ClientIndicatorService';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { getNumberLocale } from '../../utils/numberLocale';
 
 interface LiveFeedProps {
   marketData: MarketData;
@@ -39,6 +40,7 @@ const InfoRow = memo(
     colorClass = 'text-slate-100',
     isRetro = false,
     animate = false,
+    locale,
   }: {
     label: string;
     value: number | string;
@@ -47,11 +49,12 @@ const InfoRow = memo(
     colorClass?: string;
     isRetro?: boolean;
     animate?: boolean;
+    locale: string;
   }) => {
     const displayValue =
       typeof value === 'number'
         ? isPrice
-          ? `$${value.toLocaleString(undefined, {
+          ? `$${value.toLocaleString(locale, {
               minimumFractionDigits: decimals,
               maximumFractionDigits: decimals,
             })}`
@@ -130,7 +133,8 @@ const DesktopLiveFeed: React.FC<
   }
 > = ({ marketData, entryPrice, priceColor, serverState, clientIndicators }) => {
   const isRetro = useIsRetro();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const numberLocale = getNumberLocale(language);
 
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
@@ -198,11 +202,11 @@ const DesktopLiveFeed: React.FC<
             valueKey="price"
             formatter={React.useCallback(
               (val: number) =>
-                val.toLocaleString(undefined, {
+                val.toLocaleString(numberLocale, {
                   minimumFractionDigits: pairConfig.decimals,
                   maximumFractionDigits: pairConfig.decimals,
                 }),
-              [pairConfig.decimals]
+              [numberLocale, pairConfig.decimals]
             )}
           />
         </div>
@@ -238,6 +242,7 @@ const DesktopLiveFeed: React.FC<
           value={entryPrice}
           decimals={pairConfig.decimals}
           isRetro={isRetro}
+          locale={numberLocale}
         />
 
         <LiveInfoRow
@@ -255,6 +260,7 @@ const DesktopLiveFeed: React.FC<
               value={marketData.liquidationPrice}
               decimals={pairConfig.decimals}
               isRetro={isRetro}
+              locale={numberLocale}
               colorClass={
                 marketData.effectivePnl <= -0.7
                   ? 'text-red-500 font-bold'
@@ -344,7 +350,8 @@ const MobileLiveFeed: React.FC<
   }
 > = ({ marketData, entryPrice, priceColor, serverState, clientIndicators }) => {
   const isRetro = useIsRetro();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const numberLocale = getNumberLocale(language);
   const { rfs, isSmallDevice } = useResponsiveUI();
 
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
@@ -387,7 +394,7 @@ const MobileLiveFeed: React.FC<
       testId="war-room-market-intel"
       side="left"
       tone="gold"
-      className="flex min-w-[140px] flex-col gap-0.5"
+      className="flex w-full min-w-0 max-w-full flex-col gap-0.5 overflow-hidden"
     >
       {/* Row 1: Status header */}
       <div className="flex items-center justify-between">
@@ -423,7 +430,9 @@ const MobileLiveFeed: React.FC<
           style={{
             fontSize: rfs(isSmallDevice ? 18 : 22),
             fontVariantNumeric: 'tabular-nums',
-            minWidth: '100px',
+            minWidth: 0,
+            maxWidth: '100%',
+            overflow: 'hidden',
           }}
         >
           $
@@ -432,11 +441,11 @@ const MobileLiveFeed: React.FC<
             valueKey="price"
             formatter={React.useCallback(
               (val: number) =>
-                val.toLocaleString(undefined, {
+                val.toLocaleString(numberLocale, {
                   minimumFractionDigits: displayDecimals,
                   maximumFractionDigits: displayDecimals,
                 }),
-              [displayDecimals]
+              [displayDecimals, numberLocale]
             )}
           />
         </div>
@@ -459,20 +468,18 @@ const MobileLiveFeed: React.FC<
 
       {/* Row 3: Compact indicator pills - Scrollable row without pushing height */}
       <div
-        className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto"
+        data-testid="mobile-live-feed-pills"
+        className="mt-1 flex flex-wrap items-center gap-1 overflow-visible"
         style={{
           fontSize: rfs(isSmallDevice ? 9 : 10),
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
           maxWidth: '100%',
           paddingBottom: '2px', // Prevent cutoff
         }}
       >
-        <style>{'.flex-nowrap::-webkit-scrollbar { display: none; }'}</style>
         {/* Entry pill */}
         <div className="whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.entry_short')} $
-          {entryPrice.toLocaleString(undefined, {
+          {entryPrice.toLocaleString(numberLocale, {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
           })}
@@ -485,7 +492,7 @@ const MobileLiveFeed: React.FC<
               className={`whitespace-nowrap border-l border-white/30 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getLiqColor()}`}
             >
               LIQ: $
-              {marketData.liquidationPrice.toLocaleString(undefined, {
+              {marketData.liquidationPrice.toLocaleString(numberLocale, {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
               })}

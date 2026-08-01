@@ -173,7 +173,7 @@ describe('LanguageProvider - Blank Screen Bug', () => {
     });
   });
 
-  it('keeps the stored language on the app root after landing has been seen', async () => {
+  it('keeps the unprefixed app root aligned with English static metadata', async () => {
     localStorage.setItem('game_lang', 'tr');
     localStorage.setItem('has_seen_landing', 'true');
     window.history.pushState(null, '', '/');
@@ -193,7 +193,7 @@ describe('LanguageProvider - Blank Screen Bug', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('language')).toHaveTextContent('tr');
+      expect(screen.getByTestId('language')).toHaveTextContent('en');
     });
   });
 });

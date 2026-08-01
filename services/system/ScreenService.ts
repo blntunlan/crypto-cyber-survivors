@@ -19,6 +19,8 @@ export type OperatingSystem =
   | 'linux'
   | 'unknown';
 
+const MOBILE_VIEWPORT_MAX_WIDTH = 768;
+
 export interface SafeAreaInsets {
   top: number;
   bottom: number;
@@ -96,9 +98,11 @@ class ScreenServiceClass {
     // Method 3: Pointer type (most reliable for distinguishing touch vs mouse)
     const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-    // Combination: User agent mobile OR (has touch AND coarse pointer)
-    // This catches mobile devices while excluding touch-screen laptops
-    return userAgentMobile || (hasTouch && coarsePointer);
+    // A narrow viewport must use the compact HUD even when the browser has a
+    // desktop UA (responsive mode, split-screen, foldables, narrow windows).
+    const hasMobileViewport = window.innerWidth <= MOBILE_VIEWPORT_MAX_WIDTH;
+
+    return userAgentMobile || (hasTouch && coarsePointer) || hasMobileViewport;
   }
 
   /**
