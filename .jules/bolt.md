@@ -1,0 +1,3 @@
+## 2025-05-19 - Optimization Strategy: Replace Array.prototype.forEach with standard for loops in hot paths
+**Learning:** High-frequency loop paths (e.g., 60 FPS update loops in physics systems like MovementSystem.ts and renderers like EntityRenderer.ts) can cause garbage collection pressure and iteration overhead due to closure function allocations when using `Array.prototype.forEach`.
+**Action:** Replace `Array.prototype.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops. When converting, ensure return statements within the forEach callback are translated to continue. Specialized zero-allocation iterators like `SpatialGrid.forEachNearby` are exceptions.

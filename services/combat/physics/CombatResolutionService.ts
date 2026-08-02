@@ -72,7 +72,13 @@ export class CombatResolutionService {
   public static triggerShockwave(pool: IPoolManager, intensity: number): void {
     const force = COMBAT_CONFIG.SHOCKWAVE.BASE_FORCE * intensity;
 
-    pool.activeEnemies.forEach(enemy => {
+    const enemies = pool.activeEnemies;
+    // Using standard for-loop for GC performance in combat events
+    for (let i = 0, len = enemies.length; i < len; i++) {
+      const enemy = enemies[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (enemy === undefined) continue;
+
       // Calculate repulsion vector (randomized for "chaos" feel, usually relative to screen center)
       const angle = Math.random() * Math.PI * 2;
       enemy.x += Math.cos(angle) * force;
@@ -80,7 +86,7 @@ export class CombatResolutionService {
 
       // Apply stagger visual (re-uses spawn animation timer)
       enemy.spawnTimer = COMBAT_CONFIG.SHOCKWAVE.STAGGER_DURATION;
-    });
+    }
 
     Logger.info(`[Shockwave] Applied pushback to ${pool.activeEnemies.length} enemies`);
   }

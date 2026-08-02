@@ -149,11 +149,17 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
-    pool.activeEnemies.forEach(e => {
+    const enemies = pool.activeEnemies;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = enemies.length; i < len; i++) {
+      const e = enemies[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (e === undefined) continue;
+
       if (e.isDying) {
         e.movementSlowTimerMs = 0;
         e.movementSlowMultiplier = 1;
-        return;
+        continue;
       }
 
       // Update spawn animation progress
@@ -197,14 +203,20 @@ export class MovementSystem implements IMovementSystem {
           e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
-    });
+    }
   }
 
   /**
    * Update speed line transparency and position.
    */
   private updateSpeedLines(pool: IPoolManager, dtFactor: number): void {
-    pool.activeSpeedLines.forEach(line => {
+    const lines = pool.activeSpeedLines;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = lines.length; i < len; i++) {
+      const line = lines[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (line === undefined) continue;
+
       line.x += line.vx * dtFactor;
       line.y += line.vy * dtFactor;
       line.opacity -= line.decay * dtFactor;
@@ -212,20 +224,26 @@ export class MovementSystem implements IMovementSystem {
       if (line.opacity <= 0) {
         line.active = false;
       }
-    });
+    }
   }
 
   private updateImpactRings(pool: IPoolManager, dtFactor: number): void {
-    pool.activeImpactRings.forEach(ring => {
+    const rings = pool.activeImpactRings;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = rings.length; i < len; i++) {
+      const ring = rings[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (ring === undefined) continue;
+
       ring.life -= GAME_ENGINE.IMPACT_RING_LIFE_DECAY * dtFactor;
       if (ring.life <= 0) {
         ring.active = false;
-        return;
+        continue;
       }
 
       const progress = 1 - ring.life;
       ring.radius = ring.startRadius + (ring.maxRadius - ring.startRadius) * progress;
-    });
+    }
   }
 
   /**
@@ -459,7 +477,13 @@ export class MovementSystem implements IMovementSystem {
   private updateParticles(pool: IPoolManager, dtFactor: number): void {
     const damping = Math.pow(GAME_ENGINE.PARTICLE_DAMPING, dtFactor);
 
-    pool.activeParticles.forEach(part => {
+    const particles = pool.activeParticles;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = particles.length; i < len; i++) {
+      const part = particles[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (part === undefined) continue;
+
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
 
@@ -471,14 +495,20 @@ export class MovementSystem implements IMovementSystem {
       if (part.life <= 0) {
         part.active = false;
       }
-    });
+    }
   }
 
   /**
    * Update floating text ascent and fading progress.
    */
   private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
-    pool.activeFloatingTexts.forEach(text => {
+    const texts = pool.activeFloatingTexts;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = texts.length; i < len; i++) {
+      const text = texts[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (text === undefined) continue;
+
       if (text.stationary !== true) {
         text.x += (text.vx ?? 0) * dtFactor;
         text.y +=
@@ -490,14 +520,20 @@ export class MovementSystem implements IMovementSystem {
       if (text.life <= 0) {
         text.active = false;
       }
-    });
+    }
   }
 
   /**
    * Update progress for enemies in the 'dying' state (death animation).
    */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
-    pool.activeEnemies.forEach(enemy => {
+    const enemies = pool.activeEnemies;
+    // Using standard for-loop for GC performance in 60FPS tick
+    for (let i = 0, len = enemies.length; i < len; i++) {
+      const enemy = enemies[i];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (enemy === undefined) continue;
+
       if (enemy.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
@@ -508,7 +544,7 @@ export class MovementSystem implements IMovementSystem {
           enemy.deathProgress = 0;
         }
       }
-    });
+    }
   }
 
   /**
