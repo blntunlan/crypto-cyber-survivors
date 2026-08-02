@@ -258,7 +258,7 @@ export function runUiContract(rootDir = process.cwd()): UiContractViolation[] {
     ignore: ['**/*.test.tsx'],
   });
 
-  return componentFiles.flatMap(relativePath => {
+  return componentFiles.flatMap((relativePath: string) => {
     const normalizedPath = normalizePath(relativePath);
     const existsInBaseline = existsAtBaseline(
       rootDir,
