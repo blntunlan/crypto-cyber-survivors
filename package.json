@@ -69,7 +69,6 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "12.23.26",
-    "glob": "^13.0.6",
     "howler": "2.2.4",
     "lucide-react": "0.562.0",
     "nanoid": "5.1.6",
@@ -130,8 +129,8 @@
       "prettier --write",
       "vitest related --run --pool=forks --maxWorkers=1 --bail=1"
     ],
-    "components/**/*.tsx": [
-      "tsx scripts/check-ui-contract.ts --ci"
+      "components/**/*.tsx": [
+        "tsx scripts/check-ui-contract.ts --ci"
     ],
     "railway-market-server/src/**/*.ts": [
       "node scripts/run-market-typecheck.js"
