@@ -133,7 +133,7 @@ export function auditUiContractSource({
   now = new Date(),
   relativePath: filePath,
 }: UiContractAuditOptions): UiContractViolation[] {
-  const relativePath = normalizePath(filePath as string);
+  const relativePath = normalizePath(filePath);
   if (!isProductionUiFile(relativePath)) return [];
 
   const violations: UiContractViolation[] = [];
@@ -258,7 +258,7 @@ export function runUiContract(rootDir = process.cwd()): UiContractViolation[] {
     ignore: ['**/*.test.tsx'],
   });
 
-  return componentFiles.flatMap((relativePath: string) => {
+  return componentFiles.flatMap(relativePath => {
     const normalizedPath = normalizePath(relativePath);
     const existsInBaseline = existsAtBaseline(
       rootDir,
