@@ -1,6 +1,31 @@
 import { DIRECTOR_CONFIG_V1, type DirectorConfigV1 } from './config/DirectorConfigV1';
 
-export type GreedSnapshot = { level: number; pressure: number; rewardFactor: number };
+export type GreedSnapshot = {
+  level: number;
+  pressure: number;
+  rewardFactor: number;
+  recoveryReduction: number;
+};
+
+/** Contract §13: `min(0.35, 0.07 * greedLevel)`, shared by pacing and telemetry. */
+export const getGreedRecoveryReduction = (
+  greedLevel: number,
+  config: DirectorConfigV1 = DIRECTOR_CONFIG_V1
+): number =>
+  Math.min(
+    config.greed.maximumRecoveryReduction,
+    config.greed.recoveryReductionPerLevel * Math.max(0, greedLevel)
+  );
+
+/** Contract §13: `min(0.50, 0.10 * greedLevel)`. */
+export const getGreedPressure = (
+  greedLevel: number,
+  config: DirectorConfigV1 = DIRECTOR_CONFIG_V1
+): number =>
+  Math.min(
+    config.greed.maximumPressure,
+    config.greed.pressurePerLevel * Math.max(0, greedLevel)
+  );
 
 export class GreedStateMachine {
   private readonly config: DirectorConfigV1;
@@ -22,11 +47,9 @@ export class GreedStateMachine {
   public getSnapshot(): GreedSnapshot {
     return {
       level: this.level,
-      pressure: Math.min(
-        this.config.greed.maximumPressure,
-        this.config.greed.pressurePerLevel * this.level
-      ),
+      pressure: getGreedPressure(this.level, this.config),
       rewardFactor: 1 + 0.18 * Math.sqrt(this.level),
+      recoveryReduction: getGreedRecoveryReduction(this.level, this.config),
     };
   }
 }

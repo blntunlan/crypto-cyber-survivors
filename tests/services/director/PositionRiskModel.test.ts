@@ -5,7 +5,7 @@ import { LEVERAGE_OPTIONS } from '../../../types';
 
 describe('PositionRiskModel', () => {
   it('exposes the complete public leverage tiers', () => {
-    expect(LEVERAGE_OPTIONS).toEqual([1, 2, 5, 10, 25, 50, 100]);
+    expect(LEVERAGE_OPTIONS).toEqual([1, 2, 5, 10, 20]);
   });
   it('treats an equivalent long rise and short fall symmetrically', () => {
     const longModel = new PositionRiskModel();

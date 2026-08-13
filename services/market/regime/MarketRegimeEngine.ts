@@ -45,6 +45,7 @@ export class MarketRegimeEngine {
   private regime: MarketRegime = 'CALM';
   private rsiZone: RsiZone = 'NEUTRAL';
   private volatilityHigh = false;
+  private volatilityScore = 0;
   private volumeSurge = false;
   private trendDirection: 'UP' | 'DOWN' | 'SIDEWAYS' = 'SIDEWAYS';
   private lastRegimeChangedAt = 0;
@@ -113,6 +114,7 @@ export class MarketRegimeEngine {
     this.regime = 'CALM';
     this.rsiZone = 'NEUTRAL';
     this.volatilityHigh = false;
+    this.volatilityScore = 0;
     this.volumeSurge = false;
     this.trendDirection = 'SIDEWAYS';
     this.lastRegimeChangedAt = 0;
@@ -163,6 +165,7 @@ export class MarketRegimeEngine {
   ): MarketRegimeEvent | null {
     const { volatility } = this.config.regimeThresholds;
     const score = clampUnit(volatilityPercentile);
+    this.volatilityScore = score;
 
     if (this.volatilityHigh) {
       if (score < volatility.highExit) this.volatilityHigh = false;
@@ -230,6 +233,12 @@ export class MarketRegimeEngine {
 
   private getDesiredRegime(frame: CanonicalMarketFrame): MarketRegime {
     if (frame.whaleTier === 3) return 'PANIC';
+    // Contract §21.6 separates high volatility from extreme; extreme resolves to
+    // PANIC so the headwind table hands it elite synergy and vision stress
+    // rather than the milder VOLATILE channels.
+    if (this.volatilityScore >= this.config.regimeThresholds.volatility.extremeEnter) {
+      return 'PANIC';
+    }
     if (this.volatilityHigh || this.volumeSurge) return 'VOLATILE';
     if (this.trendDirection === 'UP' || this.rsiZone === 'OVERBOUGHT') {
       return 'BULL_TREND';

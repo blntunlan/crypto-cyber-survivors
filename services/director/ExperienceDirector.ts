@@ -10,6 +10,9 @@ import {
   type MarketRegimeSnapshot,
 } from './contracts';
 import { EncounterPlanner } from './EncounterPlanner';
+import { EnemyStatCurve, type EnemyStatInput } from './EnemyStatCurve';
+import { getGreedPressure, getGreedRecoveryReduction } from './GreedStateMachine';
+import { NEUTRAL_ENCOUNTER_STAT_MULTIPLIERS } from './encounters/EnemyCostCatalog';
 import { SurvivalCurve } from './SurvivalCurve';
 import { ThreatBudgetAllocator } from './ThreatBudgetAllocator';
 
@@ -51,6 +54,14 @@ export class ExperienceDirector {
   private readonly threatAllocator: ThreatBudgetAllocator;
   private readonly advantageAllocator: AdvantageAllocator;
   private readonly encounterPlanner: EncounterPlanner;
+  private readonly enemyStatCurve: EnemyStatCurve;
+  private readonly enemyStatInput: EnemyStatInput = {
+    survivalPressure: 0,
+    doomStacks: 0,
+    encounterModifiers: NEUTRAL_ENCOUNTER_STAT_MULTIPLIERS,
+    hasSpeedBurst: false,
+    hasEliteSynergy: false,
+  };
   private readonly snapshot: GameplaySnapshot = {
     revision: FIRST_REVISION,
     validFromTick: FIRST_REVISION,
@@ -58,6 +69,13 @@ export class ExperienceDirector {
       state: 'BUILD_UP',
       threatMultiplier: 1,
       remainingSeconds: ZERO_SECONDS,
+      doomStacks: ZERO_SECONDS,
+      supportEfficiency: 1,
+    },
+    greed: {
+      level: ZERO_SECONDS,
+      pressure: ZERO_SECONDS,
+      recoveryReduction: ZERO_SECONDS,
     },
     threat: {
       target: DIRECTOR_CONFIG_V1.threat.minimumTarget,
@@ -70,6 +88,17 @@ export class ExperienceDirector {
       availableCredits: ZERO_SECONDS,
       maximumCredits: ZERO_SECONDS,
       activeMechanic: null,
+      movementMultiplier: 1,
+      dashCooldownMultiplier: 1,
+      endsAtElapsedSeconds: ZERO_SECONDS,
+      activationSequence: ZERO_SECONDS,
+    },
+    enemy: {
+      healthMultiplier: 1,
+      damageMultiplier: 1,
+      speedMultiplier: 1,
+      spawnDensityMultiplier: 1,
+      behaviorTier: 0,
     },
     environment: {
       regime: 'CALM',
@@ -125,6 +154,7 @@ export class ExperienceDirector {
     this.threatAllocator = new ThreatBudgetAllocator(config);
     this.advantageAllocator = new AdvantageAllocator(config);
     this.encounterPlanner = new EncounterPlanner(config);
+    this.enemyStatCurve = new EnemyStatCurve(config);
   }
 
   public update(frame: DirectorInputFrame): GameplaySnapshot {
@@ -151,9 +181,10 @@ export class ExperienceDirector {
     });
     const encounterPressure =
       encounter.phase === 'ACTIVE' ? marketPressure : ZERO_SECONDS;
+    const survivalPressure = this.survivalCurve.getPressure(frame.run.elapsedSeconds);
     const threat = this.threatAllocator.update({
       deltaSeconds: updateDeltaSeconds,
-      survivalPressure: this.survivalCurve.getPressure(frame.run.elapsedSeconds),
+      survivalPressure,
       marketPressure,
       headwind: frame.position.headwind,
       greedPressure,
@@ -176,7 +207,23 @@ export class ExperienceDirector {
     }
     const advantage = this.advantageAllocator.getSnapshot();
 
-    this.writeSnapshot(frame, encounter, threat, advantage);
+    const enemyStatInput = this.enemyStatInput;
+    enemyStatInput.survivalPressure = survivalPressure;
+    enemyStatInput.doomStacks = frame.world.doomStacks;
+    enemyStatInput.encounterModifiers =
+      encounter.primary?.statModifiers ??
+      encounter.support?.statModifiers ??
+      NEUTRAL_ENCOUNTER_STAT_MULTIPLIERS;
+    // A speed burst is mechanical only while the encounter is past its telegraph
+    // and actually active — §19 forbids an untelegraphed mechanical effect.
+    enemyStatInput.hasSpeedBurst =
+      encounter.phase === 'ACTIVE' &&
+      encounter.headwindChannels.includes('TELEGRAPHED_SPEED_BURST');
+    enemyStatInput.hasEliteSynergy =
+      encounter.headwindChannels.includes('ELITE_SYNERGY');
+    const enemyStats = this.enemyStatCurve.update(enemyStatInput);
+
+    this.writeSnapshot(frame, encounter, threat, advantage, enemyStats);
     this.writeTrace(frame, threat.isTargetClamped);
     this.lastProcessedTick = frame.tick;
     this.lastUpdatedElapsedSeconds = frame.run.elapsedSeconds;
@@ -218,6 +265,12 @@ export class ExperienceDirector {
     this.threatAllocator.reset();
     this.advantageAllocator.reset();
     this.encounterPlanner.reset();
+    this.enemyStatCurve.reset();
+    this.snapshot.enemy.healthMultiplier = 1;
+    this.snapshot.enemy.damageMultiplier = 1;
+    this.snapshot.enemy.speedMultiplier = 1;
+    this.snapshot.enemy.spawnDensityMultiplier = 1;
+    this.snapshot.enemy.behaviorTier = 0;
   }
 
   private shouldUpdate(frame: DirectorInputFrame): boolean {
@@ -274,13 +327,22 @@ export class ExperienceDirector {
     frame: DirectorInputFrame,
     encounter: ReturnType<EncounterPlanner['plan']>,
     threat: ReturnType<ThreatBudgetAllocator['update']>,
-    advantage: ReturnType<AdvantageAllocator['update']>
+    advantage: ReturnType<AdvantageAllocator['update']>,
+    enemyStats: ReturnType<EnemyStatCurve['update']>
   ): void {
     this.snapshot.revision += 1;
     this.snapshot.validFromTick = frame.tick;
     this.snapshot.pacing.state = frame.pacing.state;
     this.snapshot.pacing.threatMultiplier = frame.pacing.threatMultiplier;
     this.snapshot.pacing.remainingSeconds = frame.pacing.remainingSeconds;
+    this.snapshot.pacing.doomStacks = frame.pacing.doomStacks;
+    this.snapshot.pacing.supportEfficiency = frame.pacing.supportEfficiency;
+    this.snapshot.greed.level = Math.max(ZERO_SECONDS, frame.run.greedLevel);
+    this.snapshot.greed.pressure = getGreedPressure(frame.run.greedLevel, this.config);
+    this.snapshot.greed.recoveryReduction = getGreedRecoveryReduction(
+      frame.run.greedLevel,
+      this.config
+    );
     this.snapshot.threat.target = threat.target;
     this.snapshot.threat.creditRate = threat.creditRate;
     this.snapshot.threat.availableCredits = threat.availableCredits;
@@ -289,6 +351,15 @@ export class ExperienceDirector {
     this.snapshot.advantage.availableCredits = advantage.availableCredits;
     this.snapshot.advantage.maximumCredits = advantage.maximumCredits;
     this.snapshot.advantage.activeMechanic = advantage.activeMechanic;
+    this.snapshot.advantage.movementMultiplier = advantage.movementMultiplier;
+    this.snapshot.advantage.dashCooldownMultiplier = advantage.dashCooldownMultiplier;
+    this.snapshot.advantage.endsAtElapsedSeconds = advantage.endsAtElapsedSeconds;
+    this.snapshot.advantage.activationSequence = advantage.activationSequence;
+    this.snapshot.enemy.healthMultiplier = enemyStats.healthMultiplier;
+    this.snapshot.enemy.damageMultiplier = enemyStats.damageMultiplier;
+    this.snapshot.enemy.speedMultiplier = enemyStats.speedMultiplier;
+    this.snapshot.enemy.spawnDensityMultiplier = enemyStats.spawnDensityMultiplier;
+    this.snapshot.enemy.behaviorTier = enemyStats.behaviorTier;
     this.snapshot.environment.regime = frame.market.regime;
     this.snapshot.environment.presentationIntensity = Math.max(
       frame.market.confidence,

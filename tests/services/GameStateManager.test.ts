@@ -110,7 +110,7 @@ describe('GameStateManager', () => {
       const startParams = {
         position: MarketPosition.LONG,
         entryPrice: 50000,
-        leverage: 25 as const,
+        leverage: 20 as const,
         pair: 'BTC' as const,
       };
 
@@ -122,7 +122,7 @@ describe('GameStateManager', () => {
       );
 
       // Should call resetAll and initialize the runtime context
-      expect(LeverageEngine.setLeverage).toHaveBeenCalledWith(25);
+      expect(LeverageEngine.setLeverage).toHaveBeenCalledWith(20);
 
       // Should start metrics
       expect(MetricsService.startSession).toHaveBeenCalledWith(
@@ -143,9 +143,9 @@ describe('GameStateManager', () => {
         runId: 'mock-session-id',
         seed: expect.any(Number),
         side: 'LONG',
-        leverage: 25,
+        leverage: 20,
         entryPrice: 50000,
-        liquidationPrice: 48000,
+        liquidationPrice: 47500,
       });
     });
 

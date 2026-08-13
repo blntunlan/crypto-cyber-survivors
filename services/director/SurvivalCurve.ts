@@ -35,11 +35,39 @@ export class SurvivalCurve {
     );
   }
 
-  public getRecoveryDuration(baseSeconds: number, doomStacks: number): number {
+  /**
+   * Contract §8 shortens Recovery by two seconds per Doom Stack and §13 adds a
+   * permanent greed reduction on top. Both are floored at the same minimum, so
+   * Recovery can shrink but never disappear.
+   */
+  public getRecoveryDuration(
+    baseSeconds: number,
+    doomStacks: number,
+    greedRecoveryReduction = 0
+  ): number {
+    const greedAdjusted =
+      baseSeconds * (1 - Math.min(1, Math.max(0, greedRecoveryReduction)));
     return Math.max(
       this.config.survival.minimumRecoverySeconds,
-      baseSeconds -
+      greedAdjusted -
         doomStacks * this.config.survival.recoveryReductionPerDoomStackSeconds
+    );
+  }
+
+  /** Contract §8: Doom lowers support value, never below the configured floor. */
+  public getSupportEfficiency(doomStacks: number): number {
+    return Math.max(
+      this.config.survival.minimumSupportEfficiency,
+      1 -
+        Math.max(0, doomStacks) *
+          this.config.survival.supportEfficiencyReductionPerDoomStack
+    );
+  }
+
+  /** Contract §8: every second Doom Stack opens an encounter-complexity slot. */
+  public getEncounterComplexitySlots(doomStacks: number): number {
+    return Math.floor(
+      Math.max(0, doomStacks) / this.config.survival.doomStacksPerComplexitySlot
     );
   }
 }

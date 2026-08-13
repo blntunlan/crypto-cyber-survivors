@@ -41,10 +41,35 @@ export enum GameStatus {
   DATA_DISCONNECTED = 'DATA_DISCONNECTED',
 }
 
-// Available leverage options
-export type LeverageOption = 1 | 2 | 5 | 10 | 25 | 50 | 100;
+// Available leverage options — Final Design Contract v1.0 §6.
+// 50x and above stay closed for public token runs until telemetry supports them.
+export type LeverageOption = 1 | 2 | 5 | 10 | 20;
 
-export const LEVERAGE_OPTIONS: LeverageOption[] = [1, 2, 5, 10, 25, 50, 100];
+export const LEVERAGE_OPTIONS: LeverageOption[] = [1, 2, 5, 10, 20];
+
+/**
+ * Highest public tier. Doubles as the leverageRisk normalisation ceiling:
+ * `log(1 + leverage) / log(1 + MAXIMUM_PUBLIC_LEVERAGE)` (§6).
+ */
+export const MAXIMUM_PUBLIC_LEVERAGE: LeverageOption = 20;
+
+/** Tiers that shipped before the v1 clamp and may still sit in storage. */
+export const RETIRED_LEVERAGE_VALUES = [25, 50, 100] as const;
+
+/**
+ * Maps any stored or server-supplied leverage onto the public ladder.
+ * Restored runs at a retired tier would otherwise throw inside
+ * PositionRiskModel while the game loop is running.
+ */
+export const normalizePublicLeverage = (value: number): LeverageOption => {
+  if (!Number.isFinite(value)) return LEVERAGE_OPTIONS[0]!;
+
+  let normalized: LeverageOption = LEVERAGE_OPTIONS[0]!;
+  for (const tier of LEVERAGE_OPTIONS) {
+    if (value >= tier) normalized = tier;
+  }
+  return normalized;
+};
 
 export interface DamageIndicator {
   sourceX: number;
@@ -320,6 +345,31 @@ export interface Interactable extends Entity {
   lootCacheFragmentPreview?: boolean;
 }
 
+/**
+ * Read-only view of a Director zone for renderers. Declared structurally here
+ * rather than imported, because the zone module depends on the Director config
+ * which already depends on this file.
+ */
+export interface DirectorZoneView {
+  active: boolean;
+  id: number;
+  kind:
+    | 'SAFE_LANE'
+    | 'HAZARD'
+    | 'SHRINKING_SAFE'
+    | 'ROUTE_PRESSURE'
+    | 'VISION_STRESS'
+    | 'ALPHA_TARGET';
+  shape: 'CIRCLE' | 'LANE';
+  phase: 'TELEGRAPH' | 'ACTIVE' | 'FADE';
+  x: number;
+  y: number;
+  radius: number;
+  angle: number;
+  length: number;
+  intensity: number;
+}
+
 export interface GameState {
   bgCandles: Candle[];
   lastFireTime: number;
@@ -338,6 +388,11 @@ export interface GameState {
   dashCooldownTimer: number;
   dashTrail: { x: number; y: number }[];
   dashTrailAccumulator: number;
+  /**
+   * Director-owned area zones (contract §10/§11). The array is the ZoneField's
+   * pre-allocated pool, assigned once per run so renderers stay allocation-free.
+   */
+  directorZones?: readonly DirectorZoneView[];
   isGameOverTriggered: boolean; // Prevents multiple game over calls
   lastHeartbeatTime: number;
 

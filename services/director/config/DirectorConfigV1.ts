@@ -1,4 +1,4 @@
-import { LEVERAGE_OPTIONS } from '../../../types';
+import { LEVERAGE_OPTIONS, MAXIMUM_PUBLIC_LEVERAGE } from '../../../types';
 import { DIRECTOR_CONTENT_MANIFEST_HASH } from './DirectorContentManifest';
 
 export type DirectorVersionInfo = {
@@ -61,6 +61,8 @@ export type DirectorConfigV1 = {
     recoveryReductionPerDoomStackSeconds: number;
     minimumRecoverySeconds: number;
     minimumSupportEfficiency: number;
+    supportEfficiencyReductionPerDoomStack: number;
+    doomStacksPerComplexitySlot: number;
   };
   threat: {
     weights: {
@@ -212,12 +214,17 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
     recoveryReductionPerDoomStackSeconds: 2,
     minimumRecoverySeconds: 8,
     minimumSupportEfficiency: 0.4,
+    supportEfficiencyReductionPerDoomStack: 0.1,
+    doomStacksPerComplexitySlot: 2,
   },
   threat: {
     weights: { market: 0.35, headwind: 0.35, greed: 1, encounter: 0.3 },
     minimumTarget: 0.2,
     maximumTarget: 2,
-    baseCreditsPerSecond: 1,
+    // Re-anchored with the data-driven enemy cost units (§9). The neutral
+    // composition averages ~2 threat units per enemy, so a rate of 1 would
+    // halve spawn throughput against the pacing the curve was tuned for.
+    baseCreditsPerSecond: 2,
     maximumCreditBankSeconds: 8,
   },
   marketPressure: {
@@ -253,7 +260,7 @@ export const DIRECTOR_CONFIG_V1: DirectorConfigV1 = {
   position: {
     alignmentScale: 0.05,
     alignmentEmaSeconds: 8,
-    maximumPublicLeverage: Math.max(...LEVERAGE_OPTIONS),
+    maximumPublicLeverage: MAXIMUM_PUBLIC_LEVERAGE,
     publicLeverageTiers: LEVERAGE_OPTIONS,
   },
   cashOut: {
@@ -470,6 +477,20 @@ export const validateDirectorConfig = (config: DirectorConfigV1): DirectorConfig
   assertFinitePositive(
     survival.minimumSupportEfficiency,
     'survival.minimumSupportEfficiency'
+  );
+  if (survival.minimumSupportEfficiency > 1) {
+    throw new DirectorConfigValidationError(
+      'survival.minimumSupportEfficiency cannot exceed 1'
+    );
+  }
+  assertFinitePositive(
+    survival.supportEfficiencyReductionPerDoomStack,
+    'survival.supportEfficiencyReductionPerDoomStack'
+  );
+  assertIntegerAtLeast(
+    survival.doomStacksPerComplexitySlot,
+    1,
+    'survival.doomStacksPerComplexitySlot'
   );
   if (survival.minimumRecoverySeconds > pacing.recovery.maxSeconds) {
     throw new DirectorConfigValidationError(

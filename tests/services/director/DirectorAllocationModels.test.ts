@@ -52,10 +52,10 @@ describe('Director allocation models', () => {
     const allocation = allocator.update(frame);
 
     expect(allocation.target).toBeCloseTo(1.7, 6);
-    expect(allocation.creditRate).toBeCloseTo(2.125, 6);
-    expect(allocation.availableCredits).toBeCloseTo(17, 6);
-    expect(allocation.maximumCredits).toBeCloseTo(17, 6);
-    expect(allocator.spend(100)).toBeCloseTo(17, 6);
+    expect(allocation.creditRate).toBeCloseTo(4.25, 6);
+    expect(allocation.availableCredits).toBeCloseTo(34, 6);
+    expect(allocation.maximumCredits).toBeCloseTo(34, 6);
+    expect(allocator.spend(100)).toBeCloseTo(34, 6);
     expect(allocator.getSnapshot().availableCredits).toBe(0);
     expect(allocator.update({ ...frame, deltaSeconds: -1 }).availableCredits).toBe(0);
   });

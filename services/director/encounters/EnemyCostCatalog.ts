@@ -33,6 +33,39 @@ export const ENEMY_COST_UNITS: readonly EnemyCostUnit[] = [
   { id: 'ELITE', threatCost: 5 },
 ];
 
+export const MINIMUM_ENEMY_THREAT_COST = 1;
+
+/**
+ * Contract §9: enemy costs are data-driven; the spawn system only spends the
+ * budget. Every archetype the planner can emit must appear here, otherwise it
+ * would silently fall back to the cheapest cost class.
+ */
+export const ENEMY_COST_CLASS_BY_ARCHETYPE: Readonly<Record<string, string>> = {
+  fud: 'SCOUT',
+  bear: 'PURSUER',
+  bull: 'PURSUER',
+  pumpdump: 'PURSUER',
+  sandwich: 'PURSUER',
+  gatekeeper: 'PURSUER',
+  mev_bot: 'RANGED',
+  market_maker: 'RANGED',
+  rsi: 'RANGED',
+  flash_loan: 'RANGED',
+  rugpull: 'ELITE',
+  liquidator: 'ELITE',
+  whale: 'ELITE',
+};
+
+const THREAT_COST_BY_CLASS = new Map(
+  ENEMY_COST_UNITS.map(unit => [unit.id, unit.threatCost])
+);
+
+export const resolveEnemyThreatCost = (archetype: string): number => {
+  const costClass = ENEMY_COST_CLASS_BY_ARCHETYPE[archetype];
+  if (costClass === undefined) return MINIMUM_ENEMY_THREAT_COST;
+  return THREAT_COST_BY_CLASS.get(costClass) ?? MINIMUM_ENEMY_THREAT_COST;
+};
+
 export const ENCOUNTER_COST_UNITS = {
   primary: 8,
   support: 4,

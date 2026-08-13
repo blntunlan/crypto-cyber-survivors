@@ -75,7 +75,7 @@ describe('MarketCalculator', () => {
         currentPrice: 110,
         entryPrice: 100,
         position: MarketPosition.LONG,
-        leverage: 100, // High leverage
+        leverage: 20, // Highest public tier
       };
 
       const result = MarketCalculator.calculatePnL(input);
@@ -83,7 +83,7 @@ describe('MarketCalculator', () => {
       // CAP is 2.0. So difficulty should be calculated with 2x leverage.
       // Raw 0.1. Effective not clamped. Difficulty (0.1 * 2.0) = 0.2
       expect(result.difficultyPnl).toBeCloseTo(0.2);
-      expect(result.effectivePnl).toBeCloseTo(10.0);
+      expect(result.effectivePnl).toBeCloseTo(2.0);
     });
   });
 
@@ -113,12 +113,12 @@ describe('MarketCalculator', () => {
     it('should calculate liquidation for high leverage', () => {
       const input: LiquidationInput = {
         entryPrice: 1000,
-        leverage: 100, // 1% move
+        leverage: 20, // 5% move
         position: MarketPosition.LONG,
       };
 
-      // 1000 * (1 - 0.01) = 990
-      expect(MarketCalculator.calculateLiquidationPrice(input)).toBeCloseTo(990);
+      // 1000 * (1 - 0.05) = 950
+      expect(MarketCalculator.calculateLiquidationPrice(input)).toBeCloseTo(950);
     });
   });
 

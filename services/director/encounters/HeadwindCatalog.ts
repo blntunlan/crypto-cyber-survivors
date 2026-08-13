@@ -41,6 +41,50 @@ const HEADWIND_CHANNELS_BY_REGIME: Partial<
   SQUEEZE: ['TELEGRAPHED_SPEED_BURST', 'TEMPORARY_HAZARD'],
 };
 
+/**
+ * Contract §11 maps each market identity to a primary and secondary pressure.
+ * The channel is the pressure, so the enemy composition belongs here rather
+ * than inside the spawn builder, which must stay free of market knowledge.
+ */
+const COMPOSITION_BY_CHANNEL: Readonly<Record<HeadwindChannel, readonly string[]>> = {
+  SPAWN_DENSITY: ['fud', 'fud', 'bear'],
+  MULTI_DIRECTIONAL_ENTRIES: ['sandwich', 'flash_loan', 'fud'],
+  TELEGRAPHED_SPEED_BURST: ['fud', 'bull', 'pumpdump'],
+  TEMPORARY_HAZARD: ['pumpdump', 'fud'],
+  PURSUER_RANGED_COMPOSITION: ['bear', 'mev_bot', 'market_maker'],
+  SAFE_ROUTE_PRESSURE: ['bear', 'bull', 'mev_bot'],
+  SHRINKING_SAFE_ZONE: ['liquidator', 'bear'],
+  RECOVERY_REDUCTION: ['bear', 'fud'],
+  ELITE_SYNERGY: ['rugpull', 'liquidator', 'bear'],
+  VISION_AREA_STRESS: ['rsi', 'mev_bot', 'fud'],
+};
+
+export const NEUTRAL_COMPOSITION: readonly string[] = [
+  'bear',
+  'bull',
+  'fud',
+  'mev_bot',
+];
+
+/**
+ * Resolves the archetype pool for the active channels. The first channel is the
+ * primary pressure, so it leads; the neutral pool is used when no headwind is
+ * present so a calm market still fields a readable mix.
+ */
+export const resolveComposition = (
+  channels: readonly HeadwindChannel[]
+): readonly string[] => {
+  if (channels.length === 0) return NEUTRAL_COMPOSITION;
+
+  const composition: string[] = [];
+  for (const channel of channels) {
+    for (const archetype of COMPOSITION_BY_CHANNEL[channel]) {
+      composition.push(archetype);
+    }
+  }
+  return composition.length > 0 ? composition : NEUTRAL_COMPOSITION;
+};
+
 const NO_HEADWIND = 0;
 
 export const resolveHeadwindChannels = (

@@ -11,6 +11,7 @@ import {
   type GameplaySnapshot,
   type SpawnPlan,
 } from '../../director/contracts';
+import { type DirectorContractViolation } from '../../director/DirectorContractGuard';
 import {
   SpawnPlanBuilder,
   type SpawnPlanWorldInput,
@@ -79,7 +80,11 @@ export type DifficultyPhaseDecision = {
   snapshot: RuntimeDifficultySnapshot | null;
   shadowSnapshot: RuntimeDifficultySnapshot | null;
   currentSnapshot: GameplaySnapshot | null;
+  /** Contract rules broken on this commit; empty on a healthy tick. */
+  violations: readonly DirectorContractViolation[];
 };
+
+const NO_VIOLATIONS: readonly DirectorContractViolation[] = [];
 
 export type DifficultyRuntimeOptions = {
   onSnapshotCommitted?: (snapshot: RuntimeDifficultySnapshot) => void;
@@ -142,6 +147,7 @@ export class DifficultyRuntime {
     snapshot: null,
     shadowSnapshot: null,
     currentSnapshot: null,
+    violations: NO_VIOLATIONS,
   };
   private currentTick = 0;
 
@@ -235,6 +241,7 @@ export class DifficultyRuntime {
       this.decision.snapshot = modularResult.snapshot;
       this.decision.shadowSnapshot = null;
       this.decision.currentSnapshot = null;
+      this.decision.violations = currentDecision?.violations ?? NO_VIOLATIONS;
       return this.decision;
     }
 
@@ -244,7 +251,13 @@ export class DifficultyRuntime {
     this.decision.snapshot = null;
     this.decision.shadowSnapshot = modularResult?.snapshot ?? null;
     this.decision.currentSnapshot = currentDecision?.snapshot ?? null;
+    this.decision.violations = currentDecision?.violations ?? NO_VIOLATIONS;
     return this.decision;
+  }
+
+  /** Wires the Director's safe-route query into the spawn planner (§10). */
+  public setBlockedPositionQuery(query: (x: number, y: number) => boolean): void {
+    this.currentAdapter.setBlockedPositionQuery(query);
   }
 
   public getInputSnapshot(): DifficultyRuntimeInputView {
@@ -358,17 +371,20 @@ export class DifficultyRuntime {
     this.decision.snapshot = null;
     this.decision.shadowSnapshot = null;
     this.decision.currentSnapshot = null;
+    this.decision.violations = NO_VIOLATIONS;
   }
 
   private applyPendingLifecycle(tick: number): void {
     if (this.resetEligibleTick <= tick) {
       this.reset();
       this.currentTick = tick;
+      this.inputView = this.inbox.drain(tick);
       return;
     }
     if (this.cycleContinueEligibleTick <= tick) {
       this.resetForCycleContinue();
       this.currentTick = tick;
+      this.inputView = this.inbox.drain(tick);
     }
   }
 }

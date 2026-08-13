@@ -18,6 +18,8 @@ const createInput = (overrides: Record<string, unknown> = {}) => ({
     state: 'PEAK' as const,
     threatMultiplier: 1.25,
     remainingSeconds: 20,
+    doomStacks: 0,
+    supportEfficiency: 1,
   },
   market: {
     revision: 11,

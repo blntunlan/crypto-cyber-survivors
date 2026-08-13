@@ -11,6 +11,10 @@ export const PRESENTATION_CUE_TYPES = [
   'MARKET_STALE',
   'MARKET_RECONNECTED',
   'SAFE_EXIT_AVAILABLE',
+  // §8: Doom is a visible state. §17: a greed change must be felt immediately
+  // and explained, so both transitions get their own cue.
+  'DOOM_STACK_GAINED',
+  'GREED_LEVEL_GAINED',
 ] as const;
 
 export type PresentationCueType = (typeof PRESENTATION_CUE_TYPES)[number];
@@ -76,6 +80,8 @@ export class PresentationDirector {
   private liquidationTension = UNIT_MINIMUM;
   private previousMarketStatus: 'LIVE' | 'STALE' = 'LIVE';
   private telegraphedEventFamily: string | null = null;
+  private lastDoomStacks = 0;
+  private lastGreedLevel = 0;
   private readonly lastCueAtSeconds = new Map<PresentationCueType, number>();
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
@@ -161,6 +167,15 @@ export class PresentationDirector {
     }
     this.previousMarketStatus = marketStatus;
 
+    this.collectProgressionCues(
+      input.snapshot.pacing.doomStacks,
+      input.snapshot.greed.level,
+      input.tick,
+      input.elapsedSeconds,
+      accessibilityIntensity,
+      cues
+    );
+
     const family = input.snapshot.encounter.activeEventFamily;
     const phase = input.snapshot.encounter.phase;
     if (family !== null && phase === 'TELEGRAPH') {
@@ -222,7 +237,44 @@ export class PresentationDirector {
     this.liquidationTension = UNIT_MINIMUM;
     this.previousMarketStatus = 'LIVE';
     this.telegraphedEventFamily = null;
+    this.lastDoomStacks = 0;
+    this.lastGreedLevel = 0;
     this.lastCueAtSeconds.clear();
+  }
+
+  /**
+   * Doom and greed are permanent, monotonic escalations. Cueing only on the
+   * transition keeps them legible without nagging every commit, and the cue
+   * intensity carries the new level so the HUD can size its reaction.
+   */
+  private collectProgressionCues(
+    doomStacks: number,
+    greedLevel: number,
+    tick: number,
+    elapsedSeconds: number,
+    accessibilityIntensity: number,
+    cues: PresentationCue[]
+  ): void {
+    if (doomStacks > this.lastDoomStacks) {
+      this.lastDoomStacks = doomStacks;
+      this.pushCue(
+        'DOOM_STACK_GAINED',
+        tick,
+        elapsedSeconds,
+        accessibilityIntensity,
+        cues
+      );
+    }
+    if (greedLevel > this.lastGreedLevel) {
+      this.lastGreedLevel = greedLevel;
+      this.pushCue(
+        'GREED_LEVEL_GAINED',
+        tick,
+        elapsedSeconds,
+        accessibilityIntensity,
+        cues
+      );
+    }
   }
 
   private updateAmbience(input: PresentationInput): void {

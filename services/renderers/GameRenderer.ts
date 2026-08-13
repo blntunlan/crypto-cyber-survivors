@@ -6,6 +6,7 @@ import {
   EntityRenderer,
   ProjectileRenderer,
   EffectRenderer,
+  ZoneRenderer,
 } from './';
 import { ThemeService } from '../system/ThemeService';
 import { type GraphicsConfig } from '../renderers/types';
@@ -29,6 +30,7 @@ export class GameRenderer implements IGameRenderer {
   private entityRenderer: EntityRenderer;
   private projectileRenderer: ProjectileRenderer;
   private effectRenderer: EffectRenderer;
+  private zoneRenderer: ZoneRenderer;
 
   public static getInstance(): GameRenderer {
     return (GameRenderer.instance ??= new GameRenderer());
@@ -38,12 +40,14 @@ export class GameRenderer implements IGameRenderer {
     background: BackgroundRenderer = new BackgroundRenderer(),
     entity: EntityRenderer = new EntityRenderer(),
     projectile: ProjectileRenderer = ProjectileRenderer.getInstance(),
-    effect: EffectRenderer = new EffectRenderer()
+    effect: EffectRenderer = new EffectRenderer(),
+    zone: ZoneRenderer = new ZoneRenderer()
   ) {
     this.backgroundRenderer = background;
     this.entityRenderer = entity;
     this.projectileRenderer = projectile;
     this.effectRenderer = effect;
+    this.zoneRenderer = zone;
   }
 
   /**
@@ -85,7 +89,9 @@ export class GameRenderer implements IGameRenderer {
     this.backgroundRenderer.render(ctx, pool, state, player, opts);
 
     if (status !== GameStatus.MENU) {
-      // Composition Order (bottom to top)
+      // Composition Order (bottom to top). Zones sit under the entities so a
+      // telegraph never hides the thing that is about to hit the player.
+      this.zoneRenderer.render(ctx, pool, state, player, opts);
       this.projectileRenderer.render(ctx, pool, state, player, opts);
       this.entityRenderer.render(ctx, pool, state, player, opts);
       this.effectRenderer.render(ctx, pool, state, player, opts);

@@ -48,24 +48,42 @@ describe('Director timing models', () => {
     const first = new PacingStateMachine();
     const second = new PacingStateMachine();
 
-    const buildDuration = first.update(0, 17).remainingSeconds;
+    const buildDuration = first.update({
+      elapsedSeconds: 0,
+      seed: 17,
+      greedLevel: 0,
+    }).remainingSeconds;
     expect(buildDuration).toBeGreaterThanOrEqual(45);
     expect(buildDuration).toBeLessThanOrEqual(70);
-    expect(second.update(0, 17).remainingSeconds).toBe(buildDuration);
+    expect(
+      second.update({ elapsedSeconds: 0, seed: 17, greedLevel: 0 }).remainingSeconds
+    ).toBe(buildDuration);
 
-    const peak = first.update(buildDuration, 17);
+    const peak = first.update({
+      elapsedSeconds: buildDuration,
+      seed: 17,
+      greedLevel: 0,
+    });
     const peakDuration = peak.remainingSeconds;
     expect(peak.state).toBe('PEAK');
     expect(peakDuration).toBeGreaterThanOrEqual(20);
     expect(peakDuration).toBeLessThanOrEqual(35);
 
-    const fade = first.update(buildDuration + peakDuration, 17);
+    const fade = first.update({
+      elapsedSeconds: buildDuration + peakDuration,
+      seed: 17,
+      greedLevel: 0,
+    });
     const fadeDuration = fade.remainingSeconds;
     expect(fade.state).toBe('PEAK_FADE');
     expect(fadeDuration).toBeGreaterThanOrEqual(8);
     expect(fadeDuration).toBeLessThanOrEqual(12);
 
-    const recovery = first.update(buildDuration + peakDuration + fadeDuration, 17);
+    const recovery = first.update({
+      elapsedSeconds: buildDuration + peakDuration + fadeDuration,
+      seed: 17,
+      greedLevel: 0,
+    });
     expect(recovery.state).toBe('RECOVERY');
     expect(recovery.remainingSeconds).toBeGreaterThanOrEqual(25);
     expect(recovery.remainingSeconds).toBeLessThanOrEqual(40);
@@ -73,7 +91,7 @@ describe('Director timing models', () => {
 
   it('adds Doom stacks without reducing recovery below eight seconds', () => {
     const pacing = new PacingStateMachine();
-    const late = pacing.update(1_800, 29);
+    const late = pacing.update({ elapsedSeconds: 1_800, seed: 29, greedLevel: 0 });
 
     expect(late.doomStacks).toBe(1);
     if (late.state === 'RECOVERY') {

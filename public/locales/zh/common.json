@@ -412,7 +412,15 @@
     "secure_rewards": "确保您的奖励",
     "decision_hint": "周期越高 = 更多经验和更好掉落",
     "cycle_count": "Cycle {{count}}",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "doom_stack": "DOOM STACK",
+    "support_efficiency": "SUPPORT",
+    "greed_controlled": "CONTROLLED",
+    "greed_risk": "RISK",
+    "greed_greed": "GREED",
+    "greed_frenzy": "FRENZY",
+    "greed_ruin": "RUIN",
+    "greed_doom": "DOOM GREED"
   },
   "hub": {
     "play": "开始",

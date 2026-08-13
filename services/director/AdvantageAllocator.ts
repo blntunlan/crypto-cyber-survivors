@@ -20,6 +20,15 @@ export type AdvantageAllocationSnapshot = {
   availableCredits: number;
   maximumCredits: number;
   activeMechanic: AdvantageMechanic | null;
+  /**
+   * The active window is published on the snapshot so consumers never have to
+   * reach back into the allocator — subsystems read the snapshot only (§19).
+   */
+  movementMultiplier: number;
+  dashCooldownMultiplier: number;
+  endsAtElapsedSeconds: number;
+  /** Increments once per activation, so a one-shot effect fires exactly once. */
+  activationSequence: number;
 };
 
 export type AdvantagePlan = {
@@ -52,6 +61,7 @@ export class AdvantageAllocator {
   private readonly catalog: readonly AdvantageCard[];
   private availableCredits = UNIT_MINIMUM;
   private active: ActiveAdvantage | null = null;
+  private activationSequence = 0;
   private readonly cooldownEndsAt = new Map<AdvantageMechanic, number>();
   private readonly snapshot: AdvantageAllocationSnapshot;
 
@@ -66,6 +76,10 @@ export class AdvantageAllocator {
       availableCredits: UNIT_MINIMUM,
       maximumCredits: UNIT_MINIMUM,
       activeMechanic: null,
+      movementMultiplier: 1,
+      dashCooldownMultiplier: 1,
+      endsAtElapsedSeconds: UNIT_MINIMUM,
+      activationSequence: 0,
     };
   }
 
@@ -122,9 +136,10 @@ export class AdvantageAllocator {
 
     this.availableCredits -= plan.costCredits;
     this.active = plan;
+    this.activationSequence += 1;
     this.cooldownEndsAt.set(plan.mechanic, plan.endsAtSeconds + card.cooldownSeconds);
     this.snapshot.availableCredits = this.availableCredits;
-    this.snapshot.activeMechanic = plan.mechanic;
+    this.writeActiveWindow();
     return true;
   }
 
@@ -136,13 +151,14 @@ export class AdvantageAllocator {
     this.clearExpiredActive(elapsedSeconds);
     this.snapshot.creditRate = UNIT_MINIMUM;
     this.snapshot.availableCredits = this.availableCredits;
-    this.snapshot.activeMechanic = this.active?.mechanic ?? null;
+    this.writeActiveWindow();
     return this.snapshot;
   }
 
   public reset(): void {
     this.availableCredits = UNIT_MINIMUM;
     this.active = null;
+    this.activationSequence = 0;
     this.cooldownEndsAt.clear();
     this.writeSnapshot(UNIT_MINIMUM, UNIT_MINIMUM);
   }
@@ -190,6 +206,15 @@ export class AdvantageAllocator {
     this.snapshot.creditRate = creditRate;
     this.snapshot.availableCredits = this.availableCredits;
     this.snapshot.maximumCredits = maximumCredits;
-    this.snapshot.activeMechanic = this.active?.mechanic ?? null;
+    this.writeActiveWindow();
+  }
+
+  private writeActiveWindow(): void {
+    const active = this.active;
+    this.snapshot.activeMechanic = active?.mechanic ?? null;
+    this.snapshot.movementMultiplier = active?.movementMultiplier ?? 1;
+    this.snapshot.dashCooldownMultiplier = active?.dashCooldownMultiplier ?? 1;
+    this.snapshot.endsAtElapsedSeconds = active?.endsAtSeconds ?? UNIT_MINIMUM;
+    this.snapshot.activationSequence = this.activationSequence;
   }
 }

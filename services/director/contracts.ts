@@ -17,6 +17,9 @@ export type DirectorPacingSnapshot = {
   state: PacingState;
   threatMultiplier: number;
   remainingSeconds: number;
+  /** §8: Doom is a visible state, so its stack count travels with the snapshot. */
+  doomStacks: number;
+  supportEfficiency: number;
 };
 
 export const MARKET_REGIMES = [
@@ -114,6 +117,14 @@ export type GameplaySnapshot = {
     state: PacingState;
     threatMultiplier: number;
     remainingSeconds: number;
+    doomStacks: number;
+    supportEfficiency: number;
+  };
+  /** §13/§17: greed is permanent and must be legible the moment it changes. */
+  greed: {
+    level: number;
+    pressure: number;
+    recoveryReduction: number;
   };
   threat: {
     target: number;
@@ -126,6 +137,22 @@ export type GameplaySnapshot = {
     availableCredits: number;
     maximumCredits: number;
     activeMechanic: string | null;
+    movementMultiplier: number;
+    dashCooldownMultiplier: number;
+    endsAtElapsedSeconds: number;
+    activationSequence: number;
+  };
+  /**
+   * Contract §9: normal enemy stats ride the time-based survival curve up to
+   * hard caps and are frozen at spawn. Market pressure, greed, and headwind buy
+   * threat credits instead of multiplying these.
+   */
+  enemy: {
+    healthMultiplier: number;
+    damageMultiplier: number;
+    speedMultiplier: number;
+    spawnDensityMultiplier: number;
+    behaviorTier: number;
   };
   environment: {
     regime: MarketRegime;

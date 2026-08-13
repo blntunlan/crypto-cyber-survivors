@@ -135,6 +135,8 @@ export type GameEvent =
   | 'gameStart'
   | 'difficultyRunInitialized'
   | 'difficultySnapshotCommitted'
+  | 'directorZoneDamage'
+  | 'directorProgressionChanged'
   | 'difficultyUpdated'
   | 'shockDetected'
   | 'liquidationWarning'
@@ -880,6 +882,17 @@ export interface EventDataMap {
   gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
   difficultyRunInitialized: DifficultyRunInitializedEvent;
   difficultySnapshotCommitted: DifficultySnapshotCommittedEvent;
+  /** Area-denial damage from a Director zone (contract §11). */
+  directorZoneDamage: { amount: number };
+  /**
+   * Emitted only when Doom or Greed actually escalates (contract §8/§17).
+   * Both are permanent and monotonic, so this never reports a decrease.
+   */
+  directorProgressionChanged: {
+    doomStacks: number;
+    greedLevel: number;
+    supportEfficiency: number;
+  };
   difficultyUpdated: {
     trendAlignment?: string;
     lootboxDropChance?: number;

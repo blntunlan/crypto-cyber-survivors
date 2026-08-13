@@ -23,6 +23,10 @@ export type DirectorTelemetryRecord = {
   tick: number;
   revision: number;
   snapshotHash: string;
+  /** Contract §19: every decision carries its config and content identity. */
+  directorVersion: string;
+  configVersion: string;
+  contentManifestHash: string;
   legacy: LegacyDifficultyTelemetry | null;
   director: {
     threatTarget: number;
@@ -57,10 +61,12 @@ export const LegacyDifficultyAdapter = {
 /** Bounded, in-memory shadow telemetry; transport remains outside Director. */
 export class DirectorTelemetryRecorder {
   private readonly capacity: number;
+  private readonly versions: DirectorConfigV1['versions'];
   private readonly records: DirectorTelemetryRecord[] = [];
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.capacity = config.runtime.telemetryCapacity;
+    this.versions = config.versions;
   }
 
   public record(
@@ -72,6 +78,9 @@ export class DirectorTelemetryRecorder {
       tick: snapshot.validFromTick,
       revision: snapshot.revision,
       snapshotHash: createGameplaySnapshotHash(snapshot),
+      directorVersion: this.versions.directorVersion,
+      configVersion: this.versions.configVersion,
+      contentManifestHash: this.versions.contentManifestHash,
       legacy,
       director: {
         threatTarget: snapshot.threat.target,

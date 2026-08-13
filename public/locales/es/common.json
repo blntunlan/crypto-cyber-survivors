@@ -412,7 +412,15 @@
     "secure_rewards": "Asegura tus recompensas",
     "decision_hint": "Más ciclos = Más XP y mejor botín",
     "cycle_count": "Cycle {{count}}",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "doom_stack": "CARGA DOOM",
+    "support_efficiency": "APOYO",
+    "greed_controlled": "CONTROLADO",
+    "greed_risk": "RIESGO",
+    "greed_greed": "CODICIA",
+    "greed_frenzy": "FRENESI",
+    "greed_ruin": "RUINA",
+    "greed_doom": "CODICIA DOOM"
   },
   "hub": {
     "play": "JUGAR",

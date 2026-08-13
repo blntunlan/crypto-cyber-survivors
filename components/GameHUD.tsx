@@ -29,7 +29,7 @@ import {
   EnemyPointers,
   AchievementPopup,
   MilestoneAnnouncer,
-  MarketAnnouncementBanner,
+  RunPressureIndicator,
 } from './hud';
 import { ChallengeProgressHUD } from './hud/ChallengeProgressHUD';
 
@@ -101,7 +101,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       <EnemyPointers containerRef={pointerContainerRef} />
       <LevelUpFlash intensity={flash} />
       <ClutchAnnouncement active={clutchActive} />
-      <MarketAnnouncementBanner />
       {layout.elements.milestoneAnnouncer.visible && (
         <MilestoneAnnouncer
           announcement={announcement}
@@ -112,6 +111,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         <AchievementPopup achievement={achievement} />
       )}
       <ChallengeProgressHUD />
+      <RunPressureIndicator />
     </div>
   );
 };

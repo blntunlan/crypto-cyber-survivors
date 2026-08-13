@@ -9,6 +9,7 @@ import {
 } from '../services/director/encounters/EnemyCostCatalog';
 import { ENCOUNTER_CARD_CATALOG } from '../services/director/encounters/EncounterCatalog';
 import { ADVANTAGE_CARD_CATALOG } from '../services/director/encounters/AdvantageCatalog';
+import { ENEMY_COST_CLASS_BY_ARCHETYPE } from '../services/director/encounters/EnemyCostCatalog';
 
 const targetPath = resolve(
   process.cwd(),
@@ -24,6 +25,7 @@ const manifestPayload = {
     },
   },
   enemyCosts: ENEMY_COST_UNITS,
+  enemyCostClasses: ENEMY_COST_CLASS_BY_ARCHETYPE,
   encounterCosts: ENCOUNTER_COST_UNITS,
   encounters: ENCOUNTER_CARD_CATALOG,
   advantages: ADVANTAGE_CARD_CATALOG,

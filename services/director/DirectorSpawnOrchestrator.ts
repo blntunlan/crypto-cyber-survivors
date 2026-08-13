@@ -8,12 +8,21 @@ import {
   type PositionRiskSnapshot,
   type SpawnPlan,
 } from './contracts';
+import {
+  DirectorContractGuard,
+  type DirectorContractGuardInput,
+  type DirectorContractViolation,
+} from './DirectorContractGuard';
 import { DirectorInputBuilder } from './DirectorInputBuilder';
 import { ExperienceDirector } from './ExperienceDirector';
 import { PositionRiskModel } from './position/PositionRiskModel';
 import { SpawnPlanBuilder, type SpawnPlanWorldInput } from './SpawnPlanBuilder';
 import { type CanonicalMarketFrame } from '../../types/marketCanonical';
-import { PacingStateMachine } from './PacingStateMachine';
+import {
+  PacingStateMachine,
+  type PacingSnapshot,
+  type PacingUpdateInput,
+} from './PacingStateMachine';
 
 export type DirectorSpawnOrchestratorInput = {
   tick: number;
@@ -54,6 +63,8 @@ export type DirectorSpawnOrchestratorOutput = {
   snapshot: GameplaySnapshot;
   plan: SpawnPlan;
   position: PositionRiskSnapshot;
+  /** Contract rules broken by this commit; empty on a healthy tick. */
+  violations: readonly DirectorContractViolation[];
 };
 
 const EMPTY_SPAWN_PLAN: SpawnPlan = {
@@ -109,6 +120,14 @@ export class DirectorSpawnOrchestrator {
     maxActiveEnemies: 0,
     position: MarketPosition.LONG,
   };
+  private readonly pacingInput: PacingUpdateInput = {
+    elapsedSeconds: 0,
+    seed: 0,
+    greedLevel: 0,
+  };
+  private readonly contractGuard: DirectorContractGuard;
+  private readonly guardInput: DirectorContractGuardInput;
+  private static readonly NO_VIOLATIONS: readonly DirectorContractViolation[] = [];
   private lastUpdatedElapsedSeconds = -Infinity;
   private lastMarketRevision = -1;
   private lastGreedLevel = -1;
@@ -120,10 +139,21 @@ export class DirectorSpawnOrchestrator {
     this.pacing = new PacingStateMachine(config);
     this.director = new ExperienceDirector(config);
     this.planBuilder = new SpawnPlanBuilder(config);
+    this.contractGuard = new DirectorContractGuard(config);
     this.output = {
       snapshot: this.director.getSnapshot(),
       plan: this.emptyPlan,
       position: this.emptyPositionRisk,
+      violations: DirectorSpawnOrchestrator.NO_VIOLATIONS,
+    };
+    this.guardInput = {
+      snapshot: this.output.snapshot,
+      pacing: this.pacing.getSnapshot(),
+      plan: this.emptyPlan,
+      elapsedSeconds: 0,
+      greedLevel: 0,
+      leverage: 1,
+      isMarketStale: false,
     };
   }
 
@@ -133,6 +163,7 @@ export class DirectorSpawnOrchestrator {
     if (!this.shouldUpdate(input)) {
       this.output.snapshot = this.director.getSnapshot();
       this.output.plan = this.createEmptyPlan(this.output.snapshot, input);
+      this.output.violations = DirectorSpawnOrchestrator.NO_VIOLATIONS;
       return this.output;
     }
 
@@ -169,10 +200,14 @@ export class DirectorSpawnOrchestrator {
     if (input.marketFrame.quality !== 'STALE' && market.activeEventFamily !== null) {
       this.pacing.requestMarketSurge(
         market.activeEventFamily,
-        input.run.elapsedSeconds
+        input.run.elapsedSeconds,
+        market.eventTelegraphEndsAtElapsedSeconds ?? undefined
       );
     }
-    const pacing = this.pacing.update(input.run.elapsedSeconds, input.run.seed);
+    this.pacingInput.elapsedSeconds = input.run.elapsedSeconds;
+    this.pacingInput.seed = input.run.seed;
+    this.pacingInput.greedLevel = input.run.greedLevel;
+    const pacing = this.pacing.update(this.pacingInput);
     const snapshot = this.director.update(
       this.inputBuilder.build({
         tick: input.tick,
@@ -213,6 +248,7 @@ export class DirectorSpawnOrchestrator {
     this.output.position = position;
     if (snapshot.validFromTick !== input.tick) {
       this.output.plan = this.createEmptyPlan(snapshot, input);
+      this.output.violations = this.evaluateContract(input, pacing);
       return this.output;
     }
 
@@ -228,6 +264,7 @@ export class DirectorSpawnOrchestrator {
     }
     plan.spendableThreat = this.director.reserveThreatCredits(requestedThreat);
     this.output.plan = plan;
+    this.output.violations = this.evaluateContract(input, pacing);
     return this.output;
   }
 
@@ -240,9 +277,26 @@ export class DirectorSpawnOrchestrator {
     this.output.snapshot = this.director.getSnapshot();
     this.output.plan = this.emptyPlan;
     this.output.position = this.emptyPositionRisk;
+    this.output.violations = DirectorSpawnOrchestrator.NO_VIOLATIONS;
+    this.contractGuard.reset();
     this.lastUpdatedElapsedSeconds = -Infinity;
     this.lastMarketRevision = -1;
     this.lastGreedLevel = -1;
+  }
+
+  private evaluateContract(
+    input: DirectorSpawnOrchestratorInput,
+    pacing: PacingSnapshot
+  ): readonly DirectorContractViolation[] {
+    const guardInput = this.guardInput;
+    guardInput.snapshot = this.output.snapshot;
+    guardInput.pacing = pacing;
+    guardInput.plan = this.output.plan;
+    guardInput.elapsedSeconds = input.run.elapsedSeconds;
+    guardInput.greedLevel = input.run.greedLevel;
+    guardInput.leverage = input.position.leverage;
+    guardInput.isMarketStale = input.marketFrame.quality === 'STALE';
+    return this.contractGuard.evaluate(guardInput);
   }
 
   private shouldUpdate(input: DirectorSpawnOrchestratorInput): boolean {
@@ -263,6 +317,12 @@ export class DirectorSpawnOrchestrator {
     this.emptyPlan.maxActiveEnemies = input.world.maxActiveEnemies;
     this.emptyPlan.spawnWindowSeconds = 1 / this.config.runtime.updateFrequencyHz;
     return this.emptyPlan;
+  }
+
+  public setBlockedPositionQuery(
+    query: SpawnPlanWorldInput['isBlockedPosition']
+  ): void {
+    this.planWorld.isBlockedPosition = query;
   }
 
   private updatePlanWorld(input: DirectorSpawnOrchestratorInput): SpawnPlanWorldInput {

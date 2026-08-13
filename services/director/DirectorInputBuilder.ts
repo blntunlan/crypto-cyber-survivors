@@ -23,6 +23,8 @@ export class DirectorInputBuilder {
       state: 'BUILD_UP',
       threatMultiplier: 1,
       remainingSeconds: 0,
+      doomStacks: 0,
+      supportEfficiency: 1,
     },
     market: {
       revision: 0,
@@ -92,6 +94,8 @@ export class DirectorInputBuilder {
     target.state = source.state;
     target.threatMultiplier = source.threatMultiplier;
     target.remainingSeconds = source.remainingSeconds;
+    target.doomStacks = source.doomStacks;
+    target.supportEfficiency = source.supportEfficiency;
   }
 
   private copyMarket(source: MarketRegimeSnapshot): void {

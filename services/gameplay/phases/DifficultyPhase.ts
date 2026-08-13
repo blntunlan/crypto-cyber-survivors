@@ -13,6 +13,11 @@ import {
 } from '../../difficulty/runtime/DifficultyRuntime';
 import { type CanonicalMarketFrame } from '../../../types/marketCanonical';
 import { DIFFICULTY_RUNTIME_CONFIG } from '../../../config/difficulty/DifficultyRuntimeConfig';
+import {
+  type DirectorEffectApplier,
+  type DirectorEffectInput,
+} from '../../director/effects/DirectorEffectApplier';
+import { type GameplaySnapshot } from '../../director/contracts';
 
 type DifficultyPhaseShared = Record<string, unknown> & {
   canonicalMarketFrame?: CanonicalMarketFrame | null;
@@ -30,6 +35,7 @@ type DifficultyPhaseShared = Record<string, unknown> & {
   difficultyKillStreak?: number;
   difficultyActivePrimaryEncounters?: number;
   difficultyActiveSupportEncounters?: number;
+  difficultyLiquidationProximity?: number;
   difficultyPhaseDecision?: DifficultyPhaseDecision;
   spawnPlan?: DifficultyPhaseDecision['activeSpawnPlan'];
   difficultySnapshotRevision?: number;
@@ -65,13 +71,34 @@ const createBoundaryInput = (): DifficultyBoundaryInput => ({
   },
 });
 
+/** Placeholder reference until the first Director commit lands. */
+const EMPTY_GAMEPLAY_SNAPSHOT = {
+  advantage: {
+    activeMechanic: null,
+    movementMultiplier: 1,
+    dashCooldownMultiplier: 1,
+    endsAtElapsedSeconds: 0,
+    activationSequence: 0,
+  },
+} as unknown as GameplaySnapshot;
+
 /**
- * DifficultyPhase — synchronizes the runtime clock into DifficultyContext.
+ * DifficultyPhase — synchronizes the runtime clock into DifficultyContext and
+ * hands the committed snapshot to the effect applier (contract §10).
  */
 export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
   public readonly phase = 'difficulty' as const;
   private readonly result = createBaselinePhaseResult(this.phase);
   private readonly boundaryInput = createBoundaryInput();
+  private readonly effectInput: DirectorEffectInput = {
+    snapshot: EMPTY_GAMEPLAY_SNAPSHOT,
+    player: null,
+    elapsedSeconds: 0,
+    deltaSeconds: 0,
+    world: { width: 0, height: 0 },
+    seed: 0,
+    liquidationProximity: 0,
+  };
   private readonly boundaryRun: NonNullable<DifficultyBoundaryInput['run']> = {
     runId: '',
     seed: 0,
@@ -79,7 +106,10 @@ export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
     greedLevel: 0,
   };
 
-  public constructor(private readonly runtime: DifficultyRuntime) {}
+  public constructor(
+    private readonly runtime: DifficultyRuntime,
+    private readonly effectApplier: DirectorEffectApplier | null = null
+  ) {}
 
   public execute(input: PhaseInput<'difficulty'>): BaselinePhaseResult<'difficulty'> {
     const context = input.context;
@@ -129,6 +159,18 @@ export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
 
     difficultyContext.updateTime(boundary.elapsedSeconds);
     const decision = this.runtime.commitAtBoundary(boundary);
+    if (this.effectApplier !== null && decision.currentSnapshot !== null) {
+      this.effectInput.snapshot = decision.currentSnapshot;
+      this.effectInput.player = player;
+      this.effectInput.elapsedSeconds = boundary.elapsedSeconds;
+      this.effectInput.deltaSeconds = boundary.deltaSeconds;
+      this.effectInput.world.width = boundary.world.width;
+      this.effectInput.world.height = boundary.world.height;
+      this.effectInput.seed = this.boundaryRun.seed;
+      this.effectInput.liquidationProximity =
+        shared.difficultyLiquidationProximity ?? 0;
+      this.effectApplier.apply(this.effectInput);
+    }
     const resultShared = this.result.shared as DifficultyPhaseShared;
     resultShared.difficultyPhaseDecision = decision;
     resultShared.spawnPlan = decision.activeSpawnPlan;

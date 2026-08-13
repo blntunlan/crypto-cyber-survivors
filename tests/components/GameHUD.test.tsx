@@ -48,6 +48,9 @@ vi.mock('../../components/hud', () => ({
   MarketAnnouncementBanner: () => (
     <div data-testid="market-announcement-banner">MarketAnnouncementBanner</div>
   ),
+  RunPressureIndicator: () => (
+    <div data-testid="run-pressure-indicator">RunPressureIndicator</div>
+  ),
 }));
 
 // Mock config
@@ -91,6 +94,7 @@ describe('GameHUD', () => {
     expect(screen.queryByTestId('combo-panel')).toBeNull();
     expect(screen.getByTestId('milestone-announcer')).toBeTruthy();
     expect(screen.getByTestId('achievement-popup')).toBeTruthy();
+    expect(screen.queryByTestId('market-announcement-banner')).toBeNull();
   });
 
   it('should not render specific components if disabled in layout', async () => {

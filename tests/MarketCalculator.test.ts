@@ -73,11 +73,11 @@ describe('MarketCalculator', () => {
         currentPrice: 44000,
         entryPrice: 40000,
         position: MarketPosition.LONG,
-        leverage: 100,
+        leverage: 20,
       });
 
       expect(result.rawPnl).toBe(0.1);
-      expect(result.effectivePnl).toBe(10); // 0.1 * 100 = 10.0, profits are uncapped
+      expect(result.effectivePnl).toBe(2); // 0.1 * 20 = 2.0, profits are uncapped
       expect(result.difficultyPnl).toBe(0.2); // 0.1 * 2 (capped)
     });
 

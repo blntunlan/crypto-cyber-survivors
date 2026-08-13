@@ -15,6 +15,14 @@ import { ProjectileRenderer } from '../renderers/ProjectileRenderer';
 import { audio } from '../audio';
 import { MarketAudioReactor } from '../audio/MarketAudioReactor';
 import { PresentationDirector } from '../presentation/PresentationDirector';
+import { DirectorEffectApplier } from '../director/effects/DirectorEffectApplier';
+import { ZoneField } from '../director/zones/ZoneField';
+import { ZoneDirector } from '../director/zones/ZoneDirector';
+import { ZoneEffectResolver } from '../director/zones/ZoneEffectResolver';
+import { EventBus } from '../core/EventBus';
+import { BuffManager } from '../patterns/decorators/BuffManager';
+import { MomentumWindowDecorator } from '../patterns/decorators/buffs/MomentumWindowDecorator';
+import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import { createGamePresentationCueAdapter } from '../presentation/GamePresentationCueAdapter';
 import { type EventBusPresentationCueAdapter } from '../presentation/EventBusPresentationCueAdapter';
 import { SeededRng } from '../director/SeededRng';
@@ -43,6 +51,8 @@ export type GameRuntime = {
   spawnSystem: ISpawnSystem;
   spawnExecutor: SpawnExecutor;
   difficultyRuntime: DifficultyRuntime;
+  directorEffectApplier: DirectorEffectApplier;
+  zoneField: ZoneField;
   presentationDirector: PresentationDirector;
   presentationCueAdapter: EventBusPresentationCueAdapter;
   difficultyContext: typeof difficultyContext;
@@ -93,6 +103,37 @@ export function createGameRuntime(options: CreateGameRuntimeOptions = {}): GameR
   );
   const presentationDirector = new PresentationDirector();
   const presentationCueAdapter = createGamePresentationCueAdapter();
+  const zoneField = new ZoneField();
+  const zoneDirector = new ZoneDirector(zoneField);
+  const zoneEffects = new ZoneEffectResolver(zoneField);
+  const directorEffectApplier = new DirectorEffectApplier(
+    {
+      applyMomentumWindow: () => {
+        BuffManager.addBuff(MomentumWindowDecorator);
+        return true;
+      },
+      dropLiquidity: (x, y) => {
+        // Contract §10: a fixed-value utility drop, never a token grant.
+        BuffGemSpawner.spawnGem('diamond', x, y);
+      },
+      applyZoneDamage: (amount, remainingHp, x, y) => {
+        EventBus.emit('directorZoneDamage', { amount });
+        // Reported through the normal hit channel so metrics, the Director
+        // input inbox, and feedback all stay consistent with contact damage.
+        EventBus.emit('playerHit', {
+          damage: amount,
+          remainingHp,
+          sourceX: x,
+          sourceY: y,
+          enemyType: 'zone',
+        });
+      },
+    },
+    { zoneDirector, zoneEffects }
+  );
+  difficultyRuntime.setBlockedPositionQuery((x, y) =>
+    zoneField.containsActive('SAFE_LANE', x, y)
+  );
   const unregisterDifficultyReset = ResetOrchestrator.registerResetHandler(
     RESET_PRIORITY.DIFFICULTY_RUNTIME,
     'DifficultyRuntime',
@@ -108,6 +149,8 @@ export function createGameRuntime(options: CreateGameRuntimeOptions = {}): GameR
     difficultySnapshotRef.current = null;
     difficultyContext.reset();
     presentationDirector.reset();
+    directorEffectApplier.reset();
+    zoneField.reset();
     MarketAudioReactor.clearPresentationAmbience();
   };
 
@@ -140,6 +183,8 @@ export function createGameRuntime(options: CreateGameRuntimeOptions = {}): GameR
     spawnSystem,
     spawnExecutor,
     difficultyRuntime,
+    directorEffectApplier,
+    zoneField,
     presentationDirector,
     presentationCueAdapter,
     difficultyContext,

@@ -28,6 +28,7 @@ import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
+import { resolvePnlBackdrop } from '../utils/pnlBackdrop';
 import { audio } from '../services/audio';
 import { marketApiClient } from '../services/api/MarketApiClient';
 import { ClientIndicatorService } from '../services/indicators/ClientIndicatorService';
@@ -204,6 +205,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   }, [device.isMobile, graphicsSettings.reducedMotion, mobileSettings.hapticFeedback]);
 
   const state = useRef<GameState>({
+    // The zone pool is owned by the runtime's ZoneField; the reference is
+    // stable for the session so renderers stay allocation-free.
+    directorZones: runtimeRef.current.zoneField.getZones(),
     bgCandles: [] as Candle[],
     lastFireTime: 0,
     fireTimer: 0,
@@ -339,7 +343,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   });
 
   const gameLoopCoordinatorRef = useLazyRef(() => {
-    const difficultyPhase = new DifficultyPhase(runtimeRef.current.difficultyRuntime);
+    const difficultyPhase = new DifficultyPhase(
+      runtimeRef.current.difficultyRuntime,
+      runtimeRef.current.directorEffectApplier
+    );
     const inputPhase = new InputPhase();
     const combatPhase = new CombatPhase();
     const spawnPhase = new SpawnPhase();
@@ -1239,26 +1246,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness
         const minVal = device.isMobile ? 12 : 2;
 
-        if (marketDataRef.current.pnl >= 0) {
-          s.targetBg.r = minVal;
-          s.targetBg.g = lerp(
-            minVal + 4,
-            45,
-            Math.min(1, marketDataRef.current.pnl * 20)
-          );
-          s.targetBg.b = minVal + 8;
-        } else {
-          s.targetBg.r = lerp(
-            minVal,
-            45,
-            Math.min(
-              1,
-              Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
-            )
-          );
-          s.targetBg.g = minVal;
-          s.targetBg.b = minVal;
-        }
+        resolvePnlBackdrop(marketDataRef.current.pnl, minVal, s.targetBg);
 
         const bgLerpFactor = 1 - Math.pow(1 - GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
         s.currentBg.r = lerp(s.currentBg.r, s.targetBg.r, bgLerpFactor);

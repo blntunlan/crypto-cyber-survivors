@@ -10,6 +10,11 @@ import { GameMode } from '../../types/gameMode';
 import { useTheme } from '../../contexts/useTheme';
 import { IconTrendUp, IconTrendDown, IconZap, IconTrophy } from '../icons/CardIcons';
 import { COLORS } from '../../config/Colors';
+import {
+  LEVERAGE_RAMP_STOPS,
+  POSITION_ACCENTS,
+  getLeverageRiskTier,
+} from '../../config/ui/riskPalette';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedSelectionCard } from '../themed/ThemedSelectionCard';
@@ -196,20 +201,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     selectedMode,
   ]);
 
-  const getLeverageColorHex = (lev: LeverageOption) => {
-    if (lev <= 2) return COLORS.PUMP_GREEN;
-    if (lev <= 10) return COLORS.JACKPOT_YELLOW;
-    if (lev <= 25) return COLORS.NEON_ORANGE;
-    return COLORS.CASINO_RED;
-  };
+  const getLeverageColorHex = (lev: LeverageOption) => getLeverageRiskTier(lev).color;
 
-  const getLeverageLabel = (lev: LeverageOption) => {
-    if (lev === 1) return t('common.menu.lev_spot');
-    if (lev <= 2) return t('common.menu.lev_safe');
-    if (lev <= 10) return t('common.menu.lev_standard');
-    if (lev <= 25) return t('common.menu.lev_risky');
-    return t('common.menu.lev_degen');
-  };
+  const getLeverageLabel = (lev: LeverageOption) =>
+    t(getLeverageRiskTier(lev).labelKey);
 
   return (
     <div
@@ -414,21 +409,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className={`custom-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2 overflow-x-auto px-2 py-3 transition-all duration-500 sm:gap-2.5 sm:overflow-visible sm:px-3 sm:py-3.5 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-lg'}`}
               style={{
                 background: !isRetro
-                  ? `linear-gradient(90deg, ${COLORS.PUMP_GREEN}0D 0%, ${COLORS.JACKPOT_YELLOW}0D 45%, ${COLORS.NEON_ORANGE}0D 70%, ${COLORS.CASINO_RED}0D 100%)`
+                  ? `linear-gradient(90deg, ${LEVERAGE_RAMP_STOPS[0]}0D 0%, ${LEVERAGE_RAMP_STOPS[1]}0D 45%, ${LEVERAGE_RAMP_STOPS[2]}0D 70%, ${LEVERAGE_RAMP_STOPS[3]}0D 100%)`
                   : undefined,
                 border: !isRetro ? '1px solid rgba(148, 163, 184, 0.16)' : undefined,
               }}
             >
               {LEVERAGE_OPTIONS.map(lev => {
                 const isSelected = selectedLeverage === lev;
-                const levColor =
-                  lev <= 2
-                    ? COLORS.PUMP_GREEN
-                    : lev <= 10
-                      ? COLORS.JACKPOT_YELLOW
-                      : lev <= 25
-                        ? COLORS.NEON_ORANGE
-                        : COLORS.CASINO_RED;
+                const levColor = getLeverageColorHex(lev);
 
                 return (
                   <ThemedSelectionCard
@@ -457,7 +445,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               disabled={price === 0}
               size="large"
               variant="position"
-              accentColor={COLORS.NEON_GREEN}
+              accentColor={POSITION_ACCENTS.LONG}
               selected={activeRow === 3 && actionCol === 0}
               className="items-center justify-between gap-1.5 sm:gap-3 landscape:min-h-[64px]"
             >
@@ -483,7 +471,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               disabled={price === 0}
               size="large"
               variant="position"
-              accentColor={COLORS.CASINO_RED}
+              accentColor={POSITION_ACCENTS.SHORT}
               selected={activeRow === 3 && actionCol === 1}
               className="items-center justify-between gap-1.5 sm:gap-3 landscape:min-h-[64px]"
             >

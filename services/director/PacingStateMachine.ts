@@ -1,5 +1,6 @@
 import { type MarketEventFamily, type PacingState } from './contracts';
 import { DIRECTOR_CONFIG_V1, type DirectorConfigV1 } from './config/DirectorConfigV1';
+import { getGreedRecoveryReduction } from './GreedStateMachine';
 import { SurvivalCurve } from './SurvivalCurve';
 
 export type PacingSnapshot = {
@@ -8,6 +9,18 @@ export type PacingSnapshot = {
   remainingSeconds: number;
   doomStacks: number;
   queuedEventFamily: MarketEventFamily | null;
+  /** Contract §8: Doom lowers pickup/heal value, floored by config. */
+  supportEfficiency: number;
+  /** Contract §8: one extra encounter slot per two Doom Stacks. */
+  encounterComplexitySlots: number;
+  /** Contract §13: fraction removed from the Recovery window by greed. */
+  greedRecoveryReduction: number;
+};
+
+export type PacingUpdateInput = {
+  elapsedSeconds: number;
+  seed: number;
+  greedLevel: number;
 };
 
 type BasePacingState = 'BUILD_UP' | 'PEAK' | 'PEAK_FADE' | 'RECOVERY';
@@ -19,38 +32,50 @@ const PHASE_ORDER: readonly BasePacingState[] = [
   'RECOVERY',
 ];
 const UINT32_RANGE = 4_294_967_296;
+const NO_SURGE = -1;
 
 export class PacingStateMachine {
   private readonly config: DirectorConfigV1;
   private readonly survivalCurve: SurvivalCurve;
   private queuedEventFamily: MarketEventFamily | null = null;
+  private queuedTelegraphEndsAtSeconds = 0;
+  private surgeEndsAtSeconds = NO_SURGE;
   private readonly snapshot: PacingSnapshot = {
     state: 'BUILD_UP',
     threatMultiplier: 1,
     remainingSeconds: 0,
     doomStacks: 0,
     queuedEventFamily: null,
+    supportEfficiency: 1,
+    encounterComplexitySlots: 0,
+    greedRecoveryReduction: 0,
   };
   private runSeed = -1;
   private phaseIndex = 0;
   private phaseStartsAtSeconds = 0;
   private phaseEndsAtSeconds = 0;
   private lastElapsedSeconds = 0;
+  private greedRecoveryReduction = 0;
 
   public constructor(config: DirectorConfigV1 = DIRECTOR_CONFIG_V1) {
     this.config = config;
     this.survivalCurve = new SurvivalCurve(config);
   }
 
-  public update(elapsedSeconds: number, seed: number): PacingSnapshot {
+  public update(input: PacingUpdateInput): PacingSnapshot {
     const safeElapsedSeconds = Math.max(
       0,
-      Number.isFinite(elapsedSeconds) ? elapsedSeconds : 0
+      Number.isFinite(input.elapsedSeconds) ? input.elapsedSeconds : 0
     );
-    const safeSeed = Number.isSafeInteger(seed) ? seed : 0;
+    const safeSeed = Number.isSafeInteger(input.seed) ? input.seed : 0;
     if (safeSeed !== this.runSeed || safeElapsedSeconds < this.lastElapsedSeconds) {
       this.initialize(safeSeed);
     }
+
+    this.greedRecoveryReduction = getGreedRecoveryReduction(
+      input.greedLevel,
+      this.config
+    );
 
     while (safeElapsedSeconds >= this.phaseEndsAtSeconds) {
       this.phaseStartsAtSeconds = this.phaseEndsAtSeconds;
@@ -61,30 +86,57 @@ export class PacingStateMachine {
 
     const baseState = PHASE_ORDER[this.phaseIndex % PHASE_ORDER.length]!;
     const doomStacks = this.survivalCurve.getDoomStacks(safeElapsedSeconds);
-    const isDoomPeak =
-      baseState === 'PEAK' &&
-      safeElapsedSeconds >= this.config.survival.doomStartsAtSeconds;
-    this.snapshot.state = isDoomPeak ? 'DOOM' : baseState;
-    this.snapshot.threatMultiplier = this.getThreatMultiplier(baseState);
-    this.snapshot.remainingSeconds = Math.max(
-      0,
-      this.phaseEndsAtSeconds - safeElapsedSeconds
-    );
+
+    this.resolveMarketSurge(safeElapsedSeconds, baseState);
+
+    if (this.surgeEndsAtSeconds > safeElapsedSeconds) {
+      this.snapshot.state = 'MARKET_SURGE';
+      this.snapshot.threatMultiplier = this.config.pacing.marketSurge.threatMultiplier;
+      this.snapshot.remainingSeconds = this.surgeEndsAtSeconds - safeElapsedSeconds;
+    } else {
+      const isDoomPeak =
+        baseState === 'PEAK' &&
+        safeElapsedSeconds >= this.config.survival.doomStartsAtSeconds;
+      this.snapshot.state = isDoomPeak ? 'DOOM' : baseState;
+      this.snapshot.threatMultiplier = this.getThreatMultiplier(baseState);
+      this.snapshot.remainingSeconds = Math.max(
+        0,
+        this.phaseEndsAtSeconds - safeElapsedSeconds
+      );
+    }
+
     this.snapshot.doomStacks = doomStacks;
     this.snapshot.queuedEventFamily = this.queuedEventFamily;
+    this.snapshot.supportEfficiency =
+      this.survivalCurve.getSupportEfficiency(doomStacks);
+    this.snapshot.encounterComplexitySlots =
+      this.survivalCurve.getEncounterComplexitySlots(doomStacks);
+    this.snapshot.greedRecoveryReduction = this.greedRecoveryReduction;
     this.lastElapsedSeconds = safeElapsedSeconds;
     return this.snapshot;
   }
 
+  /**
+   * Contract §7: no surge in the first 90 seconds, a single queue slot, and at
+   * least a two second telegraph before the mechanical effect starts.
+   */
   public requestMarketSurge(
     eventFamily: MarketEventFamily,
-    elapsedSeconds: number
+    elapsedSeconds: number,
+    telegraphEndsAtElapsedSeconds?: number
   ): boolean {
     if (elapsedSeconds < this.config.marketEvents.initialSurgeLockoutSeconds) {
       return false;
     }
-    if (this.queuedEventFamily !== null) return false;
+    const queuedCount = this.queuedEventFamily === null ? 0 : 1;
+    if (queuedCount >= this.config.marketEvents.queueCapacity) return false;
+    if (this.surgeEndsAtSeconds > elapsedSeconds) return false;
+
     this.queuedEventFamily = eventFamily;
+    this.queuedTelegraphEndsAtSeconds = Math.max(
+      elapsedSeconds + this.config.marketEvents.minTelegraphSeconds,
+      telegraphEndsAtElapsedSeconds ?? 0
+    );
     return true;
   }
 
@@ -101,22 +153,46 @@ export class PacingStateMachine {
       return false;
     }
     this.queuedEventFamily = null;
+    this.queuedTelegraphEndsAtSeconds = 0;
     this.snapshot.queuedEventFamily = null;
     return true;
   }
 
   public reset(): void {
     this.queuedEventFamily = null;
+    this.queuedTelegraphEndsAtSeconds = 0;
+    this.surgeEndsAtSeconds = NO_SURGE;
     this.runSeed = -1;
     this.phaseIndex = 0;
     this.phaseStartsAtSeconds = 0;
     this.phaseEndsAtSeconds = 0;
     this.lastElapsedSeconds = 0;
+    this.greedRecoveryReduction = 0;
     this.snapshot.state = 'BUILD_UP';
     this.snapshot.threatMultiplier = this.config.pacing.buildUp.threatMultiplier;
     this.snapshot.remainingSeconds = 0;
     this.snapshot.doomStacks = 0;
     this.snapshot.queuedEventFamily = null;
+    this.snapshot.supportEfficiency = 1;
+    this.snapshot.encounterComplexitySlots = 0;
+    this.snapshot.greedRecoveryReduction = 0;
+  }
+
+  /**
+   * A queued surge waits for its telegraph and for a window that is not
+   * Recovery — the contract guarantees Recovery as real breathing room, so a
+   * surge may delay but never overwrite it.
+   */
+  private resolveMarketSurge(elapsedSeconds: number, baseState: BasePacingState): void {
+    if (this.surgeEndsAtSeconds > elapsedSeconds) return;
+    if (this.queuedEventFamily === null) return;
+    if (elapsedSeconds < this.queuedTelegraphEndsAtSeconds) return;
+    if (baseState === 'RECOVERY') return;
+
+    this.surgeEndsAtSeconds =
+      elapsedSeconds + this.config.pacing.marketSurge.maxSeconds;
+    this.queuedEventFamily = null;
+    this.queuedTelegraphEndsAtSeconds = 0;
   }
 
   private initialize(seed: number): void {
@@ -125,6 +201,7 @@ export class PacingStateMachine {
     this.phaseStartsAtSeconds = 0;
     this.phaseEndsAtSeconds = this.getPhaseDuration(0, seed);
     this.lastElapsedSeconds = 0;
+    this.surgeEndsAtSeconds = NO_SURGE;
   }
 
   private getPhaseDuration(phaseIndex: number, seed: number): number {
@@ -146,7 +223,11 @@ export class PacingStateMachine {
       range.minSeconds + (range.maxSeconds - range.minSeconds) * unit;
     if (state !== 'RECOVERY') return baseDuration;
     const doomStacks = this.survivalCurve.getDoomStacks(this.phaseStartsAtSeconds);
-    return this.survivalCurve.getRecoveryDuration(baseDuration, doomStacks);
+    return this.survivalCurve.getRecoveryDuration(
+      baseDuration,
+      doomStacks,
+      this.greedRecoveryReduction
+    );
   }
 
   private getThreatMultiplier(state: BasePacingState): number {

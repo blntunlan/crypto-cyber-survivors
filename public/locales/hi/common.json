@@ -412,7 +412,15 @@
     "secure_rewards": "इनाम सुरक्षित करें",
     "decision_hint": "अधिक चक्र = अधिक एक्सपी और लूट",
     "cycle_count": "Cycle {{count}}",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "doom_stack": "DOOM STACK",
+    "support_efficiency": "SUPPORT",
+    "greed_controlled": "CONTROLLED",
+    "greed_risk": "RISK",
+    "greed_greed": "GREED",
+    "greed_frenzy": "FRENZY",
+    "greed_ruin": "RUIN",
+    "greed_doom": "DOOM GREED"
   },
   "hub": {
     "play": "खेलें",

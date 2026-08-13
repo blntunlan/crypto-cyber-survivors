@@ -24,6 +24,8 @@ const CUE_LABELS: Record<PresentationCue['type'], string> = {
   MARKET_STALE: 'Market feed delayed',
   MARKET_RECONNECTED: 'Market feed restored',
   SAFE_EXIT_AVAILABLE: 'Safe exit available',
+  DOOM_STACK_GAINED: 'Doom stack — recovery is shorter now',
+  GREED_LEVEL_GAINED: 'Greed rising — the run just got harder',
 };
 
 const getOverlayEffect = (
@@ -44,6 +46,10 @@ const getOverlayEffect = (
       return 'green_pulse';
     case 'SAFE_EXIT_AVAILABLE':
       return 'green_pulse';
+    case 'DOOM_STACK_GAINED':
+      return 'purple_chaos';
+    case 'GREED_LEVEL_GAINED':
+      return 'red_flash';
   }
 };
 
@@ -73,7 +79,10 @@ export class EventBusPresentationCueAdapter {
         title: 'MARKET SIGNAL',
         message: CUE_LABELS[cue.type],
         type:
-          cue.type === 'MARKET_STALE' || cue.type === 'ENCOUNTER_ACTIVE'
+          cue.type === 'MARKET_STALE' ||
+          cue.type === 'ENCOUNTER_ACTIVE' ||
+          cue.type === 'DOOM_STACK_GAINED' ||
+          cue.type === 'GREED_LEVEL_GAINED'
             ? 'warning'
             : cue.type === 'MARKET_RECONNECTED' || cue.type === 'SAFE_EXIT_AVAILABLE'
               ? 'success'

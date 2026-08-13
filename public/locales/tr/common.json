@@ -397,7 +397,15 @@
     "secure_rewards": "Ödüllerini güvence altına al",
     "decision_hint": "Yüksek döngüler = Daha fazla XP ve daha iyi ganimet",
     "cycle_count": "Döngü {{count}}",
-    "anonymous": "Anonim"
+    "anonymous": "Anonim",
+    "doom_stack": "DOOM KATMANI",
+    "support_efficiency": "DESTEK",
+    "greed_controlled": "KONTROLLU",
+    "greed_risk": "RISK",
+    "greed_greed": "ACGOZLULUK",
+    "greed_frenzy": "CILGINLIK",
+    "greed_ruin": "YIKIM",
+    "greed_doom": "DOOM ACGOZLULUK"
   },
   "hub": {
     "play": "OYNA",

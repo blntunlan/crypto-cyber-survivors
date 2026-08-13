@@ -7,3 +7,4 @@ export { DiamondHandsDecorator } from './DiamondHandsDecorator';
 export { BerserkDecorator } from './BerserkDecorator';
 export { LuckBoostDecorator } from './LuckBoostDecorator';
 export { OverclockContractDecorator } from './OverclockContractDecorator';
+export { MomentumWindowDecorator } from './MomentumWindowDecorator';

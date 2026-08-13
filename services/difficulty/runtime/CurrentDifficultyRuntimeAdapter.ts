@@ -8,13 +8,19 @@ import {
   type PositionRiskSnapshot,
   type SpawnPlan,
 } from '../../director/contracts';
+import { type DirectorContractViolation } from '../../director/DirectorContractGuard';
+import { EventBus } from '../../core/EventBus';
+import { Logger } from '../../system/Logger';
 import { type DifficultyBoundaryInput } from './DifficultyRuntime';
 
 export type CurrentDifficultyRuntimeDecision = {
   snapshot: GameplaySnapshot | null;
   plan: SpawnPlan;
   position: PositionRiskSnapshot;
+  violations: readonly DirectorContractViolation[];
 };
+
+const NO_VIOLATIONS: readonly DirectorContractViolation[] = [];
 
 const createEmptyPlan = (): SpawnPlan => ({
   revision: 0,
@@ -100,7 +106,11 @@ export class CurrentDifficultyRuntimeAdapter {
     snapshot: null,
     plan: this.emptyPlan,
     position: this.emptyPosition,
+    violations: NO_VIOLATIONS,
   };
+  private readonly reportedViolations = new Set<DirectorContractViolation>();
+  private lastDoomStacks = 0;
+  private lastGreedLevel = 0;
 
   public commitAtBoundary(
     boundary: DifficultyBoundaryInput
@@ -141,13 +151,62 @@ export class CurrentDifficultyRuntimeAdapter {
     target.world.maxActiveEnemies = world.maximumEnemies;
     target.world.activePrimaryEncounters = world.activePrimaryEncounters;
     target.world.activeSupportEncounters = world.activeSupportEncounters;
-    return this.orchestrator.update(target);
+    const decision = this.orchestrator.update(target);
+    this.reportViolations(decision.violations, boundary.tick);
+    this.reportProgression(decision.snapshot);
+    return decision;
+  }
+
+  /** Lets the runtime keep Director-owned safe routes free of spawns (§10). */
+  public setBlockedPositionQuery(query: (x: number, y: number) => boolean): void {
+    this.orchestrator.setBlockedPositionQuery(query);
   }
 
   public reset(): void {
     this.orchestrator.reset();
+    this.reportedViolations.clear();
+    this.lastDoomStacks = 0;
+    this.lastGreedLevel = 0;
     this.emptyPlan.revision = 0;
     this.emptyPlan.seed = 0;
     this.emptyPlan.maxActiveEnemies = 0;
+  }
+
+  /**
+   * Doom and Greed only ever escalate, so the HUD is told on the transition
+   * rather than polled every commit (contract §8/§17).
+   */
+  private reportProgression(snapshot: GameplaySnapshot | null): void {
+    if (snapshot === null) return;
+    const doomStacks = snapshot.pacing.doomStacks;
+    const greedLevel = snapshot.greed.level;
+    if (doomStacks <= this.lastDoomStacks && greedLevel <= this.lastGreedLevel) return;
+
+    this.lastDoomStacks = Math.max(this.lastDoomStacks, doomStacks);
+    this.lastGreedLevel = Math.max(this.lastGreedLevel, greedLevel);
+    EventBus.emit('directorProgressionChanged', {
+      doomStacks: this.lastDoomStacks,
+      greedLevel: this.lastGreedLevel,
+      supportEfficiency: snapshot.pacing.supportEfficiency,
+    });
+  }
+
+  /**
+   * The Director stays side-effect free, so the runtime boundary owns
+   * reporting. Each code is logged once per run: a broken contract rule should
+   * be impossible to miss without drowning the console at 5Hz.
+   */
+  private reportViolations(
+    violations: readonly DirectorContractViolation[],
+    tick: number
+  ): void {
+    for (let index = 0; index < violations.length; index += 1) {
+      const violation = violations[index];
+      if (violation === undefined || this.reportedViolations.has(violation)) continue;
+      this.reportedViolations.add(violation);
+      Logger.error(
+        `[Director] Contract violation ${violation} at tick ${tick} — see Final Design Contract v1.0`
+      );
+    }
   }
 }

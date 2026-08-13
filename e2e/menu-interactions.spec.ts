@@ -59,16 +59,16 @@ test.describe('Menu Interactions and Theme Switching @smoke', () => {
 
   test('should change leverage and update label', async ({ page }) => {
     // Check initial label (assuming 1x or 5x)
-    // Find the 25x button in the leverage selector
-    const lev25Button = page.getByRole('button', { name: /^25x$/i });
-    await expect(lev25Button).toBeVisible();
-    await lev25Button.click();
+    // Find the 10x button in the leverage selector
+    const lev10Button = page.getByRole('button', { name: /^10x$/i });
+    await expect(lev10Button).toBeVisible();
+    await lev10Button.click();
 
-    // Verify the leverage label updates to 'RISKY' and '25x'
+    // Verify the leverage label updates to 'RISKY' and '10x'
     await expect(page.getByText('RISKY')).toBeVisible();
 
-    // There should be at least 2 occurrences of "25x" (one on button, one in the summary label)
-    const count = await page.getByText('25x').count();
+    // There should be at least 2 occurrences of "10x" (one on button, one in the summary label)
+    const count = await page.getByText('10x').count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 

@@ -412,7 +412,15 @@
     "secure_rewards": "Segure suas recompensas",
     "decision_hint": "Mais ciclos = Mais XP e espólios",
     "cycle_count": "Cycle {{count}}",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "doom_stack": "CARGA DOOM",
+    "support_efficiency": "APOIO",
+    "greed_controlled": "CONTROLADO",
+    "greed_risk": "RISCO",
+    "greed_greed": "GANANCIA",
+    "greed_frenzy": "FRENESI",
+    "greed_ruin": "RUINA",
+    "greed_doom": "GANANCIA DOOM"
   },
   "hub": {
     "play": "JOGAR",

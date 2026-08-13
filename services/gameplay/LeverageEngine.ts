@@ -15,6 +15,7 @@
  * @see docs/MARKET_DRIVEN_GAMELOOP_V3.md
  */
 
+import { MAXIMUM_PUBLIC_LEVERAGE } from '../../types';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 
@@ -24,11 +25,16 @@ import { Logger } from '../system/Logger';
 
 export const LEVERAGE_ENGINE_CONFIG = {
   // --- Scaling Exponents ---
-  /** Logarithmic base for normalizing leverage to 0-1 range */
-  NORM_BASE: 101, // log2(leverage+1) / log2(101)
+  /**
+   * Logarithmic base for normalizing leverage to 0-1 range.
+   * Anchored to the public ladder ceiling (contract §6) so the top tier
+   * always sits at norm = 1; re-anchoring is required whenever the ladder
+   * changes, otherwise the top tier only reaches a fraction of the curve.
+   */
+  NORM_BASE: MAXIMUM_PUBLIC_LEVERAGE + 1, // log2(leverage+1) / log2(21)
 
   // --- Damage Taken (Fragility) Scaling ---
-  // Design spec target: 1x→1.0, 5x→1.20, 25x→1.80, 50x→2.40, 100x→3.00
+  // Design spec target: 1x→1.0, 2x→1.28, 5x→1.85, 10x→2.44, 20x→3.00
   // High leverage = GLASS CANNON, but survivable with skill.
   /** Base damage amplification at max leverage (before volatility) */
   DAMAGE_BASE_AMP: 2.0,
@@ -40,10 +46,10 @@ export const LEVERAGE_ENGINE_CONFIG = {
   // --- XP / Level Speed Scaling ---
   // XP speed is now controlled by LeverageEngine.gemValue + LEVERAGE_TIERS.xpReq only.
   // The separate xpGain multiplier was removed to prevent compounding (~64x at 100x).
-  // Effective leveling speed: 1x→1.0, 10x→1.4, 25x→1.8, 50x→2.5, 100x→3.6
+  // Effective leveling speed: 1x→1.0, 5x→1.2, 10x→1.4, 20x→1.8
 
   // --- Max HP Scaling ---
-  // Design spec target: 1x→1.0, 10x→0.88, 25x→0.77, 50x→0.67, 100x→0.60
+  // Design spec target: 1x→1.0, 2x→0.93, 5x→0.81, 10x→0.71, 20x→0.60
   // Higher leverage = less health, but floor raised for playability
   /** Max HP reduction per leverage norm unit */
   MAX_HP_REDUCTION: 0.4,
@@ -67,10 +73,11 @@ export const LEVERAGE_ENGINE_CONFIG = {
   ENEMY_DAMAGE_BASE_AMP: 1.5,
 
   // --- Gem/Reward Scaling ---
-  // Design spec target: 1x→1.0, 10x→1.07, 25x→1.19, 50x→1.39, 100x→1.79
-  // Reduced from 0.015 to prevent compounding with xpReq threshold reduction
+  // Design spec target: 1x→1.0, 2x→1.04, 5x→1.17, 10x→1.38, 20x→1.80
+  // Re-anchored with NORM_BASE so the top public tier keeps its previous
+  // top-of-ladder payoff instead of collapsing to 1.15.
   /** Gem value per leverage point (linear) */
-  GEM_PER_LEVERAGE: 0.008,
+  GEM_PER_LEVERAGE: 0.042,
 
   // --- Difficulty Ramp Speed ---
   /** How much faster difficulty escalates over time at high leverage */
@@ -171,7 +178,7 @@ class LeverageEngineClass {
    * Called once at game start, or when leverage changes mid-game.
    */
   setLeverage(leverage: number): void {
-    this.leverage = Math.max(1, Math.min(125, leverage));
+    this.leverage = Math.max(1, Math.min(MAXIMUM_PUBLIC_LEVERAGE, leverage));
     Logger.info(`[LeverageEngine] Leverage set to ${this.leverage}x`);
   }
 
@@ -195,11 +202,11 @@ class LeverageEngineClass {
     const pnl = this.pnlPercent;
 
     // Normalize leverage to 0-1 range using log2 curve
-    // 1x → 0, 10x → 0.48, 50x → 0.84, 100x → 1.0
+    // 1x → 0, 5x → 0.47, 10x → 0.72, 20x → 1.0
     const norm = (Math.log2(L + 1) - 1) / (Math.log2(C.NORM_BASE) - 1);
 
     // --- DAMAGE TAKEN (Fragility) ---
-    // 1x→1.0, 5x→1.35, 25x→2.10, 50x→2.80, 100x→3.50
+    // 1x→1.0, 2x→1.34, 5x→1.93, 10x→2.45, 20x→3.00
     // GLASS CANNON: High leverage players melt on contact.
     // Volatility amplifies danger, positive PnL provides small shield.
     const baseDamage = 1.0 + norm * C.DAMAGE_BASE_AMP;
@@ -221,7 +228,7 @@ class LeverageEngineClass {
     this.output.xpGain = 1.0;
 
     // --- MAX HP SCALE (Fragility) ---
-    // 1x→1.0, 10x→0.85, 25x→0.72, 50x→0.60, 100x→0.50
+    // 1x→1.0, 2x→0.93, 5x→0.81, 10x→0.71, 20x→0.60
     // High leverage characters literally have LESS health.
     this.output.maxHpScale = clamp(
       1.0 - norm * C.MAX_HP_REDUCTION,

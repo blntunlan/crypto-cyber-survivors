@@ -113,6 +113,10 @@ export type ThreatReservationInput = {
   requestedPressure: number;
   minimumPressure: number;
   maximumPressure: number;
+  /** Live 0..1 market pressure — feeds DirectorConfigV1.threat.weights.market. */
+  marketPressure: number;
+  /** Live 0..1 position headwind — feeds DirectorConfigV1.threat.weights.headwind. */
+  headwind: number;
   mercy: number;
   deltaSeconds: number;
   requestedCredits: number;
