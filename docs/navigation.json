@@ -113,6 +113,10 @@
         {
           "text": "Cosmetic Identity System Design",
           "link": "/docs/superpowers/specs/2026-07-14-cosmetic-identity-system-design"
+        },
+        {
+          "text": "Market-Driven System Design",
+          "link": "/docs/superpowers/specs/2026-07-26-market-driven-system-design"
         }
       ]
     },

@@ -18,12 +18,6 @@ vi.mock('../../services/system/CheatManager', () => ({
   },
 }));
 
-vi.mock('../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    recordKill: vi.fn(),
-  },
-}));
-
 vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     getXpMultiplier: vi.fn(() => 1),
