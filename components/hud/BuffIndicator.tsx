@@ -84,7 +84,7 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
 
   return (
     <div
-      className={`flex ${isMobile ? 'flex-row flex-wrap gap-1.5' : 'flex-col gap-1'} pointer-events-none mt-2`}
+      className={`flex ${isMobile ? 'flex-row flex-wrap gap-1.5' : 'flex-col items-start gap-1'} pointer-events-none mt-2`}
     >
       {displayEffects.map(effect => (
         <BuffItem

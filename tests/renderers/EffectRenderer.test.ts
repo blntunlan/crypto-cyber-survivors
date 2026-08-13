@@ -10,12 +10,6 @@ vi.mock('../../services/system/ThemeService', () => ({
   },
 }));
 
-vi.mock('../../services/core/TimeService', () => ({
-  TimeService: {
-    getGameTimeSeconds: vi.fn(() => 100),
-  },
-}));
-
 describe('EffectRenderer', () => {
   let renderer: EffectRenderer;
   let mockCtx: any;
@@ -97,12 +91,11 @@ describe('EffectRenderer', () => {
   });
 
   describe('render', () => {
-    it('should call all drawing layers', () => {
+    it('should call combat layers without market screen overlays', () => {
       const drawCritFlashSpy = vi.spyOn(renderer as any, 'drawCritFlash');
       const drawParticlesSpy = vi.spyOn(renderer as any, 'drawParticles');
       const drawFloatingTextsSpy = vi.spyOn(renderer as any, 'drawFloatingTexts');
       const drawSpeedLinesSpy = vi.spyOn(renderer as any, 'drawSpeedLines');
-      const drawMarketAmbianceSpy = vi.spyOn(renderer as any, 'drawMarketAmbiance');
 
       renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
 
@@ -110,7 +103,19 @@ describe('EffectRenderer', () => {
       expect(drawParticlesSpy).toHaveBeenCalled();
       expect(drawFloatingTextsSpy).toHaveBeenCalled();
       expect(drawSpeedLinesSpy).toHaveBeenCalled();
-      expect(drawMarketAmbianceSpy).toHaveBeenCalled();
+    });
+
+    it('should not tint the canvas for active market states', () => {
+      mockState.rsiVisualState = 'OVERSOLD';
+      mockState.marketPosition = 'LONG';
+      mockState.atrPercent = 5;
+      mockState.whaleEventTimer = 500;
+      mockState.spawnRateMultiplier = 1.5;
+
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
+
+      expect(mockCtx.fillRect).not.toHaveBeenCalledWith(0, 0, 800, 600);
+      expect(mockCtx.strokeRect).not.toHaveBeenCalled();
     });
 
     it('should skip particles and damage numbers if disabled in graphics config', () => {
@@ -160,20 +165,10 @@ describe('EffectRenderer', () => {
       ];
 
       const drawSpeedLinesSpy = vi.spyOn(renderer as any, 'drawSpeedLines');
-      const drawMomentumOverlaySpy = vi.spyOn(renderer as any, 'drawMomentumOverlay');
-      const drawMarketAmbianceSpy = vi.spyOn(renderer as any, 'drawMarketAmbiance');
 
       renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
 
       expect(drawSpeedLinesSpy).not.toHaveBeenCalled();
-      expect(drawMomentumOverlaySpy).not.toHaveBeenCalled();
-      expect(drawMarketAmbianceSpy).toHaveBeenCalledWith(
-        mockCtx,
-        800,
-        600,
-        mockState,
-        true
-      );
     });
   });
 
@@ -346,47 +341,6 @@ describe('EffectRenderer', () => {
       (renderer as any).drawSpeedLines(mockCtx, mockPool, mockPlayer);
 
       expect(mockCtx.fillRect).toHaveBeenCalled(); // Retro tip
-    });
-  });
-
-  describe('drawMarketAmbiance', () => {
-    it('should draw RSI tint', () => {
-      (ThemeService.isRetro as any).mockReturnValue(true);
-      mockState.rsiVisualState = 'OVERSOLD';
-      mockState.marketPosition = 'LONG'; // Favorable
-
-      (renderer as any).drawMarketAmbiance(mockCtx, 800, 600, mockState);
-
-      expect(mockCtx.fillStyle).toBe('#10b981');
-      expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 800, 600);
-    });
-
-    it('should draw unfavorable RSI tint', () => {
-      (ThemeService.isRetro as any).mockReturnValue(true);
-      mockState.rsiVisualState = 'OVERSOLD';
-      mockState.marketPosition = 'SHORT'; // Unfavorable
-
-      (renderer as any).drawMarketAmbiance(mockCtx, 800, 600, mockState);
-
-      expect(mockCtx.fillStyle).toBe('#ef4444');
-    });
-
-    it('should draw volatility pulse', () => {
-      (ThemeService.isRetro as any).mockReturnValue(true);
-      mockState.atrPercent = 5.0; // High ATR
-      mockState.lastFireTime = 314; // sin(314 * 0.005) approx sin(1.57) approx 1
-
-      (renderer as any).drawMarketAmbiance(mockCtx, 800, 600, mockState);
-
-      expect(mockCtx.strokeRect).toHaveBeenCalled();
-    });
-
-    it('should draw whale event splash', () => {
-      mockState.whaleEventTimer = 500;
-
-      (renderer as any).drawMarketAmbiance(mockCtx, 800, 600, mockState);
-
-      expect(mockCtx.createRadialGradient).toHaveBeenCalled();
     });
   });
 });

@@ -126,12 +126,6 @@ vi.mock('../../services/core/MetricsService', () => ({
     update: vi.fn(),
   },
 }));
-vi.mock('../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    getWaveMultiplier: vi.fn(() => 1),
-    updateWaveTimer: vi.fn(),
-  },
-}));
 vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     update: vi.fn(),

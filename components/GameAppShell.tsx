@@ -271,7 +271,10 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           return;
         }
 
-        if (marketData.price === 0) {
+        // Guards the keyboard path too — MainMenu only disables the buttons.
+        // Starting without a live tick books the entry price against a stale
+        // placeholder and the first real tick reads as a huge fake PnL.
+        if (!(marketData.price > 0)) {
           EventBus.emit('gameNotification', {
             title: 'Market Loading',
             message: 'Live market price is still connecting. Please wait a moment.',

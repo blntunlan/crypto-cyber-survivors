@@ -328,6 +328,12 @@ export const GAME_ENGINE = {
   GRID_OPACITY: 0.15,
   GRID_LINE_WIDTH: 1,
 
+  // PnL Backdrop (see utils/pnlBackdrop.ts). Neutral offsets keep the night-blue
+  // base; only drawdown tints the canvas, profit never does.
+  BG_NEUTRAL_G_OFFSET: 4,
+  BG_NEUTRAL_B_OFFSET: 21,
+  BG_PNL_DANGER_MAX_R: 45,
+
   // Background Rendering - Cyberpunk
   GRID_SIZE_CYBER: 100,
   BG_GRADIENT_RADIUS_FACTOR: 0.8,

@@ -103,9 +103,7 @@ describe('MainMenu', () => {
       '2x',
       '5x',
       '10x',
-      '25x',
-      '50x',
-      '100x',
+      '20x',
     ]);
     expect(buttons.every(button => button.dataset.uiVariant === 'leverage')).toBe(true);
   });
@@ -179,8 +177,8 @@ describe('MainMenu', () => {
   it('should select different leverage multipliers', () => {
     renderMainMenu();
 
-    const leverage100 = screen.getByText('100x');
-    fireEvent.click(leverage100);
+    const maxLeverage = screen.getByText('20x');
+    fireEvent.click(maxLeverage);
     // There are multiple "DEGEN" / "SPOT" labels (button and description)
     expect(screen.getAllByText('common.menu.lev_degen').length).toBeGreaterThan(0);
 
@@ -211,7 +209,7 @@ describe('MainMenu', () => {
       inline: 'nearest',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '25x' }));
+    fireEvent.click(screen.getByRole('button', { name: '20x' }));
     expect(scrollIntoView).toHaveBeenCalledTimes(2);
     expect(scrollIntoView).toHaveBeenLastCalledWith({
       behavior: 'smooth',
@@ -220,7 +218,7 @@ describe('MainMenu', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: /common\.long/i }));
-    expect(onStart).toHaveBeenCalledWith('LONG', 25);
+    expect(onStart).toHaveBeenCalledWith('LONG', 20);
 
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
@@ -255,13 +253,13 @@ describe('MainMenu', () => {
     for (let step = 0; step < 4; step += 1) {
       fireEvent.keyDown(window, { key: 'ArrowRight' });
     }
-    expect(screen.getByText('common.menu.lev_risky')).toBeInTheDocument();
+    expect(screen.getAllByText('common.menu.lev_degen').length).toBeGreaterThan(0);
 
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'Enter' });
 
     expect(audio.playLevelUp).toHaveBeenCalled();
-    expect(onStart).toHaveBeenCalledWith('LONG', 25);
+    expect(onStart).toHaveBeenCalledWith('LONG', 20);
   });
 
   it('wraps asset selection left from BTC to SOL via keyboard', () => {

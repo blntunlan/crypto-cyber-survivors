@@ -14,6 +14,7 @@ import { EventBus } from '../services/core/EventBus';
 import { audio } from '../services/audio';
 import {
   ANNOUNCER_MILESTONE_TYPES,
+  HIDDEN_GAMEPLAY_MILESTONE_TYPES,
   MILESTONE_ANNOUNCEMENT,
 } from '../config/MilestoneConfig';
 import { type MilestoneAchievedEvent } from '../types/events';
@@ -244,8 +245,7 @@ export function useHUDEvents(
           return;
         }
 
-        // Only show market-related milestones (e.g. Volatility Shock) in development mode
-        if (data.type === 'market' && !import.meta.env.DEV) {
+        if (HIDDEN_GAMEPLAY_MILESTONE_TYPES.has(data.type)) {
           return;
         }
 

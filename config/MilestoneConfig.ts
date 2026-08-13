@@ -278,6 +278,10 @@ export const ANNOUNCER_MILESTONE_TYPES: ReadonlySet<string> = new Set<MilestoneT
   'kills',
   'time',
   'level',
+]);
+
+export const HIDDEN_GAMEPLAY_MILESTONE_TYPES: ReadonlySet<string> = new Set([
   'pnl',
   'danger',
+  'market',
 ]);

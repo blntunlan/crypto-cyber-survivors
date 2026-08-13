@@ -99,12 +99,6 @@ vi.mock('../services/gameplay/MilestoneService', () => ({
   },
 }));
 
-vi.mock('../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    getTotalElapsedSeconds: vi.fn(() => 0),
-  },
-}));
-
 vi.mock('../services/core/GameStateMachine', () => ({
   GameStateMachine: {
     transition: transitionMock,

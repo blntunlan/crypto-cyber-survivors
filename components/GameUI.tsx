@@ -224,7 +224,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
           className="mt-2 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 lg:flex lg:justify-between lg:gap-4"
         >
           {/* Left Panel: Live Feed */}
-          <div className="hud-element-left flex w-full min-w-0 max-w-none flex-col gap-2 lg:max-w-[55%]">
+          <div className="hud-element-left flex w-full min-w-0 max-w-full flex-col gap-2 lg:w-auto lg:max-w-[55%]">
             <LiveFeed
               marketData={marketData}
               entryPrice={entryPrice}

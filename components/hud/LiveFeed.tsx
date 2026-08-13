@@ -13,6 +13,9 @@ import {
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HudGhostRail } from './HudGhostRail';
+import { HUD_WAR_ROOM } from '../../config/HUDWarRoom';
+import { MARKET_REGIME_TELEGRAPH } from '../../config/MarketRegimeTelegraph';
+import { useMarketRegime } from '../../hooks/useMarketRegime';
 import { LiveTicker } from '../themed/LiveTicker';
 import { ClientIndicatorService } from '../../services/indicators/ClientIndicatorService';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -112,6 +115,37 @@ const LiveInfoRow = memo(
 
 LiveInfoRow.displayName = 'LiveInfoRow';
 
+/**
+ * Market regime telegraph. The only channel left telling the player the tape
+ * changed after the market banner / announcements / canvas overlays were
+ * removed — deliberately confined to this rail (see config/MarketRegimeTelegraph).
+ */
+const MarketRegimeChip: React.FC = () => {
+  const { regime, isShifting, shiftKey } = useMarketRegime();
+  const color = MARKET_REGIME_TELEGRAPH.colors[regime];
+
+  return (
+    <div
+      key={shiftKey}
+      data-testid="market-regime-chip"
+      data-regime={regime}
+      data-shifting={isShifting}
+      className={`mb-1 flex items-center gap-1.5 self-start border-l px-1.5 py-0.5 font-cyber text-[9px] font-black uppercase tracking-[0.18em] transition-opacity duration-300 ${
+        isShifting ? 'opacity-100' : 'opacity-60'
+      }`}
+      style={{ borderColor: color, color }}
+    >
+      <span
+        className={`h-1 w-1 rounded-full ${isShifting ? 'animate-ping' : ''}`}
+        style={{ backgroundColor: color }}
+      />
+      {MARKET_REGIME_TELEGRAPH.labels[regime]}
+    </div>
+  );
+};
+
+MarketRegimeChip.displayName = 'MarketRegimeChip';
+
 const formatVolatility = (val: number) => `x${val.toFixed(2)}`;
 const formatPnlPct = (val: number) => `${(val * 100).toFixed(2)}%`;
 const formatPnlUsd = (val: number) => {
@@ -167,7 +201,11 @@ const DesktopLiveFeed: React.FC<
       testId="war-room-market-intel"
       side="left"
       tone="gold"
-      className="flex min-w-[220px] flex-col gap-0 py-1 transition-[width] duration-300"
+      className="flex w-full flex-col gap-0 py-1 transition-[width] duration-300"
+      style={{
+        minWidth: HUD_WAR_ROOM.liveFeed.minWidth,
+        maxWidth: HUD_WAR_ROOM.liveFeed.maxWidth,
+      }}
     >
       <div className="mb-2 flex items-center justify-between">
         <div
@@ -190,6 +228,8 @@ const DesktopLiveFeed: React.FC<
           </span>
         </div>
       </div>
+
+      <MarketRegimeChip />
 
       <div className="flex flex-col">
         <div
@@ -526,6 +566,8 @@ const MobileLiveFeed: React.FC<
             {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0)}
           </div>
         )}
+
+        <MarketRegimeChip />
 
         {/* Trend Indicator Mobile */}
         {clientIndicators && clientIndicators.trendDirection !== 'SIDEWAYS' && (

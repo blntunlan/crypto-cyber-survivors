@@ -298,7 +298,7 @@ export class BackgroundRenderer implements IRenderer {
    *
    * @param state - Game state containing candle definitions
    * @param pnl - Current profit/loss percentage (determines direction)
-   * @param waveMultiplier - Intensity multiplier from DifficultyManager
+   * @param waveMultiplier - Intensity multiplier from the Director runtime
    * @param momentum - Market momentum factor for parallax drift
    * @param dtFactor - Frame time scaling factor
    * @param width - Canvas width for wrapping

@@ -237,28 +237,38 @@ describe('useHUDEvents', () => {
       expect(shown).toEqual(['THIRD', 'FOURTH', 'FIFTH']);
     });
 
-    it('should play tension sound for danger announcements', () => {
-      const callbacks = captureCallbacks();
+    it.each([
+      ['pnl', 'pnl_5', 'KÂRDASIN', 'glint'],
+      ['danger', 'danger_10', 'DRAWDOWN ALERT', 'tension'],
+      ['market', 'market_shock', 'VOLATILITY SHOCK', 'glint'],
+    ])(
+      'should ignore %s milestones in gameplay announcements',
+      (type, id, name, sound) => {
+        const callbacks = captureCallbacks();
 
-      const { result } = renderHook(() =>
-        useHUDEvents(mockPlayer as any, GameStatus.PLAYING)
-      );
+        const { result } = renderHook(() =>
+          useHUDEvents(mockPlayer as Player, GameStatus.PLAYING)
+        );
 
-      act(() => {
-        callbacks.get('milestoneAchieved')!({
-          id: 'danger_10',
-          name: 'DRAWDOWN ALERT',
-          color: '#FF3D00',
-          type: 'danger',
-          threshold: -0.1,
-          severity: 'danger',
-          sound: 'tension',
+        act(() => {
+          callbacks.get('milestoneAchieved')!({
+            id,
+            name,
+            icon: '📈',
+            color: '#22c55e',
+            type,
+            threshold: type === 'pnl' ? 0.05 : -0.1,
+            severity: type === 'danger' ? 'danger' : 'celebration',
+            sound,
+          });
         });
-      });
 
-      expect(result.current.announcement?.kind).toBe('danger');
-      expect(audio.playSlowdownTension).toHaveBeenCalled();
-    });
+        expect(result.current.announcement).toBeNull();
+        expect(result.current.achievement).toBeNull();
+        expect(audio.playAchievementGlint).not.toHaveBeenCalled();
+        expect(audio.playSlowdownTension).not.toHaveBeenCalled();
+      }
+    );
 
     it('should keep non-run milestone types on the achievement popup path', () => {
       const callbacks = captureCallbacks();

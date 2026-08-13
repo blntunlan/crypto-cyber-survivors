@@ -4,6 +4,7 @@ import { LiveFeed } from '../../../components/hud/LiveFeed';
 import { screenService } from '../../../services/system/ScreenService';
 import { EventBus } from '../../../services/core/EventBus';
 import { type MarketData } from '../../../types';
+import { HUD_WAR_ROOM } from '../../../config/HUDWarRoom';
 
 const formatCurrency = (value: number, decimals = 2) =>
   `$${value.toLocaleString(undefined, {
@@ -137,6 +138,22 @@ describe('LiveFeed', () => {
     expect(rail).not.toHaveClass('backdrop-blur');
   });
 
+  it('caps the desktop rail width so rows never span the viewport', () => {
+    render(
+      <LiveFeed
+        marketData={mockMarketData}
+        entryPrice={48000}
+        priceColor="text-green-500"
+      />
+    );
+
+    const rail = screen.getByTestId('war-room-market-intel');
+    expect(rail).toHaveStyle({
+      minWidth: `${HUD_WAR_ROOM.liveFeed.minWidth}px`,
+      maxWidth: `${HUD_WAR_ROOM.liveFeed.maxWidth}px`,
+    });
+  });
+
   it('should render Mobile mode correctly', () => {
     (screenService.isMobile as any).mockReturnValue(true);
     render(
@@ -259,13 +276,13 @@ describe('LiveFeed', () => {
   });
 
   it('should show DEGEN badge for high leverage', () => {
-    const degenData: MarketData = { ...mockMarketData, leverage: 100 };
+    const degenData: MarketData = { ...mockMarketData, leverage: 20 };
     render(
       <LiveFeed marketData={degenData} entryPrice={48000} priceColor="text-green-500" />
     );
 
     expect(screen.getByText(/DEGEN/)).toBeInTheDocument();
-    expect(screen.getByText(/100X/)).toBeInTheDocument();
+    expect(screen.getByText(/20X/)).toBeInTheDocument();
   });
 
   it('should handle retro theme styling', async () => {
