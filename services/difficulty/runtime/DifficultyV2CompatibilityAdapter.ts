@@ -20,7 +20,7 @@ export class DifficultyV2CompatibilityAdapter {
       shockActive:
         snapshot.signals.market.volatility >=
         DIFFICULTY_RUNTIME_CONFIG.compatibility.shockThreshold,
-      spawnRate: cadence > 0 ? 1 / cadence : 1,
+      spawnRate: cadence > 0 ? 1 / Math.max(0.05, cadence) : 1,
       enemySpeed: snapshot.enemy.speedMultiplier,
       enemyHP: snapshot.enemy.healthMultiplier,
       enemyDamage: snapshot.enemy.damageMultiplier,
@@ -45,10 +45,11 @@ export class DifficultyV2CompatibilityAdapter {
         ? 'NONE'
         : this.getLiquidationWarning(previous.signals.position.liquidationProximity);
     if (warning !== previousWarning) {
+      const safeDistance = Math.max(0, 1 - proximity);
       EventBus.emit('liquidationWarning', {
         level: warning,
-        distance: 1 - proximity,
-        distanceToLiquidation: 1 - proximity,
+        distance: safeDistance,
+        distanceToLiquidation: safeDistance,
         fovReduction:
           proximity * DIFFICULTY_RUNTIME_CONFIG.compatibility.maximumFovReduction,
         sourceSnapshotRevision: current.meta.revision,
@@ -73,6 +74,9 @@ export class DifficultyV2CompatibilityAdapter {
     EventBus.emit('difficultyUpdated', {
       trendAlignment: this.getTrendAlignment(current),
       lootboxDropChance: this.getLootboxDropChance(current),
+      presentationIntensity: current.presentation.intensity,
+      suggestedBpm: current.presentation.suggestedBpm,
+      audioIntensity: current.presentation.audioIntensity,
       sourceSnapshotRevision: current.meta.revision,
     });
   }

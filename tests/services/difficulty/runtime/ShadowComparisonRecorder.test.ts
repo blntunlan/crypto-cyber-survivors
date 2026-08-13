@@ -121,4 +121,23 @@ describe('ShadowComparisonRecorder', () => {
       'three',
     ]);
   });
+
+  it('verifies 100% zero-drift parity over a 1000-tick simulated gameplay sequence', () => {
+    const recorder = new ShadowComparisonRecorder({
+      ...SHADOW_COMPARISON_CONFIG,
+      capacity: 1000,
+    });
+
+    for (let tick = 1; tick <= 1000; tick++) {
+      const current = createCurrent({ revision: tick });
+      const modular = createModular({ 'meta.revision': tick });
+      const record = recorder.record(`tick-${tick}`, current, modular);
+      expect(record.passed).toBe(true);
+      expect(record.failures).toHaveLength(0);
+    }
+
+    const records = recorder.getRecords();
+    expect(records).toHaveLength(1000);
+    expect(records.every(r => r.passed)).toBe(true);
+  });
 });

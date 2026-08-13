@@ -140,6 +140,13 @@ export const DIFFICULTY_RUNTIME_CONFIG = {
     positionHeadwindWeight: 0.25,
     playerChallengeWeight: 0.25,
     requestedCreditsAtMaximumPressure: 12,
+    /**
+     * Market pressure is a 0..1 unit value; this is the point it is treated as
+     * "nothing to say". Below it the tape relieves pressure, above it the tape
+     * adds pressure. Without a neutral point the market term could only ever
+     * push upward and therefore behaved as a constant offset.
+     */
+    marketNeutralPressure: 0.5,
   },
   pressureBands: {
     reliefMaximum: 0.2,

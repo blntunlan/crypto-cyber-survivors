@@ -74,6 +74,10 @@ const createNeutralMarketDecision = (
 const maxInputRevision = (revisions: Readonly<DifficultyRevisionVector>): number =>
   Math.max(revisions.market, revisions.player, revisions.run, revisions.world);
 
+/** Clamps a signed deviation into [-1, 1], mapping non-finite input to 0. */
+const clampSigned = (value: number): number =>
+  Number.isFinite(value) ? Math.min(1, Math.max(-1, value)) : 0;
+
 export class DifficultyRuntimeOrchestrator {
   private readonly marketManager: MarketRegimeManager;
   private readonly playerManager = new PlayerAdaptationManager();
@@ -196,15 +200,43 @@ export class DifficultyRuntimeOrchestrator {
       inputRevision,
     });
     const combination = DIFFICULTY_RUNTIME_CONFIG.combination;
-    const requestedPressure =
-      pacing.value.baselinePressure +
-      market.value.pressure * combination.marketPressureWeight +
-      position.value.headwind * combination.positionHeadwindWeight +
+    // The modifiers are signed deviations around their neutral point, then
+    // normalised so their combined range maps exactly onto the pacing band.
+    //
+    // They used to be added raw: market pressure alone (0..1 x 0.35) could
+    // exceed the +-0.15 band on its own, so requestedPressure sat permanently
+    // clamped at the ceiling and no market move could change anything. Centring
+    // market at its neutral 0.5 also lets a genuinely calm tape *lower*
+    // pressure instead of only ever pushing up.
+    const marketDeviation =
+      (market.value.pressure - combination.marketNeutralPressure) *
+      combination.marketPressureWeight;
+    const headwindDeviation =
+      position.value.headwind * combination.positionHeadwindWeight;
+    const playerDeviation =
       player.value.challengeAdjustment * combination.playerChallengeWeight;
+    const maximumDeviation =
+      (1 - combination.marketNeutralPressure) * combination.marketPressureWeight +
+      combination.positionHeadwindWeight +
+      combination.playerChallengeWeight;
+    const normalizedDeviation =
+      maximumDeviation > 0
+        ? clampSigned(
+            (marketDeviation + headwindDeviation + playerDeviation) / maximumDeviation
+          )
+        : 0;
+    const bandWidth = DIFFICULTY_RUNTIME_CONFIG.pacing.pressureBandWidth;
+    const requestedPressure =
+      pacing.value.baselinePressure + normalizedDeviation * bandWidth;
     const reservation = this.threatManager.reserve({
       requestedPressure,
       minimumPressure: pacing.value.minimumPressure,
       maximumPressure: pacing.value.maximumPressure,
+      // The credit budget is the market's second, unbounded-by-pacing lever:
+      // DirectorConfigV1.threat.weights.market/headwind were multiplied by a
+      // hardcoded 0 here, so those tuned weights had no effect at all.
+      marketPressure: market.value.pressure,
+      headwind: position.value.headwind,
       mercy: recovery.value.mercy,
       deltaSeconds,
       requestedCredits:

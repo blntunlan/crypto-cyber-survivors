@@ -408,11 +408,13 @@ export class DifficultyInputInbox {
       this.marketEligibleTick = NO_ELIGIBLE_TICK;
     }
     if (this.playerDirty && this.playerEligibleTick <= tick) {
-      this.playerView.damageTaken = this.pendingDamageTaken;
-      this.playerView.remainingHp = this.pendingRemainingHp;
-      this.playerView.killsInWindow = this.pendingKills;
-      this.playerView.dashesInWindow = this.pendingDashes;
-      this.playerView.shotsInWindow = this.pendingShots;
+      this.playerView.damageTaken += this.pendingDamageTaken;
+      if (this.pendingRemainingHp > 0) {
+        this.playerView.remainingHp = this.pendingRemainingHp;
+      }
+      this.playerView.killsInWindow += this.pendingKills;
+      this.playerView.dashesInWindow += this.pendingDashes;
+      this.playerView.shotsInWindow += this.pendingShots;
       this.playerView.level = this.pendingLevel;
       this.clearPendingPlayerTelemetry();
       this.playerDirty = false;

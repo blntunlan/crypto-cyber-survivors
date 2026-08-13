@@ -57,8 +57,23 @@ const deepFreeze = <TValue>(value: TValue): ReadonlyDeep<TValue> => {
   return value as ReadonlyDeep<TValue>;
 };
 
+const canonicalStringify = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalStringify).join(',')}]`;
+  }
+  const record = value as Record<string, unknown>;
+  const sortedKeys = Object.keys(record).sort();
+  const pairs = sortedKeys.map(
+    key => `${JSON.stringify(key)}:${canonicalStringify(record[key])}`
+  );
+  return `{${pairs.join(',')}}`;
+};
+
 const createHash = (value: unknown): string => {
-  const serialized = JSON.stringify(value);
+  const serialized = canonicalStringify(value);
   let hash = FNV_OFFSET_BASIS;
   for (let index = 0; index < serialized.length; index += 1) {
     hash = Math.imul(hash ^ serialized.charCodeAt(index), FNV_PRIME);

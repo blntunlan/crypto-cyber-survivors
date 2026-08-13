@@ -7,7 +7,12 @@ import {
   type MarketRegimeManagerInput,
 } from '../../../../services/difficulty/runtime/contracts';
 
-const createView = (marketRevision = 1): DifficultyRuntimeInputView => ({
+type MarketFrame = NonNullable<DifficultyRuntimeInputView['market']['frame']>;
+
+const createView = (
+  marketRevision = 1,
+  frameOverrides: Partial<MarketFrame> = {}
+): DifficultyRuntimeInputView => ({
   revisions: { market: marketRevision, player: 1, run: 1, world: 1 },
   market: {
     frame: {
@@ -29,6 +34,7 @@ const createView = (marketRevision = 1): DifficultyRuntimeInputView => ({
       trendStrength: 0.6,
       trendDirection: 'UP',
       source: 'runtime',
+      ...frameOverrides,
     },
   },
   player: {
@@ -91,6 +97,63 @@ describe('DifficultyRuntimeOrchestrator', () => {
     expect(result.snapshot.meta.quality).toBe('DEGRADED');
     expect(result.snapshot.signals.market.pressure).toBe(0);
     expect(result.snapshot.trace.fallbackCodes).toContain('MARKET_NEUTRAL_FALLBACK');
+  });
+
+  it('lets the market move threat pressure instead of pinning it', () => {
+    // Regression: market pressure was added raw (0..1 x 0.35) on top of the
+    // pacing baseline and then clamped to a +-0.15 band, so it saturated at the
+    // ceiling on every tick and no market move could change the run.
+    const calmView = createView(1, {
+      rsi: 50,
+      atrPercent: 0.001,
+      normalizedVolume: 0.02,
+      whaleTier: 0,
+      trendStrength: 0.02,
+    });
+    const hotView = createView(1, {
+      rsi: 92,
+      rsiState: 'OVERBOUGHT',
+      atrPercent: 0.09,
+      normalizedVolume: 0.98,
+      whaleTier: 3,
+      trendStrength: 0.95,
+    });
+
+    const calmRuntime = new DifficultyRuntimeOrchestrator();
+    const hotRuntime = new DifficultyRuntimeOrchestrator();
+    const calm = calmRuntime.commitIfNeeded(calmView, 10, 10).snapshot;
+    const hot = hotRuntime.commitIfNeeded(hotView, 10, 10).snapshot;
+
+    expect(hot.signals.market.pressure).toBeGreaterThan(calm.signals.market.pressure);
+    expect(hot.pressure.total).toBeGreaterThan(calm.pressure.total);
+    // The extra pressure reaches the entities the player actually fights.
+    expect(hot.enemy.healthMultiplier).toBeGreaterThan(calm.enemy.healthMultiplier);
+    expect(hot.spawn.spawnWindowSeconds).not.toBe(calm.spawn.spawnWindowSeconds);
+  });
+
+  it('feeds live market pressure into the threat credit budget', () => {
+    const calmView = createView(1);
+    const hotView = createView(1, {
+      atrPercent: 0.09,
+      normalizedVolume: 0.98,
+      whaleTier: 3,
+      trendStrength: 0.95,
+    });
+
+    const calm = new DifficultyRuntimeOrchestrator().commitIfNeeded(
+      calmView,
+      10,
+      10
+    ).snapshot;
+    const hot = new DifficultyRuntimeOrchestrator().commitIfNeeded(
+      hotView,
+      10,
+      10
+    ).snapshot;
+
+    // DirectorConfigV1.threat.weights.market used to be multiplied by a
+    // hardcoded 0 inside ThreatBudgetManager.
+    expect(hot.pressure.creditRate).toBeGreaterThan(calm.pressure.creditRate);
   });
 
   it('returns unchanged when neither cadence nor input revisions advance', () => {

@@ -51,8 +51,8 @@ export class ThreatBudgetManager {
     const budget = this.allocator.update({
       deltaSeconds: Math.max(0, input.deltaSeconds),
       survivalPressure: finalPressure,
-      marketPressure: 0,
-      headwind: 0,
+      marketPressure: clampUnit(input.marketPressure),
+      headwind: clampUnit(input.headwind),
       greedPressure: 0,
       encounterPressure: 0,
       pacingThreatMultiplier: 1,

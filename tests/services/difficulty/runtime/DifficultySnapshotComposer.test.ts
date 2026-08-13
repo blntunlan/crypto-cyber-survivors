@@ -178,4 +178,34 @@ describe('DifficultySnapshotComposer', () => {
     expect(ring.getByDecisionId(second.meta.decisionId)?.revision).toBe(2);
     expect(ring.getByRevision(3)?.revision).toBe(3);
   });
+
+  it('generates identical decisionId hash regardless of input property insertion order', () => {
+    const composer = new DifficultySnapshotComposer();
+    const input1 = createInput();
+    const input2 = createInput();
+
+    // Reorder properties in market value for input2
+    const marketValue1 = input1.market.value;
+    const marketValue2 = {
+      reasonCodes: [...marketValue1.reasonCodes],
+      activeEventFamily: marketValue1.activeEventFamily,
+      whalePressure: marketValue1.whalePressure,
+      rsiExtremity: marketValue1.rsiExtremity,
+      trend: marketValue1.trend,
+      volume: marketValue1.volume,
+      volatility: marketValue1.volatility,
+      pressure: marketValue1.pressure,
+      confidence: marketValue1.confidence,
+      regime: marketValue1.regime,
+      quality: marketValue1.quality,
+      sourceSequence: marketValue1.sourceSequence,
+    } as any;
+    input2.market = { ...input2.market, value: marketValue2 };
+
+    const snapshot1 = composer.compose(input1);
+    composer.reset();
+    const snapshot2 = composer.compose(input2);
+
+    expect(snapshot1.meta.decisionId).toBe(snapshot2.meta.decisionId);
+  });
 });

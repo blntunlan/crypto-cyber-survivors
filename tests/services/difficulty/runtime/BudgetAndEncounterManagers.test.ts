@@ -30,6 +30,8 @@ const createThreatInput = (
   requestedPressure: 1,
   minimumPressure: 0,
   maximumPressure: 1,
+  marketPressure: 0,
+  headwind: 0,
   mercy: 0,
   deltaSeconds: 10,
   requestedCredits: 4,

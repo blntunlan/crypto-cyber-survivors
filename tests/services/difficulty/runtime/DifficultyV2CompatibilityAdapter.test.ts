@@ -51,4 +51,26 @@ describe('DifficultyV2CompatibilityAdapter', () => {
     unsubscribeWarning();
     unsubscribeShock();
   });
+
+  it('clamps spawn rate cadence to 0.05s floor and liquidation distance to non-negative 0', () => {
+    const adapter = new DifficultyV2CompatibilityAdapter();
+    const snapshot = structuredClone(createSnapshot()) as any;
+    snapshot.pressure.spawnCadence = 0.001; // near-zero cadence
+    snapshot.signals.position.liquidationProximity = 1.3; // past liquidation
+
+    const output = adapter.toOutput(snapshot);
+    expect(output.spawnRate).toBe(20); // 1 / 0.05
+
+    const warning = vi.fn();
+    const unsubscribe = EventBus.on('liquidationWarning', warning);
+    adapter.emitTransitions(null, snapshot);
+
+    expect(warning).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distance: 0,
+        distanceToLiquidation: 0,
+      })
+    );
+    unsubscribe();
+  });
 });
