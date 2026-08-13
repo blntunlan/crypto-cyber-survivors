@@ -160,7 +160,7 @@ export class SpawnSystem implements ISpawnSystem {
     this.rsiSpawnCooldownTimer = Math.max(0, this.rsiSpawnCooldownTimer - deltaTime);
     this.attackCooldownTimer = Math.max(0, this.attackCooldownTimer - deltaTime);
 
-    // No direct AI Logic here - central logic is in DifficultyManager
+    // No direct AI Logic here - the Director runtime owns pacing decisions
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
 
     // 0. Cleanup Expired Events (Optimized for performance)

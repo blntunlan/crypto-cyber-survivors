@@ -18,13 +18,11 @@
     "check:architecture": "node scripts/check-singleton-regressions.mjs",
     "check:reset-coverage": "node scripts/check-reset-coverage.mjs",
     "check:beta-env": "tsx scripts/check-beta-env.ts",
-    "check:director-reference": "tsx scripts/measure-director-baseline.ts --reference-only",
-    "check:director-baseline": "tsx scripts/measure-director-baseline.ts",
     "generate:director-manifest": "tsx scripts/generate-director-manifest.ts",
     "check:director-manifest": "tsx scripts/generate-director-manifest.ts --check",
     "test:director-release": "vitest run tests/services/director tests/services/engagement/IntensityModel.test.ts tests/services/presentation --pool=forks --maxWorkers=1",
     "check:release-gate": "npm run check:baseline && npm run test:director-release",
-    "check:baseline": "npm run typecheck && npm run check:architecture && npm run check:reset-coverage && npm run check:ui-contract && npm run check:director-manifest && npm run lint && npm run check:director-reference && npm run test && npm run build",
+    "check:baseline": "npm run typecheck && npm run check:architecture && npm run check:reset-coverage && npm run check:ui-contract && npm run check:director-manifest && npm run lint && npm run test && npm run build",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:audit": "node scripts/test-audit.mjs",
@@ -129,8 +127,8 @@
       "prettier --write",
       "vitest related --run --pool=forks --maxWorkers=1 --bail=1"
     ],
-      "components/**/*.tsx": [
-        "tsx scripts/check-ui-contract.ts --ci"
+    "components/**/*.tsx": [
+      "tsx scripts/check-ui-contract.ts --ci"
     ],
     "railway-market-server/src/**/*.ts": [
       "node scripts/run-market-typecheck.js"

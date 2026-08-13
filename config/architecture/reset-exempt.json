@@ -41,7 +41,6 @@
     "services/system/ParticleConfigService.ts",
     "services/system/RailwayHealthService.ts",
     "services/system/ScreenService.ts",
-    "services/training/BacktestEngine.ts",
     "services/verification/VerificationQueue.ts"
   ]
 }

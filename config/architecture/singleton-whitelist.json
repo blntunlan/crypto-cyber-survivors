@@ -35,7 +35,6 @@
     "services/difficulty/aggregators/MarketInputAggregator.ts",
     "services/difficulty/aggregators/PlayerMetricsAggregator.ts",
     "services/gameplay/AchievementService.ts",
-    "services/gameplay/DifficultyManager.ts",
     "services/gameplay/LeverageEngine.ts",
     "services/gameplay/MilestoneService.ts",
     "services/gameplay/PortalSystemV2.ts",
@@ -66,7 +65,6 @@
     "services/system/RailwayHealthService.ts",
     "services/system/RuntimeDiagnosticsService.ts",
     "services/system/ScreenService.ts",
-    "services/training/BacktestEngine.ts",
     "services/verification/VerificationQueue.ts"
   ]
 }

@@ -61,7 +61,7 @@ export class VisualEffectServiceClass {
 
   /**
    * Calculates scaled intensity based on leverage.
-   * Power-law scaling: 1 + log10(L) * 0.5 (as defined in DifficultyManager)
+   * Power-law scaling: 1 + log10(L) * 0.5
    */
   public calculateLeverageScaledIntensity(
     baseIntensity: number,

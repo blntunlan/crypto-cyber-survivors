@@ -167,6 +167,16 @@ const DEFAULT_CORRECTIONS: FlowStateCorrections = {
   mercyReduction: 0,
 };
 
+// ── Ring-buffer capacity constants ──────────────────────────────────────
+// At 60 FPS a 60-second window can hold at most ~3 600 kills; 256 is
+// generous for realistic play. Damage events fit in a 10-second window
+// and even under extreme burst rarely exceed 128 hits. Fixed capacity
+// eliminates .push()-growth and per-event {time,amount,type} allocation.
+
+const KILL_RING_CAPACITY = 256;
+const DASH_RING_CAPACITY = 64;
+const DAMAGE_RING_CAPACITY = 128;
+
 /**
  * FlowStateManager - Singleton service for flow state management
  */
@@ -181,18 +191,25 @@ class FlowStateManagerClass {
   private stateStartTime: number = 0;
   private lastAnalysisTime: number = 0;
 
-  // Kill tracking ring buffer (60 seconds)
-  private killTimestamps: number[] = [];
+  // ── Pre-allocated ring buffers (zero allocation after init) ──────────
 
-  // Dash tracking ring buffer (10 seconds)
-  private dashTimestamps: number[] = [];
+  // Kill timestamp ring buffer (60 s window)
+  private readonly killRing = new Float64Array(KILL_RING_CAPACITY);
+  private killHead = 0;
+  private killCount = 0;
 
-  // Damage tracking
-  private damageEvents: Array<{
-    time: number;
-    amount: number;
-    type: 'dealt' | 'taken';
-  }> = [];
+  // Dash timestamp ring buffer (10 s window)
+  private readonly dashRing = new Float64Array(DASH_RING_CAPACITY);
+  private dashHead = 0;
+  private dashCount = 0;
+
+  // Damage event ring buffer — struct-of-arrays (no object allocation)
+  private readonly dmgTime = new Float64Array(DAMAGE_RING_CAPACITY);
+  private readonly dmgAmount = new Float64Array(DAMAGE_RING_CAPACITY);
+  /** 0 = taken, 1 = dealt */
+  private readonly dmgType = new Uint8Array(DAMAGE_RING_CAPACITY);
+  private dmgHead = 0;
+  private dmgCount = 0;
 
   private readonly corrections: FlowStateCorrections = { ...DEFAULT_CORRECTIONS };
   private readonly analysis: FlowStateAnalysis = {
@@ -293,14 +310,18 @@ class FlowStateManagerClass {
    * Record a kill event
    */
   recordKill(timestamp: number = TimeService.getGameTime()): void {
-    this.killTimestamps.push(timestamp);
+    this.killRing[this.killHead] = timestamp;
+    this.killHead = (this.killHead + 1) % KILL_RING_CAPACITY;
+    if (this.killCount < KILL_RING_CAPACITY) this.killCount += 1;
   }
 
   /**
    * Record a dash event
    */
   recordDash(timestamp: number = TimeService.getGameTime()): void {
-    this.dashTimestamps.push(timestamp);
+    this.dashRing[this.dashHead] = timestamp;
+    this.dashHead = (this.dashHead + 1) % DASH_RING_CAPACITY;
+    if (this.dashCount < DASH_RING_CAPACITY) this.dashCount += 1;
   }
 
   /**
@@ -310,7 +331,11 @@ class FlowStateManagerClass {
     amount: number,
     timestamp: number = TimeService.getGameTime()
   ): void {
-    this.damageEvents.push({ time: timestamp, amount, type: 'taken' });
+    this.dmgTime[this.dmgHead] = timestamp;
+    this.dmgAmount[this.dmgHead] = amount;
+    this.dmgType[this.dmgHead] = 0; // taken
+    this.dmgHead = (this.dmgHead + 1) % DAMAGE_RING_CAPACITY;
+    if (this.dmgCount < DAMAGE_RING_CAPACITY) this.dmgCount += 1;
   }
 
   /**
@@ -320,7 +345,11 @@ class FlowStateManagerClass {
     amount: number,
     timestamp: number = TimeService.getGameTime()
   ): void {
-    this.damageEvents.push({ time: timestamp, amount, type: 'dealt' });
+    this.dmgTime[this.dmgHead] = timestamp;
+    this.dmgAmount[this.dmgHead] = amount;
+    this.dmgType[this.dmgHead] = 1; // dealt
+    this.dmgHead = (this.dmgHead + 1) % DAMAGE_RING_CAPACITY;
+    if (this.dmgCount < DAMAGE_RING_CAPACITY) this.dmgCount += 1;
   }
 
   /**
@@ -353,9 +382,12 @@ class FlowStateManagerClass {
     this.currentState = 'flow';
     this.stateStartTime = now;
     this.lastAnalysisTime = 0;
-    this.killTimestamps.length = 0;
-    this.dashTimestamps.length = 0;
-    this.damageEvents.length = 0;
+    this.killHead = 0;
+    this.killCount = 0;
+    this.dashHead = 0;
+    this.dashCount = 0;
+    this.dmgHead = 0;
+    this.dmgCount = 0;
 
     Logger.debug('[FlowStateManager] Reset');
   }
@@ -407,64 +439,67 @@ class FlowStateManagerClass {
   }
 
   /**
-   * Clean events older than their tracking window
+   * Evict expired entries from ring buffers.
+   * Counts valid (non-expired) entries by scanning the buffer;
+   * the oldest entries naturally get overwritten when the buffer is full.
    */
   private cleanOldEvents(currentTime: number): void {
-    const killCutoff = currentTime - 60000; // 60s
-    const dashCutoff = currentTime - 10000; // 10s
-    const damageCutoff = currentTime - 10000; // 10s
+    const killCutoff = currentTime - 60000; // 60 s
+    const dashCutoff = currentTime - 10000; // 10 s
+    const damageCutoff = currentTime - 10000; // 10 s
 
-    let writeIndex = 0;
-    for (let readIndex = 0; readIndex < this.killTimestamps.length; readIndex += 1) {
-      const timestamp = this.killTimestamps[readIndex];
-      if (timestamp !== undefined && timestamp >= killCutoff) {
-        this.killTimestamps[writeIndex] = timestamp;
-        writeIndex += 1;
-      }
+    // Kill ring — count recent entries
+    let killValid = 0;
+    for (let i = 0; i < this.killCount; i++) {
+      const idx =
+        (this.killHead - this.killCount + i + KILL_RING_CAPACITY) % KILL_RING_CAPACITY;
+      if (this.killRing[idx]! >= killCutoff) killValid += 1;
     }
-    this.killTimestamps.length = writeIndex;
+    this.killCount = killValid;
 
-    writeIndex = 0;
-    for (let readIndex = 0; readIndex < this.dashTimestamps.length; readIndex += 1) {
-      const timestamp = this.dashTimestamps[readIndex];
-      if (timestamp !== undefined && timestamp >= dashCutoff) {
-        this.dashTimestamps[writeIndex] = timestamp;
-        writeIndex += 1;
-      }
+    // Dash ring — count recent entries
+    let dashValid = 0;
+    for (let i = 0; i < this.dashCount; i++) {
+      const idx =
+        (this.dashHead - this.dashCount + i + DASH_RING_CAPACITY) % DASH_RING_CAPACITY;
+      if (this.dashRing[idx]! >= dashCutoff) dashValid += 1;
     }
-    this.dashTimestamps.length = writeIndex;
+    this.dashCount = dashValid;
 
-    writeIndex = 0;
-    for (let readIndex = 0; readIndex < this.damageEvents.length; readIndex += 1) {
-      const event = this.damageEvents[readIndex];
-      if (event !== undefined && event.time >= damageCutoff) {
-        this.damageEvents[writeIndex] = event;
-        writeIndex += 1;
-      }
+    // Damage ring — count recent entries
+    let dmgValid = 0;
+    for (let i = 0; i < this.dmgCount; i++) {
+      const idx =
+        (this.dmgHead - this.dmgCount + i + DAMAGE_RING_CAPACITY) %
+        DAMAGE_RING_CAPACITY;
+      if (this.dmgTime[idx]! >= damageCutoff) dmgValid += 1;
     }
-    this.damageEvents.length = writeIndex;
+    this.dmgCount = dmgValid;
   }
 
   /**
-   * Update derived metrics from raw event data
+   * Update derived metrics from ring buffer data
    */
   private updateDerivedMetrics(currentTime: number): void {
-    // Kill rate (kills per minute)
-    this.metrics.killsLast60s = this.killTimestamps.length;
-    this.metrics.killRate = this.killTimestamps.length; // Already per 60s
+    // Kill rate (kills per minute) — killCount is already pruned to 60 s window
+    this.metrics.killsLast60s = this.killCount;
+    this.metrics.killRate = this.killCount; // Already per 60s
 
-    // Dash count
-    this.metrics.dashesLast10s = this.dashTimestamps.length;
+    // Dash count — dashCount is already pruned to 10 s window
+    this.metrics.dashesLast10s = this.dashCount;
 
-    // Damage tracking
+    // Damage tracking from ring buffer (struct-of-arrays)
     let damageTaken = 0;
     let damageDealt = 0;
-    for (let index = 0; index < this.damageEvents.length; index += 1) {
-      const event = this.damageEvents[index];
-      if (event?.type === 'taken') {
-        damageTaken += event.amount;
-      } else if (event?.type === 'dealt') {
-        damageDealt += event.amount;
+    for (let i = 0; i < this.dmgCount; i++) {
+      const idx =
+        (this.dmgHead - this.dmgCount + i + DAMAGE_RING_CAPACITY) %
+        DAMAGE_RING_CAPACITY;
+      const amount = this.dmgAmount[idx]!;
+      if (this.dmgType[idx] === 0) {
+        damageTaken += amount;
+      } else {
+        damageDealt += amount;
       }
     }
     this.metrics.damageTakenLast10s = damageTaken;
