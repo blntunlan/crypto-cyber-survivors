@@ -57,9 +57,18 @@ export class MarketSyncClient {
       };
     }
 
-    try {
-      const authHeaders = await this.getAuthHeaders();
+    const authHeaders = await this.getAuthHeaders();
+    if (!authHeaders['Authorization']) {
+      // Anonymous / not-yet-signed-in play. Posting anyway is a guaranteed 401
+      // on every market tick, so keep the evidence queued until a token exists.
+      return {
+        ok: false,
+        retriable: true,
+        error: 'Missing auth token',
+      };
+    }
 
+    try {
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
@@ -83,8 +92,16 @@ export class MarketSyncClient {
         return { ok: true, retriable: false, statusCode: response.status };
       }
 
-      // 4xx: usually not retriable. 5xx: retriable.
-      const retriable = response.status >= 500 || response.status === 429;
+      // 5xx and 429 are transient. 401/403 (token not issued yet) and 404
+      // (profile row not created yet) resolve themselves once the session
+      // finishes syncing, so they are transient too. Only a genuinely rejected
+      // payload (400/413/422) is permanent.
+      const retriable =
+        response.status >= 500 ||
+        response.status === 429 ||
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 404;
       return {
         ok: false,
         retriable,

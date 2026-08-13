@@ -237,7 +237,7 @@ router.get(
         return;
       }
 
-      const limit = Math.min(Number(req.query.limit) || 300, 1000);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 300, 1), 10000);
 
       const cacheKey = `${pair}_${limit}`;
       const cached = historyCache.get(cacheKey);

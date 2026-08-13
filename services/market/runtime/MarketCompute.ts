@@ -49,15 +49,37 @@ const computeTrueRange = (
   return Math.max(highLow, highPrevClose, lowPrevClose);
 };
 
+/**
+ * Percentile rank of the newest sample inside the rolling window.
+ *
+ * The previous min-max scaling returned exactly 1.0 whenever the newest sample
+ * happened to be the window maximum — which is most ticks on a rising volume
+ * feed. That pinned normalizedVolume (and therefore whaleTier, which is derived
+ * from it) to the ceiling for entire runs, so the volume and whale terms of the
+ * market pressure became constants. A percentile rank is bounded the same way
+ * but only reaches 1.0 when the sample genuinely dominates its own history.
+ */
 const normalizeVolume = (window: number[]): number => {
-  if (window.length === 0) return 0.5;
+  const count = window.length;
+  if (count === 0) return 0.5;
 
-  const min = Math.min(...window);
-  const max = Math.max(...window);
-  const latest = window[window.length - 1];
+  const latest = window[count - 1];
   if (latest === undefined) return 0.5;
-  if (max === min) return 0.5;
-  return clamp((latest - min) / (max - min), 0, 1);
+  if (count === 1) return 0.5;
+
+  let lowerCount = 0;
+  let equalCount = 0;
+  for (let index = 0; index < count; index += 1) {
+    const sample = window[index] ?? 0;
+    if (sample < latest) {
+      lowerCount += 1;
+    } else if (sample === latest) {
+      equalCount += 1;
+    }
+  }
+
+  // Ties share the band; subtract the sample itself from the equal count.
+  return clamp((lowerCount + Math.max(0, equalCount - 1) * 0.5) / (count - 1), 0, 1);
 };
 
 export interface MarketComputeState {
@@ -70,6 +92,8 @@ export interface MarketComputeState {
   atr: number | null;
   trWindow: number[];
   volumeWindow: number[];
+  /** Last raw feed volume, used to turn cumulative candle volume into a rate. */
+  prevRawVolume: number | null;
 }
 
 export interface MarketComputeOutput {
@@ -88,7 +112,22 @@ export const createInitialMarketComputeState = (): MarketComputeState => {
     atr: null,
     trWindow: [],
     volumeWindow: [],
+    prevRawVolume: null,
   };
+};
+
+/**
+ * The Binance `kline_1m` feed reports `k.v` — the *cumulative* base volume of
+ * the candle in progress — so it climbs monotonically for a minute and then
+ * resets. Fed straight into any normalizer, the newest sample is almost always
+ * its own window maximum and the result pins to 1.0 forever (which also pinned
+ * whaleTier to MEGA_WHALE). Convert it to a per-tick rate first; a drop means
+ * the candle rolled over, in which case the new level is itself the delta.
+ */
+const toVolumeRate = (rawVolume: number, prevRawVolume: number | null): number => {
+  if (!Number.isFinite(rawVolume) || rawVolume < 0) return 0;
+  if (prevRawVolume === null) return rawVolume;
+  return rawVolume >= prevRawVolume ? rawVolume - prevRawVolume : rawVolume;
 };
 
 const calculateDifficulty = (
@@ -190,7 +229,8 @@ export const computeRuntimeSnapshot = (
       : (previousState.atr * (ATR_PERIOD - 1) + trueRange) / ATR_PERIOD;
   const atrPercent = tick.price > 0 ? toFixed(atr / tick.price, 8) : 0;
 
-  const volumeWindow = [...previousState.volumeWindow, tick.volume].slice(
+  const volumeRate = toVolumeRate(tick.volume, previousState.prevRawVolume);
+  const volumeWindow = [...previousState.volumeWindow, volumeRate].slice(
     -VOLUME_WINDOW
   );
   const normalizedVolumeValue = toFixed(normalizeVolume(volumeWindow), 8);
@@ -249,6 +289,7 @@ export const computeRuntimeSnapshot = (
       atr,
       trWindow,
       volumeWindow,
+      prevRawVolume: tick.volume,
     },
   };
 };

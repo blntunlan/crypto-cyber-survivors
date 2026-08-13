@@ -123,7 +123,7 @@ export function getSSEClientCount(): number {
 router.get('/history', asyncHandler(async (req: Request, res: Response) => {
   try {
     const pair = (req.query.pair as string) ?? 'BTC';
-    const limit = Math.min(Number(req.query.limit) || 300, 1000);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 300, 1), 10000);
 
     const db = getDb();
     const result = await db.execute(

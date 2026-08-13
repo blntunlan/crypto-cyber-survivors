@@ -8,6 +8,7 @@ import {
 } from '../../../services/market/runtime/RuntimeContractBuilder';
 import { type MarketSyncRecord } from '../../../services/market/sync/MarketSyncStore';
 import { type MarketData } from '../../../types';
+import { Logger } from '../../../services/system/Logger';
 
 const createRecordInput = () => {
   const runConstants = createRunConstants({
@@ -284,6 +285,89 @@ describe('MarketSyncQueue', () => {
     expect(payload).toHaveLength(1);
     expect(payload?.[0]?.runId).toBe(runA);
     expect(store.acknowledge).toHaveBeenCalledWith([`${runA}:1`]);
+  });
+
+  it('never logs an error on a non-retriable failure', async () => {
+    // App.tsx turns every Logger.error into a player-facing SYSTEM ERROR toast.
+    const input = createRecordInput();
+    const batch = [
+      {
+        id: `${input.runConstants.runId}:1`,
+        runId: input.runConstants.runId,
+        seq: 1,
+        runConstants: input.runConstants,
+        tick: input.tick,
+        snapshot: input.snapshot,
+        status: 'pending' as const,
+        retryCount: 0,
+        nextRetryAt: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+
+    const store = createStoreMock() as any;
+    store.getFlushableBatch.mockResolvedValue(batch);
+    const client = {
+      sendBatch: vi.fn(async () => ({
+        ok: false,
+        retriable: false,
+        statusCode: 400,
+        error: 'HTTP 400',
+      })),
+    } as any;
+
+    const errorSpy = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+
+    await new MarketSyncQueue(store, client).flush();
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[MarketSyncQueue] Non-retriable sync failure',
+      expect.objectContaining({ statusCode: 400 })
+    );
+
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
+  it('drops records once they exhaust the retry budget', async () => {
+    const input = createRecordInput();
+    const batch = [
+      {
+        id: `${input.runConstants.runId}:1`,
+        runId: input.runConstants.runId,
+        seq: 1,
+        runConstants: input.runConstants,
+        tick: input.tick,
+        snapshot: input.snapshot,
+        status: 'pending' as const,
+        retryCount: 2,
+        nextRetryAt: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+
+    const store = createStoreMock() as any;
+    store.getFlushableBatch.mockResolvedValue(batch);
+    const client = {
+      sendBatch: vi.fn(async () => ({ ok: false, retriable: true, error: 'nope' })),
+    } as any;
+
+    const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+
+    const result = await new MarketSyncQueue(store, client, {
+      maxRetryCount: 3,
+    }).flush();
+
+    expect(store.acknowledge).toHaveBeenCalledWith([batch[0]?.id]);
+    expect(result.retried).toBe(0);
+    // Only the inflight marking, no retry write for the dropped record.
+    expect(store.updateRecords).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
   });
 
   it('waits and drains when another flush is already in progress', async () => {

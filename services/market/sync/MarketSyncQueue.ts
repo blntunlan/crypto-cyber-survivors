@@ -14,6 +14,8 @@ interface MarketSyncQueueConfig {
   flushIntervalMs: number;
   inflightRecoveryMs: number;
   maxFlushAllBatches: number;
+  /** Attempts before a record is discarded instead of retried forever. */
+  maxRetryCount: number;
 }
 
 const DEFAULT_QUEUE_CONFIG: MarketSyncQueueConfig = {
@@ -23,6 +25,7 @@ const DEFAULT_QUEUE_CONFIG: MarketSyncQueueConfig = {
   flushIntervalMs: 5_000,
   inflightRecoveryMs: 30_000,
   maxFlushAllBatches: 200,
+  maxRetryCount: 12,
 };
 
 type FlushReason = 'in_progress' | 'empty' | 'success' | 'retry_scheduled';
@@ -150,17 +153,36 @@ export class MarketSyncQueue {
 
       const retriable = result.retriable;
       if (!retriable) {
-        Logger.error('[MarketSyncQueue] Non-retriable sync failure', undefined, {
+        // Background evidence persistence — never Logger.error here. App.tsx
+        // turns every error log into a player-facing "SYSTEM ERROR" toast, and
+        // a failed audit upload must not interrupt a live run.
+        Logger.warn('[MarketSyncQueue] Non-retriable sync failure', {
           error: result.error,
           statusCode: result.statusCode,
         });
       }
 
       const now = Date.now();
-      const retryRecords = inflight.map(record =>
-        this.prepareRetry(record, now, retriable)
+      const exhausted = inflight.filter(
+        record => record.retryCount + 1 >= this.config.maxRetryCount
       );
-      await this.store.updateRecords(retryRecords);
+      if (exhausted.length > 0) {
+        // Otherwise these records retry against a permanently rejecting endpoint
+        // forever and the store grows for the whole session.
+        await this.store.acknowledge(exhausted.map(record => record.id));
+        Logger.warn('[MarketSyncQueue] Dropped records after max retries', {
+          dropped: exhausted.length,
+          maxRetryCount: this.config.maxRetryCount,
+        });
+      }
+
+      const retryRecords = inflight
+        .filter(record => record.retryCount + 1 < this.config.maxRetryCount)
+        .map(record => this.prepareRetry(record, now, retriable));
+      if (retryRecords.length > 0) {
+        await this.store.updateRecords(retryRecords);
+      }
+
       return {
         reason: 'retry_scheduled',
         processed: inflight.length,

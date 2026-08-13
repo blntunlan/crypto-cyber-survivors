@@ -88,7 +88,7 @@ describe('MarketApiClient', () => {
     await mod.marketApiClient.getHistory('ETH', 5000);
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      'https://api.example.com/api/v1/market/history?pair=ETH&limit=1000',
+      'https://api.example.com/api/v1/market/history?pair=ETH&limit=5000',
       expect.any(Object)
     );
   });

@@ -194,7 +194,7 @@ export class SSEMarketService {
           Logger.info(`[SSE] Using fallback price: ${this.lastKnownPrice}`);
         }
 
-        // Emit synthetic update every 1s so UnifiedDirector keeps receiving data
+        // Emit synthetic update every 1s so the Director runtime keeps receiving data
         if (this.isUsingFallbackData && this.lastKnownPrice !== null) {
           this.emitSyntheticUpdate();
         }

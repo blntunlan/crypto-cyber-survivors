@@ -73,7 +73,18 @@ class MarketEventConsolidatorClass {
 
     // Priority 2: clientIndicatorsUpdated — full indicator set from client
     EventBus.on('clientIndicatorsUpdated', data => {
-      if (this.hasRuntimeAuthority) return;
+      if (this.hasRuntimeAuthority) {
+        // The runtime snapshot is checksummed anti-cheat evidence and does not
+        // carry trend/price-change, so those three fields have no runtime
+        // source. Without this they froze at whatever the client last wrote
+        // before the first server snapshot and never moved again for the whole
+        // run — 20% of the market pressure weight stuck on a constant.
+        this.payload.priceChangePercent = data.priceChangePercent;
+        this.payload.trendStrength = data.trendStrength;
+        this.payload.trendDirection = data.trendDirection;
+        this.publish(Date.now());
+        return;
+      }
       this.payload.rsi = data.rsi;
       this.payload.rsiState = data.rsiState;
       this.payload.atrPercent = data.atrPercent;

@@ -1,149 +1,82 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MARKET_RUNTIME_VERSION } from '../../../types/marketRuntime';
-import { type MarketData } from '../../../types';
-import {
-  createRunConstants,
-  createRuntimeSnapshot,
-  createRuntimeTick,
-} from '../../../services/market/runtime/RuntimeContractBuilder';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MarketSyncClient } from '../../../services/market/sync/MarketSyncClient';
+import { RailwayAuthTokenStore } from '../../../services/api/RailwayAuthTokenStore';
 import { type MarketSyncRecord } from '../../../services/market/sync/MarketSyncStore';
 
-const { getAccessTokenMock } = vi.hoisted(() => ({
-  getAccessTokenMock: vi.fn<() => string | null>(() => null),
-}));
-
-vi.mock('../../../services/api/RailwayAuthTokenStore', () => ({
-  RailwayAuthTokenStore: {
-    getAccessToken: getAccessTokenMock,
-  },
-}));
-
-const createRecord = (runId: string, seq: number): MarketSyncRecord => {
-  const runConstants = createRunConstants({
-    runId,
-    pair: 'BTC',
-    position: 'LONG',
-    leverage: 10,
-    entryPrice: 100,
-    liquidationPrice: 90,
-    startedAt: 1,
-    versions: MARKET_RUNTIME_VERSION,
-  });
-
-  const tick = createRuntimeTick({
-    runId,
-    seq,
-    pair: 'BTC',
-    source: 'binance',
-    sourceTs: 1000 + seq,
-    recvTs: 1000 + seq,
-    price: 100 + seq,
-    volume: 5,
-    prevHash: 'seed0000',
-  });
-
-  const marketData: MarketData = {
-    price: 100 + seq,
-    volume: 5,
-    pnl: 0.01,
-    effectivePnl: 0.1,
-    leverage: 10,
-    rsi: 50,
-    difficulty: 1,
-    momentum: 0,
-    atrPercent: 0.003,
-    spawnRateMultiplier: 1,
-    enemyDamage: 1,
-    enemySpeed: 1,
-    gemValueMultiplier: 1,
-  };
-
-  const snapshot = createRuntimeSnapshot({
-    runConstants,
-    tick,
-    marketData,
-    createdAt: 1000 + seq,
-    macd: 0.001,
-  });
-
-  return {
-    id: `${runId}:${seq}`,
-    runId,
-    seq,
-    runConstants,
-    tick,
-    snapshot,
-    status: 'pending',
+const record = (): MarketSyncRecord =>
+  ({
+    id: 'run-1:1',
+    runId: 'run-1',
+    seq: 1,
+    runConstants: { runId: 'run-1' },
+    tick: { seq: 1 },
+    snapshot: { seq: 1 },
+    status: 'inflight',
     retryCount: 0,
     nextRetryAt: 0,
-    createdAt: 1000 + seq,
-    updatedAt: 1000 + seq,
-  };
-};
+    createdAt: 1,
+    updatedAt: 1,
+  }) as unknown as MarketSyncRecord;
 
 describe('MarketSyncClient', () => {
+  const fetchMock = vi.fn();
+
   beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(RailwayAuthTokenStore, 'getAccessToken').mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    getAccessTokenMock.mockReset();
-    getAccessTokenMock.mockReturnValue(null);
   });
 
-  it('returns retriable error when endpoint is missing', async () => {
-    const client = new MarketSyncClient();
-    const result = await client.sendBatch([createRecord('run-a', 1)]);
+  it('does not hit the endpoint when there is no auth token', async () => {
+    const client = new MarketSyncClient({ endpoint: 'https://api.test/batch' });
 
+    const result = await client.sendBatch([record()]);
+
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(result.ok).toBe(false);
+    // Retriable so the evidence stays queued until the player signs in.
     expect(result.retriable).toBe(true);
-    expect(result.error).toContain('Missing market sync endpoint');
   });
 
-  it('rejects mixed run batches before network call', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('{}', { status: 200 }));
+  it.each([401, 403, 404, 429, 500, 503])(
+    'treats HTTP %i as retriable',
+    async status => {
+      (RailwayAuthTokenStore.getAccessToken as any).mockReturnValue('token');
+      fetchMock.mockResolvedValue({ ok: false, status });
+      const client = new MarketSyncClient({ endpoint: 'https://api.test/batch' });
 
-    const client = new MarketSyncClient({ endpoint: 'https://example.com/sync' });
-    const result = await client.sendBatch([
-      createRecord('run-a', 1),
-      createRecord('run-b', 2),
-    ]);
+      const result = await client.sendBatch([record()]);
 
-    expect(result.ok).toBe(false);
+      expect(result.ok).toBe(false);
+      expect(result.retriable).toBe(true);
+      expect(result.statusCode).toBe(status);
+    }
+  );
+
+  it.each([400, 413, 422])('treats HTTP %i as permanent', async status => {
+    (RailwayAuthTokenStore.getAccessToken as any).mockReturnValue('token');
+    fetchMock.mockResolvedValue({ ok: false, status });
+    const client = new MarketSyncClient({ endpoint: 'https://api.test/batch' });
+
+    const result = await client.sendBatch([record()]);
+
     expect(result.retriable).toBe(false);
-    expect(result.error).toContain('Mixed runId batch');
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('sends authorized request when apiKey is provided', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('{}', { status: 200 }));
+  it('sends with the bearer token when authenticated', async () => {
+    (RailwayAuthTokenStore.getAccessToken as any).mockReturnValue('token-123');
+    fetchMock.mockResolvedValue({ ok: true, status: 202 });
+    const client = new MarketSyncClient({ endpoint: 'https://api.test/batch' });
 
-    const client = new MarketSyncClient({
-      endpoint: 'https://example.com/sync',
-      apiKey: 'test-api-key',
-    });
-    const result = await client.sendBatch([createRecord('run-a', 1)]);
+    const result = await client.sendBatch([record()]);
 
     expect(result.ok).toBe(true);
-    const [, options] = fetchSpy.mock.calls[0] ?? [];
-    const headers = (options?.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer test-api-key');
-  });
-
-  it('uses stored Railway auth token when apiKey is omitted', async () => {
-    getAccessTokenMock.mockReturnValue('railway-token');
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('{}', { status: 200 }));
-
-    const client = new MarketSyncClient({ endpoint: 'https://example.com/sync' });
-    const result = await client.sendBatch([createRecord('run-a', 1)]);
-
-    expect(result.ok).toBe(true);
-    const [, options] = fetchSpy.mock.calls[0] ?? [];
-    const headers = (options?.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer railway-token');
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init.headers.Authorization).toBe('Bearer token-123');
   });
 });

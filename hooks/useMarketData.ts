@@ -6,6 +6,7 @@ import {
   GameStatus,
   type Player,
   type LeverageOption,
+  normalizePublicLeverage,
 } from '../types';
 import {
   SSEMarketService,
@@ -14,7 +15,7 @@ import {
 } from '../services/market/SSEMarketService';
 import { MarketCalculator, type ATRContext } from '../services/market/MarketCalculator';
 import { createMarketSignalPipeline } from '../services/market/pipeline/MarketSignalPipeline';
-import { MAX_CHART_POINTS, MARKET } from '../constants';
+import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/core/EventBus';
 import { Logger } from '../services/system/Logger';
@@ -81,7 +82,7 @@ const createRuntimeMarketData = (
     volume: snapshot.volume,
     pnl: snapshot.rawPnl,
     effectivePnl: snapshot.effectivePnl,
-    leverage: runConstants.leverage as LeverageOption,
+    leverage: normalizePublicLeverage(runConstants.leverage),
     position: toMarketPosition(runConstants.position),
     liquidationPrice: runConstants.liquidationPrice,
     rsi: snapshot.rsi,
@@ -116,7 +117,10 @@ export const useMarketData = (
   marketRuntimeMode: MarketRuntimeMode = 'legacy'
 ) => {
   const [marketData, setMarketData] = useState<MarketData>({
-    price: entryPrice || MARKET.FALLBACK_PRICES[pair],
+    // 0 means "no live tick yet" — the menu gates the LONG/SHORT buttons on it.
+    // Seeding a hardcoded fallback price here let a run start against a stale
+    // constant and book a fake PnL the moment the first real tick landed.
+    price: entryPrice,
     volume: 0,
     pnl: 0,
     effectivePnl: 0,
@@ -250,7 +254,8 @@ export const useMarketData = (
 
     setMarketData(prev => ({
       ...prev,
-      price: entryPriceRef.current || MARKET.FALLBACK_PRICES[pair],
+      // Back to "awaiting first tick" for the new pair (see the initial state).
+      price: entryPriceRef.current,
       difficulty: 1,
       pnl: 0,
       effectivePnl: 0,
@@ -851,7 +856,7 @@ export const useMarketData = (
 
             const provisionalRuntimeData: MarketData = {
               ...nextData,
-              leverage: runtimeRunConstants.leverage as LeverageOption,
+              leverage: normalizePublicLeverage(runtimeRunConstants.leverage),
               position: toMarketPosition(runtimeRunConstants.position),
               liquidationPrice: runtimeRunConstants.liquidationPrice,
               runtimeRunId: runtimeRunConstants.runId,

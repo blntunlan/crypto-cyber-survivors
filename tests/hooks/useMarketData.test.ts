@@ -4,7 +4,6 @@ import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, type MarketData, type Player } from '../../types';
 import { EventBus } from '../../services/core/EventBus';
 import { createRuntimeSnapshot } from '../../services/market/runtime/RuntimeContractBuilder';
-import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 
 // Use vi.hoisted to share state between mock factory and tests
 const { callbackRef } = vi.hoisted(() => ({
@@ -134,14 +133,31 @@ describe('useMarketData', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should initialize with default market data', () => {
+  it('should initialize with no price until the first live tick', () => {
     const { result } = renderHook(() =>
       useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef, 'BTC')
     );
 
-    expect(result.current.marketData.price).toBe(43000);
+    // 0 gates the menu's LONG/SHORT buttons; a hardcoded fallback price here
+    // would let a run book its entry against a stale constant.
+    expect(result.current.marketData.price).toBe(0);
     expect(result.current.marketData.difficulty).toBe(1);
     expect(result.current.marketData.pair).toBe('BTC');
+  });
+
+  it('should seed the price from a restored entry price', () => {
+    const { result } = renderHook(() =>
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.LONG,
+        62_500,
+        1,
+        mockPlayerRef,
+        'BTC'
+      )
+    );
+
+    expect(result.current.marketData.price).toBe(62_500);
   });
 
   it('should update price when in MENU status', () => {
@@ -272,7 +288,6 @@ describe('useMarketData', () => {
 
   it('should apply worker snapshot authority in runtime mode', async () => {
     const emitSpy = vi.spyOn(EventBus, 'emit');
-    const difficultySpy = vi.spyOn(DifficultyManager, 'calculate');
 
     const { result } = renderHook(() =>
       useMarketData(
@@ -305,7 +320,6 @@ describe('useMarketData', () => {
     expect(result.current.marketData.rsiState).toBe('OVERBOUGHT');
     expect(result.current.marketData.normalizedVolume).toBe(0.9);
     expect(result.current.marketData.whaleTier).toBe(2);
-    expect(difficultySpy).not.toHaveBeenCalled();
 
     expect(emitSpy).toHaveBeenCalledWith(
       'marketRuntimeSnapshot',

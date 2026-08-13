@@ -111,4 +111,56 @@ describe('MarketCompute', () => {
     expect(out2.snapshot.whaleTier).toBeGreaterThanOrEqual(0);
     expect(out2.snapshot.whaleTier).toBeLessThanOrEqual(3);
   });
+
+  it('does not pin normalized volume to the ceiling on a rising feed', () => {
+    // Regression: min-max scaling returned exactly 1.0 whenever the newest
+    // sample was the window max, so a monotonically rising volume feed left
+    // normalizedVolume (and whaleTier) saturated for the whole run.
+    const runConstants = createRunConstants({
+      runId: 'run-volume',
+      pair: 'BTC',
+      position: 'LONG',
+      leverage: 1,
+      entryPrice: 40_000,
+      liquidationPrice: 20_000,
+      startedAt: 1,
+      versions: MARKET_RUNTIME_VERSION,
+    });
+
+    let state = createInitialMarketComputeState();
+    let previousSnapshot = null as Parameters<
+      typeof computeRuntimeSnapshot
+    >[0]['previousSnapshot'];
+    let prevHash = 'seed0000';
+    const observed: number[] = [];
+
+    for (let seq = 1; seq <= 12; seq += 1) {
+      const out = computeRuntimeSnapshot({
+        runConstants,
+        tick: createRuntimeTick({
+          runId: 'run-volume',
+          seq,
+          pair: 'BTC',
+          source: 'binance',
+          sourceTs: seq * 1_000,
+          recvTs: seq * 1_000,
+          price: 40_000 + seq,
+          volume: 10 + seq, // strictly rising: latest is always the window max
+          prevHash,
+        }),
+        previousSnapshot,
+        previousState: state,
+      });
+      state = out.nextState;
+      previousSnapshot = out.snapshot;
+      prevHash = out.snapshot.tickHash;
+      observed.push(out.snapshot.normalizedVolume);
+    }
+
+    const settled = observed.slice(2);
+    expect(settled.every(value => value >= 0 && value <= 1)).toBe(true);
+    // A rising feed should read as elevated, not as a permanent MEGA_WHALE.
+    expect(Math.max(...settled)).toBeLessThan(1);
+    expect(previousSnapshot!.whaleTier).toBeLessThan(3);
+  });
 });

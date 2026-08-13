@@ -277,7 +277,7 @@ describe('ClientIndicatorService', () => {
     });
   });
 
-  describe('UnifiedDirector Integration', () => {
+  describe('Director input contract', () => {
     it('should provide unified inputs for neural network', () => {
       service.update(50000, 1000000, Date.now());
 

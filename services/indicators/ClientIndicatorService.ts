@@ -30,7 +30,7 @@ import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 
 /**
- * Client indicator configuration - synced with UnifiedDirector expectations
+ * Client indicator configuration - synced with Director runtime expectations
  */
 export const CLIENT_INDICATOR_CONFIG = {
   // RSI settings
@@ -81,7 +81,7 @@ export const CLIENT_INDICATOR_CONFIG = {
 } as const;
 
 /**
- * Complete client-side indicator state for UnifiedDirector
+ * Complete client-side indicator state for the Director runtime
  */
 export interface ClientIndicatorState {
   // RSI Data (0-100 normalized to 0-1 for neural network)
@@ -196,7 +196,7 @@ class ClientIndicatorServiceClass {
    * @param price Current price
    * @param volume Current volume
    * @param timestamp Unix timestamp in ms
-   * @returns Complete indicator state for UnifiedDirector
+   * @returns Complete indicator state for the Director runtime
    */
   update(
     price: number,
@@ -432,7 +432,7 @@ class ClientIndicatorServiceClass {
   }
 
   /**
-   * Get state formatted for UnifiedDirector input
+   * Get state formatted for Director runtime input
    * Returns the 6 market data inputs expected by the neural network
    */
   getUnifiedInputs(): {

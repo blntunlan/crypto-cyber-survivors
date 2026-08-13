@@ -20,7 +20,9 @@ export interface RuntimeVersionInfo {
 
 // Phase-0 defaults. Later phases can bump these from runtime worker/controller.
 export const MARKET_RUNTIME_VERSION: RuntimeVersionInfo = {
-  algoVersion: 'runtime-shadow-v0',
+  // v1: volume is normalised as a percentile of the per-tick *rate* instead of
+  // the raw cumulative candle level (see MarketCompute.toVolumeRate).
+  algoVersion: 'runtime-shadow-v1',
   configVersion: 'runtime-config-v1',
 };
 
