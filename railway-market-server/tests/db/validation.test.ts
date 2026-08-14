@@ -109,13 +109,33 @@ describe('validation schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('rejects leverage > 500', () => {
+    it('rejects leverage above the public ladder', () => {
       const result = startSessionSchema.safeParse({
         pair: 'BTCUSD',
         leverage: 501,
         position: 'LONG',
       });
       expect(result.success).toBe(false);
+    });
+
+    it('rejects a retired tier so claimed risk cannot outrun the ladder', () => {
+      // Contract §6 keeps 50x closed; accepting it would inflate the reward
+      // risk factor for exposure the player never actually took.
+      for (const leverage of [25, 50, 100]) {
+        expect(
+          startSessionSchema.safeParse({ pair: 'BTCUSD', leverage, position: 'LONG' })
+            .success
+        ).toBe(false);
+      }
+    });
+
+    it('accepts every published public tier', () => {
+      for (const leverage of [1, 2, 5, 10, 20]) {
+        expect(
+          startSessionSchema.safeParse({ pair: 'BTCUSD', leverage, position: 'LONG' })
+            .success
+        ).toBe(true);
+      }
     });
 
     it('rejects leverage < 1', () => {
@@ -245,7 +265,7 @@ describe('validation schemas', () => {
         total_kills: 42,
         pair: 'BTCUSD',
         position: 'SHORT',
-        leverage: 50,
+        leverage: 20,
         replay_data: 'base64encodeddata',
       });
       expect(result.success).toBe(true);
@@ -260,7 +280,7 @@ describe('validation schemas', () => {
         total_kills: 42,
         pair: 'BTCUSD',
         position: 'SHORT',
-        leverage: 50,
+        leverage: 20,
         replay_data: 'data',
       });
       expect(result.success).toBe(false);

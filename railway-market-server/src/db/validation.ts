@@ -4,6 +4,22 @@
  */
 import { z } from 'zod';
 
+/**
+ * Final Design Contract v1.0 §6: the public ladder is 1/2/5/10/20 and 50x stays
+ * closed until telemetry supports it. Accepting an off-ladder value let a
+ * client claim risk it never took, which the reward risk factor then priced.
+ */
+export const PUBLIC_LEVERAGE_TIERS = [1, 2, 5, 10, 20] as const;
+
+const leverageSchema = z.coerce
+  .number()
+  .int()
+  .refine(
+    (value): boolean =>
+      (PUBLIC_LEVERAGE_TIERS as readonly number[]).includes(value),
+    { message: `leverage must be one of ${PUBLIC_LEVERAGE_TIERS.join(', ')}` }
+  );
+
 const exitTypeSchema = z.enum(['portal', 'death', 'afk_death', 'cycle_complete']);
 const portalTypeSchema = z.enum(['TAKE_PROFIT', 'STOP_LOSS', 'FLOW_EXIT', 'FORCED']);
 
@@ -35,7 +51,7 @@ export const updateProfileSchema = z.object({
 
 export const startSessionSchema = z.object({
   pair: z.string().min(1),
-  leverage: z.coerce.number().int().min(1).max(500),
+  leverage: leverageSchema,
   position: z.enum(['LONG', 'SHORT']),
   userId: z.string().optional(),
 });
@@ -264,7 +280,7 @@ export const saveReplaySchema = z.object({
   total_kills: z.coerce.number().int().min(0),
   pair: z.string().min(1),
   position: z.enum(['LONG', 'SHORT']),
-  leverage: z.coerce.number().int().min(1).max(500),
+  leverage: leverageSchema,
   replay_data: z.string().min(1), // base64 encoded
   version: z.coerce.number().int().default(2),
 });
