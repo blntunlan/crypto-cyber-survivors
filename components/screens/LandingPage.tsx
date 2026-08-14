@@ -117,12 +117,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Branding Sub-module */}
         <a
           href="#top"
-          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] lg:pr-0"
+          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
         >
-          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
+          <span className="cyber-sway-text inline-block pr-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
             CRYPTO
           </span>
-          <span className="cyber-sway-text -mt-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.4)] sm:text-2xl">
+          <span className="cyber-sway-text -mt-1 inline-block pr-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.4)] sm:text-2xl">
             SURVIVORS
           </span>
         </a>

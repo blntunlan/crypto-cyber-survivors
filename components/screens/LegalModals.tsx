@@ -50,12 +50,12 @@ const LegalPageLayout: React.FC<
       {/* Branding */}
       <a
         href="/"
-        className="flex flex-col transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F7931A]"
+        className="flex flex-col transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
-        <span className="font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
+        <span className="inline-block pr-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
           CRYPTO
         </span>
-        <span className="-mt-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-[#F7931A] drop-shadow-[0_0_12px_rgba(247,147,26,0.35)] sm:text-xl">
+        <span className="-mt-1 inline-block pr-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-amber-500 drop-shadow-[0_0_12px_rgba(245,158,11,0.35)] sm:text-xl">
           SURVIVORS
         </span>
       </a>

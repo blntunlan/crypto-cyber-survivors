@@ -36,23 +36,23 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
     <LazyMotion features={domAnimation}>
       <>
         {/* --- 08. FOOTER & LEGAL --- */}
-        <footer className="relative z-10 border-t border-[#b22222]/20 bg-black px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-          <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 sm:gap-12 md:flex-row md:items-center">
+        <footer className="relative z-10 border-t border-white/10 bg-[#020617]/90 px-4 py-8 backdrop-blur-md sm:px-6 sm:py-10">
+          <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             {/* Logo & Trademark */}
             <div>
-              <div className="mb-4 flex flex-col sm:mb-6">
-                <span className="cyber-sway-text font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
+              <div className="mb-3 flex flex-col">
+                <span className="cyber-sway-text inline-block pr-1 font-cyber text-base font-black uppercase italic leading-tight tracking-tight text-white sm:text-lg">
                   CRYPTO
                 </span>
-                <span className="cyber-sway-text -mt-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-[#F7931A] drop-shadow-[0_0_12px_rgba(247,147,26,0.35)] sm:text-xl">
+                <span className="cyber-sway-text -mt-1 inline-block pr-1 font-cyber text-base font-black uppercase italic leading-tight tracking-tight text-amber-500 drop-shadow-[0_0_12px_rgba(245,158,11,0.35)] sm:text-lg">
                   SURVIVORS
                 </span>
               </div>
-              <p className="mb-4 max-w-xs font-mono text-[10px] uppercase tracking-widest text-slate-400">
+              <p className="mb-3 max-w-xs font-mono text-[10px] uppercase tracking-widest text-slate-400">
                 Solo indie developer project. © 2026 Crypto Survivors.
               </p>
               {/* Social Links */}
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 {/* Discord - TODO: Replace with real link, then enable */}
                 <button
                   type="button"
@@ -93,27 +93,27 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
               <button
                 type="button"
                 onClick={onLaunch}
-                className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
+                className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
                 Play
               </button>
               <button
                 type="button"
                 onClick={onViewPrivacy}
-                className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
+                className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
                 Privacy
               </button>
               <button
                 type="button"
                 onClick={onViewTerms}
-                className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
+                className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
                 Terms
               </button>
               <a
                 href="mailto:info@crypto-survivors.com"
-                className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
+                className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
                 Contact
               </a>

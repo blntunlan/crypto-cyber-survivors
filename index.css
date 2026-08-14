@@ -30,11 +30,11 @@
   --ui-surface-inset: rgba(2, 6, 23, 0.7);
   --ui-text-primary: #f8fafc;
   --ui-text-muted: #94a3b8;
-  --ui-action-primary-surface: #0e7490;
-  --ui-action-primary-surface-hover: #0891b2;
-  --ui-action-primary-text: #ffffff;
-  --ui-action-primary-border: rgba(34, 211, 238, 0.55);
-  --ui-focus-ring: #22d3ee;
+  --ui-action-primary-surface: #d6b85c;
+  --ui-action-primary-surface-hover: #ffd600;
+  --ui-action-primary-text: #020617;
+  --ui-action-primary-border: rgba(214, 184, 92, 0.6);
+  --ui-focus-ring: #ffd600;
   --ui-status-success: #34d399;
   --ui-status-warning: #fbbf24;
   --ui-status-danger: #f87171;
@@ -792,14 +792,17 @@ canvas {
    text-shadow is static; only transform is animated (GPU-composited). */
 [data-theme='cyberpunk'] .cyber-sway-text {
   position: relative;
+  display: inline-block;
+  padding-right: 0.18em;
+  overflow: visible;
   text-shadow:
     2px 0 0 rgba(255, 0, 80, 0.5),
     -1px -1px 0 rgba(0, 255, 0, 0.5),
     1px 1px 0 rgba(0, 0, 255, 0.5);
   animation: cyber-sway 8s ease-in-out infinite;
   will-change: transform;
-  /* Isolate paint layer so text-shadow doesn't repaint parent */
-  contain: layout style paint;
+  /* Isolate layout and style without clipping paint bounds */
+  contain: layout style;
 }
 
 @keyframes cyber-sway {
