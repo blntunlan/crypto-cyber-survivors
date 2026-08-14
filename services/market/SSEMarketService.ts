@@ -81,7 +81,13 @@ export class SSEMarketService {
   }
 
   private getMarketBaseUrl(): string {
-    if (import.meta.env.MODE === 'development') {
+    if (
+      import.meta.env.MODE === 'development' ||
+      (import.meta.env.MODE !== 'test' &&
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1'))
+    ) {
       return '';
     }
 

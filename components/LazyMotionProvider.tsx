@@ -11,6 +11,9 @@ import { getRuntimeDebugFlags } from '../config/RuntimeDebugFlags';
 
 // Dynamically import only the DOM animation features we need
 // This is tree-shakeable and loads async
+// NOTE: must stay on the package root — `framer-motion/dom` does not export
+// `domAnimation`, and resolving it there leaves LazyMotion featureless, which
+// renders every `m.*` element as nothing (blank page, no FCP).
 const loadFeatures = () => import('framer-motion').then(mod => mod.domAnimation);
 
 interface LazyMotionProviderProps {

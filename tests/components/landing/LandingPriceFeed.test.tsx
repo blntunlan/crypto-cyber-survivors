@@ -43,7 +43,11 @@ describe('LandingPriceFeed', () => {
     await waitFor(() =>
       expect(mocks.getHistory).toHaveBeenCalledWith('BTC', expect.any(Number), 24)
     );
-    await waitFor(() => expect(screen.getByText('24H +20.00%')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('landing-window-change')).toHaveTextContent(
+        '24H +20.00%'
+      )
+    );
   });
 
   it('labels a short history span as WINDOW instead of claiming 24H', async () => {
@@ -55,6 +59,10 @@ describe('LandingPriceFeed', () => {
 
     render(<LandingPriceFeed />);
 
-    await waitFor(() => expect(screen.getByText('WINDOW +20.00%')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('landing-window-change')).toHaveTextContent(
+        'WINDOW +20.00%'
+      )
+    );
   });
 });

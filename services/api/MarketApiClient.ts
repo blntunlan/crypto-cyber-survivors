@@ -24,7 +24,13 @@ const MAX_HISTORY_WINDOW_HOURS = 72;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function getMarketBaseUrl(): string {
-  if (import.meta.env.MODE === 'development') {
+  if (
+    import.meta.env.MODE === 'development' ||
+    (import.meta.env.MODE !== 'test' &&
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'))
+  ) {
     return '';
   }
 

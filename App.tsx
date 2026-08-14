@@ -271,7 +271,13 @@ const AppSeoMetadata: React.FC<AppSeoMetadataProps> = ({
 
 // Preload card images after initial load (idle, non-blocking)
 if (typeof window !== 'undefined') {
-  const schedulePreload = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 3000));
+  // lib.dom declares requestIdleCallback as always present, so a `||` fallback
+  // reads as dead code to the linter — feature-test it the way
+  // useAppInitialization does instead.
+  const schedulePreload: (callback: () => void) => void =
+    'requestIdleCallback' in window
+      ? callback => window.requestIdleCallback(callback)
+      : callback => window.setTimeout(callback, 3000);
   schedulePreload(() => {
     void import('./services/system/ImagePreloader').then(({ ImagePreloader }) => {
       void ImagePreloader.preloadAll();
@@ -365,9 +371,8 @@ const App: React.FC = () => {
     async (replayId: string) => {
       setIsReplayLoading(true);
 
-      const { ReplayPlayerService } = await import(
-        './services/replay/ReplayPlayerService'
-      );
+      const { ReplayPlayerService } =
+        await import('./services/replay/ReplayPlayerService');
       const isLoaded = await ReplayPlayerService.loadReplayFromServer(replayId);
       setIsReplayLoading(false);
 

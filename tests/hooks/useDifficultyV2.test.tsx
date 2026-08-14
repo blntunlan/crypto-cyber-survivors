@@ -12,6 +12,8 @@ describe('useDifficultyV2', () => {
     expect(result.current.fovReduction).toBe(0);
     expect(result.current.shockActive).toBe(false);
     expect(result.current.total).toBe(1);
+    // Seeded, not observed — readers must be able to tell the two apart.
+    expect(result.current.hasSnapshot).toBe(false);
   });
 
   it('updates from a committed runtime snapshot', () => {
@@ -29,5 +31,6 @@ describe('useDifficultyV2', () => {
 
     expect(result.current.total).toBe(0.7);
     expect(result.current.output.enemyHP).toBe(1.4);
+    expect(result.current.hasSnapshot).toBe(true);
   });
 });

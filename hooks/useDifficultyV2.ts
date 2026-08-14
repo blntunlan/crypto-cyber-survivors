@@ -29,16 +29,23 @@ const compatibilityAdapter = new DifficultyV2CompatibilityAdapter();
 
 export function useDifficultyV2() {
   const [output, setOutput] = useState<DifficultyOutputV2>(RUNTIME_OUTPUT);
+  // `output` is seeded with neutral values so consumers never handle null, which
+  // also means they cannot tell seeded defaults from a committed snapshot.
+  // Surface that explicitly rather than leaving readers to guess.
+  const [hasSnapshot, setHasSnapshot] = useState(false);
+
   useEffect(
     () =>
       EventBus.on('difficultySnapshotCommitted', ({ snapshot }) => {
         setOutput(compatibilityAdapter.toOutput(snapshot));
+        setHasSnapshot(true);
       }),
     []
   );
 
   return {
     output,
+    hasSnapshot,
     fovReduction: output.fovReduction,
     shockActive: output.shockActive,
     total: output.total,

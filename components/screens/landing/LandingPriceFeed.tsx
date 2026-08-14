@@ -163,19 +163,77 @@ const getLatestPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
 const getPreviousPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
   points[points.length - 2] ?? getLatestPoint(points);
 
-const downsamplePoints = (
-  points: LandingMarketPoint[],
-  targetLength: number
-): LandingMarketPoint[] => {
-  if (points.length <= targetLength) return points;
+type ChartBucket = {
+  /** Position in the fixed time grid — drives x, so the axis stays linear. */
+  slot: number;
+  price: number;
+  volume: number;
+};
 
-  const sampled: LandingMarketPoint[] = [];
-  const step = (points.length - 1) / (targetLength - 1);
-  for (let index = 0; index < targetLength; index++) {
-    const point = points[Math.round(index * step)];
-    if (point) sampled.push(point);
+/**
+ * Collapse the series onto a fixed grid of equal *time* slices.
+ *
+ * Sampling by array index instead would give every point the same width, and
+ * the feed mixes a 24h history (one row per few minutes) with a live stream
+ * (one row per second) — so within a minute of page load the live tail would
+ * occupy a third of the chart and flatten the day behind it. Bucketing by
+ * timestamp keeps live ticks folded into the trailing slice, exactly like a
+ * candle still forming.
+ */
+const bucketPointsByTime = (
+  points: LandingMarketPoint[],
+  bucketCount: number
+): ChartBucket[] => {
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  if (!firstPoint || !lastPoint) return [];
+
+  const span = lastPoint.timestamp - firstPoint.timestamp;
+  if (span <= 0) {
+    return [
+      { slot: bucketCount - 1, price: lastPoint.price, volume: lastPoint.volume },
+    ];
   }
-  return sampled;
+
+  const closes = new Float64Array(bucketCount);
+  const volumeSums = new Float64Array(bucketCount);
+  const sampleCounts = new Uint32Array(bucketCount);
+
+  for (const point of points) {
+    // Clamped: an out-of-order tick would otherwise index outside the grid.
+    const slot = clamp(
+      Math.floor(((point.timestamp - firstPoint.timestamp) / span) * bucketCount),
+      0,
+      bucketCount - 1
+    );
+    // Last sample in the slice wins for price; volume averages over the slice.
+    closes[slot] = point.price;
+    volumeSums[slot] = (volumeSums[slot] ?? 0) + point.volume;
+    sampleCounts[slot] = (sampleCounts[slot] ?? 0) + 1;
+  }
+
+  const buckets: ChartBucket[] = [];
+  let carriedClose = 0;
+  for (let slot = 0; slot < bucketCount; slot++) {
+    const sampleCount = sampleCounts[slot] ?? 0;
+    if (sampleCount === 0) {
+      // Feed gap: hold the previous close so the line stays continuous rather
+      // than diving to zero. Nothing to hold before the first sample arrives.
+      if (carriedClose > 0) {
+        buckets.push({ slot, price: carriedClose, volume: 0 });
+      }
+      continue;
+    }
+
+    carriedClose = closes[slot] ?? carriedClose;
+    buckets.push({
+      slot,
+      price: carriedClose,
+      volume: (volumeSums[slot] ?? 0) / sampleCount,
+    });
+  }
+
+  return buckets;
 };
 
 type ChartCoordinate = { x: number; y: number; isUp: boolean };
@@ -197,6 +255,8 @@ type ChartModel = {
   gridLevels: ChartGridLevel[];
   volumeBars: ChartVolumeBar[];
   livePriceY: number;
+  /** Spread of the plotted window — sets axis tick precision. */
+  axisRange: number;
   windowChangePercent: number;
   isWindowUp: boolean;
   windowLabel: '24H' | 'WINDOW';
@@ -205,7 +265,12 @@ type ChartModel = {
 // Chart layout in the 0–100 SVG space: price plot on top, volume histogram below.
 const CHART_PRICE_TOP_Y = 8;
 const CHART_PRICE_BOTTOM_Y = 70;
+// The price area stops above the histogram — closing it at the very bottom
+// washed the volume bars in the price gradient.
+const CHART_AREA_BASE_Y = 75;
 const CHART_VOLUME_MAX_HEIGHT = 18;
+// An axis tick this close to the live-price marker would render underneath it.
+const AXIS_LABEL_COLLISION_Y = 7;
 
 const EMPTY_CHART_MODEL: ChartModel = {
   coordinates: [],
@@ -214,13 +279,24 @@ const EMPTY_CHART_MODEL: ChartModel = {
   gridLevels: [],
   volumeBars: [],
   livePriceY: 50,
+  axisRange: 0,
   windowChangePercent: 0,
   isWindowUp: true,
   windowLabel: 'WINDOW',
 };
 
-const formatAxisPrice = (price: number): string =>
-  `$${Math.round(price).toLocaleString('en-US')}`;
+/**
+ * Axis ticks live in a ~48px gutter, so full prices ("$63,974") spill back over
+ * the plot. Compact them, and keep enough precision that a tight window does
+ * not print the same number three times.
+ */
+const formatAxisPrice = (price: number, windowRange: number): string => {
+  if (price < 1000) {
+    return `$${price.toFixed(windowRange < 10 ? 2 : 0)}`;
+  }
+
+  return `$${(price / 1000).toFixed(windowRange < 200 ? 2 : 1)}K`;
+};
 
 const buildSmoothLinePath = (coordinates: ChartCoordinate[]): string => {
   const firstCoordinate = coordinates[0];
@@ -238,10 +314,12 @@ const buildSmoothLinePath = (coordinates: ChartCoordinate[]): string => {
 };
 
 const buildChartModel = (allPoints: LandingMarketPoint[]): ChartModel => {
-  const points = downsamplePoints(allPoints, MAX_FEED_POINTS);
-  if (points.length === 0) return EMPTY_CHART_MODEL;
+  const buckets = bucketPointsByTime(allPoints, MAX_FEED_POINTS);
+  const firstBucket = buckets[0];
+  const lastBucket = buckets[buckets.length - 1];
+  if (!firstBucket || !lastBucket) return EMPTY_CHART_MODEL;
 
-  const prices = points.map(point => point.price);
+  const prices = buckets.map(bucket => bucket.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   // Guard against a flat window so the line stays centered instead of exploding.
@@ -249,25 +327,29 @@ const buildChartModel = (allPoints: LandingMarketPoint[]): ChartModel => {
   const toY = (price: number): number =>
     CHART_PRICE_TOP_Y +
     ((maxPrice - price) / priceRange) * (CHART_PRICE_BOTTOM_Y - CHART_PRICE_TOP_Y);
+  const toX = (slot: number): number => (slot / Math.max(MAX_FEED_POINTS - 1, 1)) * 100;
 
-  const coordinates = points.map((point, index) => ({
-    x: (index / Math.max(points.length - 1, 1)) * 100,
-    y: toY(point.price),
-    isUp: point.price >= (points[index - 1] ?? point).price,
+  const coordinates = buckets.map((bucket, index) => ({
+    x: toX(bucket.slot),
+    y: toY(bucket.price),
+    isUp: bucket.price >= (buckets[index - 1] ?? bucket).price,
   }));
 
   const linePath = buildSmoothLinePath(coordinates);
   const gridLevels = [maxPrice, (maxPrice + minPrice) / 2, minPrice].map(price => ({
     y: toY(price),
-    label: formatAxisPrice(price),
+    label: formatAxisPrice(price, maxPrice - minPrice),
   }));
 
-  const maxVolume = Math.max(...points.map(point => point.normalizedVolume), 0.01);
-  const slotWidth = 100 / points.length;
-  const volumeBars = points.map((point, index) => {
-    const height = 2.5 + (point.normalizedVolume / maxVolume) * CHART_VOLUME_MAX_HEIGHT;
+  // Raw volume, not the indicator-normalized field: history rows pin
+  // `normalizedVolume` to a constant, which drew the day as a flat plateau
+  // next to the live tail's real values.
+  const maxVolume = Math.max(...buckets.map(bucket => bucket.volume), Number.EPSILON);
+  const slotWidth = 100 / MAX_FEED_POINTS;
+  const volumeBars = buckets.map((bucket, index) => {
+    const height = 2.5 + (bucket.volume / maxVolume) * CHART_VOLUME_MAX_HEIGHT;
     return {
-      x: slotWidth * index + slotWidth * 0.15,
+      x: toX(bucket.slot) * ((100 - slotWidth) / 100) + slotWidth * 0.15,
       width: slotWidth * 0.7,
       y: 100 - height,
       height,
@@ -275,20 +357,25 @@ const buildChartModel = (allPoints: LandingMarketPoint[]): ChartModel => {
     };
   });
 
-  const firstPrice = prices[0] ?? 0;
-  const lastPrice = prices[prices.length - 1] ?? 0;
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
+  const firstPrice = firstBucket.price;
+  const lastPrice = lastBucket.price;
+  // Measure the span on the raw series: bucketing snaps the endpoints onto the
+  // grid, which would shave a slice off the day and mislabel it as a WINDOW.
+  const firstPoint = allPoints[0];
+  const lastPoint = allPoints[allPoints.length - 1];
   const windowDuration =
     firstPoint && lastPoint ? lastPoint.timestamp - firstPoint.timestamp : 0;
 
   return {
     coordinates,
     linePath,
-    areaPath: linePath ? `${linePath} L 100 100 L 0 100 Z` : '',
+    areaPath: linePath
+      ? `${linePath} L ${coordinates[coordinates.length - 1]?.x.toFixed(2) ?? 100} ${CHART_AREA_BASE_Y} L ${firstBucket.slot === 0 ? '0' : toX(firstBucket.slot).toFixed(2)} ${CHART_AREA_BASE_Y} Z`
+      : '',
     gridLevels,
     volumeBars,
     livePriceY: coordinates[coordinates.length - 1]?.y ?? 50,
+    axisRange: maxPrice - minPrice,
     windowChangePercent:
       firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0,
     isWindowUp: lastPrice >= firstPrice,
@@ -489,8 +576,12 @@ export const LandingPriceFeed: React.FC = () => {
                 {formatDisplayPrice(latestPoint.price, feedStatus)}
               </div>
               <div
+                data-testid="landing-window-change"
                 className={`text-sm font-black ${priceChangePercent >= 0 ? 'text-[#6ee7b7]' : 'text-[#ff7777]'}`}
               >
+                <span className="mr-1 text-[10px] uppercase tracking-widest opacity-70">
+                  {chartModel.windowLabel}
+                </span>{' '}
                 {formatPercent(priceChangePercent)}
               </div>
             </div>
@@ -509,8 +600,10 @@ export const LandingPriceFeed: React.FC = () => {
         <div className="bg-[#05070d]/88 relative min-h-[170px] overflow-hidden border border-white/10 p-3 sm:min-h-[210px] sm:p-4">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(214,184,92,0.12),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.58))]" />
           <div className="relative z-10 h-44 w-full sm:h-56">
-            {/* Plot area — right gutter reserved for the price axis */}
-            <div className="absolute inset-y-0 left-0 right-12 sm:right-14">
+            {/* Plot area — right gutter reserved for the price axis. Keep the
+                inset and the axis width below in sync; the gutter also has to
+                clear the live orb, which straddles the plot's right edge. */}
+            <div className="absolute inset-y-0 left-0 right-16 sm:right-20">
               <svg
                 className="h-full w-full"
                 viewBox="0 0 100 100"
@@ -598,16 +691,9 @@ export const LandingPriceFeed: React.FC = () => {
                 />
               </svg>
 
-              <span
-                className={`absolute left-0 top-0 border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${
-                  chartModel.isWindowUp
-                    ? 'border-[#22c55e]/30 bg-[#22c55e]/10 text-[#6ee7b7]'
-                    : 'border-[#b22222]/40 bg-[#b22222]/15 text-[#ff7777]'
-                }`}
-              >
-                {chartModel.windowLabel} {formatPercent(chartModel.windowChangePercent)}
-              </span>
-              <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-600">
+              {/* The window change lives in the header next to the price — an
+                  in-plot badge repeated it and sat on top of the line. */}
+              <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-400">
                 VOL
               </span>
 
@@ -670,16 +756,20 @@ export const LandingPriceFeed: React.FC = () => {
             </div>
 
             {/* Price axis */}
-            <div className="absolute inset-y-0 right-0 w-12 border-l border-white/5 sm:w-14">
-              {chartModel.gridLevels.map((level, index) => (
-                <span
-                  key={`axis-${index}`}
-                  className="absolute right-0 -translate-y-1/2 pl-1 text-[8px] font-bold tracking-wide text-[#d6b85c]/60"
-                  style={{ top: `${level.y}%` }}
-                >
-                  {level.label}
-                </span>
-              ))}
+            <div className="absolute inset-y-0 right-0 w-16 border-l border-white/5 sm:w-20">
+              {chartModel.gridLevels.map((level, index) =>
+                // Ticks hidden behind the live marker read as a rendering glitch.
+                Math.abs(level.y - chartModel.livePriceY) <
+                AXIS_LABEL_COLLISION_Y ? null : (
+                  <span
+                    key={`axis-${index}`}
+                    className="absolute right-0 -translate-y-1/2 pl-1 text-[8px] font-bold tracking-wide text-[#d6b85c]/60"
+                    style={{ top: `${level.y}%` }}
+                  >
+                    {level.label}
+                  </span>
+                )
+              )}
               <span
                 className={`absolute right-0 z-10 -translate-y-1/2 px-1 py-0.5 text-[9px] font-black tracking-wide ${
                   orbColor === '#22c55e' || feedStatus === 'connecting'
@@ -693,7 +783,11 @@ export const LandingPriceFeed: React.FC = () => {
                   transition: glideTransition,
                 }}
               >
-                {formatDisplayPrice(latestPoint.price, feedStatus)}
+                {/* Compact: the full price is already set huge in the header,
+                    and it overflowed the gutter onto the page at full width. */}
+                {feedStatus === 'connecting' || latestPoint.price <= 0
+                  ? '···'
+                  : formatAxisPrice(latestPoint.price, chartModel.axisRange)}
               </span>
             </div>
           </div>

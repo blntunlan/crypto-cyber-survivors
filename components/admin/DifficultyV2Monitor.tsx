@@ -47,9 +47,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 };
 
 export const DifficultyV2Monitor: React.FC = () => {
-  const { output, total } = useDifficultyV2();
+  const { output, total, hasSnapshot } = useDifficultyV2();
 
-  if (!output) {
+  // Not `!output` — the hook seeds neutral values, so that guard was dead and
+  // the panel presented seeded 1.0s as if they were live readings.
+  if (!hasSnapshot) {
     return (
       <LazyMotion features={domAnimation}>
         <div className="animate-pulse rounded-sm border border-slate-800 bg-slate-900/50 p-4">
