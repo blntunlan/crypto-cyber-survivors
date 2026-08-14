@@ -25,6 +25,11 @@ const SINGLETON_PATTERNS = [
   /\bprivate\s+static\s+instance\b/,
   /\bstatic\s+getInstance\s*\(/,
   /\bexport\s+const\s+\w+\s*=\s*\w+(?:Class)?\.getInstance\(\)/,
+  // A module-level instance is a singleton whether or not it went through
+  // getInstance. Matching only the getInstance shape hid 24 of them — a third
+  // of the real global-mutable-state surface — from both this guard and the
+  // reset-coverage guard that builds on its whitelist.
+  /^export\s+const\s+\w+\s*=\s*new\s+\w+\s*\(/m,
 ];
 
 const toPosixPath = filePath => filePath.split(path.sep).join('/');

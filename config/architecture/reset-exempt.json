@@ -34,6 +34,22 @@
       "reason": "Account-scoped player identity plus a heartbeat timer; deliberately outlives a run."
     },
     {
+      "file": "services/analytics/ProductAnalyticsService.ts",
+      "reason": "trackedSeasonIds is a dedupe set for one-shot analytics; re-firing per run would be the bug."
+    },
+    {
+      "file": "services/audio/AudioService.ts",
+      "reason": "No instance fields; delegates to HowlerManager and SynthEngine."
+    },
+    {
+      "file": "services/audio/HowlerManager.ts",
+      "reason": "Sound cache and master volume; app-scoped infrastructure."
+    },
+    {
+      "file": "services/audio/SynthEngine.ts",
+      "reason": "Audio graph and volume; app-scoped infrastructure."
+    },
+    {
       "file": "services/auth/ProfileService.ts",
       "reason": "Account-scoped profile cache; outliving a run is the point."
     },
@@ -54,16 +70,20 @@
       "reason": "Stateless; no instance fields beyond the singleton handle."
     },
     {
+      "file": "services/challenges/ChallengeService.ts",
+      "reason": "NEEDS REVIEW: seven mutable fields including activeChallenge and objectives, with a reset() nothing on the canonical path calls. startTracking() runs at run start but was not verified to clear them."
+    },
+    {
       "file": "services/combat/CombatSystem.ts",
       "reason": "NEEDS REVIEW: module-level __debugFireCount is only zeroed in the constructor. DEV-only counter, unverified as intentional."
     },
     {
-      "file": "services/combat/PhysicsSystem.ts",
-      "reason": "Holds only its movement/collision/collection dependencies; those reset themselves."
-    },
-    {
       "file": "services/combat/physics/CollisionSystem.ts",
       "reason": "NEEDS REVIEW: nearby* scratch references to live entities are nulled on the normal path, but a throw between set and clear would pin a dead run."
+    },
+    {
+      "file": "services/combat/PhysicsSystem.ts",
+      "reason": "Holds only its movement/collision/collection dependencies; those reset themselves."
     },
     {
       "file": "services/core/ErrorRecoveryService.ts",
@@ -80,6 +100,10 @@
     {
       "file": "services/core/MetricsService.ts",
       "reason": "Session-scoped via startSession/endSession, driven from GameStateManager."
+    },
+    {
+      "file": "services/core/ReduxDevToolsBridge.ts",
+      "reason": "DEV-only bridge holding the devtools connection."
     },
     {
       "file": "services/core/TimeService.ts",
@@ -102,6 +126,10 @@
       "reason": "Stateless API wrapper; no instance fields."
     },
     {
+      "file": "services/gameplay/FeedbackService.ts",
+      "reason": "Subscriptions, config and a haptic cooldown timestamp; a stale cooldown at most delays one buzz."
+    },
+    {
       "file": "services/gameplay/WalletService.ts",
       "reason": "Stateless API wrapper; balances live server-side."
     },
@@ -110,8 +138,20 @@
       "reason": "Cache with explicit invalidate(); staleness is a cache concern, not run state."
     },
     {
+      "file": "services/lootbox/LootboxDropCalculator.ts",
+      "reason": "No instance fields; pure drop-table maths."
+    },
+    {
       "file": "services/market/MarketEventAnnouncer.ts",
       "reason": "NEEDS REVIEW: holds real per-run state and does have reset(), but it is called from a GameEngine effect rather than the canonical path, so it depends on that component staying mounted."
+    },
+    {
+      "file": "services/product/SeasonService.ts",
+      "reason": "No instance fields."
+    },
+    {
+      "file": "services/progression/MetaProgressionService.ts",
+      "reason": "Only an initialized flag; meta progression is account-scoped by definition."
     },
     {
       "file": "services/renderers/GameRenderer.ts",
@@ -122,6 +162,18 @@
       "reason": "Holds only static viewport bounds."
     },
     {
+      "file": "services/replay/ReplayPlayerService.ts",
+      "reason": "Playback state, cleared by reset() from App.tsx when the viewer exits."
+    },
+    {
+      "file": "services/replay/ReplayRecorderService.ts",
+      "reason": "Session-scoped: startRecording() clears snapshots, events, enemyFrames and every timer before each run."
+    },
+    {
+      "file": "services/skins/SkinService.ts",
+      "reason": "Cosmetic selection is account-scoped, not run-scoped."
+    },
+    {
       "file": "services/system/AntiCheatService.ts",
       "reason": "NEEDS REVIEW: warning counts, escalations and the speed-hack baseline accumulate for the whole session with no reset(). Session accumulation may be deliberate (resetting per run would let a player dodge escalation by restarting) but the timing samples probably should not span runs. Needs a security decision."
     },
@@ -130,8 +182,16 @@
       "reason": "Load-once flag; assets are app-scoped."
     },
     {
+      "file": "services/system/CloudflareService.ts",
+      "reason": "Session-scoped: useCloudflareSession calls reset() on teardown and startSession() on entry."
+    },
+    {
       "file": "services/system/DebugService.ts",
       "reason": "Debug log buffer, deliberately process-lifetime."
+    },
+    {
+      "file": "services/system/DeviceBenchmarkService.ts",
+      "reason": "Benchmark result is device-scoped and cached deliberately across runs."
     },
     {
       "file": "services/system/HapticService.ts",
@@ -154,6 +214,10 @@
       "reason": "NEEDS REVIEW: public mutable tuning read on the hot path, with reset() reachable only from the debug panel. Resetting per run may be undesirable while a developer iterates."
     },
     {
+      "file": "services/system/PreviewStatusService.ts",
+      "reason": "Status cache plus subscriber list; preview-lab only."
+    },
+    {
       "file": "services/system/RailwayHealthService.ts",
       "reason": "Single lastHealthCheck timestamp; infrastructure-scoped."
     },
@@ -162,8 +226,20 @@
       "reason": "100ms TTL cache."
     },
     {
+      "file": "services/system/ThemeService.ts",
+      "reason": "currentTheme is a user preference and outlives a run by design."
+    },
+    {
+      "file": "services/system/VfxStatusService.ts",
+      "reason": "Status cache plus subscriber list; reports asset availability, never run state."
+    },
+    {
       "file": "services/verification/VerificationQueue.ts",
       "reason": "Cross-run by design: a retry queue persisted to localStorage so a pending verification survives a reload."
+    },
+    {
+      "file": "utils/GradientCache.ts",
+      "reason": "Canvas gradient cache keyed by style; render-side memoisation with no run state."
     }
   ]
 }

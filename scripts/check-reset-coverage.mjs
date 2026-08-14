@@ -21,8 +21,10 @@ const WHITELIST_PATH = path.join(ARCH_DIR, 'singleton-whitelist.json');
 const EXEMPT_PATH = path.join(ARCH_DIR, 'reset-exempt.json');
 
 // A file is "wired" if its source references any canonical reset hook.
+// `subscribe` is EventBus's alias for `on`; omitting it made InventoryService
+// and LootboxService look unwired when both subscribe to gameReset.
 const RESET_WIRING_PATTERN =
-  /registerResettable|registerResetHandler|on\(\s*['"]gameReset['"]/;
+  /registerResettable|registerResetHandler|(?:on|subscribe|once)\(\s*['"]gameReset['"]/;
 
 const readJsonArray = async (filePath, key) => {
   const raw = await fs.readFile(filePath, 'utf8');
