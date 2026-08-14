@@ -60,6 +60,7 @@ export async function runMigrations(): Promise<void> {
        { name: '014_db_hardening', sql: MIGRATION_014 },
        { name: '015_authoritative_economy', sql: MIGRATION_015 },
        { name: '016_reward_point_ledger', sql: MIGRATION_016 },
+       { name: '017_reward_epochs', sql: MIGRATION_017 },
     ];
 
     for (const migration of migrations) {
@@ -1486,4 +1487,63 @@ CREATE INDEX IF NOT EXISTS idx_reward_point_entries_profile_created
   ON reward_point_entries(profile_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reward_point_entries_escrow
   ON reward_point_entries(escrow_id);
+`;
+
+const MIGRATION_017 = `
+-- Migration 017: epoch-rated token conversion (contract §14)
+--
+-- Reward points were ledgered but never priced: nothing turned them into a
+-- token amount, so the per-run and epoch budget ceilings the contract requires
+-- had nowhere to live. Strictly additive — a new table plus nullable columns —
+-- so existing quotes and settlements are untouched.
+
+CREATE TABLE IF NOT EXISTS reward_epochs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  epoch_number INTEGER UNIQUE NOT NULL,
+  economy_version TEXT NOT NULL,
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  tokens_per_point DOUBLE PRECISION NOT NULL,
+  per_run_token_cap DOUBLE PRECISION NOT NULL,
+  token_budget DOUBLE PRECISION NOT NULL,
+  tokens_issued DOUBLE PRECISION NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_reward_epochs_window CHECK (ends_at > starts_at),
+  CONSTRAINT ck_reward_epochs_rate CHECK (tokens_per_point > 0),
+  CONSTRAINT ck_reward_epochs_run_cap CHECK (per_run_token_cap > 0),
+  CONSTRAINT ck_reward_epochs_budget CHECK (token_budget >= 0),
+  CONSTRAINT ck_reward_epochs_issued CHECK (tokens_issued >= 0),
+  CONSTRAINT ck_reward_epochs_within_budget CHECK (tokens_issued <= token_budget)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reward_epochs_window
+  ON reward_epochs(starts_at, ends_at);
+
+ALTER TABLE cash_out_quotes
+  ADD COLUMN IF NOT EXISTS token_amount DOUBLE PRECISION;
+ALTER TABLE cash_out_quotes
+  ADD COLUMN IF NOT EXISTS epoch_id UUID REFERENCES reward_epochs(id) ON DELETE SET NULL;
+ALTER TABLE cash_out_quotes
+  ADD COLUMN IF NOT EXISTS token_cap_reason TEXT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ck_cash_out_quotes_token_amount'
+  ) THEN
+    ALTER TABLE cash_out_quotes
+      ADD CONSTRAINT ck_cash_out_quotes_token_amount
+      CHECK (token_amount IS NULL OR token_amount >= 0);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ck_cash_out_quotes_token_cap_reason'
+  ) THEN
+    ALTER TABLE cash_out_quotes
+      ADD CONSTRAINT ck_cash_out_quotes_token_cap_reason
+      CHECK (
+        token_cap_reason IS NULL
+        OR token_cap_reason IN ('none', 'per_run_cap', 'epoch_budget', 'epoch_exhausted')
+      );
+  END IF;
+END $$;
 `;

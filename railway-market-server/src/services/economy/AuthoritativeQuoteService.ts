@@ -2,6 +2,11 @@ import crypto from 'crypto';
 import { CashOutPolicy } from './CashOutPolicy';
 import { CashOutQuoteSigner, type CashOutQuote } from './CashOutQuoteSigner';
 import { RewardLedger } from './RewardLedger';
+import {
+  convertPointsToTokens,
+  type EpochRate,
+  type TokenCapReason,
+} from './EpochRateService';
 
 export type AuthoritativeQuoteInput = {
   sessionId: string;
@@ -18,6 +23,12 @@ export type AuthoritativeQuoteInput = {
   marketStaleSeconds: number;
   combatMastery: number;
   lastDecisionAtSeconds?: number | null;
+  /**
+   * Active epoch rate. Absent only when no epoch is configured, in which case
+   * the quote carries reward points with no token price rather than inventing
+   * one (§14: token amounts are never hardcoded).
+   */
+  epochRate?: EpochRate | null;
 };
 
 export type AuthoritativeQuoteResult = {
@@ -26,6 +37,9 @@ export type AuthoritativeQuoteResult = {
   rewardPoints: number;
   shouldForceRecovery: boolean;
   safeExitOnly: boolean;
+  tokenAmount: number | null;
+  tokenCapReason: TokenCapReason | null;
+  epochId: string | null;
 };
 
 const ALIGNMENT_SCALE = 0.05;
@@ -91,12 +105,21 @@ export class AuthoritativeQuoteService {
       expiresAtSeconds: input.nowSeconds + policy.quoteTtlSeconds,
     };
 
+    // No configured epoch means no token price. Quoting points without a rate
+    // is honest; inventing a rate would hardcode the token amount (§14).
+    const epochRate = input.epochRate ?? null;
+    const conversion =
+      epochRate === null ? null : convertPointsToTokens(reward.rewardPoints, epochRate);
+
     return {
       quote,
       signature: this.signer.sign(quote),
       rewardPoints: reward.rewardPoints,
       shouldForceRecovery: policy.shouldForceRecovery,
       safeExitOnly: policy.safeExitAvailable,
+      tokenAmount: conversion === null ? null : conversion.tokens,
+      tokenCapReason: conversion === null ? null : conversion.cappedBy,
+      epochId: epochRate === null ? null : epochRate.epochId,
     };
   }
 }

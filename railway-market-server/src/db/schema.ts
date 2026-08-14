@@ -214,6 +214,39 @@ export const runEscrows = pgTable(
   ]
 );
 
+/**
+ * Contract §14: the epoch rate turns deterministic reward points into a token
+ * quote. Budget and per-run ceilings live here rather than in code so an
+ * economy period can be retuned without a deploy.
+ */
+export const rewardEpochs = pgTable(
+  'reward_epochs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    epochNumber: integer('epoch_number').unique().notNull(),
+    economyVersion: text('economy_version').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    tokensPerPoint: doublePrecision('tokens_per_point').notNull(),
+    perRunTokenCap: doublePrecision('per_run_token_cap').notNull(),
+    tokenBudget: doublePrecision('token_budget').notNull(),
+    tokensIssued: doublePrecision('tokens_issued').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_reward_epochs_window', sql`${table.endsAt} > ${table.startsAt}`),
+    check('ck_reward_epochs_rate', sql`${table.tokensPerPoint} > 0`),
+    check('ck_reward_epochs_run_cap', sql`${table.perRunTokenCap} > 0`),
+    check('ck_reward_epochs_budget', sql`${table.tokenBudget} >= 0`),
+    check('ck_reward_epochs_issued', sql`${table.tokensIssued} >= 0`),
+    check(
+      'ck_reward_epochs_within_budget',
+      sql`${table.tokensIssued} <= ${table.tokenBudget}`
+    ),
+    index('idx_reward_epochs_window').on(table.startsAt, table.endsAt),
+  ]
+);
+
 export const cashOutQuotes = pgTable(
   'cash_out_quotes',
   {
@@ -230,6 +263,11 @@ export const cashOutQuotes = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     respondedAt: timestamp('responded_at', { withTimezone: true }),
     idempotencyKey: text('idempotency_key'),
+    tokenAmount: doublePrecision('token_amount'),
+    epochId: uuid('epoch_id').references(() => rewardEpochs.id, {
+      onDelete: 'set null',
+    }),
+    tokenCapReason: text('token_cap_reason'),
   },
   (table) => [
     check(
