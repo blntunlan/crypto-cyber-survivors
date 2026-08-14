@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'vitest';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   auditUiContractSource,
   isProductionUiFile,
   matchesUiContractPath,
+  runUiContract,
   shouldEnforceUiFile,
   type UiContractAllowlist,
 } from '../../scripts/check-ui-contract';
@@ -125,5 +129,21 @@ describe('UI contract audit', () => {
         expect.objectContaining({ rule: 'expired-legacy-allowlist' }),
       ])
     );
+  });
+});
+
+describe('UI contract baseline reachability', () => {
+  test('fails loudly when the baseline commit is missing from the clone', () => {
+    // A shallow clone lacks the baseline commit. Without this guard the gate
+    // silently treats every component as new and enforces the whole tree in
+    // CI while passing locally.
+    const rootDir = mkdtempSync(join(tmpdir(), 'ui-contract-'));
+    mkdirSync(join(rootDir, 'config', 'ui-contract'), { recursive: true });
+    writeFileSync(
+      join(rootDir, 'config/ui-contract/legacy-allowlist.json'),
+      JSON.stringify({ baselineCommit: 'cac5fbe3', entries: [] })
+    );
+
+    expect(() => runUiContract(rootDir)).toThrow(/baseline commit .* is not reachable/);
   });
 });

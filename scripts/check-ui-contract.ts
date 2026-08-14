@@ -219,6 +219,27 @@ function readAllowlist(rootDir: string): UiContractAllowlist {
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as UiContractAllowlist;
 }
 
+/**
+ * The baseline commit decides which files are grandfathered in. A shallow
+ * clone does not contain it, and the lookup below would then silently report
+ * "not in baseline" for every file — enforcing the whole component tree in CI
+ * while passing locally. Fail loudly instead of diverging by clone depth.
+ */
+function assertBaselineIsReachable(rootDir: string, baselineCommit: string): void {
+  const result = childProcess.spawnSync(
+    'git',
+    ['cat-file', '-e', `${baselineCommit}^{commit}`],
+    { cwd: rootDir, encoding: 'utf-8' }
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      `UI contract baseline commit ${baselineCommit} is not reachable. ` +
+        'Fetch the full history (actions/checkout with fetch-depth: 0) before running this gate.'
+    );
+  }
+}
+
 function existsAtBaseline(
   rootDir: string,
   baselineCommit: string | undefined,
@@ -253,6 +274,9 @@ export function shouldEnforceUiFile(
 
 export function runUiContract(rootDir = process.cwd()): UiContractViolation[] {
   const allowlist = readAllowlist(rootDir);
+  if (allowlist.baselineCommit) {
+    assertBaselineIsReachable(rootDir, allowlist.baselineCommit);
+  }
   const componentFiles = glob.sync('components/**/*.tsx', {
     cwd: rootDir,
     ignore: ['**/*.test.tsx'],
