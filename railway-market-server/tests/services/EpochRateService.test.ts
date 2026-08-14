@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampGrantToRemaining,
   convertPointsToTokens,
   getRemainingBudget,
   type EpochRate,
@@ -80,5 +81,26 @@ describe('§14 points are priced by the epoch rate, never hardcoded', () => {
 
     expect(conversion.tokens).toBe(3);
     expect(conversion.cappedBy).toBe('per_run_cap');
+  });
+});
+
+describe('§14 settlement grants what the epoch still has, not what was quoted', () => {
+  it('pays the quoted amount while the budget covers it', () => {
+    expect(clampGrantToRemaining(4, 100)).toBe(4);
+  });
+
+  it('trims the payout when other runs drained the epoch after the quote', () => {
+    expect(clampGrantToRemaining(4, 1.5)).toBe(1.5);
+  });
+
+  it('pays nothing once the epoch is empty or over-issued', () => {
+    expect(clampGrantToRemaining(4, 0)).toBe(0);
+    expect(clampGrantToRemaining(4, -12)).toBe(0);
+  });
+
+  it('never turns a corrupt quote into a payout', () => {
+    expect(clampGrantToRemaining(Number.NaN, 100)).toBe(0);
+    expect(clampGrantToRemaining(-5, 100)).toBe(0);
+    expect(clampGrantToRemaining(Number.POSITIVE_INFINITY, 100)).toBe(0);
   });
 });

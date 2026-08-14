@@ -65,3 +65,14 @@ export const convertPointsToTokens = (
 
   return { tokens, uncappedTokens, cappedBy, remainingBudget };
 };
+
+/**
+ * A quote is an offer, not a mint. Between issuing and accepting, other runs
+ * may have drained the epoch, so settlement grants whatever is genuinely left
+ * rather than paying the quoted figure on trust.
+ */
+export const clampGrantToRemaining = (
+  quotedTokens: number,
+  remainingBudget: number
+): number =>
+  Math.min(Math.max(0, toFinite(quotedTokens)), Math.max(0, toFinite(remainingBudget)));

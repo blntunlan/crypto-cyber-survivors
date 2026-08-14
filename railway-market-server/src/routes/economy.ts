@@ -71,6 +71,8 @@ type CashOutDecisionQuoteRow = {
   status: 'open' | 'accepted' | 'rejected' | 'expired' | 'safe_exit';
   greed_level: number;
   safe_exit_available_at: Date | null;
+  token_amount: number | null;
+  epoch_id: string | null;
 };
 
 type CashOutFailureSessionRow = {
@@ -447,6 +449,7 @@ router.post('/cash-out/decision', requireAuth, asyncHandler(async (req: Request,
       const quoteResult = await client.query<CashOutDecisionQuoteRow>(
         `SELECT q.escrow_id, q.quote_id, q.canonical_sequence, q.reward_points,
                 q.signature, q.issued_at, q.expires_at, q.status,
+                q.token_amount, q.epoch_id,
                 e.session_id, e.greed_level, e.safe_exit_available_at
          FROM cash_out_quotes q
          JOIN run_escrows e ON e.id = q.escrow_id
@@ -507,6 +510,38 @@ router.post('/cash-out/decision', requireAuth, asyncHandler(async (req: Request,
          WHERE id = $5`,
         [state, greedDelta, settlesPrimary, quote.reward_points, quote.escrow_id]
       );
+      // Contract §14: tokens are minted against the epoch budget, not against
+      // the quote. The CTE locks the epoch row first, so two runs settling at
+      // the same moment cannot both spend the last of it.
+      let grantedTokens: number | null = null;
+      if (
+        settlesPrimary &&
+        typeof quote.epoch_id === 'string' &&
+        typeof quote.token_amount === 'number'
+      ) {
+        const grantResult = await client.query<{ granted_tokens: string | number }>(
+          `WITH target AS (
+             SELECT id,
+                    GREATEST(0, LEAST($1::double precision, token_budget - tokens_issued))
+                      AS grant_amount
+               FROM reward_epochs
+              WHERE id = $2
+              FOR UPDATE
+           )
+           UPDATE reward_epochs e
+              SET tokens_issued = e.tokens_issued + t.grant_amount
+             FROM target t
+            WHERE e.id = t.id
+           RETURNING t.grant_amount AS granted_tokens`,
+          [quote.token_amount, quote.epoch_id]
+        );
+        grantedTokens = Number(grantResult.rows[0]?.granted_tokens ?? 0);
+        await client.query(
+          `UPDATE cash_out_quotes SET token_amount = $1 WHERE quote_id = $2`,
+          [grantedTokens, quote.quote_id]
+        );
+      }
+
       if (settlesPrimary) {
         await client.query(
           `INSERT INTO reward_point_entries (
@@ -520,7 +555,11 @@ router.post('/cash-out/decision', requireAuth, asyncHandler(async (req: Request,
             quote.reward_points,
             resolvedDecision === 'accept' ? 'cash_out_accepted' : 'safe_exit',
             quote.quote_id,
-            JSON.stringify({ canonicalSequence: quote.canonical_sequence }),
+            JSON.stringify({
+              canonicalSequence: quote.canonical_sequence,
+              epochId: quote.epoch_id,
+              grantedTokens,
+            }),
           ]
         );
       }
