@@ -1,46 +1,169 @@
 {
-  "_comment": "Singletons that intentionally do NOT wire into the GameLifecycle reset path (registerResettable / registerResetHandler / on('gameReset')). They are either stateless, session-scoped (startSession/endSession), or reset transitively via a parent (e.g. difficulty aggregators reset via DifficultyContext.reset). check-reset-coverage.mjs enforces that every whitelisted singleton is either wired or listed here, so adding a NEW stateful singleton forces a conscious reset decision. Keep this list in sync; remove an entry when a file starts wiring reset itself.",
+  "_comment": "Singletons that intentionally do NOT wire into the GameLifecycle reset path. Every entry must carry a reason; check-reset-coverage.mjs rejects an empty one. Entries marked NEEDS REVIEW hold run-adjacent state whose exemption has not been verified with an owner — they are recorded rather than silently assumed safe.",
   "exemptFiles": [
-    "config/ConfigRegistry.ts",
-    "factories/EnemyFactory.ts",
-    "services/admin/AdminAnalyticsService.ts",
-    "services/admin/AdminPriceFeedService.ts",
-    "services/admin/PriceAnalyzerService.ts",
-    "services/analytics/ErrorTracker.ts",
-    "services/analytics/PerformanceTracker.ts",
-    "services/analytics/PlayerTracker.ts",
-    "services/auth/ProfileService.ts",
-    "services/auth/ProfileStatsService.ts",
-    "services/auth/RailwayAuthService.ts",
-    "services/auth/UserSessionService.ts",
-    "services/cards/CardSystem.ts",
-    "services/combat/CombatSystem.ts",
-    "services/combat/PhysicsSystem.ts",
-    "services/combat/physics/CollisionSystem.ts",
-    "services/core/ErrorRecoveryService.ts",
-    "services/core/EventRecorderService.ts",
-    "services/core/GameStateManager.ts",
-    "services/core/MetricsService.ts",
-    "services/core/TimeService.ts",
-    "services/difficulty/aggregators/LeverageStateProvider.ts",
-    "services/difficulty/aggregators/MarketInputAggregator.ts",
-    "services/difficulty/aggregators/PlayerMetricsAggregator.ts",
-    "services/gameplay/AchievementService.ts",
-    "services/gameplay/WalletService.ts",
-    "services/leaderboard/LeaderboardService.ts",
-    "services/market/MarketEventAnnouncer.ts",
-    "services/renderers/GameRenderer.ts",
-    "services/renderers/ProjectileRenderer.ts",
-    "services/system/AntiCheatService.ts",
-    "services/system/AssetService.ts",
-    "services/system/DebugService.ts",
-    "services/system/HapticService.ts",
-    "services/system/ImagePreloader.ts",
-    "services/system/InputLogger.ts",
-    "services/system/Logger.ts",
-    "services/system/ParticleConfigService.ts",
-    "services/system/RailwayHealthService.ts",
-    "services/system/ScreenService.ts",
-    "services/verification/VerificationQueue.ts"
+    {
+      "file": "config/ConfigRegistry.ts",
+      "reason": "Boot-time registry, frozen after startup; no per-run mutation."
+    },
+    {
+      "file": "factories/EnemyFactory.ts",
+      "reason": "NEEDS REVIEW: module-level enemyIdCounter is only zeroed in the constructor, so enemy ids climb across runs. Benign today, unverified as intentional."
+    },
+    {
+      "file": "services/admin/AdminAnalyticsService.ts",
+      "reason": "Stateless API wrapper; no instance fields."
+    },
+    {
+      "file": "services/admin/AdminPriceFeedService.ts",
+      "reason": "Admin-only; the isRunning flag tracks the panel lifecycle, not a run."
+    },
+    {
+      "file": "services/admin/PriceAnalyzerService.ts",
+      "reason": "Admin-only load-once flags; never read during a run."
+    },
+    {
+      "file": "services/analytics/ErrorTracker.ts",
+      "reason": "Diagnostics buffers are session-scoped by design. gameContext looks run-scoped but setGameContext has no callers anywhere, so it stays permanently empty."
+    },
+    {
+      "file": "services/analytics/PerformanceTracker.ts",
+      "reason": "start() clears frameTimes/fpsHistory/frameCount, so every measurement window begins clean."
+    },
+    {
+      "file": "services/analytics/PlayerTracker.ts",
+      "reason": "Account-scoped player identity plus a heartbeat timer; deliberately outlives a run."
+    },
+    {
+      "file": "services/auth/ProfileService.ts",
+      "reason": "Account-scoped profile cache; outliving a run is the point."
+    },
+    {
+      "file": "services/auth/ProfileStatsService.ts",
+      "reason": "Stateless API wrapper; no instance fields."
+    },
+    {
+      "file": "services/auth/RailwayAuthService.ts",
+      "reason": "Stateless API wrapper; auth state lives in RailwayAuthTokenStore."
+    },
+    {
+      "file": "services/auth/UserSessionService.ts",
+      "reason": "Account-scoped session, not run-scoped."
+    },
+    {
+      "file": "services/cards/CardSystem.ts",
+      "reason": "Stateless; no instance fields beyond the singleton handle."
+    },
+    {
+      "file": "services/combat/CombatSystem.ts",
+      "reason": "NEEDS REVIEW: module-level __debugFireCount is only zeroed in the constructor. DEV-only counter, unverified as intentional."
+    },
+    {
+      "file": "services/combat/PhysicsSystem.ts",
+      "reason": "Holds only its movement/collision/collection dependencies; those reset themselves."
+    },
+    {
+      "file": "services/combat/physics/CollisionSystem.ts",
+      "reason": "NEEDS REVIEW: nearby* scratch references to live entities are nulled on the normal path, but a throw between set and clear would pin a dead run."
+    },
+    {
+      "file": "services/core/ErrorRecoveryService.ts",
+      "reason": "NEEDS REVIEW: circuit-breaker counters and open/half-open state survive a run. Arguably correct while the underlying service is still down — needs an owner decision."
+    },
+    {
+      "file": "services/core/EventRecorderService.ts",
+      "reason": "Session-scoped via startSession/endSession; the event buffer clears on a clean endSession."
+    },
+    {
+      "file": "services/core/GameStateManager.ts",
+      "reason": "Only an isResetting re-entrancy flag, set and cleared within one reset."
+    },
+    {
+      "file": "services/core/MetricsService.ts",
+      "reason": "Session-scoped via startSession/endSession, driven from GameStateManager."
+    },
+    {
+      "file": "services/core/TimeService.ts",
+      "reason": "Already wired: it listens for gameReset and beforeReset and calls reset(). The exemption is redundant and kept only so the guard does not double-count it."
+    },
+    {
+      "file": "services/difficulty/aggregators/LeverageStateProvider.ts",
+      "reason": "Reset transitively by DifficultyContext.reset(); asserted in DifficultyContextReset.test.ts."
+    },
+    {
+      "file": "services/difficulty/aggregators/MarketInputAggregator.ts",
+      "reason": "Reset transitively by DifficultyContext.reset(); asserted in DifficultyContextReset.test.ts."
+    },
+    {
+      "file": "services/difficulty/aggregators/PlayerMetricsAggregator.ts",
+      "reason": "Reset transitively by DifficultyContext.reset(); asserted in DifficultyContextReset.test.ts."
+    },
+    {
+      "file": "services/gameplay/AchievementService.ts",
+      "reason": "Stateless API wrapper; no instance fields."
+    },
+    {
+      "file": "services/gameplay/WalletService.ts",
+      "reason": "Stateless API wrapper; balances live server-side."
+    },
+    {
+      "file": "services/leaderboard/LeaderboardService.ts",
+      "reason": "Cache with explicit invalidate(); staleness is a cache concern, not run state."
+    },
+    {
+      "file": "services/market/MarketEventAnnouncer.ts",
+      "reason": "NEEDS REVIEW: holds real per-run state and does have reset(), but it is called from a GameEngine effect rather than the canonical path, so it depends on that component staying mounted."
+    },
+    {
+      "file": "services/renderers/GameRenderer.ts",
+      "reason": "Holds only sub-renderer dependencies."
+    },
+    {
+      "file": "services/renderers/ProjectileRenderer.ts",
+      "reason": "Holds only static viewport bounds."
+    },
+    {
+      "file": "services/system/AntiCheatService.ts",
+      "reason": "NEEDS REVIEW: warning counts, escalations and the speed-hack baseline accumulate for the whole session with no reset(). Session accumulation may be deliberate (resetting per run would let a player dodge escalation by restarting) but the timing samples probably should not span runs. Needs a security decision."
+    },
+    {
+      "file": "services/system/AssetService.ts",
+      "reason": "Load-once flag; assets are app-scoped."
+    },
+    {
+      "file": "services/system/DebugService.ts",
+      "reason": "Debug log buffer, deliberately process-lifetime."
+    },
+    {
+      "file": "services/system/HapticService.ts",
+      "reason": "Capability flag only."
+    },
+    {
+      "file": "services/system/ImagePreloader.ts",
+      "reason": "Load-once promise; images are app-scoped."
+    },
+    {
+      "file": "services/system/InputLogger.ts",
+      "reason": "Recording buffer with explicit start()/clear(); no production caller starts it."
+    },
+    {
+      "file": "services/system/Logger.ts",
+      "reason": "Bounded ring buffer, deliberately process-lifetime."
+    },
+    {
+      "file": "services/system/ParticleConfigService.ts",
+      "reason": "NEEDS REVIEW: public mutable tuning read on the hot path, with reset() reachable only from the debug panel. Resetting per run may be undesirable while a developer iterates."
+    },
+    {
+      "file": "services/system/RailwayHealthService.ts",
+      "reason": "Single lastHealthCheck timestamp; infrastructure-scoped."
+    },
+    {
+      "file": "services/system/ScreenService.ts",
+      "reason": "100ms TTL cache."
+    },
+    {
+      "file": "services/verification/VerificationQueue.ts",
+      "reason": "Cross-run by design: a retry queue persisted to localStorage so a pending verification survives a reload."
+    }
   ]
 }

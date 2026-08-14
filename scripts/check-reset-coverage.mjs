@@ -35,10 +35,52 @@ const readJsonArray = async (filePath, key) => {
 
 const formatList = values => values.map(value => `  - ${value}`).join('\n');
 
+/**
+ * Exemptions carry a mandatory reason. A bare path told a reader nothing about
+ * WHY a stateful singleton was allowed to skip the reset path, so the list
+ * accumulated entries nobody could re-evaluate. Entries whose reason starts
+ * with NEEDS REVIEW are recorded-but-unverified rather than silently safe.
+ */
+const readExemptions = async () => {
+  const entries = await readJsonArray(EXEMPT_PATH, 'exemptFiles');
+  const malformed = [];
+  const files = new Set();
+
+  for (const entry of entries) {
+    if (typeof entry !== 'object' || entry === null) {
+      malformed.push(`${String(entry)} — must be { "file": ..., "reason": ... }`);
+      continue;
+    }
+    if (typeof entry.file !== 'string' || entry.file.trim() === '') {
+      malformed.push(`${JSON.stringify(entry)} — missing "file"`);
+      continue;
+    }
+    if (typeof entry.reason !== 'string' || entry.reason.trim() === '') {
+      malformed.push(`${entry.file} — missing or empty "reason"`);
+      continue;
+    }
+    files.add(entry.file);
+  }
+
+  return { files, malformed, count: entries.length };
+};
+
 const main = async () => {
   const whitelist = await readJsonArray(WHITELIST_PATH, 'allowedFiles');
-  const exemptList = await readJsonArray(EXEMPT_PATH, 'exemptFiles');
-  const exempt = new Set(exemptList);
+  const exemptions = await readExemptions();
+
+  if (exemptions.malformed.length > 0) {
+    console.error('Malformed reset-exempt.json entries:');
+    console.error(formatList(exemptions.malformed));
+    console.error('');
+    console.error(
+      'Every exemption must state why the singleton may skip the reset path.'
+    );
+    process.exit(1);
+  }
+
+  const exemptList = [...exemptions.files];
+  const exempt = exemptions.files;
 
   const uncovered = [];
 
