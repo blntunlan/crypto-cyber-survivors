@@ -1,0 +1,361 @@
+{
+  "_comment": "Frozen event-contract debt. Every entry needs a reason; an entry that no longer violates fails the guard, so this list only shrinks. See scripts/check-event-contract.mjs.",
+  "allowed": {
+    "declaredNotEmitted": [
+      {
+        "event": "bulletFired",
+        "reason": "Orphaned: production listeners exist but nothing emits it. See allowed.listenedNotEmitted for the investigation."
+      },
+      {
+        "event": "marketStateUpdated",
+        "reason": "Orphaned: production listeners exist but nothing emits it. See allowed.listenedNotEmitted for the investigation."
+      },
+      {
+        "event": "verification:processing",
+        "reason": "VerificationQueue only emits queued/failed; these two lifecycle states were specified but never implemented."
+      },
+      {
+        "event": "verification:retrying",
+        "reason": "VerificationQueue only emits queued/failed; these two lifecycle states were specified but never implemented."
+      },
+      {
+        "event": "volatilityShock",
+        "reason": "Orphaned: production listeners exist but nothing emits it. See allowed.listenedNotEmitted for the investigation."
+      },
+      {
+        "event": "cycleDecisionScreen",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "gameplayValidation",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "railwayHealthCheck",
+        "reason": "RailwayHealthService never emits these; health is surfaced through direct calls instead."
+      },
+      {
+        "event": "railwayConnectionLost",
+        "reason": "RailwayHealthService never emits these; health is surfaced through direct calls instead."
+      },
+      {
+        "event": "railwayConnectionRestored",
+        "reason": "RailwayHealthService never emits these; health is surfaced through direct calls instead."
+      },
+      {
+        "event": "twitterLoginSuccess",
+        "reason": "Twitter auth events were never wired; linking goes through RailwayAuthService return values."
+      },
+      {
+        "event": "twitterUnlinked",
+        "reason": "Twitter auth events were never wired; linking goes through RailwayAuthService return values."
+      },
+      {
+        "event": "playerRespawn",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "optimizationProgress",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "trainingProgress",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "directorParamsUpdated",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "optimizationComplete",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "directorAutoTuned",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "directorDecision",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "strategicLayerUpdate",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "tacticalLayerUpdate",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "directorBlendedOutput",
+        "reason": "Left from the retired AI Director auto-tuning experiment; no producer survived the S7 legacy cleanup."
+      },
+      {
+        "event": "spawnBoss",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "playerModifierApplied",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "playerModifierRemoved",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "marketFlowInfluence",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "authStateChanged",
+        "reason": "Declared in the GameEvent union but never emitted in app code. Pending purge."
+      },
+      {
+        "event": "tutorialStarted",
+        "reason": "Tutorial system was never built; the whole lifecycle block in types/events.ts is unreachable. Delete with the tutorial types."
+      },
+      {
+        "event": "tutorialStepChanged",
+        "reason": "Tutorial system was never built; the whole lifecycle block in types/events.ts is unreachable. Delete with the tutorial types."
+      },
+      {
+        "event": "tutorialActionCompleted",
+        "reason": "Tutorial system was never built; the whole lifecycle block in types/events.ts is unreachable. Delete with the tutorial types."
+      },
+      {
+        "event": "tutorialCompleted",
+        "reason": "Tutorial system was never built; the whole lifecycle block in types/events.ts is unreachable. Delete with the tutorial types."
+      },
+      {
+        "event": "tutorialSkipped",
+        "reason": "Tutorial system was never built; the whole lifecycle block in types/events.ts is unreachable. Delete with the tutorial types."
+      }
+    ],
+    "emittedNotListened": [
+      {
+        "event": "portalExtraction",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "eliteSpawned",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketRuntimeTick",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketRuntimeUpdate",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketUpdate",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketRuntimeFeedHealth",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketTimeoutWarning",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "playerHealthChange",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "authUnauthorized",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "priceMomentumUpdate",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "verification:queued",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "challengeStarted",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "challengeCompleted",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "eliteAbilityActivated",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "eliteChainExplosion",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "playerExperienceChange",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "enemyDamaged",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "weaponAcquired",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "weaponUpgraded",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "weaponEvolution",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "settingsUpdate",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "gameInitialized",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "sessionSynced",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "sessionSyncFailed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "verification:failed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "directorZoneDamage",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "lootCacheOpened",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "lootCacheSpawned",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "portalRejected",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "portalMissed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "portalEntered",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "portalClosed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "whaleSpawned",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketStateChanged",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "consumableUsed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "lootboxEarned",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "lootboxOpening",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "lootboxOpened",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketDataFallback",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketReconnectAttempt",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "marketConnectionStateChanged",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "visualOverlay",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "metaCoinsTransferred",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "metaStateLoaded",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "metaUpgradePurchased",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "replayLoaded",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "replaySaved",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "buffGemSpawned",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "buffGemCollected",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "integrityCheckFailed",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      },
+      {
+        "event": "cheatWarning",
+        "reason": "Emitted with no app listener — the emit does no work. Pending decision: delete the emit or wire the consumer it was written for."
+      }
+    ],
+    "listenedNotEmitted": [
+      {
+        "event": "marketStateUpdated",
+        "reason": "REAL DEFECT. Four production listeners (LiveFeed, MarketIndicatorService anti-cheat sync, DataResilienceService, MarketEventManager) wait on this, but the SSE migration replaced the emitter with marketRuntimeSnapshot -> MarketEventConsolidator, which types/marketCanonical.ts documents as the single source of truth. The listeners look superseded rather than starved, but MarketIndicatorService uses this for client/server indicator agreement (anti-cheat), so each consumer must be verified against the consolidator before deletion. Do not delete blind."
+      },
+      {
+        "event": "volatilityShock",
+        "reason": "Listened by useGameEvents and VisualEffectService and keyed in EFFECT_POLICIES, but emitted only from tests and e2e. Screen-shake on volatility spikes is therefore dead; decide whether the director should emit it or the listeners go."
+      },
+      {
+        "event": "bulletFired",
+        "reason": "Listened by MetricsService and DifficultyEventBridge (so shots-fired never reaches the director input), emitted only from a unit test. Decide whether CombatSystem should emit it or the listeners go."
+      }
+    ],
+    "effectRegistryStale": [
+      {
+        "event": "volatilityShock",
+        "reason": "EFFECT_POLICIES keys a cooldown on volatilityShock, which nothing emits. Resolve together with allowed.listenedNotEmitted/volatilityShock."
+      }
+    ]
+  }
+}
