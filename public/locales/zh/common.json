@@ -244,7 +244,12 @@
       "games": "场次",
       "total_kills": "总击杀",
       "best_level": "最高等级",
-      "back_to_menu": "返回终端"
+      "back_to_menu": "返回终端",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "RIGHT SIDE",
+      "trade_adverse": "WRONG SIDE",
+      "trade_neutral": "FLAT"
     },
     "cycle_complete_screen": {
       "title": "周期 {{val}} 完成",

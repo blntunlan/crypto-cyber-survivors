@@ -44,7 +44,7 @@ import { type CryptoPair } from '../types/crypto';
 import { MetaProgressionService } from '../services/progression/MetaProgressionService';
 import { ChallengeService } from '../services/challenges/ChallengeService';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
-import { type RewardPayload } from '../types/reward';
+import { type RewardPayload, type RunPerformance } from '../types/reward';
 import { AntiCheatService } from '../services/system/AntiCheatService';
 
 interface UseGameFlowControllerParams {
@@ -85,6 +85,7 @@ interface UseGameFlowControllerResult {
   frozenPnlRef: { current: number };
   gameOverReason: GameEndReason;
   rewardSettlement: RewardSettlement;
+  runPerformance: RunPerformance | null;
   handleLevelUp: () => void;
   selectUpgrade: (card: Card) => void;
   handleGameOver: (
@@ -116,6 +117,7 @@ export const useGameFlowController = ({
   const [gameOverReason, setGameOverReason] = useState<GameEndReason>(
     GameEndReason.DEATH
   );
+  const [runPerformance, setRunPerformance] = useState<RunPerformance | null>(null);
   const [rewardSettlement, setRewardSettlement] = useState<RewardSettlement>({
     status: 'rejected',
     amount: 0,
@@ -219,6 +221,7 @@ export const useGameFlowController = ({
       isGameOverProcessingRef.current = true;
 
       setGameOverReason(reason);
+      setRunPerformance(rewardPayload?.performance ?? null);
       if (
         reason === GameEndReason.DEATH ||
         reason === GameEndReason.LIQUIDATION ||
@@ -611,6 +614,7 @@ export const useGameFlowController = ({
     frozenPnlRef,
     gameOverReason,
     rewardSettlement,
+    runPerformance,
     handleLevelUp,
     selectUpgrade,
     handleGameOver,

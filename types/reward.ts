@@ -41,6 +41,18 @@ export type RewardPayload = {
   enemyDropCoins: number;
   totalCoins: number;
   breakdown: RewardBreakdown;
+  /**
+   * Contract §14/§17 run-long performance. Direction is scored across the whole
+   * run, so the exit tick alone cannot rewrite how the trade actually went.
+   */
+  performance?: RunPerformance;
+};
+
+export type RunPerformance = {
+  timeWeightedAlignment: number;
+  exitAlignment: number;
+  combatMastery: number;
+  peakCombatMastery: number;
 };
 
 // ---------------------------------------------------------------------------

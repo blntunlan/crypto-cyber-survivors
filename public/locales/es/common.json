@@ -244,7 +244,12 @@
       "games": "Partidas",
       "total_kills": "Total Eliminaciones",
       "best_level": "Mejor Nivel",
-      "back_to_menu": "Volver a Terminal"
+      "back_to_menu": "Volver a Terminal",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "LADO CORRECTO",
+      "trade_adverse": "LADO ERRONEO",
+      "trade_neutral": "PLANO"
     },
     "cycle_complete_screen": {
       "title": "CICLO {{val}} COMPLETADO",

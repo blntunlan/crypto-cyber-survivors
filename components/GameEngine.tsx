@@ -36,7 +36,7 @@ import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
 import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
 import { checkPortalCollision } from '../services/gameplay/portal/portalCollision';
-import { type RewardPayload } from '../types/reward';
+import { type RewardPayload, type RunPerformance } from '../types/reward';
 import { GameEndReason } from '../types/metrics';
 import { GameMode } from '../types/gameMode';
 import {
@@ -96,6 +96,22 @@ import { useGameStatusEffects } from '../hooks/useGameStatusEffects';
 
 const DEBUG_API_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEBUG_API === 'true';
+
+/**
+ * Snapshots the run-long §14/§17 metrics for settlement and the end-of-run
+ * summary. Copied out of the runtime because the tracker reuses its snapshot.
+ */
+const readRunPerformance = (
+  runtime: ReturnType<typeof createGameRuntime>['difficultyRuntime']
+): RunPerformance => {
+  const snapshot = runtime.getRunPerformance();
+  return {
+    timeWeightedAlignment: snapshot.timeWeightedAlignment,
+    exitAlignment: snapshot.exitAlignment,
+    combatMastery: snapshot.combatMastery,
+    peakCombatMastery: snapshot.peakCombatMastery,
+  };
+};
 
 const resetPhaseDurations = (
   durations: Partial<Record<PhaseName, number>> | undefined
@@ -1019,6 +1035,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 streak: coinReward.breakdown.comboBonus,
                 portal: coinReward.breakdown.portalBonus,
               },
+              performance: readRunPerformance(runtimeRef.current.difficultyRuntime),
             };
 
             EventBus.emit('portalExtraction', {
@@ -1381,6 +1398,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       height,
       onLevelUp,
       onGameOver,
+      runtimeRef,
       draw,
       recordRuntimeDiagnostics,
       playerRef,

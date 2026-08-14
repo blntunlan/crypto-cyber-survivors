@@ -244,7 +244,12 @@
       "games": "Игры",
       "total_kills": "Всего убийств",
       "best_level": "Лучший уровень",
-      "back_to_menu": "В Терминал"
+      "back_to_menu": "В Терминал",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "RIGHT SIDE",
+      "trade_adverse": "WRONG SIDE",
+      "trade_neutral": "FLAT"
     },
     "cycle_complete_screen": {
       "title": "ЦИКЛ {{val}} ЗАВЕРШЕН",

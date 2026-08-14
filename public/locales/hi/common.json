@@ -244,7 +244,12 @@
       "games": "खेल",
       "total_kills": "कुल शिकार",
       "best_level": "सर्वश्रेष्ठ स्तर",
-      "back_to_menu": "टर्मिनल पर वापस"
+      "back_to_menu": "टर्मिनल पर वापस",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "RIGHT SIDE",
+      "trade_adverse": "WRONG SIDE",
+      "trade_neutral": "FLAT"
     },
     "cycle_complete_screen": {
       "title": "चक्र {{val}} पूर्ण",

@@ -210,6 +210,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       frozenPnlRef,
       gameOverReason,
       rewardSettlement,
+      runPerformance,
       handleLevelUp,
       selectUpgrade,
       handleGameOver,
@@ -459,6 +460,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         frozenPnlRef={frozenPnlRef}
         gameOverReason={gameOverReason}
         rewardSettlement={rewardSettlement}
+        runPerformance={runPerformance}
         pauseBudget={pauseBudget}
         audioState={audioState}
         toggleMute={toggleMute}

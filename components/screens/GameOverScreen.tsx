@@ -15,6 +15,7 @@ import { ThemedButton } from '../themed/ThemedButton';
 import { OverlayChrome } from '../ui/OverlayChrome';
 import { GameEndReason } from '../../types/metrics';
 import { type RewardSettlement } from '../../hooks/useGameFlowController';
+import { type RunPerformance } from '../../types/reward';
 
 type GameOverScreenProps = {
   level: number;
@@ -24,6 +25,7 @@ type GameOverScreenProps = {
   onRestart: () => void;
   endReason: GameEndReason;
   rewardSettlement: RewardSettlement;
+  runPerformance?: RunPerformance | null;
 };
 
 type RewardCalculation = ReturnType<typeof CoinService.calculateCycleReward>;
@@ -44,6 +46,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onRestart,
   endReason,
   rewardSettlement,
+  runPerformance = null,
 }) => {
   const isRetro = useIsRetro();
   const prefersReducedMotion = useReducedMotion();
@@ -146,6 +149,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             kills={kills}
             maxStreak={maxStreak}
             isRetro={isRetro}
+            runPerformance={runPerformance}
           />
           <LiquidationReward
             coinCalc={coinCalc}
@@ -236,7 +240,8 @@ const LiquidationResult: React.FC<{
   kills: number;
   maxStreak: number;
   isRetro: boolean;
-}> = ({ finalPnl, level, survivalTime, kills, maxStreak, isRetro }) => {
+  runPerformance: RunPerformance | null;
+}> = ({ finalPnl, level, survivalTime, kills, maxStreak, isRetro, runPerformance }) => {
   const { t } = useLanguage();
 
   return (
@@ -268,7 +273,48 @@ const LiquidationResult: React.FC<{
         />
         <RunMetric label="Streak" value={maxStreak.toLocaleString()} />
       </div>
+
+      <RunPerformanceSummary performance={runPerformance} />
     </section>
+  );
+};
+
+const formatSignedPercent = (value: number): string =>
+  `${value >= 0 ? '+' : ''}${(value * 100).toFixed(0)}%`;
+
+/**
+ * Contract §17 closes a run by explaining it: how the trade actually went and
+ * how the build performed. Direction reads the time-weighted alignment, not the
+ * exit tick, so one lucky final candle cannot rewrite the verdict.
+ */
+const RunPerformanceSummary: React.FC<{
+  performance: RunPerformance | null;
+}> = ({ performance }) => {
+  const { t } = useLanguage();
+  if (performance === null) return null;
+
+  const alignment = performance.timeWeightedAlignment;
+  const tradeVerdictKey =
+    alignment > 0.15
+      ? 'common.game_over_screen.trade_favorable'
+      : alignment < -0.15
+        ? 'common.game_over_screen.trade_adverse'
+        : 'common.game_over_screen.trade_neutral';
+
+  return (
+    <div
+      data-testid="run-performance-summary"
+      className="mt-3 grid grid-cols-2 divide-x divide-white/10"
+    >
+      <RunMetric
+        label={t('common.game_over_screen.trade_accuracy') as string}
+        value={`${t(tradeVerdictKey) as string} ${formatSignedPercent(alignment)}`}
+      />
+      <RunMetric
+        label={t('common.game_over_screen.build_performance') as string}
+        value={`${(performance.combatMastery * 100).toFixed(0)}%`}
+      />
+    </div>
   );
 };
 

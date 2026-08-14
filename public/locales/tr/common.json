@@ -229,7 +229,12 @@
       "games": "Maçlar",
       "total_kills": "Toplam Öldürme",
       "best_level": "En İyi Seviye",
-      "back_to_menu": "Terminal'e Dön"
+      "back_to_menu": "Terminal'e Dön",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "DOGRU YON",
+      "trade_adverse": "TERS YON",
+      "trade_neutral": "YATAY"
     },
     "cycle_complete_screen": {
       "title": "DÖNGÜ {{val}} TAMAMLANDI",

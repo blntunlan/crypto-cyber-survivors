@@ -12,6 +12,7 @@ import {
   type SpawnPlan,
 } from '../../director/contracts';
 import { type DirectorContractViolation } from '../../director/DirectorContractGuard';
+import { type RunPerformanceSnapshot } from '../../director/RunPerformanceTracker';
 import {
   SpawnPlanBuilder,
   type SpawnPlanWorldInput,
@@ -258,6 +259,11 @@ export class DifficultyRuntime {
   /** Wires the Director's safe-route query into the spawn planner (§10). */
   public setBlockedPositionQuery(query: (x: number, y: number) => boolean): void {
     this.currentAdapter.setBlockedPositionQuery(query);
+  }
+
+  /** Run-long §14/§17 metrics accumulated by the current-authority adapter. */
+  public getRunPerformance(): RunPerformanceSnapshot {
+    return this.currentAdapter.getRunPerformance();
   }
 
   public getInputSnapshot(): DifficultyRuntimeInputView {

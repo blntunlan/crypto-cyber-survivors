@@ -9,6 +9,10 @@ import {
   type SpawnPlan,
 } from '../../director/contracts';
 import { type DirectorContractViolation } from '../../director/DirectorContractGuard';
+import {
+  RunPerformanceTracker,
+  type RunPerformanceSnapshot,
+} from '../../director/RunPerformanceTracker';
 import { EventBus } from '../../core/EventBus';
 import { Logger } from '../../system/Logger';
 import { type DifficultyBoundaryInput } from './DifficultyRuntime';
@@ -109,6 +113,7 @@ export class CurrentDifficultyRuntimeAdapter {
     violations: NO_VIOLATIONS,
   };
   private readonly reportedViolations = new Set<DirectorContractViolation>();
+  private readonly performance = new RunPerformanceTracker();
   private lastDoomStacks = 0;
   private lastGreedLevel = 0;
 
@@ -152,6 +157,11 @@ export class CurrentDifficultyRuntimeAdapter {
     target.world.activePrimaryEncounters = world.activePrimaryEncounters;
     target.world.activeSupportEncounters = world.activeSupportEncounters;
     const decision = this.orchestrator.update(target);
+    this.performance.record(
+      decision.position.alignment,
+      player.combatMastery,
+      boundary.deltaSeconds
+    );
     this.reportViolations(decision.violations, boundary.tick);
     this.reportProgression(decision.snapshot);
     return decision;
@@ -162,8 +172,14 @@ export class CurrentDifficultyRuntimeAdapter {
     this.orchestrator.setBlockedPositionQuery(query);
   }
 
+  /** Run-long §14/§17 metrics for settlement and the end-of-run summary. */
+  public getRunPerformance(): RunPerformanceSnapshot {
+    return this.performance.getSnapshot();
+  }
+
   public reset(): void {
     this.orchestrator.reset();
+    this.performance.reset();
     this.reportedViolations.clear();
     this.lastDoomStacks = 0;
     this.lastGreedLevel = 0;

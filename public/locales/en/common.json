@@ -229,7 +229,12 @@
       "games": "Games",
       "total_kills": "Total Kills",
       "best_level": "Best Level",
-      "back_to_menu": "Back to Terminal"
+      "back_to_menu": "Back to Terminal",
+      "trade_accuracy": "TRADE",
+      "build_performance": "BUILD",
+      "trade_favorable": "RIGHT SIDE",
+      "trade_adverse": "WRONG SIDE",
+      "trade_neutral": "FLAT"
     },
     "cycle_complete_screen": {
       "title": "CYCLE {{val}} COMPLETE",

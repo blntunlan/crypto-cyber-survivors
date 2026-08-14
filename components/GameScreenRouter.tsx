@@ -17,7 +17,7 @@ import {
 import { type CryptoPair } from '../types/crypto';
 import { type GameMode, type CashOutOfferData } from '../types/gameMode';
 import { type GameEndReason } from '../types/metrics';
-import { type RewardPayload } from '../types/reward';
+import { type RewardPayload, type RunPerformance } from '../types/reward';
 import { type Card } from '../services/cards/types';
 import { type PauseBudgetState } from '../hooks/usePauseBudget';
 import {
@@ -96,6 +96,7 @@ export interface GameScreenRouterProps {
   frozenPnlRef: React.RefObject<number>;
   gameOverReason: GameEndReason;
   rewardSettlement: RewardSettlement;
+  runPerformance: RunPerformance | null;
   pauseBudget: PauseBudgetState;
   audioState: { isMuted: boolean };
   toggleMute: () => void;
@@ -141,6 +142,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   frozenPnlRef,
   gameOverReason,
   rewardSettlement,
+  runPerformance,
   pauseBudget,
   audioState,
   toggleMute,
@@ -241,6 +243,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
               onRestart={resetGame}
               endReason={gameOverReason}
               rewardSettlement={rewardSettlement}
+              runPerformance={runPerformance}
             />
           </React.Suspense>
         )}
