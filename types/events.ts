@@ -33,7 +33,6 @@ import {
 } from './lootCache';
 import { type InventoryItemType } from './inventory';
 import { type WeaponId } from './weapons';
-import { type TutorialPhase } from './tutorial';
 import { type RuntimeDifficultySnapshot } from './runtimeDifficulty';
 
 export type DifficultySnapshotCommittedEvent = {
@@ -142,7 +141,6 @@ export type GameEvent =
   | 'liquidationWarning'
   | 'secondElapsed'
   | 'fpsUpdated'
-  | 'cycleDecisionScreen'
   | 'cycleDecisionMade'
   | 'cashOutOfferOpened'
   | 'cashOutOfferQuoteFailed'
@@ -156,43 +154,18 @@ export type GameEvent =
   | 'portalOpened'
   | 'portalClosed'
   | 'portalExtraction'
-  | 'gameplayValidation'
-  // Railway health events
-  | 'railwayHealthCheck'
-  | 'railwayConnectionLost'
-  | 'railwayConnectionRestored'
-  // Twitter auth events
-  | 'twitterLoginSuccess'
-  | 'twitterUnlinked'
-  // AI Director / Optimization events
-  | 'playerRespawn'
-  | 'optimizationProgress'
-  | 'trainingProgress'
-  | 'directorParamsUpdated'
-  | 'optimizationComplete'
-  | 'directorAutoTuned'
-  | 'directorDecision'
-  | 'strategicLayerUpdate'
-  | 'tacticalLayerUpdate'
   | 'flowStateChanged'
-  | 'directorBlendedOutput'
   | 'clientIndicatorsUpdated'
   | 'portalEntered'
   | 'portalRejected'
   | 'portalMissed'
-  // Market / Gameplay interaction events
   | 'visualOverlay'
-  | 'spawnBoss'
-  | 'playerModifierApplied'
-  | 'playerModifierRemoved'
-  | 'marketFlowInfluence'
   // Price Momentum Engine events
   | 'priceMomentumUpdate'
   // Consolidated market event (Step 3)
   | 'canonicalMarketUpdate'
   | 'canonicalMarketFrame'
   // Railway auth events
-  | 'authStateChanged'
   | 'authUnauthorized'
   // Market Event Announcements
   | 'marketAnnouncement'
@@ -216,13 +189,7 @@ export type GameEvent =
   // Replay events
   | 'replaySaved'
   | 'replayLoaded'
-  | 'replayTick'
-  // Tutorial lifecycle events
-  | 'tutorialStarted'
-  | 'tutorialStepChanged'
-  | 'tutorialActionCompleted'
-  | 'tutorialCompleted'
-  | 'tutorialSkipped';
+  | 'replayTick';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -732,26 +699,6 @@ export type ValidationCategory =
   | 'state'
   | 'performance';
 
-/** Individual validation issue */
-export interface ValidationIssue {
-  id: string;
-  category: ValidationCategory;
-  severity: ValidationSeverity;
-  message: string;
-  field?: string;
-  expected?: unknown;
-  actual?: unknown;
-  autoFixed: boolean;
-  timestamp: number;
-}
-
-/** Gameplay validation event data */
-export interface GameplayValidationEvent {
-  issues: ValidationIssue[];
-  fixedCount: number;
-  timestamp: number;
-}
-
 // =============================================================================
 // EVENT DATA MAP
 // =============================================================================
@@ -783,17 +730,6 @@ export interface EventDataMap {
   afterReset: EmptyEvent;
   gameInitialized: GameInitializedEvent;
   settingsUpdate: SettingsUpdateEvent;
-  playerRespawn: EmptyEvent;
-  optimizationProgress: { progress: number; iteration?: number; total?: number };
-  trainingProgress: {
-    episode: number;
-    totalEpisodes: number;
-    avgReward: number;
-    bestReward: number;
-    flowRatio: number;
-    progress?: number;
-  };
-  directorParamsUpdated: { params: unknown };
   buffApplied: BuffAppliedEvent;
   buffExpired: BuffExpiredEvent;
   buffGemSpawned: BuffGemSpawnedEvent;
@@ -805,12 +741,6 @@ export interface EventDataMap {
   clientIndicatorsUpdated: ClientIndicatorsUpdatedEvent;
   flowStateChanged: FlowStateChangedEvent;
   whaleSpawned: WhaleSpawnedEvent;
-  directorBlendedOutput: {
-    flowState: string;
-    interventionActive: boolean;
-    blendFactor: number;
-    spawnRate: number;
-  };
   rsiStateChanged: RSIStateChangedEvent;
   marketStateUpdated: MarketStateUpdatedEvent;
   xpGained: { amount: number };
@@ -915,7 +845,6 @@ export interface EventDataMap {
   };
   secondElapsed: { totalSeconds: number };
   fpsUpdated: { avgFps: number };
-  cycleDecisionScreen: { cycleNumber: number; options: string[] };
   cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
   cashOutOfferOpened: { cycleNumber: number };
   cashOutOfferQuoteFailed: { cycleNumber: number };
@@ -994,55 +923,16 @@ export interface EventDataMap {
     intensity: number;
     durationMs: number;
   };
-  spawnBoss: { type: string; tier: number };
-  playerModifierApplied: {
-    source: string;
-    speedMultiplier: number;
-    damageMultiplier: number;
-    defenseMultiplier: number;
-    durationMs: number;
-  };
-  playerModifierRemoved: { source: string };
-  marketFlowInfluence: {
-    stressChange: number;
-    engagementChange: number;
-    source: string;
-  };
   // Gameplay validation events
-  gameplayValidation: GameplayValidationEvent;
   // Railway health events
-  railwayHealthCheck: RailwayHealthCheckEvent;
-  railwayConnectionLost: { error: string; timestamp: string };
-  railwayConnectionRestored: { latencyMs: number; timestamp: string };
   // Twitter auth events
-  twitterLoginSuccess: { username: string; displayName: string };
-  twitterUnlinked: Record<string, never>;
   // AI Director / Optimization events
-  optimizationComplete: { bestParams: unknown; bestScore: number };
-  directorAutoTuned: { improvement: number; newScore: number };
-  directorDecision: {
-    spawnRate: number;
-    flowState: string;
-    interventions: string[];
-  };
-  strategicLayerUpdate: {
-    difficultyMultiplier: number;
-    error: number;
-    integral: number;
-    derivative: number;
-  };
-  tacticalLayerUpdate: {
-    chaosLevel: string;
-    marketMood: string;
-    enemyBias: string;
-  };
   // Price Momentum Engine
   priceMomentumUpdate: PriceMomentumUpdateEvent;
   // Consolidated market event (Step 3)
   canonicalMarketUpdate: CanonicalMarketPayload;
   canonicalMarketFrame: Readonly<CanonicalMarketFrame>;
   // Railway auth state change event
-  authStateChanged: AuthStateChangedEvent;
   authUnauthorized: AuthUnauthorizedEvent;
   // Market Event Announcements
   marketAnnouncement: MarketAnnouncementEvent;
@@ -1067,12 +957,6 @@ export interface EventDataMap {
   replaySaved: ReplaySavedEvent;
   replayLoaded: ReplayLoadedEvent;
   replayTick: ReplayTickEvent;
-  // Tutorial lifecycle events
-  tutorialStarted: TutorialStartedEvent;
-  tutorialStepChanged: TutorialStepChangedEvent;
-  tutorialActionCompleted: TutorialActionCompletedEvent;
-  tutorialCompleted: TutorialCompletedEvent;
-  tutorialSkipped: TutorialSkippedEvent;
 }
 
 export interface NotificationEvent {
@@ -1106,13 +990,6 @@ export interface SessionSyncFailedEvent {
   retryCount: number;
 }
 
-/** Railway health check result event */
-export interface RailwayHealthCheckEvent {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  latencyMs: number;
-  recommendations: string[];
-}
-
 /** Market event announcement data */
 export interface MarketAnnouncementEvent {
   type: string;
@@ -1121,19 +998,6 @@ export interface MarketAnnouncementEvent {
   icon: string;
   duration: number;
   priority: number;
-}
-
-/** Auth state changed event (Railway Auth) */
-export interface AuthStateChangedEvent {
-  type:
-    | 'signIn'
-    | 'signOut'
-    | 'signUp'
-    | 'tokenRefreshed'
-    | 'userUpdated'
-    | 'passwordRecovery';
-  user: unknown | null;
-  session?: unknown | null;
 }
 
 /** Auth unauthorized / 401 event (Railway Auth) */
@@ -1233,36 +1097,7 @@ export interface ReplayTickEvent {
   currentTimeMs: number;
 }
 
-// =============================================================================
-// TUTORIAL EVENTS
-// =============================================================================
-
-/** Emitted when the tutorial run starts (auto or replay). */
-export interface TutorialStartedEvent {
-  startedAt: number;
-}
-
-/** Emitted when the active tutorial step changes. */
-export interface TutorialStepChangedEvent {
-  stepId: string;
-  stepIndex: number;
-  phase: TutorialPhase;
-}
-
-/** Emitted when a step's required action is completed (before advancing). */
-export interface TutorialActionCompletedEvent {
-  stepId: string;
-  actionType: string;
-}
-
-/** Emitted when the tutorial run completes fully. */
-export interface TutorialCompletedEvent {
-  completedAt: number;
-  durationMs: number;
-}
-
-/** Emitted when the player skips the tutorial. */
-export interface TutorialSkippedEvent {
-  stepId: string;
-  skippedAt: number;
-}
+// The tutorial ships without an event channel: TutorialOverlay, useTutorial and
+// TutorialConfig drive it directly, and nothing ever emitted the lifecycle
+// events that used to be declared here. Removing them also breaks the
+// types/events.ts <-> types/tutorial.ts import cycle.

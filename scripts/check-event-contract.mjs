@@ -129,15 +129,47 @@ const readDeclaredEvents = async () => {
   return new Set([...body.matchAll(/\|\s*'([^']+)'/g)].map(match => match[1]));
 };
 
+/**
+ * EventDataMap keys, so drift against the union can be caught. TypeScript will
+ * not: EventDataMap is an interface, so a key for an event that no longer
+ * exists in the union sits there silently — which is exactly what happened to
+ * eighteen entries when their features were cut.
+ */
+const readDataMapKeys = async () => {
+  const source = await fs.readFile(EVENTS_PATH, 'utf8');
+  const start = source.indexOf('export interface EventDataMap');
+  if (start === -1) {
+    throw new Error('Could not locate EventDataMap in types/events.ts');
+  }
+
+  const keys = new Set();
+  let depth = 0;
+
+  for (const line of source.slice(start).split('\n')) {
+    const entry = line.match(/^ {2}'?([A-Za-z:]+)'?:/);
+    if (depth === 1 && entry) keys.add(entry[1]);
+
+    depth += (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
+    if (depth <= 0 && keys.size > 0) break;
+  }
+
+  return keys;
+};
+
 const readEffectRegistryEvents = async () => {
   const source = await fs.readFile(EFFECT_REGISTRY_PATH, 'utf8');
   return new Set([...source.matchAll(/\bevent:\s*'([^']+)'/g)].map(match => match[1]));
 };
 
-const scanCallSites = async files => {
+const scanCallSites = async (files, declared) => {
   const emitted = new Map();
   const listened = new Map();
   const dynamic = [];
+
+  const record = (target, event, file) => {
+    if (!target.has(event)) target.set(event, new Set());
+    target.get(event).add(file);
+  };
 
   for (const file of files) {
     const source = await fs.readFile(file, 'utf8');
@@ -145,13 +177,21 @@ const scanCallSites = async files => {
 
     for (const match of source.matchAll(CALL_PATTERN)) {
       const [, method, event] = match;
-      const target = EMIT_METHODS.has(method) ? emitted : listened;
-      if (!target.has(event)) target.set(event, new Set());
-      target.get(event).add(relative);
+      record(EMIT_METHODS.has(method) ? emitted : listened, event, relative);
     }
 
+    DYNAMIC_CALL_PATTERN.lastIndex = 0;
     if (DYNAMIC_CALL_PATTERN.test(source)) {
       dynamic.push(relative);
+      // A file that routes through a variable (VerificationQueue wraps
+      // EventBus.emit behind a typed helper) hides its event names from the
+      // scan. Deleting those as "never emitted" would break a live feature, so
+      // every declared event named anywhere in such a file counts as emitted.
+      for (const match of source.matchAll(/['"]([^'"\n]+)['"]/g)) {
+        if (declared.has(match[1])) {
+          record(emitted, match[1], `${relative} (dynamic)`);
+        }
+      }
     }
     DYNAMIC_CALL_PATTERN.lastIndex = 0;
   }
@@ -247,14 +287,34 @@ export const applyAllowlist = (violations, allowlistByRule) => {
 };
 
 const main = async () => {
-  const [declared, effectRegistryEvents, files, allowlist] = await Promise.all([
-    readDeclaredEvents(),
-    readEffectRegistryEvents(),
-    collectSourceFiles(),
-    readAllowlist(),
-  ]);
+  const [declared, dataMapKeys, effectRegistryEvents, files, allowlist] =
+    await Promise.all([
+      readDeclaredEvents(),
+      readDataMapKeys(),
+      readEffectRegistryEvents(),
+      collectSourceFiles(),
+      readAllowlist(),
+    ]);
 
-  const { emitted, listened, dynamic } = await scanCallSites(files);
+  // Structural invariant, deliberately not allowlistable: the union and the
+  // payload map describe the same set or the typing is a lie.
+  const missingPayload = [...declared].filter(event => !dataMapKeys.has(event));
+  const orphanPayload = [...dataMapKeys].filter(event => !declared.has(event));
+
+  if (missingPayload.length > 0 || orphanPayload.length > 0) {
+    console.error('GameEvent union and EventDataMap have drifted:');
+    if (missingPayload.length > 0) {
+      console.error('  In the union with no EventDataMap entry:');
+      console.error(formatList(missingPayload));
+    }
+    if (orphanPayload.length > 0) {
+      console.error('  In EventDataMap but not in the union:');
+      console.error(formatList(orphanPayload));
+    }
+    process.exit(1);
+  }
+
+  const { emitted, listened, dynamic } = await scanCallSites(files, declared);
 
   const violations = computeViolations({
     declared,
