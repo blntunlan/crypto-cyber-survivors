@@ -1,0 +1,243 @@
+{
+  "version": "v1",
+  "scenarios": [
+    {
+      "scenario": "calm",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.369351
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.061274
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.098039
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.074284
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.624013
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.482917
+        }
+      ]
+    },
+    {
+      "scenario": "trend-up",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.384175
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.066399
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.106238
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.07336
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.624013
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.525578
+        }
+      ]
+    },
+    {
+      "scenario": "trend-down",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.640211
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.083141
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.133026
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.070487
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.624013
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.528176
+        }
+      ]
+    },
+    {
+      "scenario": "volume-surge",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.369352
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.072746
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.116393
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.074183
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "presentationIntensity",
+          "worstDrift": 2
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.624013
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.483434
+        }
+      ]
+    },
+    {
+      "scenario": "volatility-spike",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.369363
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.061877
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.099002
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.074246
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.624013
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.483214
+        }
+      ]
+    },
+    {
+      "scenario": "stale-reconnect",
+      "comparisons": 48,
+      "failed": 48,
+      "worstDriftByDimension": [
+        {
+          "dimension": "creditRate",
+          "worstDrift": 0.369363
+        },
+        {
+          "dimension": "enemyDamageMultiplier",
+          "worstDrift": 0.061877
+        },
+        {
+          "dimension": "enemyHealthMultiplier",
+          "worstDrift": 0.099002
+        },
+        {
+          "dimension": "enemySpeedMultiplier",
+          "worstDrift": 0.074246
+        },
+        {
+          "dimension": "mercy",
+          "worstDrift": 0.348
+        },
+        {
+          "dimension": "recoveryNeed",
+          "worstDrift": 0.58
+        },
+        {
+          "dimension": "spawnWindowSeconds",
+          "worstDrift": 1.650674
+        },
+        {
+          "dimension": "threatTarget",
+          "worstDrift": 0.483214
+        }
+      ]
+    }
+  ]
+}

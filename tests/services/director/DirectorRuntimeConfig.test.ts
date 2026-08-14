@@ -36,6 +36,9 @@ describe('Director runtime configuration', () => {
   });
 
   it.each([
+    // undefined is the shipped case: VITE_DIFFICULTY_RUNTIME_MODE is set in no
+    // env file, so production takes this row.
+    [undefined, 'current', true, false, false],
     ['current', 'current', true, false, false],
     ['shadow', 'shadow', true, true, false],
     ['modular', 'modular', false, true, true],

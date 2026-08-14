@@ -15,6 +15,7 @@ describe('BetaEnvContract', () => {
         VITE_MARKET_AGGREGATOR_URL: 'https://market.up.railway.app',
         VITE_APP_ENV: 'beta',
         VITE_MARKET_RUNTIME_MODE: 'legacy',
+        VITE_DIFFICULTY_RUNTIME_MODE: 'current',
         VITE_VERIFY_COINS_ONLY: 'true',
         VITE_ANTI_CHEAT_SPEED_HACK_ENABLED: 'true',
         VITE_ENABLE_DEBUG_API: 'false',
@@ -38,6 +39,7 @@ describe('BetaEnvContract', () => {
         VITE_MARKET_AGGREGATOR_URL: 'https://market.up.railway.app',
         VITE_APP_ENV: 'beta',
         VITE_MARKET_RUNTIME_MODE: 'legacy',
+        VITE_DIFFICULTY_RUNTIME_MODE: 'current',
         VITE_VERIFY_COINS_ONLY: 'false',
         VITE_ANTI_CHEAT_SPEED_HACK_ENABLED: 'false',
         VITE_ENABLE_DEBUG_API: 'true',
@@ -56,6 +58,52 @@ describe('BetaEnvContract', () => {
     );
   });
 
+  it('requires an explicit difficulty runtime mode', () => {
+    // Leaving this unset resolves to `current`, which silently switches off the
+    // modular shell and every consumer of `difficultySnapshotCommitted`. Beta
+    // has to state which shell holds authority rather than inherit it.
+    const result = validateBetaEnv(
+      {
+        VITE_API_BASE_URL: 'https://api.up.railway.app',
+        VITE_RAILWAY_API_URL: 'https://api.up.railway.app',
+        VITE_MARKET_AGGREGATOR_URL: 'https://market.up.railway.app',
+        VITE_APP_ENV: 'beta',
+        VITE_MARKET_RUNTIME_MODE: 'legacy',
+        VITE_VERIFY_COINS_ONLY: 'true',
+        VITE_ANTI_CHEAT_SPEED_HACK_ENABLED: 'true',
+      },
+      'frontend',
+      'beta'
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ key: 'VITE_DIFFICULTY_RUNTIME_MODE' })
+    );
+  });
+
+  it('rejects a difficulty runtime mode outside the known shells', () => {
+    const result = validateBetaEnv(
+      {
+        VITE_API_BASE_URL: 'https://api.up.railway.app',
+        VITE_RAILWAY_API_URL: 'https://api.up.railway.app',
+        VITE_MARKET_AGGREGATOR_URL: 'https://market.up.railway.app',
+        VITE_APP_ENV: 'beta',
+        VITE_MARKET_RUNTIME_MODE: 'legacy',
+        VITE_DIFFICULTY_RUNTIME_MODE: 'hybrid',
+        VITE_VERIFY_COINS_ONLY: 'true',
+        VITE_ANTI_CHEAT_SPEED_HACK_ENABLED: 'true',
+      },
+      'frontend',
+      'beta'
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ key: 'VITE_DIFFICULTY_RUNTIME_MODE' })
+    );
+  });
+
   it('fails frontend beta env when Cloudflare worker URLs are only partially set', () => {
     const result = validateBetaEnv(
       {
@@ -64,6 +112,7 @@ describe('BetaEnvContract', () => {
         VITE_MARKET_AGGREGATOR_URL: 'https://market.up.railway.app',
         VITE_APP_ENV: 'beta',
         VITE_MARKET_RUNTIME_MODE: 'legacy',
+        VITE_DIFFICULTY_RUNTIME_MODE: 'current',
         VITE_VERIFY_COINS_ONLY: 'true',
         VITE_ANTI_CHEAT_SPEED_HACK_ENABLED: 'true',
         VITE_CF_PRICE_ORACLE_URL: 'https://price-worker.crypto-survivors.workers.dev',

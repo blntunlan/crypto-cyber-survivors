@@ -11,6 +11,7 @@ import {
 import { GameStatus, MarketPosition, type GameState } from '../../../types';
 import { createInitialPlayer } from '../../../config/PlayerConfig';
 import { EventBus } from '../../../services/core/EventBus';
+import { getDirectorRuntimeConfig } from '../../../config/directorRuntime';
 
 const createPhaseInput = (frame = 40, elapsedMs = 4_000): PhaseInput<'difficulty'> => {
   const context: TickContext = {
@@ -92,6 +93,49 @@ describe('DifficultyPhase authority boundary', () => {
       activeRevision: expect.any(Number),
     });
     runtime.dispose();
+  });
+
+  // Every other test here names its mode explicitly, which is exactly why the
+  // shipped default went uncovered: VITE_DIFFICULTY_RUNTIME_MODE is set in no
+  // env file, so production resolves to `current` and the modular shell — plus
+  // every consumer of `difficultySnapshotCommitted` — never runs. These two
+  // pin the default down so a change to it has to be deliberate.
+  describe('default path (no mode configured)', () => {
+    it('resolves to the current shell', () => {
+      expect(getDirectorRuntimeConfig(undefined).mode).toBe('current');
+
+      const runtime = createGameRuntime();
+      const phase = new DifficultyPhase(runtime.difficultyRuntime);
+
+      const result = phase.execute(createPhaseInput());
+
+      expect(result.shared?.difficultyPhaseDecision).toMatchObject({
+        authority: 'current',
+      });
+      runtime.dispose();
+    });
+
+    it('commits no modular snapshot, so its consumers never receive one', () => {
+      const commits: unknown[] = [];
+      const unsubscribe = EventBus.on('difficultySnapshotCommitted', payload => {
+        commits.push(payload);
+      });
+
+      const runtime = createGameRuntime();
+      const phase = new DifficultyPhase(runtime.difficultyRuntime);
+
+      for (let frame = 1; frame <= 20; frame++) {
+        phase.execute(createPhaseInput(frame * 10, frame * 1_000));
+      }
+
+      // Consumers waiting on this event: CollectionSystem XP/gem multipliers,
+      // useDifficultyV2 (fovReduction, LiquidationWarningOverlay),
+      // useMarketRegime (LiveFeed regime telegraph), LootboxService.
+      expect(commits).toHaveLength(0);
+
+      unsubscribe();
+      runtime.dispose();
+    });
   });
 
   it('keeps the modular snapshot non-authoritative in shadow mode', () => {

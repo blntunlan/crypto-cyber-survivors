@@ -168,6 +168,19 @@ const frontendRequirements: EnvRequirement[] = [
     validate: enumValue('VITE_MARKET_RUNTIME_MODE', ['legacy', 'dual', 'runtime']),
   },
   {
+    // Required rather than optional on purpose: when this is unset the mode
+    // resolves to `current`, which leaves the modular shell — and therefore
+    // every consumer of `difficultySnapshotCommitted` — switched off with no
+    // signal anywhere. Beta/prod must state which shell has authority.
+    key: 'VITE_DIFFICULTY_RUNTIME_MODE',
+    requiredIn: BETA_PROFILES,
+    validate: enumValue('VITE_DIFFICULTY_RUNTIME_MODE', [
+      'current',
+      'shadow',
+      'modular',
+    ]),
+  },
+  {
     key: 'VITE_VERIFY_COINS_ONLY',
     requiredIn: BETA_PROFILES,
     validate: mustBeTrue('VITE_VERIFY_COINS_ONLY'),
