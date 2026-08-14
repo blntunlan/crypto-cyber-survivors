@@ -6,18 +6,30 @@
 > **Kapsam:** Bu doküman program seviyesidir. Her dilim (S0–S8) uygulanırken kendi task seviyesinde TDD planına bölünür.
 >
 > **Uygulama durumu (2026-08-14):** S0 ✅ · S1 ✅ · S2 ✅ · S3 ✅ · S4a ✅ · S4b ✅ ·
-> S5 çoğu (snapshot + cue + HUD ✅, run-sonu özeti ⏳) · S7 ikinci oturumda ✅ ·
+> S5 ✅ (snapshot + cue + HUD + run-sonu özeti) ·
+> **S7 kısmi** (legacy temizliği ✅ · yakınsama/cutover ❌ ölçüldü ve ertelendi) ·
 > S6 ve S8 ⏳ açık.
 >
-> `check:baseline` tam yeşil: typecheck · architecture (65 singleton) ·
-> reset-coverage · ui-contract · director-manifest · lint 0 hata/1 uyarı ·
-> 3099 test / 327 dosya · build. `test:director-release` 217/217.
+> **S7 düzeltmesi (2026-08-14):** başlık önceden S7'yi tümüyle ✅ sayıyordu, §2'deki
+> S7 bölümü ise hâlâ "Açık karar gerekiyor" diyordu. Doğrusu ikisinin arası:
+> legacy temizliği (`DifficultyManager`, `UnifiedDirector`, 12 rule, bağlı testler,
+> `measure-director-baseline`) paralel bir oturumda tamamlandı ve `check:baseline`
+> artık `check:director-reference` adımını içermiyor — ama **tek otoriteye yakınsama
+> yapılmadı**. Shadow ölçümü alındı ve cutover reddedildi:
+> [2026-08-14-difficulty-runtime-authority-decision.md](./2026-08-14-difficulty-runtime-authority-decision.md).
+> Özet: 288 karşılaştırmanın 288'i ayrışıyor; `threatTarget` mutlak drift 0.53,
+> `creditRate` 0.64. `current` otorite olarak kalıyor.
 >
-> **Not:** S7 legacy temizliğini (`DifficultyManager`, `UnifiedDirector`, 12 rule,
-> bağlı testler ve `measure-director-baseline`) paralel bir oturum yürüttü ve
-> tamamladı; `check:baseline` artık `check:director-reference` adımını içermiyor.
-> `check:baseline` tam yeşil (typecheck · architecture · reset-coverage · ui-contract ·
-> director-manifest · lint 0 hata · 3167 test · build).
+> **Ayrıca:** `VITE_DIFFICULTY_RUNTIME_MODE` hiçbir env dosyasında tanımlı değildi,
+> yani gönderilen varsayılan `current`'tı ve `difficultySnapshotCommitted` üretimde
+> hiç emit edilmiyordu — buna bağlı dört tüketici (XP/gem çarpanları, `useDifficultyV2`,
+> `useMarketRegime`, `LootboxService`) sessizce ölüydü. Değişken artık
+> `BetaEnvContract`'ta zorunlu ve varsayılan yol test altında.
+>
+> `check:baseline` durumu bu satır yazılırken: typecheck · architecture (65 singleton) ·
+> reset-coverage · ui-contract · director-manifest · lint 0 hata / 0 uyarı · build.
+> Test sayısı için güncel koşuya bakın — bu başlıkta daha önce iki farklı sayı
+> (3099 ve 3167) yazıyordu, ikisi de artık bayat.
 
 ---
 
