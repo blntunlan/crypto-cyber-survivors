@@ -49,7 +49,7 @@ export const LandingArchitecture: React.FC = () => {
                   key={highlight.title}
                   className="border border-white/10 bg-black/30 p-3"
                 >
-                  <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#b22222]">
+                  <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#ff6b6b]">
                     {highlight.badge}
                   </p>
                   <p className="mb-2 text-sm font-bold text-white">{highlight.title}</p>
@@ -65,7 +65,7 @@ export const LandingArchitecture: React.FC = () => {
                 tag => (
                   <span
                     key={tag}
-                    className="border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold uppercase tracking-tighter text-slate-500 sm:px-3 sm:text-[10px]"
+                    className="border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold uppercase tracking-tighter text-slate-400 sm:px-3 sm:text-[10px]"
                   >
                     {tag}
                   </span>
@@ -82,17 +82,17 @@ export const LandingArchitecture: React.FC = () => {
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
             className="group relative overflow-hidden border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 p-6 sm:p-8"
           >
-            <div className="absolute right-0 top-0 p-3 font-mono text-[10px] uppercase tracking-widest text-[#d6b85c]/50 sm:p-4">
+            <div className="absolute right-0 top-0 p-3 font-mono text-[10px] uppercase tracking-widest text-[#d6b85c] sm:p-4">
               Design constraints
             </div>
             <div className="relative z-10 space-y-4">
               <div className="flex items-start gap-3 sm:gap-4">
-                <div className="h-12 w-1 flex-shrink-0 bg-[#b22222]" />
+                <div className="h-12 w-1 flex-shrink-0 bg-[#ff6b6b]" />
                 <div>
                   <div className="text-xs font-black uppercase italic text-white">
                     Systemic Balance
                   </div>
-                  <div className="font-mono text-[10px] text-slate-500">
+                  <div className="font-mono text-[10px] text-slate-400">
                     Difficulty scales with Leverage, a risk multiplier (1x–100x).
                   </div>
                 </div>
@@ -103,7 +103,7 @@ export const LandingArchitecture: React.FC = () => {
                   <div className="text-xs font-black uppercase italic text-white">
                     Real-Time Integrity
                   </div>
-                  <div className="font-mono text-[10px] text-slate-500">
+                  <div className="font-mono text-[10px] text-slate-400">
                     WSS feed failover ensures zero game interruption.
                   </div>
                 </div>
@@ -114,7 +114,7 @@ export const LandingArchitecture: React.FC = () => {
                   <div className="text-xs font-black uppercase italic text-white">
                     60 FPS Native
                   </div>
-                  <div className="font-mono text-[10px] text-slate-500">
+                  <div className="font-mono text-[10px] text-slate-400">
                     Canvas-optimized rendering pipeline bypasses DOM overhead.
                   </div>
                 </div>

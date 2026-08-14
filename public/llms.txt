@@ -1,0 +1,10 @@
+# Crypto Survivors
+
+> Crypto Survivors is a real-time market-driven survival game where live Bitcoin (BTC/USD) price feeds dynamically shape difficulty, enemy behaviors, and roguelite progression.
+
+## Links
+
+- [Crypto Survivors Game](https://crypto-survivors.com/): Official game client and landing portal
+- [Documentation Hub](https://crypto-survivors.com/docs): Comprehensive documentation and guides
+- [Market Architecture](https://crypto-survivors.com/docs/architecture): Real-time market data streaming and difficulty scaling engine
+- [Tokenomics & Mechanics](https://crypto-survivors.com/TOKENOMICS.md): In-game economy, scoring system, and multipliers

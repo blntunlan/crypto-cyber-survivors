@@ -30,10 +30,10 @@
   --ui-surface-inset: rgba(2, 6, 23, 0.7);
   --ui-text-primary: #f8fafc;
   --ui-text-muted: #94a3b8;
-  --ui-action-primary-surface: #0891b2;
-  --ui-action-primary-surface-hover: #06b6d4;
+  --ui-action-primary-surface: #0e7490;
+  --ui-action-primary-surface-hover: #0891b2;
   --ui-action-primary-text: #ffffff;
-  --ui-action-primary-border: rgba(34, 211, 238, 0.45);
+  --ui-action-primary-border: rgba(34, 211, 238, 0.55);
   --ui-focus-ring: #22d3ee;
   --ui-status-success: #34d399;
   --ui-status-warning: #fbbf24;

@@ -78,8 +78,8 @@ export const LandingRoadmap: React.FC = () => {
                   phase.status === 'current'
                     ? 'text-[#d6b85c]'
                     : phase.status === 'completed'
-                      ? 'text-green-500'
-                      : 'text-slate-500'
+                      ? 'text-emerald-400'
+                      : 'text-slate-400'
                 }`}
               >
                 {phase.phase}
@@ -89,7 +89,7 @@ export const LandingRoadmap: React.FC = () => {
                   phase.status === 'current'
                     ? 'text-[#d6b85c]'
                     : phase.status === 'completed'
-                      ? 'text-green-400'
+                      ? 'text-emerald-400'
                       : 'text-white'
                 } font-cyber`}
               >
@@ -101,18 +101,18 @@ export const LandingRoadmap: React.FC = () => {
                     key={item}
                     className={`flex items-start gap-2 font-mono text-[11px] ${
                       phase.status === 'completed'
-                        ? 'text-slate-500 line-through'
+                        ? 'text-slate-400 line-through'
                         : 'text-slate-400'
                     }`}
                   >
                     {phase.status === 'completed' ? (
-                      <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
+                      <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
                     ) : (
                       <span
                         className={`mt-0.5 w-3 flex-shrink-0 text-center ${
                           phase.status === 'current'
                             ? 'text-[#d6b85c]'
-                            : 'text-slate-600'
+                            : 'text-slate-400'
                         }`}
                       >
                         ·

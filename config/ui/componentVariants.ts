@@ -205,7 +205,7 @@ export const UI_COMPONENT_SKINS: Record<ThemeName, UiComponentSkin> = {
       size: SHARED_BUTTON_SIZES,
       intent: {
         primary:
-          'border-[#FFD600] bg-[#00BFFF] text-white hover:border-[#39FF14] hover:bg-[#39FF14]',
+          'border-[#FFD600] bg-[#00BFFF] text-[#020617] font-black hover:border-[#39FF14] hover:bg-[#39FF14]',
         secondary:
           'border-[#39FF14]/50 bg-[#0a0a12] text-[#39FF14] hover:border-[#39FF14] hover:bg-[#39FF14]/20',
         danger: 'border-[#FF3D00] bg-[#B22222] text-white hover:bg-[#FF3D00]',
@@ -218,7 +218,7 @@ export const UI_COMPONENT_SKINS: Record<ThemeName, UiComponentSkin> = {
       base: `${SHARED_BUTTON_BASE} min-h-[44px] min-w-[44px] rounded-none border-2 p-2 font-retro-pixel`,
       intent: {
         primary:
-          'border-[#FFD600] bg-[#00BFFF] text-white hover:border-[#39FF14] hover:bg-[#39FF14]',
+          'border-[#FFD600] bg-[#00BFFF] text-[#020617] hover:border-[#39FF14] hover:bg-[#39FF14]',
         secondary:
           'border-[#39FF14]/50 bg-[#0a0a12] text-[#39FF14] hover:border-[#39FF14] hover:bg-[#39FF14]/20',
         danger: 'border-[#FF3D00] bg-[#B22222] text-white hover:bg-[#FF3D00]',

@@ -27,19 +27,29 @@ export function useAppInitialization(): UseAppInitializationResult {
     let isMounted = true;
 
     const init = async () => {
-      // 1. Initialize core analytics services
-      void import('../services/analytics/ErrorTracker');
-      void import('../services/analytics/PlayerTracker');
-
-      // 2. Run device benchmark
-      void DeviceBenchmarkService.runBenchmark();
-
-      // 3. Initialize client integrity checks and cheat telemetry
+      // 1. Initialize client integrity checks
       AntiCheatService.init();
 
-      // 4. Market state now handled by SSE via useMarketData hook
       if (isMounted) {
         setIsInitialized(true);
+      }
+
+      // 2. Schedule non-critical background services after page is interactive
+      if (import.meta.env.MODE === 'test') {
+        void import('../services/analytics/ErrorTracker');
+        void import('../services/analytics/PlayerTracker');
+        void DeviceBenchmarkService.runBenchmark();
+      } else {
+        const scheduleIdle =
+          'requestIdleCallback' in window
+            ? window.requestIdleCallback
+            : (cb: () => void) => setTimeout(cb, 2000);
+        scheduleIdle(() => {
+          if (!isMounted) return;
+          void import('../services/analytics/ErrorTracker');
+          void import('../services/analytics/PlayerTracker');
+          void DeviceBenchmarkService.runBenchmark();
+        });
       }
     };
 

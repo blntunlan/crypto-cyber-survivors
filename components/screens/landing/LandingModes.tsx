@@ -74,12 +74,12 @@ export const LandingModes: React.FC = () => {
             variants={fadeInUp}
             className="relative overflow-hidden border-2 border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent p-6 transition-colors duration-300 sm:p-8"
           >
-            <div className="absolute right-4 top-4 bg-[#b22222] px-2 py-1 text-[8px] font-black uppercase tracking-wider sm:text-[9px]">
+            <div className="absolute right-4 top-4 bg-[#b22222] px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white sm:text-[9px]">
               Pro
             </div>
             <div className="mb-6 flex items-center gap-3">
-              <Trophy className="h-8 w-8 text-[#b22222]" />
-              <h3 className="font-cyber text-xl font-black uppercase italic text-[#b22222] sm:text-2xl">
+              <Trophy className="h-8 w-8 text-[#ff6b6b]" />
+              <h3 className="font-cyber text-xl font-black uppercase italic text-[#ff6b6b] sm:text-2xl">
                 Competitive
               </h3>
             </div>
@@ -89,7 +89,7 @@ export const LandingModes: React.FC = () => {
             <ul className="space-y-3">
               {COMPETITIVE_ITEMS.map((item, i) => (
                 <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                  <Check className="h-4 w-4 flex-shrink-0 text-[#b22222]" />
+                  <Check className="h-4 w-4 flex-shrink-0 text-[#ff6b6b]" />
                   {item}
                 </li>
               ))}

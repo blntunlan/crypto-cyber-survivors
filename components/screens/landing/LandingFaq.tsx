@@ -84,7 +84,7 @@ export const LandingFaq: React.FC = () => {
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 flex-shrink-0 transition-transform duration-300 ${
-                    openFaqIndex === i ? 'rotate-180 text-[#d6b85c]' : 'text-slate-500'
+                    openFaqIndex === i ? 'rotate-180 text-[#d6b85c]' : 'text-slate-400'
                   }`}
                 />
               </button>

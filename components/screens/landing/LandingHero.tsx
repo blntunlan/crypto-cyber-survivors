@@ -1,5 +1,4 @@
 import React from 'react';
-import { m } from 'framer-motion';
 import { trackRender } from '../../../utils/trackRender';
 import { Play, ArrowRight } from 'lucide-react';
 import { LandingPriceFeed } from './LandingPriceFeed';
@@ -21,13 +20,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
     <header className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-12 sm:px-6 sm:pb-32 sm:pt-20 lg:px-10">
       <div className="flex w-full min-w-0 flex-col items-center gap-12 lg:flex-row lg:gap-14">
         {/* Main Messaging Sub-module */}
-        <m.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-20 w-full min-w-0 flex-1 lg:pt-6"
-        >
-          <div className="mb-6 inline-flex max-w-full flex-wrap items-center gap-2 rounded border border-[#b22222]/30 bg-[#b22222]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[#b22222] shadow-[inset_3px_0_0_rgba(178,34,34,0.7)] sm:mb-8 sm:text-xs">
+        <div className="relative z-20 w-full min-w-0 flex-1 lg:pt-6">
+          <div className="mb-6 inline-flex max-w-full flex-wrap items-center gap-2 rounded border border-[#b22222]/30 bg-[#b22222]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[#ff6b6b] shadow-[inset_3px_0_0_rgba(255,107,107,0.7)] sm:mb-8 sm:text-xs">
             OPEN BETA v1.0 · LIVE BTC/USD FEED
           </div>
 
@@ -51,7 +45,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
                 key={rule.label}
                 className={`border bg-black/25 px-3 py-2 ${rule.tone}`}
               >
-                <div className="text-[9px] font-black tracking-[0.28em] text-slate-500">
+                <div className="text-[9px] font-black tracking-[0.28em] text-slate-400">
                   {rule.label}
                 </div>
                 <div className="mt-1 text-[10px] font-black uppercase tracking-wider sm:text-xs">
@@ -88,16 +82,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
               Read the source
             </a>
           </div>
-        </m.div>
+        </div>
 
-        <m.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1 }}
-          className="w-full min-w-0 max-w-xl flex-1 lg:max-w-none"
-        >
+        <div className="w-full min-w-0 max-w-xl flex-1 lg:max-w-none">
           <LandingPriceFeed />
-        </m.div>
+        </div>
       </div>
     </header>
   );

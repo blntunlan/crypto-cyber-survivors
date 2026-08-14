@@ -48,7 +48,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
                   SURVIVORS
                 </span>
               </div>
-              <p className="mb-4 max-w-xs font-mono text-[10px] uppercase tracking-widest text-slate-600">
+              <p className="mb-4 max-w-xs font-mono text-[10px] uppercase tracking-widest text-slate-400">
                 Solo indie developer project. © 2026 Crypto Survivors.
               </p>
               {/* Social Links */}

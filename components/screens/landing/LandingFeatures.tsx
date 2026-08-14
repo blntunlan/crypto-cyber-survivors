@@ -47,8 +47,8 @@ export const LandingFeatures: React.FC = () => {
           </h2>
           <div className="flex flex-col items-center justify-center gap-2 font-cyber text-2xl font-black uppercase italic text-white sm:gap-4 sm:text-4xl md:flex-row md:text-5xl lg:text-6xl">
             <span>60 FPS</span>
-            <span className="hidden h-px w-8 bg-[#b22222] md:block" />
-            <span className="text-[#b22222]">Live Market Rules</span>
+            <span className="hidden h-px w-8 bg-[#ff6b6b] md:block" />
+            <span className="text-[#ff6b6b]">Live Market Rules</span>
           </div>
         </m.div>
 
@@ -67,13 +67,13 @@ export const LandingFeatures: React.FC = () => {
               id={card.tag === 'BACKEND' ? 'pipeline' : undefined}
               className="group border border-white/5 bg-white/5 p-4 transition-colors duration-300 focus-within:ring-2 focus-within:ring-[#d6b85c] hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5 sm:p-6"
             >
-              <div className="mb-3 font-mono text-[10px] font-black tracking-widest text-[#b22222] sm:mb-4">
+              <div className="mb-3 font-mono text-[10px] font-black tracking-widest text-[#ff6b6b] sm:mb-4">
                 {card.tag}
               </div>
               <h3 className="mb-3 font-cyber text-lg font-bold italic tracking-wide text-white transition-all duration-300 group-hover:text-[#d6b85c] sm:mb-4 sm:text-xl">
                 {card.title}
               </h3>
-              <p className="min-h-[48px] font-mono text-[11px] leading-relaxed text-slate-500 sm:text-xs">
+              <p className="min-h-[48px] font-mono text-[11px] leading-relaxed text-slate-400 sm:text-xs">
                 {card.desc}
               </p>
             </m.div>

@@ -17,10 +17,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { GameStatus } from './types';
 import { EventBus } from './services/core/EventBus';
-import { ImagePreloader } from './services/system/ImagePreloader';
 import { Logger } from './services/system/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
-import { ReplayPlayerService } from './services/replay/ReplayPlayerService';
 
 // Custom hooks
 import { useLanguage } from './contexts/LanguageContext';
@@ -51,17 +49,8 @@ import {
 // Lazy load heavy components for performance optimization
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Lazy-load feature screens
-const LazyMotionProvider = React.lazy(() =>
-  import('./components/LazyMotionProvider').then(m => ({
-    default: m.LazyMotionProvider,
-  }))
-);
-const LandingPage = React.lazy(() =>
-  import('./components/screens/LandingPage').then(m => ({
-    default: m.LandingPage,
-  }))
-);
+import { LazyMotionProvider } from './components/LazyMotionProvider';
+import { LandingPage } from './components/screens/LandingPage';
 const GameAppShell = React.lazy(() =>
   import('./components/GameAppShell').then(m => ({
     default: m.GameAppShell,
@@ -280,10 +269,15 @@ const AppSeoMetadata: React.FC<AppSeoMetadataProps> = ({
   );
 };
 
-// Preload card images AFTER initial render (non-blocking)
-setTimeout(() => {
-  void ImagePreloader.preloadAll();
-}, 1000);
+// Preload card images after initial load (idle, non-blocking)
+if (typeof window !== 'undefined') {
+  const schedulePreload = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 3000));
+  schedulePreload(() => {
+    void import('./services/system/ImagePreloader').then(({ ImagePreloader }) => {
+      void ImagePreloader.preloadAll();
+    });
+  });
+}
 
 const App: React.FC = () => {
   // ========================================
@@ -371,6 +365,9 @@ const App: React.FC = () => {
     async (replayId: string) => {
       setIsReplayLoading(true);
 
+      const { ReplayPlayerService } = await import(
+        './services/replay/ReplayPlayerService'
+      );
       const isLoaded = await ReplayPlayerService.loadReplayFromServer(replayId);
       setIsReplayLoading(false);
 
@@ -391,7 +388,11 @@ const App: React.FC = () => {
   );
 
   const handleExitReplay = useCallback(() => {
-    ReplayPlayerService.reset();
+    void import('./services/replay/ReplayPlayerService').then(
+      ({ ReplayPlayerService }) => {
+        ReplayPlayerService.reset();
+      }
+    );
     setActiveReplayId(null);
   }, []);
 

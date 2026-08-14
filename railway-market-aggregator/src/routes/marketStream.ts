@@ -186,8 +186,14 @@ export function getSSEClientCount(): number {
 }
 
 /**
- * GET /api/v1/market/history?pair=BTC&limit=300
+ * GET /api/v1/market/history?pair=BTC&limit=300[&windowHours=24]
  * Returns recent price history for indicator warmup.
+ *
+ * Without `windowHours` the response is the `limit` most recent rows, so the
+ * span depends on the logger cadence (10s → 300 rows ≈ 50 minutes). Callers
+ * that need a fixed span (the landing 24h chart) pass `windowHours`, and the
+ * rows are bucketed server-side so `limit` points cover the whole window
+ * instead of the client downloading every row to throw most of them away.
  */
 const historyCache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL_MS = 10000; // 10 seconds
@@ -227,6 +233,44 @@ export function getHistoryCacheSize(): number {
   return historyCache.size;
 }
 
+// price_history retention is 72h (railway-market-server cron/cleanup.ts), so a
+// longer window would silently return less than it promises.
+const MAX_WINDOW_HOURS = 72;
+
+export function normalizeWindowHours(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === '') {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return Math.min(parsed, MAX_WINDOW_HOURS);
+}
+
+/**
+ * One row per time bucket across the requested window, newest row within each
+ * bucket. Buckets are anchored to absolute epoch seconds rather than "now", so
+ * the boundaries stay stable between requests and the 10s response cache keeps
+ * returning a coherent series.
+ */
+export function bucketedHistoryQuery(pair: string, limit: number, windowHours: number) {
+  const windowSeconds = windowHours * 3600;
+  const bucketSeconds = Math.max(Math.ceil(windowSeconds / limit), 1);
+  const sinceIso = new Date(Date.now() - windowSeconds * 1000).toISOString();
+
+  return sql`SELECT DISTINCT ON (bucket) price, volume, timestamp
+      FROM (
+        SELECT price, volume, timestamp,
+               floor(extract(epoch FROM timestamp) / ${bucketSeconds})::bigint AS bucket
+        FROM price_history
+        WHERE pair = ${pair} AND timestamp >= ${sinceIso}::timestamptz
+      ) bucketed
+      ORDER BY bucket ASC, timestamp DESC`;
+}
+
 router.get(
   '/history',
   asyncHandler(async (req: Request, res: Response) => {
@@ -238,8 +282,9 @@ router.get(
       }
 
       const limit = Math.min(Math.max(Number(req.query.limit) || 300, 1), 10000);
+      const windowHours = normalizeWindowHours(req.query.windowHours);
 
-      const cacheKey = `${pair}_${limit}`;
+      const cacheKey = `${pair}_${limit}_${windowHours ?? 'recent'}`;
       const cached = historyCache.get(cacheKey);
 
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -248,15 +293,18 @@ router.get(
       }
 
       const db = getDb();
-      const result = await db.execute(
-        sql`SELECT price, volume, timestamp
+      const result = windowHours
+        ? await db.execute(bucketedHistoryQuery(pair, limit, windowHours))
+        : await db.execute(
+            sql`SELECT price, volume, timestamp
           FROM price_history
           WHERE pair = ${pair}
           ORDER BY timestamp DESC
           LIMIT ${limit}`
-      );
+          );
 
-      const responseData = result.rows.reverse();
+      // The bucketed query already returns oldest-first; the recent query does not.
+      const responseData = windowHours ? result.rows : result.rows.reverse();
       historyCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
       pruneHistoryCache();
 

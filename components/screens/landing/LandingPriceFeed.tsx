@@ -40,9 +40,14 @@ type Forecast = {
 
 const MAX_FEED_POINTS = 48;
 const TRAIL_LENGTH = 10;
-const HISTORY_FETCH_LIMIT = 9000;
-const MAX_HISTORY_AGE_MS = 24 * 60 * 60 * 1000;
-const FULL_DAY_TOLERANCE_MS = 5 * 60 * 1000;
+// The chart renders MAX_FEED_POINTS anyway, so we ask the server to bucket a
+// full day into a small payload rather than downloading every 10s row.
+const HISTORY_FETCH_LIMIT = 300;
+const HISTORY_WINDOW_HOURS = 24;
+const MAX_HISTORY_AGE_MS = HISTORY_WINDOW_HOURS * 60 * 60 * 1000;
+// Slack for one server-side bucket (window / limit) plus the logger cadence,
+// so a bucketed full-day response still reads as 24H.
+const FULL_DAY_TOLERANCE_MS = 30 * 60 * 1000;
 
 const FEED_STATUS_COPY: Record<FeedStatus, string> = {
   connecting: 'SYNCING',
@@ -379,7 +384,7 @@ export const LandingPriceFeed: React.FC = () => {
     let isCancelled = false;
 
     void marketApiClient
-      .getHistory('BTC', HISTORY_FETCH_LIMIT)
+      .getHistory('BTC', HISTORY_FETCH_LIMIT, HISTORY_WINDOW_HOURS)
       .then(history => {
         if (isCancelled) return;
         const historyPoints = fromHistoryRows(history);
@@ -676,7 +681,11 @@ export const LandingPriceFeed: React.FC = () => {
                 </span>
               ))}
               <span
-                className="absolute right-0 z-10 -translate-y-1/2 px-1 py-0.5 text-[9px] font-black tracking-wide text-white"
+                className={`absolute right-0 z-10 -translate-y-1/2 px-1 py-0.5 text-[9px] font-black tracking-wide ${
+                  orbColor === '#22c55e' || feedStatus === 'connecting'
+                    ? 'text-slate-950'
+                    : 'text-white'
+                }`}
                 style={{
                   top: `${chartModel.livePriceY}%`,
                   backgroundColor: orbColor,

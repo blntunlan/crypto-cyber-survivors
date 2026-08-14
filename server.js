@@ -125,8 +125,6 @@ const BLOCKED_PATHS = [
   '/export',
   '/import',
   // API probing
-  '/api/v1',
-  '/api/v2',
   '/api/config',
   '/api/env',
   '/graphql',

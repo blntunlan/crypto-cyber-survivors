@@ -32,37 +32,6 @@ const getManualChunk = (id: string): string | undefined => {
     return undefined;
   }
 
-  if (
-    normalizedId.includes('/components/screens/landing/') ||
-    normalizedId.endsWith('/components/screens/LandingPage.tsx')
-  ) {
-    return 'feature-landing';
-  }
-
-  if (normalizedId.endsWith('/components/screens/DocScreen.tsx')) {
-    return 'feature-docs';
-  }
-
-  if (normalizedId.includes('/components/admin/')) {
-    return 'feature-admin';
-  }
-
-  if (normalizedId.includes('/components/vfx-lab/')) {
-    return 'feature-vfx-lab';
-  }
-
-  if (normalizedId.includes('/components/preview-lab/')) {
-    return 'feature-preview-lab';
-  }
-
-  if (
-    normalizedId.endsWith('/components/screens/MetaUpgradeScreen.tsx') ||
-    normalizedId.endsWith('/components/screens/ChallengeScreen.tsx') ||
-    normalizedId.endsWith('/components/screens/ReplayListScreen.tsx')
-  ) {
-    return 'feature-overlays';
-  }
-
   return undefined;
 };
 
@@ -77,22 +46,45 @@ export default defineConfig(({ mode }) => {
   )
     .trim()
     .replace(/\/+$/, '');
+  const railwayApiUrl = (
+    env.VITE_RAILWAY_API_URL ||
+    env.VITE_MARKET_SERVER_URL ||
+    marketAggregatorUrl
+  )
+    .trim()
+    .replace(/\/+$/, '');
+
+  const proxyConfig = {
+    ...(marketAggregatorUrl
+      ? {
+          '/api/v1/market': {
+            target: marketAggregatorUrl,
+            changeOrigin: true,
+            secure: true,
+          },
+        }
+      : {}),
+    ...(railwayApiUrl
+      ? {
+          '/api/v1': {
+            target: railwayApiUrl,
+            changeOrigin: true,
+            secure: true,
+          },
+        }
+      : {}),
+  };
 
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
-      ...(marketAggregatorUrl
-        ? {
-            proxy: {
-              '/api/v1/market': {
-                target: marketAggregatorUrl,
-                changeOrigin: true,
-                secure: true,
-              },
-            },
-          }
-        : {}),
+      proxy: proxyConfig,
+    },
+    preview: {
+      port: 4173,
+      host: '0.0.0.0',
+      proxy: proxyConfig,
     },
     plugins: [react()],
     resolve: {

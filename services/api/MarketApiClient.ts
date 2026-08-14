@@ -19,6 +19,8 @@ type RawMarketHistoryRow = {
 const ALLOWED_PAIRS = new Set<MarketPair>(['BTC', 'ETH', 'SOL']);
 const DEFAULT_HISTORY_LIMIT = 300;
 const MAX_HISTORY_LIMIT = 10000;
+// Mirrors the aggregator cap, which tracks the 72h price_history retention.
+const MAX_HISTORY_WINDOW_HOURS = 72;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function getMarketBaseUrl(): string {
@@ -63,6 +65,14 @@ function normalizeLimit(limit: number): number {
   return Math.min(Math.max(Math.trunc(limit), 1), MAX_HISTORY_LIMIT);
 }
 
+function normalizeWindowHours(windowHours: number | undefined): number | undefined {
+  if (windowHours === undefined || !Number.isFinite(windowHours) || windowHours <= 0) {
+    return undefined;
+  }
+
+  return Math.min(windowHours, MAX_HISTORY_WINDOW_HOURS);
+}
+
 function normalizeTimestamp(timestamp: RawMarketHistoryRow['timestamp']): number {
   if (timestamp instanceof Date) {
     return timestamp.getTime();
@@ -91,13 +101,22 @@ function normalizeHistoryRows(rows: RawMarketHistoryRow[]): MarketHistoryRow[] {
     );
 }
 
+/**
+ * @param windowHours When set, the server buckets the rows so `limit` points
+ *   span the whole window. Without it the response is simply the `limit` most
+ *   recent rows, whose span depends on the logger cadence.
+ */
 async function getHistory(
   pair: string,
-  limit: number = DEFAULT_HISTORY_LIMIT
+  limit: number = DEFAULT_HISTORY_LIMIT,
+  windowHours?: number
 ): Promise<MarketHistoryRow[]> {
   const marketPair = normalizePair(pair);
   const safeLimit = normalizeLimit(limit);
-  const url = `${getMarketBaseUrl()}/api/v1/market/history?pair=${marketPair}&limit=${safeLimit}`;
+  const safeWindowHours = normalizeWindowHours(windowHours);
+  const windowParam =
+    safeWindowHours === undefined ? '' : `&windowHours=${safeWindowHours}`;
+  const url = `${getMarketBaseUrl()}/api/v1/market/history?pair=${marketPair}&limit=${safeLimit}${windowParam}`;
 
   const response = await fetch(url, {
     method: 'GET',

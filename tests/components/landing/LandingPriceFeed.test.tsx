@@ -38,7 +38,23 @@ describe('LandingPriceFeed', () => {
     render(<LandingPriceFeed />);
 
     expect(screen.getByTestId('landing-btc-price')).toHaveTextContent('SYNCING');
-    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledWith('BTC', 9000));
+    // The window matters, not the row count: the server buckets `limit` points
+    // across it, so requesting fewer rows must not shrink the span to minutes.
+    await waitFor(() =>
+      expect(mocks.getHistory).toHaveBeenCalledWith('BTC', expect.any(Number), 24)
+    );
     await waitFor(() => expect(screen.getByText('24H +20.00%')).toBeInTheDocument());
+  });
+
+  it('labels a short history span as WINDOW instead of claiming 24H', async () => {
+    const now = Date.now();
+    mocks.getHistory.mockResolvedValue([
+      { price: 100, volume: 1, timestamp: now - 50 * 60 * 1000 },
+      { price: 120, volume: 1, timestamp: now },
+    ]);
+
+    render(<LandingPriceFeed />);
+
+    await waitFor(() => expect(screen.getByText('WINDOW +20.00%')).toBeInTheDocument());
   });
 });

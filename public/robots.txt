@@ -1,10 +1,12 @@
 User-agent: *
 Allow: /
+Allow: /a/
 Allow: /assets/
 Allow: /icons/
 Allow: /locales/
 Allow: /index.css
 Allow: /manifest.json
+Allow: /llms.txt
 Disallow: /api/
 Disallow: /health
 Disallow: /stats
