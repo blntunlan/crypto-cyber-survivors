@@ -213,7 +213,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       <div className="w-full max-w-xl space-y-4 py-2 text-center sm:space-y-8 sm:py-0 landscape:space-y-2">
         <header className="space-y-2.5 sm:space-y-5">
           <h1
-            className={`${isRetro ? 'font-retro-pixel text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]' : 'font-cyber'} ${sizes.title} leading-relaxed tracking-tight ${!isRetro ? 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
+            className={`${isRetro ? 'font-retro-pixel text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]' : 'cyber-sway-text font-cyber font-black uppercase italic'} ${sizes.title} leading-relaxed tracking-tight ${!isRetro ? 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
           >
             {t('common.menu.title')}
             <br />
@@ -222,7 +222,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className={
                 isRetro
                   ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
-                  : 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]'
+                  : 'drop-shadow-[0_0_20px_rgba(247,147,26,0.4)]'
               }
             >
               {t('common.menu.subtitle')}

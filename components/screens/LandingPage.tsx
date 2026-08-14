@@ -95,7 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const framedNavButtonClass =
     'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] xl:px-4';
   const navAccentLineClass =
-    'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-80 transition-all duration-300 group-hover:opacity-100';
+    'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-amber-500 opacity-80 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]';
   const desktopNavLabelClass = 'font-cyber text-[13px] tracking-[0.09em]';
 
   return (
@@ -119,10 +119,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           href="#top"
           className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)] lg:pr-0"
         >
-          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-[color:var(--ui-action-primary-surface)] sm:text-2xl">
+          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
             CRYPTO
           </span>
-          <span className="cyber-sway-text -mt-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
+          <span className="cyber-sway-text -mt-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.4)] sm:text-2xl">
             SURVIVORS
           </span>
         </a>
@@ -218,36 +218,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <a
                   href="#engine"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Engine</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
 
                 <a
                   href="#pipeline"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Pipeline</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
 
                 <a
                   href="#dev"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>Solo Dev</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
                 <a
                   href="#team"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="group relative min-h-[48px] w-full overflow-hidden border border-[color:var(--ui-action-primary-border)] bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-[color:var(--ui-action-primary-surface)] hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
                   <span>TEAM</span>
-                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-[color:var(--ui-action-primary-surface)] opacity-70 transition-all duration-300 group-hover:opacity-100" />
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
 
                 <ThemedButton

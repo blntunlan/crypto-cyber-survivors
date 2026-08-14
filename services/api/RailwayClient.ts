@@ -6,6 +6,7 @@
  */
 
 import { RailwayAuthTokenStore } from './RailwayAuthTokenStore';
+import { EventBus } from '../core/EventBus';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
 const railwayBaseUrl = (
@@ -81,6 +82,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         } catch {
           // ignore parse error
         }
+
+        if (res.status === 401) {
+          EventBus.emit('authUnauthorized', {
+            path,
+            status: 401,
+            message: errorMsg,
+            timestamp: Date.now(),
+          });
+        }
+
         throw new Error(errorMsg);
       }
 

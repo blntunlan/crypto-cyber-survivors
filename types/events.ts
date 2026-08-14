@@ -193,6 +193,7 @@ export type GameEvent =
   | 'canonicalMarketFrame'
   // Railway auth events
   | 'authStateChanged'
+  | 'authUnauthorized'
   // Market Event Announcements
   | 'marketAnnouncement'
   // Elite enemy events
@@ -1042,6 +1043,7 @@ export interface EventDataMap {
   canonicalMarketFrame: Readonly<CanonicalMarketFrame>;
   // Railway auth state change event
   authStateChanged: AuthStateChangedEvent;
+  authUnauthorized: AuthUnauthorizedEvent;
   // Market Event Announcements
   marketAnnouncement: MarketAnnouncementEvent;
   // Elite enemy events
@@ -1132,6 +1134,14 @@ export interface AuthStateChangedEvent {
     | 'passwordRecovery';
   user: unknown | null;
   session?: unknown | null;
+}
+
+/** Auth unauthorized / 401 event (Railway Auth) */
+export interface AuthUnauthorizedEvent {
+  path: string;
+  status: number;
+  message?: string;
+  timestamp: number;
 }
 
 // =============================================================================

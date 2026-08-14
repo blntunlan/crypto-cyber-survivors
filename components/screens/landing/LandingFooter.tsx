@@ -41,10 +41,10 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
             {/* Logo & Trademark */}
             <div>
               <div className="mb-4 flex flex-col sm:mb-6">
-                <span className="cyber-sway-text font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-xl">
+                <span className="cyber-sway-text font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
                   CRYPTO
                 </span>
-                <span className="cyber-sway-text -mt-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
+                <span className="cyber-sway-text -mt-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-[#F7931A] drop-shadow-[0_0_12px_rgba(247,147,26,0.35)] sm:text-xl">
                   SURVIVORS
                 </span>
               </div>

@@ -14,6 +14,8 @@
     "lint:fix": "eslint . --fix",
     "lint:ui": "tsx scripts/check-ui-contract.ts",
     "check:ui-contract": "tsx scripts/check-ui-contract.ts --ci",
+    "audit:client-server": "node scripts/run-client-server-audit.mjs",
+    "audit:contracts": "tsx scripts/audit-contracts.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "check:architecture": "node scripts/check-singleton-regressions.mjs",
     "check:reset-coverage": "node scripts/check-reset-coverage.mjs",

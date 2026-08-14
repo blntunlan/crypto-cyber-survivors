@@ -28,9 +28,10 @@ export const HUB_SKINS: Record<ThemeName, HubSkin> = {
     accessRailEnd: 'bg-gradient-to-l from-transparent to-white/10',
     accessRailStart: 'bg-gradient-to-r from-transparent to-white/10',
     backdrop: 'bg-[color:var(--ui-surface-canvas)]',
-    headerAccent: 'text-pump-green',
-    header: 'cyber-sway-text font-cyber text-[color:var(--ui-text-primary)]',
-    headerAccentEffect: 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]',
+    headerAccent: 'text-amber-500',
+    header:
+      'cyber-sway-text font-cyber font-black uppercase italic text-[color:var(--ui-text-primary)]',
+    headerAccentEffect: 'drop-shadow-[0_0_20px_rgba(245,158,11,0.4)]',
     isRetroIconStyle: false,
     panelDecoration:
       'pointer-events-none absolute inset-0 rounded-lg border border-white/25 opacity-100',

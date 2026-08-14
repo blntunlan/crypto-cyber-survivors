@@ -199,12 +199,23 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           >
             {t('common.menu.title')}
             <br />
-            <span className={cn(skin.headerAccent)}>HUB TERMINAL</span>
+            <span
+              className={cn(skin.headerAccentEffect)}
+              style={{ color: skin.resolveAccentColor(COLORS.CASINO_GOLD) }}
+            >
+              {t('common.menu.subtitle')}
+            </span>
           </h1>
 
           <div className="flex flex-col items-center gap-2">
-            <p className={cn(skin.subtitle, 'font-medium uppercase tracking-[0.3em]')}>
-              {t('common.menu.sentiment_engine')}
+            <p
+              className={cn(
+                skin.subtitle,
+                'font-medium uppercase tracking-[0.2em]',
+                sizes.tiny
+              )}
+            >
+              HUB TERMINAL
             </p>
             <OptimizationBadge sizes={sizes} />
           </div>
