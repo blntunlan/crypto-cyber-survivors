@@ -40,7 +40,10 @@ export class DifficultyEventBridge {
         event => this.inbox.recordDash(event, this.nextTick()),
         { scope: 'gameplay' }
       ),
-      EventBus.on('bulletFired', () => this.inbox.recordBulletFired(this.nextTick()), {
+      // weaponFired is the live shot event; bulletFired was its predecessor and
+      // stopped being emitted when firing moved into WeaponFiringPipeline, so
+      // shotsInWindow never left zero.
+      EventBus.on('weaponFired', () => this.inbox.recordBulletFired(this.nextTick()), {
         scope: 'gameplay',
       }),
       EventBus.on(

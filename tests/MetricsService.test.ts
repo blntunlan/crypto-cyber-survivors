@@ -376,10 +376,19 @@ describe('MetricsService', () => {
       expect(session?.player.damageTaken).toBe(20);
     });
 
-    it('should handle bulletFired event', () => {
+    it('counts a shot from the event WeaponSystem actually emits', () => {
+      // Previously asserted against bulletFired, which nothing has emitted
+      // since firing moved into WeaponFiringPipeline — so the test passed while
+      // bulletsFired stayed zero in a real run.
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
-      EventBus.emit('bulletFired', { x: 0, y: 0 });
+      EventBus.emit('weaponFired', {
+        weaponId: 'laser',
+        x: 0,
+        y: 0,
+        damage: 10,
+        level: 1,
+      });
 
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
       expect(session?.player.bulletsFired).toBe(1);

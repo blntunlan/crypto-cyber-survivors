@@ -453,7 +453,10 @@ export class MetricsServiceClass {
       EventBus.on('playerHit', data => this.trackDamageTaken(data.damage))
     );
     this.eventUnsubscribers.push(
-      EventBus.on('bulletFired', () => this.trackBulletFired())
+      // weaponFired, not bulletFired: WeaponSystem emits the former once per
+      // successful shot, and nothing has emitted the latter since firing moved
+      // into WeaponFiringPipeline — which left bulletsFired reporting zero.
+      EventBus.on('weaponFired', () => this.trackBulletFired())
     );
     this.eventUnsubscribers.push(
       EventBus.on('critHit', data =>

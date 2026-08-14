@@ -3,10 +3,6 @@
   "allowed": {
     "declaredNotEmitted": [
       {
-        "event": "bulletFired",
-        "reason": "Orphaned: production listeners exist but nothing emits it. See allowed.listenedNotEmitted for the investigation."
-      },
-      {
         "event": "marketStateUpdated",
         "reason": "Orphaned: production listeners exist but nothing emits it. See allowed.listenedNotEmitted for the investigation."
       },
@@ -236,11 +232,7 @@
       },
       {
         "event": "volatilityShock",
-        "reason": "Listened by useGameEvents and VisualEffectService and keyed in EFFECT_POLICIES, but emitted only from tests and e2e. Screen-shake on volatility spikes is therefore dead; decide whether the director should emit it or the listeners go."
-      },
-      {
-        "event": "bulletFired",
-        "reason": "Listened by MetricsService and DifficultyEventBridge (so shots-fired never reaches the director input), emitted only from a unit test. Decide whether CombatSystem should emit it or the listeners go."
+        "reason": "REAL DEFECT: both shock channels are dead. Nothing emits volatilityShock (useGameEvents triggers a physics shockwave + shake + sound off it; VisualEffectService also listens), and the parallel shockDetected channel is emitted only by DifficultyV2CompatibilityAdapter, which sits behind the inert modular shell. Volatility shockwaves therefore never fire in a real run. Needs a design call: should the current-authority director emit a shock, or does the feature go? Do not delete the listeners without that call."
       }
     ],
     "effectRegistryStale": [

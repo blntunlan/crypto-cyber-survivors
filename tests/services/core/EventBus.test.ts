@@ -110,10 +110,10 @@ describe('EventBus', () => {
     it('should return unsubscribe function like subscribe', () => {
       const callback = vi.fn();
 
-      const unsubscribe = EventBus.on('bulletFired', callback);
+      const unsubscribe = EventBus.on('weaponFired', callback);
       unsubscribe();
 
-      expect(EventBus.listenerCount('bulletFired')).toBe(0);
+      expect(EventBus.listenerCount('weaponFired')).toBe(0);
     });
   });
 

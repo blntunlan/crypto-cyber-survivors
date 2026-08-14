@@ -65,7 +65,6 @@ export type GameEvent =
   | 'enemyDamaged'
   | 'playerHit'
   | 'playerHealed'
-  | 'bulletFired'
   | 'killAll'
   | 'comboUpdate'
   | 'comboMilestone'
@@ -270,12 +269,6 @@ export interface PlayerHitEvent {
   sourceX?: number;
   sourceY?: number;
   enemyType?: string;
-}
-
-/** Bullet fired event data */
-export interface BulletFiredEvent {
-  x: number;
-  y: number;
 }
 
 /** Player healed event data (lifesteal, regen, etc.) */
@@ -718,7 +711,6 @@ export interface EventDataMap {
   enemyDamaged: EnemyDamagedEvent;
   playerHit: PlayerHitEvent;
   playerHealed: PlayerHealedEvent;
-  bulletFired: BulletFiredEvent;
   killAll: EmptyEvent;
   comboUpdate: ComboUpdateEvent;
   comboMilestone: ComboMilestoneEvent;
