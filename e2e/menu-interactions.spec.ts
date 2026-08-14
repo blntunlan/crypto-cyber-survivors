@@ -4,7 +4,7 @@
  * Tests:
  * 1. Crypto Pair Selection
  * 2. Leverage Selection
- * 3. Theme Availability (Retro disabled for now)
+ * 3. Theme Availability and Persistence
  * 4. Game Start Flow
  */
 
@@ -72,7 +72,7 @@ test.describe('Menu Interactions and Theme Switching @smoke', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should keep only Cyberpunk theme active while retro is disabled', async ({
+  test('should offer both shipped theme skins and persist the choice', async ({
     page,
   }) => {
     // Open settings menu
@@ -83,37 +83,41 @@ test.describe('Menu Interactions and Theme Switching @smoke', () => {
     // Theme section should be present
     await expect(page.getByText('Visual Style')).toBeVisible();
 
-    // Retro option is intentionally not available yet
-    const retroButton = page.getByRole('button', { name: /16-Bit|Retro/i });
-    await expect(retroButton).toHaveCount(0);
-    await expect(page.getByText(/More themes coming soon/i)).toBeVisible();
+    // Both production skins ship today; Cyberpunk starts active.
+    const retroButton = page.getByRole('button', { name: /16-Bit Retro/i });
+    const cyberButton = page.getByRole('button', { name: /Cyberpunk/i });
+    await expect(cyberButton).toBeVisible();
+    await expect(retroButton).toBeVisible();
 
-    // Verify theme remains cyberpunk in storage
     let storedTheme = await page.evaluate(() =>
       localStorage.getItem('crypto-survivor-theme')
     );
     expect(storedTheme).toBe('cyberpunk');
 
-    // Reload page and verify it still stays on cyberpunk
+    // Switching skins must persist across a reload.
+    await retroButton.click();
+    await expect
+      .poll(async () =>
+        page.evaluate(() => localStorage.getItem('crypto-survivor-theme'))
+      )
+      .toBe('retro-16bit');
+
     await page.reload();
-
-    // Handle Hub Menu
     await goToMainMenuFromHub(page);
-
-    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
-      timeout: 15000,
-    });
-
-    // Cyberpunk button should be present and disabled as active
-    await page.getByRole('button', { name: /settings/i }).click();
-    const cyberButton = page.getByRole('button', { name: /Cyberpunk/i });
-    await expect(cyberButton).toBeVisible();
-    await expect(cyberButton).toBeDisabled();
 
     storedTheme = await page.evaluate(() =>
       localStorage.getItem('crypto-survivor-theme')
     );
-    expect(storedTheme).toBe('cyberpunk');
+    expect(storedTheme).toBe('retro-16bit');
+
+    // Restore the default so the shared storage state stays on Cyberpunk.
+    await page.getByRole('button', { name: /settings/i }).click();
+    await page.getByRole('button', { name: /Cyberpunk/i }).click();
+    await expect
+      .poll(async () =>
+        page.evaluate(() => localStorage.getItem('crypto-survivor-theme'))
+      )
+      .toBe('cyberpunk');
   });
 
   test('should start game when LONG is clicked and show gameplay HUD', async ({
