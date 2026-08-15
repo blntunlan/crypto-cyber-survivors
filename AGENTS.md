@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for AI agents working in the **Crypto Survivors** repository. Verified against config and source on 2026-06-23.
+Guidance for AI agents working in the **Crypto Survivors** repository. Verified against config and source on 2026-08-16.
 
 ## Project
 
@@ -36,7 +36,7 @@ npm run check:architecture                # new singletons must be in config/arc
 npm run check:reset-coverage              # every singleton with reset() must have coverage
 npm run security:check
 
-npm run check:baseline                    # THE full gate: typecheck → architecture → reset coverage → UI contract → lint → test → build
+npm run check:baseline                    # THE full gate: typecheck → architecture → reset coverage → event contract → UI contract → director manifest → lint → test → build
                                           # (this is what CI runs — do not substitute lint+test+build)
 
 # Deploy
@@ -50,7 +50,7 @@ npm run railway:market:deploy # deploy from railway-market-server/
 Three independent packages — each has its own `package.json`, `tsconfig.json`, ESLint config, and lockfile:
 
 - **Root** — the React/Vite game frontend.
-- **`railway-market-server/`** — stateless REST API (profile, sessions, wallet, leaderboard, telemetry). Owns the Postgres schema in `src/db/schema.sql`. Numbered migrations run automatically on startup via `src/db/migrate.ts` (000–012, SQL files in `src/db/migrations/`). `npm run validate` (typecheck + lint + build) inside the dir.
+- **`railway-market-server/`** — stateless REST API (profile, sessions, wallet, leaderboard, telemetry). Owns the Postgres schema in `src/db/schema.sql`. Numbered migrations run automatically on startup via `src/db/migrate.ts` (000–017, inlined SQL in `migrate.ts`). `npm run validate` (typecheck + lint + build) inside the dir.
 - **`railway-market-aggregator/`** — stateful market pipeline: Binance/Coinbase WS → Indicators → SSE stream to clients + `price_history`/`market_state` DB writes + cleanup cron. `npm run validate` inside the dir.
 
 Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` — they use different tsconfigs/runtime (Deno-style functions historically). The root `npm test` **does** include `railway-market-server/test/**` (see `vitest.config.ts`), so a market-server test failure breaks the root suite. CI runs `server-validate` for both `railway-*` packages.
@@ -59,7 +59,7 @@ Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` 
 
 **Railway-native — no Supabase.** There is no `@supabase/supabase-js` dependency and no `supabase/` directory. Auth (login/signup/OAuth/anonymous) is handled by `services/auth/RailwayAuthService.ts`; the API server issues and verifies JWTs (issuer `crypto-survivors-api`, audience `crypto-survivors-client`).
 
-**Railway Postgres** holds all game data. Schema in `railway-market-server/src/db/schema.sql`; numbered migrations `000`–`012` auto-apply on startup via `src/db/migrate.ts` (SQL files in `src/db/migrations/`).
+**Railway Postgres** holds all game data. Schema in `railway-market-server/src/db/schema.sql`; numbered migrations `000`–`017` auto-apply on startup via `src/db/migrate.ts`.
 
 ```
 Client --[fetch]--> API Server /api/v1/auth/*  (login/signup/OAuth/anonymous → Railway JWT)
@@ -72,15 +72,15 @@ Aggregator --[WS]--> Binance/Coinbase   ·   API server + aggregator share the s
 - `services/market/SSEMarketService.ts` — EventSource; reads `VITE_MARKET_AGGREGATOR_URL` and falls back to `VITE_RAILWAY_API_URL`.
 - Two Railway services (API server + aggregator) share the same Postgres and deploy independently.
 
-Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE → `SSEMarketService` → `UnifiedDirector` + `FlowStateManager` → `DifficultyContext` → SpawnSystem / CombatSystem / BuffManager.
+Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE → `SSEMarketService` → `ExperienceDirector` (services/director/, via `CurrentDifficultyRuntimeAdapter`) + `FlowStateManager` → `DifficultyContext` → SpawnSystem / CombatSystem / BuffManager.
 
 ## Architecture
 
 - Layered: Presentation (React + `useRef`, never `useState` for 60fps data) ↔ `GameEngine.tsx` (`requestAnimationFrame` loop) ↔ singleton service layer ↔ data layer (Zustand for settings/progress only, Railway API for cloud, localStorage offline).
 - Services live under `services/{category}/` (core, combat, difficulty, market, gameplay, auth, system, renderers, patterns/decorators, etc.). Each singleton: `class FooClass { static getInstance() }` and `export const Foo = FooClass.getInstance()` at file bottom.
-- `EventBus` — type-safe Observer across systems; 40+ events in `types/events.ts`. `on()` returns an unsubscribe; always clean up.
+- `EventBus` — type-safe Observer across systems; 100+ event types in `types/events.ts`. `on()` returns an unsubscribe; always clean up.
 - `GameStateMachine` enforces `MENU → PLAYING → PAUSED / LEVEL_UP / GAMEOVER`.
-- `UnifiedDirector` (`services/difficulty/UnifiedDirector.ts`) is the runtime difficulty pipeline — it replaced direct `DifficultyManager` calls in the hot path. `DifficultyContext` (`services/difficulty/DifficultyContext.ts`) holds mutable difficulty state and **must be `reset()` on game-over, cash-out, and continue** — see handlers in `hooks/useGameFlowController.ts` (lines 185/389/419). The legacy `cycleFactor`-leak regression is guarded by `tests/services/difficulty/DifficultyContextReset.test.ts`.
+- Runtime difficulty is managed by `ExperienceDirector` (`services/director/`) wrapped by `CurrentDifficultyRuntimeAdapter` (`services/difficulty/runtime/`) under the default `current` mode of the 3-mode runtime migration (`current` | `shadow` | `modular`). `CoreGameplayLoop` produces pacing juice rather than difficulty multipliers. `DifficultyContext` (`services/difficulty/DifficultyContext.ts`) holds mutable difficulty state and **must be `reset()` on game-over, cash-out, and continue** — see handlers in `hooks/useGameFlowController.ts`. The legacy `cycleFactor`-leak regression is guarded by `tests/services/difficulty/DifficultyContextReset.test.ts`.
 - `@/*` path alias maps to the project root (tsconfig + vite.config + vitest.config).
 
 ## Performance Rules (non-negotiable for 60 FPS)
@@ -89,7 +89,7 @@ Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE 
 2. No allocations in the RAF loop — no `new Object()`, `[].map()`, `[].filter()`; use pre-allocated arrays.
 3. Object pooling required for high-frequency entities (bullets, enemies, particles) via `services/combat/PoolManager.ts` (`getBullet()` / `releaseBullet()`).
 4. `SpatialGrid` for collisions (`services/combat/SpatialGrid.ts`) — never O(N²) loops.
-5. Pause-aware timing — `TimeService.setTimeout()`, not native `setTimeout()` (timers must freeze during pause/level-up).
+5. Pause-aware timing — drive timers from TimeService (`getGameTime()` / `getDeltaTime()`), not native `setTimeout()` (timers must freeze during pause/level-up).
 6. `requestAnimationFrame` only, never `setInterval`; batch canvas draw calls; `OffscreenCanvas` for background pre-render.
 
 ## Code Conventions
@@ -113,7 +113,7 @@ Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE 
 
 - Unit/integration: `tests/**/*.test.ts(x)` — Vitest, jsdom, `pool: 'forks'`, `SKIP_INTEGRATION=true` injected via config. Setup in `tests/setup.ts` mocks Canvas, Howler, localStorage, `matchMedia`, `AudioContext`, `import.meta.env`, `requestAnimationFrame`, `WebSocket`, `fetch`, ResizeObserver. MSW handlers in `tests/mocks/handlers.ts`.
 - E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects). `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. `?no-sw=true` base URL disables the service worker. CI only runs the `@smoke` subset on chromium; full matrix (`chromium`, `mobile-chrome`, `firefox`, `webkit`) locally. `test:e2e:ui-contract` runs the committed critical-flow screenshots on Chromium; baseline writes require the explicit `:update` command.
-- Singletons with `reset()` must call it in `beforeEach` — `check:reset-coverage` enforces coverage. Coverage target: services/components/factories, global 70%+.
+- Singletons with `reset()` must call it in `beforeEach` — `check:reset-coverage` enforces coverage. Coverage targets `services/**`, `components/**`, `factories/**` via V8 (no hard threshold configured in `vitest.config.ts`).
 
 ## Workflow & Architecture Guardrails
 
@@ -137,4 +137,4 @@ Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE 
 - Preview Lab: `Ctrl + Shift + V` (VFX + Assets + Sounds).
 - Cheat Manager: `F1` (dev mode only).
 - EventBus tracing: `EventBus.enableTracing()`.
-- Custom debug pane: `DebugService.registerPanel('MyDebug', () => ({ ... }))`.
+- Debug snapshots & tools: `DebugService.captureSnapshot()` (or `window.gameDebug` in dev console).

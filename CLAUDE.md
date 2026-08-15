@@ -11,7 +11,7 @@ Crypto Survivors is a real-time, market-driven Vampire Survivors game. Live BTC/
 This is **three independent packages**, each with its own `package.json`, `tsconfig.json`, ESLint config, and lockfile:
 
 - **Root** — the React/Vite game frontend (all `services/`, `components/`, `hooks/`, etc.).
-- **`railway-market-server/`** — stateless REST API: profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays. **Owns the Postgres schema** (`src/db/schema.sql`); numbered migrations `000`–`012` are auto-applied on startup by `src/db/migrate.ts` (SQL files in `src/db/migrations/`).
+- **`railway-market-server/`** — stateless REST API: profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays. **Owns the Postgres schema** (`src/db/schema.sql`); numbered migrations `000`–`017` are auto-applied on startup by `src/db/migrate.ts`.
 - **`railway-market-aggregator/`** — stateful market pipeline: Binance/Coinbase WebSocket → indicator calc (RSI/ATR/Volume) → SSE stream to clients + `price_history`/`market_state` DB writes + cleanup cron. Deploys independently from the API server; both share the same Postgres.
 
 Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` (different tsconfigs/runtime). But the root `npm test` **does** include `railway-market-server/test/**` (see `vitest.config.ts`) — a market-server test failure breaks the root suite. Each `railway-*` package has its own `npm run validate` (typecheck + lint + build), run in CI as `server-validate`.
@@ -47,12 +47,12 @@ npm run railway:deploy           # railway up (API server)
 npm run railway:market:deploy    # deploy market server from railway-market-server/
 ```
 
-`check:baseline` = `typecheck → check:architecture → check:reset-coverage → lint → test → build`. This is exactly what CI runs — do **not** substitute a manual `lint && test && build`; the architecture/reset-coverage guards are part of the gate.
+`check:baseline` = `typecheck → check:architecture → check:reset-coverage → check:event-contract → check:ui-contract → check:director-manifest → lint → test → build`. This is exactly what CI runs — do **not** substitute a manual `lint && test && build`; the architecture/reset-coverage guards are part of the gate.
 
 ## Architecture
 
 ### Singleton Service Pattern
-All game logic lives in singleton services under `services/{category}/`, never in React state. Each singleton is `class FooClass { static getInstance() }` with `export const Foo = FooClass.getInstance()` at the bottom of the file. Services communicate through a strongly-typed `EventBus` (Observer Pattern) — 150+ event types in the `GameEvent` union (`types/events.ts`). `EventBus.on()` returns an unsubscribe function; always clean it up.
+All game logic lives in singleton services under `services/{category}/`, never in React state. Each singleton is `class FooClass { static getInstance() }` with `export const Foo = FooClass.getInstance()` at the bottom of the file. Services communicate through a strongly-typed `EventBus` (Observer Pattern) — 100+ event types in the `GameEvent` union (`types/events.ts`). `EventBus.on()` returns an unsubscribe function; always clean it up.
 
 ### Layering & Performance Rules (non-negotiable for 60 FPS)
 ```
@@ -68,16 +68,16 @@ Data Layer (Zustand for settings/progress only · Railway API for cloud/auth · 
 2. **No allocations in the RAF loop** — no `new Object()`, `[].map()`, `[].filter()` inside `GameEngine.tsx`; use pre-allocated arrays and object pools.
 3. **Object pooling required** — high-frequency entities (bullets, enemies, particles) go through `PoolManager` (`services/combat/PoolManager.ts`) for O(1) alloc/dealloc with zero GC pressure.
 4. **Spatial hashing for collision** — use `SpatialGrid` (`services/combat/SpatialGrid.ts`) for O(1) neighbor lookup. Never O(N²) collision loops.
-5. **Pause-aware timing** — use `TimeService.setTimeout()` (`services/core/`), not native `setTimeout()`, so timers freeze during pause/level-up.
+5. **Pause-aware timing** — drive timers from TimeService (`services/core/` — `getGameTime()` / `getDeltaTime()`), not native `setTimeout()`, so timers freeze during pause/level-up.
 6. `requestAnimationFrame` only (never `setInterval`); batch canvas draw calls; `OffscreenCanvas` for background pre-render.
 
 ### Market → Gameplay Data Flow
 ```
 Aggregator: Binance/Coinbase WS → server-computed indicators (RSI, ATR, Volume) → SSE stream (~1s)
-    → SSEMarketService (services/market/) → UnifiedDirector (services/difficulty/) + FlowStateManager
+    → SSEMarketService (services/market/) → ExperienceDirector (services/director/) via CurrentDifficultyRuntimeAdapter (services/difficulty/runtime/) + FlowStateManager
     → DifficultyContext (services/difficulty/) → SpawnSystem, CombatSystem, BuffManager
 ```
-`UnifiedDirector` is the runtime difficulty pipeline; it replaced direct `DifficultyManager` calls in the hot path. `DifficultyContext` holds the **mutable** difficulty state — it must be `reset()` on every run-end path (game-over, cash-out, continue), not just on `gameStart`. The legacy `cycleFactor` compounding leak is guarded by `tests/services/difficulty/DifficultyContextReset.test.ts`.
+Runtime difficulty is structured into two layers: `services/director/` (`ExperienceDirector`, `PacingStateMachine`, `GreedStateMachine`, `ThreatBudgetAllocator`, `EncounterPlanner`, `SurvivalCurve`, `EnemyStatCurve`, `DirectorSpawnOrchestrator`, `AdvantageAllocator`, `DirectorContractGuard`) and `services/difficulty/runtime/` (`DifficultyRuntime`, `CurrentDifficultyRuntimeAdapter`, `DifficultyRuntimeOrchestrator`, seven managers under `runtime/managers/`, `DifficultyInputInbox`, `DifficultySnapshotComposer`). A 3-mode migration (`current`, `shadow`, `modular` declared in `services/director/DirectorRuntimeMode.ts` and resolved by `config/directorRuntime.ts` from `VITE_DIFFICULTY_RUNTIME_MODE`, defaulting to `current`) joins them. Under `current` mode (the default when unset), `CurrentDifficultyRuntimeAdapter` wrapping `ExperienceDirector` holds active runtime authority while modular runtime is inactive or shadow-compared. `CoreGameplayLoop` produces juice and pacing feel (`pulse`, `playerScaleTargetX/Y`, `shakeBoost`, `marketIntensity`, `suggestedBPM`) without emitting base difficulty multipliers. `DifficultyContext` holds the **mutable** difficulty state — it must be `reset()` on every run-end path (game-over, cash-out, continue), not just on `gameStart`. The legacy `cycleFactor` compounding leak is guarded by `tests/services/difficulty/DifficultyContextReset.test.ts`.
 
 ### Client ↔ Server (Railway-native — no Supabase)
 ```
@@ -88,7 +88,7 @@ Aggregator --[WS]--> Binance/Coinbase   ·   both Railway services --[pg]--> Rai
 ```
 Auth is **fully Railway-native**: `services/auth/RailwayAuthService.ts` handles login/signup/OAuth; the API server signs JWTs (issuer `crypto-survivors-api`, audience `crypto-survivors-client`) verified in `railway-market-server/src/middleware/auth.ts` / `src/utils/railwayJwt.ts`. `services/api/RailwayClient.ts` auto-attaches the JWT (from `RailwayAuthTokenStore`) as `Authorization: Bearer`. `services/market/SSEMarketService.ts` is the EventSource client (`VITE_MARKET_AGGREGATOR_URL`, falls back to `VITE_RAILWAY_API_URL`).
 
-> There is **no Supabase** anywhere: no `@supabase/supabase-js` dependency, no `supabase/` directory, no imports. Older docs (`README.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `docs/archived/refactor-roadmap.md`) still describe a Supabase backend — treat them as history.
+> There is **no Supabase** anywhere: no `@supabase/supabase-js` dependency, no `supabase/` directory, no imports. Older docs (`docs/archived/refactor-roadmap.md`) still describe a Supabase backend — treat them as history.
 
 ### Cross-Run State Reset
 Cross-run singleton state must reset through the canonical path — the `gameReset` EventBus event and `services/core/ResetOrchestrator.ts` — **not** via `GameEngine` mount/unmount hooks (those are dead at the MENU state). `check:reset-coverage` enforces that every stateful singleton participates. Prefer `GameRuntime` (`services/gameplay/GameRuntime.ts`) or explicit DI for per-session state instead of adding new singletons.
@@ -122,13 +122,13 @@ Game code may use bitwise ops, labels, and `++` in for-loops; `no-console` warns
 ## Testing
 
 - Unit/integration: `tests/**/*.test.ts(x)` — Vitest, jsdom, `pool: 'forks'`. `tests/setup.ts` mocks Canvas, Howler, localStorage, `matchMedia`, `AudioContext`, `import.meta.env`, `requestAnimationFrame`, `WebSocket`, `fetch`, ResizeObserver. MSW handlers in `tests/mocks/handlers.ts`.
-- Singletons with a `reset()` must call it in `beforeEach` to isolate tests; `check:reset-coverage` enforces coverage. Coverage targets `services/**`, `components/**`, `factories/**` (global 70%+).
+- Singletons with a `reset()` must call it in `beforeEach` to isolate tests; `check:reset-coverage` enforces coverage. Coverage targets `services/**`, `components/**`, `factories/**` via V8 (no hard threshold configured in `vitest.config.ts`).
 - E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects), `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. The `?no-sw=true` base URL disables the service worker. CI runs the smoke subset on chromium; the full matrix (chromium, mobile-chrome, firefox, webkit) runs locally.
 
 ## Guardrails
 
 - **Conventional Commits** (commitlint): `feat:`, `fix:`, `perf:`, `test:`, `docs:`, `chore:`, … with optional scopes (`feat(auth): …`).
-- **Pre-commit** (husky + lint-staged): `eslint --fix`, `prettier`, and `vitest related --run --pool=forks --maxWorkers=1 --bail=1` on changed `*.{ts,tsx}`; `ui-consistency-audit` on `components/**/*.tsx`; market-server changes run `scripts/run-market-typecheck.js`.
+- **Pre-commit** (husky + lint-staged): `eslint --fix`, `prettier`, and `vitest related --run --pool=forks --maxWorkers=1 --bail=1` on changed `*.{ts,tsx}`; `check:ui-contract` on `components/**/*.tsx`; market-server changes run `scripts/run-market-typecheck.js`.
 - **New singletons** must be added to `config/architecture/singleton-whitelist.json` or `check:architecture` fails CI. Reset-exempt singletons go in `config/architecture/reset-exempt.json`.
 - **Anti-cheat — rewards are server-verified.** Two validator layers exist; extend them rather than reintroducing optimistic trust:
   - `services/gameplay/validators/` (`GameplayValidator`) — in-run gameplay sanity checks.
@@ -153,7 +153,7 @@ Game code may use bitwise ops, labels, and `++` in for-loops; `no-console` warns
 - `Ctrl+Shift+V` — Preview / VFX Lab (effects, assets, sounds)
 - `F1` — Cheat Manager (dev mode only)
 - `EventBus.enableTracing()` — log all event emissions
-- `DebugService.registerPanel('Name', () => ({ … }))` — add a custom debug pane
+- `DebugService.captureSnapshot()` / `window.gameDebug` in dev console — capture state snapshot
 
 Shortcut wiring lives in `hooks/useDevShortcuts.ts`.
 

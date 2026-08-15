@@ -625,7 +625,7 @@ crypto-cyber-survivors/
 │   └── 📄 visual.spec.ts           # Visual regression
 │
 ├── 📁 railway-market-server/        # Stateless REST API (profile, sessions, wallet, leaderboard)
-│   └── 📁 src/db/                  # Postgres schema + numbered migrations (000–012, migrate.ts)
+│   └── 📁 src/db/                  # Postgres schema + numbered migrations (000–017, migrate.ts)
 │
 ├── 📁 railway-market-aggregator/    # Binance/Coinbase WS → indicators → SSE stream + DB writes
 │   └── 📁 src/                     # Stateful market pipeline

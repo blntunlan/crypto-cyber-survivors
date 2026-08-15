@@ -6,7 +6,7 @@ Real-time market-driven Vampire Survivors game integrating live BTC price feeds 
 ## Architecture Fundamentals
 
 ### Singleton Service Pattern
-All logic lives in **singleton services** (42+ services), never in React state. Services communicate via strongly-typed `EventBus`.
+All logic lives in **singleton services** (86 services / 89 whitelisted singletons), never in React state. Services communicate via strongly-typed `EventBus`.
 
 ```typescript
 // ✅ Correct: Singleton pattern
@@ -41,7 +41,7 @@ PoolManager.releaseBullet(bullet);
 ```
 
 ### EventBus Communication (services/core/EventBus.ts)
-Type-safe Observer Pattern for all cross-component communication. 40+ event types defined in `types/events.ts`.
+Type-safe Observer Pattern for all cross-component communication. 100+ event types defined in `types/events.ts`.
 
 ```typescript
 // Subscribe (returns cleanup function)
@@ -64,14 +64,15 @@ const { particlesEnabled } = useGameStore(selectGraphics);
 ```
 
 ### TimeService (services/core/TimeService.ts)
-All timers, delays, and time-based logic **must** use `TimeService` for pause-aware timing:
+All timers, delays, and time-based logic **must** be driven by `TimeService` for pause-aware timing (game clock freezes during pause/levelup/menu):
 
 ```typescript
-// ❌ WRONG - ignores pause state
+// ❌ WRONG - ignores pause state, advances during menus/modals
 setTimeout(() => {...}, 1000);
 
-// ✅ CORRECT - pauses during levelup/menu
-TimeService.setTimeout(() => {...}, 1000);
+// ✅ CORRECT - drive gameplay timers from TimeService delta or game time
+const dt = TimeService.getDeltaTime(); // 0 when paused
+const gameTime = TimeService.getGameTime();
 ```
 
 ## Testing Requirements
@@ -87,7 +88,7 @@ npm run lint          # 0 errors, 0 warnings expected
 ### Test Patterns
 - **Unit Tests**: `tests/**/*.test.ts` - Use Vitest, mock services via `beforeEach` reset
 - **E2E Tests**: `e2e/**/*.spec.ts` - Playwright with `@axe-core/playwright` for a11y
-- **Coverage**: 65-80% minimum (check with `npm run test:coverage`)
+- **Coverage**: V8 coverage targeting `services/**`, `components/**`, `factories/**` (`npm run test:coverage`; no hard threshold configured in `vitest.config.ts`)
 
 ### Critical Test Rule
 Services must be **stateless singletons** - call `reset()` method in `beforeEach` to isolate tests:
@@ -136,13 +137,13 @@ beforeEach(() => {
 // Enable EventBus tracing
 EventBus.enableTracing();
 
-// Check DebugService panels
-DebugService.registerPanel('MyDebug', () => ({...}));
+// Capture state snapshot (or use window.gameDebug in dev console)
+DebugService.captureSnapshot();
 ```
 
 ### Market Data Integration
 - **SSEMarketService**: receives price + server-computed indicators via SSE from the Railway aggregator
-- **UnifiedDirector + FlowStateManager**: map market state → `DifficultyContext` (spawn rate, enemy behavior)
+- **ExperienceDirector + FlowStateManager**: map market state → `DifficultyContext` (spawn rate, enemy behavior) via `CurrentDifficultyRuntimeAdapter`
 - The aggregator (`railway-market-aggregator/`) is the single source of truth for prices/indicators
 
 ## Performance Guidelines
@@ -157,11 +158,19 @@ DebugService.registerPanel('MyDebug', () => ({...}));
 - Use `getHUDLayout()` for responsive scaling (0.5x-1.5x)
 - Profile with `DeviceBenchmarkService` for auto-quality adjust
 
-### Spatial Optimization (services/combat/PhysicsSystem.ts)
-Collision detection uses **spatial grid** (O(N) → O(N/k)) - add large objects to grid:
+### Spatial Optimization (services/combat/SpatialGrid.ts)
+Collision detection uses **spatial hash grids** (`bulletGrid`, `enemyGrid`) for O(1) neighbor lookups:
 
 ```typescript
-PhysicsSystem.addToGrid(entity);
+import { enemyGrid } from '@/services/combat/SpatialGrid';
+
+// Insert entities into grid (rebuilt frame-by-frame in PhysicsSystem)
+enemyGrid.insert(enemy);
+
+// Query nearby entities within range
+enemyGrid.forEachNearby(x, y, (nearbyEnemy) => {
+  // Resolve collision
+});
 ```
 
 ## Security & Anti-Cheat
@@ -252,4 +261,4 @@ After deployment, provide summary:
 ## Documentation
 - **Architecture**: `docs/ARCHITECTURE.md` - system design rationale
 - **API Docs**: Run `npm run docs` → `docs/api/` (TypeDoc generated)
-- **Roadmaps**: `docs/MASTER_ROADMAP.md`, `docs/2026_ROADMAP.md`
+- **Roadmaps**: `DIFFICULTY_ROADMAP.md` (active difficulty roadmap), `docs/archived/MASTER_ROADMAP.md`, `docs/archived/2026_ROADMAP.md` (historical)
