@@ -18,7 +18,7 @@ describe('LandingFaq', () => {
     render(<LandingFaq />);
 
     const trigger = screen.getByRole('button', {
-      name: 'What makes Crypto Survivors different from other games?',
+      name: 'Does the live price actually change the run, or is it just a skin?',
     });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveAttribute('aria-controls', 'faq-panel-0');
@@ -29,6 +29,6 @@ describe('LandingFaq', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const region = screen.getByRole('region', { name: trigger.textContent });
     expect(region).not.toHaveAttribute('hidden');
-    expect(region).toHaveTextContent(/Real-time BTC\/USD price feeds/i);
+    expect(region).toHaveTextContent(/RSI, ATR and volume are computed server-side/i);
   });
 });

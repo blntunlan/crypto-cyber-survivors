@@ -6,27 +6,35 @@ import { staggerContainer, fadeInUp } from './motionVariants';
 const ROADMAP_ITEMS = [
   {
     phase: 'Shipped',
-    title: 'Foundation',
+    title: 'Engine & Backend',
     status: 'completed',
-    items: ['Core gameplay loop', '60 FPS Canvas engine', 'Railway backend'],
+    items: [
+      'Object-pooled 60 FPS canvas loop',
+      'Railway API on Postgres',
+      'Typed EventBus service core',
+    ],
   },
   {
     phase: 'Live now',
-    title: 'Live Markets',
+    title: 'Market-Driven Difficulty',
     status: 'current',
-    items: ['Live price feed', 'Market-driven difficulty', 'Anti-cheat system'],
+    items: [
+      'BTC/USD aggregated at ~1s',
+      'RSI, ATR and volume drive spawns',
+      'Server-verified run settlement',
+    ],
   },
   {
     phase: 'Next',
-    title: 'Social',
+    title: 'Leaderboards & Replays',
     status: 'upcoming',
-    items: ['Global leaderboards', 'Replay sharing', 'Achievement badges'],
+    items: ['Ranked seasons', 'Run replay playback', 'Profile progression'],
   },
   {
     phase: 'Later',
-    title: 'Expansion',
+    title: 'More Pairs, More Pressure',
     status: 'upcoming',
-    items: ['Multi-crypto support', 'Daily challenges', 'Seasonal events'],
+    items: ['ETH and SOL arenas', 'Daily challenge rotation', 'Seasonal events'],
   },
 ] as const;
 
@@ -42,10 +50,10 @@ export const LandingRoadmap: React.FC = () => {
           className="mb-12 text-center sm:mb-16"
         >
           <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
-            Development Timeline
+            DEVELOPMENT TIMELINE
           </h2>
           <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
-            Roadmap
+            ROADMAP
           </div>
         </m.div>
 
@@ -60,17 +68,31 @@ export const LandingRoadmap: React.FC = () => {
             <m.div
               key={phase.phase}
               variants={fadeInUp}
-              className={`relative border p-5 transition-colors duration-300 sm:p-6 ${
+              className={`group relative border p-5 font-mono transition-all duration-300 sm:p-6 ${
                 phase.status === 'current'
-                  ? 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[0_0_20px_rgba(214,184,92,0.1)]'
+                  ? 'border-[#d6b85c]/60 bg-[#d6b85c]/[0.06] shadow-[0_0_25px_rgba(214,184,92,0.15)]'
                   : phase.status === 'completed'
-                    ? 'border-green-500/30 bg-green-500/5'
-                    : 'border-white/10 bg-white/5'
+                    ? 'border-emerald-500/40 bg-emerald-500/[0.04]'
+                    : 'border-white/10 bg-[#070a14]/60'
               }`}
             >
+              {/* HUD Reticle Corners */}
+              <span className="pointer-events-none absolute left-1 top-1 text-[9px] leading-none text-[#d6b85c]/30 group-hover:text-[#ffd86a]">
+                ┌
+              </span>
+              <span className="pointer-events-none absolute right-1 top-1 text-[9px] leading-none text-[#d6b85c]/30 group-hover:text-[#ffd86a]">
+                ┐
+              </span>
+              <span className="pointer-events-none absolute bottom-1 left-1 text-[9px] leading-none text-[#d6b85c]/30 group-hover:text-[#ffd86a]">
+                └
+              </span>
+              <span className="pointer-events-none absolute bottom-1 right-1 text-[9px] leading-none text-[#d6b85c]/30 group-hover:text-[#ffd86a]">
+                ┘
+              </span>
+
               {phase.status === 'current' && (
                 <div className="absolute -right-2 -top-2 bg-[#d6b85c] px-2 py-0.5 text-[8px] font-black uppercase text-black">
-                  Active
+                  ACTIVE
                 </div>
               )}
               <div
@@ -99,10 +121,10 @@ export const LandingRoadmap: React.FC = () => {
                 {phase.items.map(item => (
                   <li
                     key={item}
-                    className={`flex items-start gap-2 font-mono text-[11px] ${
+                    className={`flex items-start gap-2 text-[11px] ${
                       phase.status === 'completed'
                         ? 'text-slate-400 line-through'
-                        : 'text-slate-400'
+                        : 'text-slate-300'
                     }`}
                   >
                     {phase.status === 'completed' ? (

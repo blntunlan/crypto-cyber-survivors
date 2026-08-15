@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import {
   marketApiClient,
@@ -12,7 +12,7 @@ import {
 
 type FeedStatus = 'connecting' | 'live' | 'cached';
 
-type LandingMarketPoint = {
+export type LandingMarketPoint = {
   price: number;
   volume: number;
   rsi: number;
@@ -39,15 +39,10 @@ type Forecast = {
 };
 
 const MAX_FEED_POINTS = 48;
-const TRAIL_LENGTH = 10;
-// The chart renders MAX_FEED_POINTS anyway, so we ask the server to bucket a
-// full day into a small payload rather than downloading every 10s row.
 const HISTORY_FETCH_LIMIT = 300;
 const HISTORY_WINDOW_HOURS = 24;
 const MAX_HISTORY_AGE_MS = HISTORY_WINDOW_HOURS * 60 * 60 * 1000;
-// Slack for one server-side bucket (window / limit) plus the logger cadence,
-// so a bucketed full-day response still reads as 24H.
-const FULL_DAY_TOLERANCE_MS = 30 * 60 * 1000;
+const FULL_DAY_TOLERANCE_MS = 45 * 60 * 1000; // 45 min tolerance for 24h label
 
 const FEED_STATUS_COPY: Record<FeedStatus, string> = {
   connecting: 'SYNCING',
@@ -57,6 +52,57 @@ const FEED_STATUS_COPY: Record<FeedStatus, string> = {
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
+
+/**
+ * Calculates the UTC 00:00:00 timestamp for a given reference timestamp.
+ */
+const getUtc0Timestamp = (referenceTimestamp: number = Date.now()): number => {
+  const d = new Date(referenceTimestamp);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0);
+};
+
+/**
+ * Resolves the baseline price for daily calculations.
+ * In crypto markets, daily performance is anchored to UTC 00:00:00 (the official 1D open candle).
+ * If data covers UTC 00:00, the closest price point to UTC 00:00 is used.
+ * Otherwise, the earliest available price in the dataset is used.
+ */
+const getDailyOpenPrice = (
+  points: LandingMarketPoint[],
+  referenceTimestamp: number = Date.now()
+): { price: number; timestamp: number; isUtc0: boolean } => {
+  if (points.length === 0) {
+    return { price: 0, timestamp: 0, isUtc0: false };
+  }
+
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  if (!firstPoint || !lastPoint) {
+    return { price: 0, timestamp: 0, isUtc0: false };
+  }
+
+  const utc0 = getUtc0Timestamp(referenceTimestamp);
+
+  // If the dataset doesn't cross UTC 00:00 (e.g. data starts after UTC 00:00 + 15m),
+  // use the earliest data point as the window's open price.
+  if (firstPoint.timestamp > utc0 + 15 * 60 * 1000 || lastPoint.timestamp < utc0) {
+    return { price: firstPoint.price, timestamp: firstPoint.timestamp, isUtc0: false };
+  }
+
+  // Find the point closest to UTC 00:00:00
+  let bestPoint = firstPoint;
+  let bestDiff = Math.abs(firstPoint.timestamp - utc0);
+
+  for (const point of points) {
+    const diff = Math.abs(point.timestamp - utc0);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestPoint = point;
+    }
+  }
+
+  return { price: bestPoint.price, timestamp: bestPoint.timestamp, isUtc0: true };
+};
 
 const normalizeTrendDirection = (direction: string): 'up' | 'down' | 'sideways' => {
   const normalized = direction.toUpperCase();
@@ -69,7 +115,6 @@ const formatCompactPrice = (price: number): string => {
   if (price >= 1000) {
     return `$${(price / 1000).toFixed(1)}K`;
   }
-
   return `$${Math.round(price).toLocaleString('en-US')}`;
 };
 
@@ -79,11 +124,41 @@ const formatFullPrice = (price: number): string =>
     maximumFractionDigits: 2,
   })}`;
 
-const formatDisplayPrice = (price: number, status: FeedStatus): string =>
-  status === 'connecting' || price <= 0 ? 'SYNCING' : formatFullPrice(price);
+const formatDisplayPrice = (
+  price: number,
+  status: FeedStatus,
+  isSimulated: boolean = false
+): string =>
+  (status === 'connecting' && !isSimulated) || price <= 0
+    ? 'SYNCING'
+    : formatFullPrice(price);
 
 const formatPercent = (value: number): string =>
   `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+
+const formatDeltaDollar = (delta: number): string =>
+  `${delta >= 0 ? '+' : '-'}$${Math.abs(delta).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatTimeAgo = (timestamp: number, now: number): string => {
+  const diffSec = Math.max(Math.round((now - timestamp) / 1000), 0);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  return `${diffHours}h ${diffMin % 60}m ago`;
+};
+
+const formatClockTime = (timestamp: number): string => {
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
 
 const EMPTY_POINT: LandingMarketPoint = {
   price: 0,
@@ -164,21 +239,15 @@ const getPreviousPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
   points[points.length - 2] ?? getLatestPoint(points);
 
 type ChartBucket = {
-  /** Position in the fixed time grid — drives x, so the axis stays linear. */
   slot: number;
   price: number;
   volume: number;
+  timestamp: number;
+  open: number;
 };
 
 /**
- * Collapse the series onto a fixed grid of equal *time* slices.
- *
- * Sampling by array index instead would give every point the same width, and
- * the feed mixes a 24h history (one row per few minutes) with a live stream
- * (one row per second) — so within a minute of page load the live tail would
- * occupy a third of the chart and flatten the day behind it. Bucketing by
- * timestamp keeps live ticks folded into the trailing slice, exactly like a
- * candle still forming.
+ * Collapses points into equal time slices.
  */
 const bucketPointsByTime = (
   points: LandingMarketPoint[],
@@ -191,36 +260,54 @@ const bucketPointsByTime = (
   const span = lastPoint.timestamp - firstPoint.timestamp;
   if (span <= 0) {
     return [
-      { slot: bucketCount - 1, price: lastPoint.price, volume: lastPoint.volume },
+      {
+        slot: bucketCount - 1,
+        price: lastPoint.price,
+        volume: lastPoint.volume,
+        timestamp: lastPoint.timestamp,
+        open: lastPoint.price,
+      },
     ];
   }
 
   const closes = new Float64Array(bucketCount);
+  const opens = new Float64Array(bucketCount);
   const volumeSums = new Float64Array(bucketCount);
   const sampleCounts = new Uint32Array(bucketCount);
+  const timestamps = new Float64Array(bucketCount);
 
   for (const point of points) {
-    // Clamped: an out-of-order tick would otherwise index outside the grid.
     const slot = clamp(
       Math.floor(((point.timestamp - firstPoint.timestamp) / span) * bucketCount),
       0,
       bucketCount - 1
     );
-    // Last sample in the slice wins for price; volume averages over the slice.
+
+    if (sampleCounts[slot] === 0) {
+      opens[slot] = point.price;
+    }
     closes[slot] = point.price;
     volumeSums[slot] = (volumeSums[slot] ?? 0) + point.volume;
     sampleCounts[slot] = (sampleCounts[slot] ?? 0) + 1;
+    timestamps[slot] = point.timestamp;
   }
 
   const buckets: ChartBucket[] = [];
-  let carriedClose = 0;
+  let carriedClose = firstPoint.price;
+
   for (let slot = 0; slot < bucketCount; slot++) {
     const sampleCount = sampleCounts[slot] ?? 0;
+    const bucketTime = firstPoint.timestamp + (slot / (bucketCount - 1)) * span;
+
     if (sampleCount === 0) {
-      // Feed gap: hold the previous close so the line stays continuous rather
-      // than diving to zero. Nothing to hold before the first sample arrives.
       if (carriedClose > 0) {
-        buckets.push({ slot, price: carriedClose, volume: 0 });
+        buckets.push({
+          slot,
+          price: carriedClose,
+          volume: 0,
+          timestamp: bucketTime,
+          open: carriedClose,
+        });
       }
       continue;
     }
@@ -230,15 +317,24 @@ const bucketPointsByTime = (
       slot,
       price: carriedClose,
       volume: (volumeSums[slot] ?? 0) / sampleCount,
+      timestamp: timestamps[slot] ?? bucketTime,
+      open: opens[slot] ?? carriedClose,
     });
   }
 
   return buckets;
 };
 
-type ChartCoordinate = { x: number; y: number; isUp: boolean };
+type ChartCoordinate = {
+  x: number;
+  y: number;
+  price: number;
+  volume: number;
+  timestamp: number;
+  isUp: boolean;
+};
 
-type ChartGridLevel = { y: number; label: string };
+type ChartGridLevel = { y: number; label: string; price: number };
 
 type ChartVolumeBar = {
   x: number;
@@ -255,22 +351,24 @@ type ChartModel = {
   gridLevels: ChartGridLevel[];
   volumeBars: ChartVolumeBar[];
   livePriceY: number;
-  /** Spread of the plotted window — sets axis tick precision. */
   axisRange: number;
   windowChangePercent: number;
+  windowChangeDollar: number;
+  high24h: number;
+  low24h: number;
+  openPrice: number;
+  isUtc0Open: boolean;
+  utc0MarkerX: number | null;
+  totalVolume: number;
   isWindowUp: boolean;
   windowLabel: '24H' | 'WINDOW';
 };
 
-// Chart layout in the 0–100 SVG space: price plot on top, volume histogram below.
-const CHART_PRICE_TOP_Y = 8;
-const CHART_PRICE_BOTTOM_Y = 70;
-// The price area stops above the histogram — closing it at the very bottom
-// washed the volume bars in the price gradient.
-const CHART_AREA_BASE_Y = 75;
-const CHART_VOLUME_MAX_HEIGHT = 18;
-// An axis tick this close to the live-price marker would render underneath it.
-const AXIS_LABEL_COLLISION_Y = 7;
+const CHART_PRICE_TOP_Y = 10;
+const CHART_PRICE_BOTTOM_Y = 74;
+const CHART_AREA_BASE_Y = 78;
+const CHART_VOLUME_MAX_HEIGHT = 16;
+const CHART_VOLUME_BASE_Y = 98;
 
 const EMPTY_CHART_MODEL: ChartModel = {
   coordinates: [],
@@ -281,35 +379,96 @@ const EMPTY_CHART_MODEL: ChartModel = {
   livePriceY: 50,
   axisRange: 0,
   windowChangePercent: 0,
+  windowChangeDollar: 0,
+  high24h: 0,
+  low24h: 0,
+  openPrice: 0,
+  isUtc0Open: false,
+  utc0MarkerX: null,
+  totalVolume: 0,
   isWindowUp: true,
   windowLabel: 'WINDOW',
 };
 
-/**
- * Axis ticks live in a ~48px gutter, so full prices ("$63,974") spill back over
- * the plot. Compact them, and keep enough precision that a tight window does
- * not print the same number three times.
- */
 const formatAxisPrice = (price: number, windowRange: number): string => {
-  if (price < 1000) {
-    return `$${price.toFixed(windowRange < 10 ? 2 : 0)}`;
+  if (price < 10) {
+    return `$${price.toFixed(3)}`;
   }
-
-  return `$${(price / 1000).toFixed(windowRange < 200 ? 2 : 1)}K`;
+  if (price < 1000) {
+    return `$${price.toFixed(windowRange < 5 ? 2 : 0)}`;
+  }
+  if (windowRange < 150) {
+    return `$${price.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+  }
+  return `$${Math.round(price).toLocaleString('en-US')}`;
 };
 
-const buildSmoothLinePath = (coordinates: ChartCoordinate[]): string => {
-  const firstCoordinate = coordinates[0];
-  if (!firstCoordinate) return '';
+/**
+ * Exact Fritsch-Carlson Monotone Cubic Spline interpolation.
+ * Prevents artificial overshoots on price peaks and troughs.
+ */
+const buildMonotonePath = (coordinates: ChartCoordinate[]): string => {
+  const n = coordinates.length;
+  if (n === 0) return '';
+  const first = coordinates[0];
+  if (!first) return '';
+  if (n === 1) return `M ${first.x.toFixed(2)} ${first.y.toFixed(2)}`;
 
-  let path = `M ${firstCoordinate.x.toFixed(2)} ${firstCoordinate.y.toFixed(2)}`;
-  for (let index = 1; index < coordinates.length; index++) {
-    const previous = coordinates[index - 1];
-    const current = coordinates[index];
-    if (!previous || !current) continue;
-    const midX = ((previous.x + current.x) / 2).toFixed(2);
-    path += ` C ${midX} ${previous.y.toFixed(2)}, ${midX} ${current.y.toFixed(2)}, ${current.x.toFixed(2)} ${current.y.toFixed(2)}`;
+  if (n === 2) {
+    const second = coordinates[1];
+    if (!second) return `M ${first.x.toFixed(2)} ${first.y.toFixed(2)}`;
+    return `M ${first.x.toFixed(2)} ${first.y.toFixed(2)} L ${second.x.toFixed(2)} ${second.y.toFixed(2)}`;
   }
+
+  let path = `M ${first.x.toFixed(2)} ${first.y.toFixed(2)}`;
+
+  const dxs = new Float64Array(n - 1);
+  const dys = new Float64Array(n - 1);
+  const slopes = new Float64Array(n - 1);
+
+  for (let i = 0; i < n - 1; i++) {
+    const curr = coordinates[i];
+    const next = coordinates[i + 1];
+    if (!curr || !next) continue;
+    const dx = next.x - curr.x;
+    const dy = next.y - curr.y;
+    dxs[i] = dx;
+    dys[i] = dy;
+    slopes[i] = dx !== 0 ? dy / dx : 0;
+  }
+
+  const tangents = new Float64Array(n);
+  tangents[0] = slopes[0] ?? 0;
+  tangents[n - 1] = slopes[n - 2] ?? 0;
+
+  for (let i = 1; i < n - 1; i++) {
+    const m0 = slopes[i - 1] ?? 0;
+    const m1 = slopes[i] ?? 0;
+    if (m0 * m1 <= 0) {
+      tangents[i] = 0;
+    } else {
+      const dx0 = dxs[i - 1] ?? 1;
+      const dx1 = dxs[i] ?? 1;
+      tangents[i] = (3 * (dx0 + dx1)) / ((2 * dx1 + dx0) / m0 + (dx1 + 2 * dx0) / m1);
+    }
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = coordinates[i];
+    const p1 = coordinates[i + 1];
+    if (!p0 || !p1) continue;
+    const dx = dxs[i] ?? 1;
+    const t0 = tangents[i] ?? 0;
+    const t1 = tangents[i + 1] ?? 0;
+
+    const cp1x = p0.x + dx / 3;
+    const cp1y = p0.y + (t0 * dx) / 3;
+    const cp2x = p1.x - dx / 3;
+    const cp2y = p1.y - (t1 * dx) / 3;
+
+    path += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+  }
+
   return path;
 };
 
@@ -322,63 +481,99 @@ const buildChartModel = (allPoints: LandingMarketPoint[]): ChartModel => {
   const prices = buckets.map(bucket => bucket.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  // Guard against a flat window so the line stays centered instead of exploding.
-  const priceRange = Math.max(maxPrice - minPrice, maxPrice * 0.0004, 1);
+  const priceRange = Math.max(maxPrice - minPrice, maxPrice * 0.0006, 1);
+
   const toY = (price: number): number =>
     CHART_PRICE_TOP_Y +
     ((maxPrice - price) / priceRange) * (CHART_PRICE_BOTTOM_Y - CHART_PRICE_TOP_Y);
+
   const toX = (slot: number): number => (slot / Math.max(MAX_FEED_POINTS - 1, 1)) * 100;
 
-  const coordinates = buckets.map((bucket, index) => ({
-    x: toX(bucket.slot),
-    y: toY(bucket.price),
-    isUp: bucket.price >= (buckets[index - 1] ?? bucket).price,
-  }));
+  const coordinates: ChartCoordinate[] = buckets.map((bucket, index) => {
+    const prev = buckets[index - 1] ?? bucket;
+    return {
+      x: toX(bucket.slot),
+      y: toY(bucket.price),
+      price: bucket.price,
+      volume: bucket.volume,
+      timestamp: bucket.timestamp,
+      isUp: bucket.price >= prev.price,
+    };
+  });
 
-  const linePath = buildSmoothLinePath(coordinates);
-  const gridLevels = [maxPrice, (maxPrice + minPrice) / 2, minPrice].map(price => ({
-    y: toY(price),
-    label: formatAxisPrice(price, maxPrice - minPrice),
-  }));
+  const linePath = buildMonotonePath(coordinates);
 
-  // Raw volume, not the indicator-normalized field: history rows pin
-  // `normalizedVolume` to a constant, which drew the day as a flat plateau
-  // next to the live tail's real values.
+  const lastCoord = coordinates[coordinates.length - 1];
+  const firstCoord = coordinates[0];
+  const areaPath = linePath
+    ? `${linePath} L ${lastCoord?.x.toFixed(2) ?? 100} ${CHART_AREA_BASE_Y} L ${firstCoord?.x.toFixed(2) ?? 0} ${CHART_AREA_BASE_Y} Z`
+    : '';
+
+  const gridSteps = 4;
+  const gridLevels: ChartGridLevel[] = Array.from({ length: gridSteps }, (_, i) => {
+    const p = maxPrice - (i / (gridSteps - 1)) * (maxPrice - minPrice);
+    return {
+      y: toY(p),
+      price: p,
+      label: formatAxisPrice(p, maxPrice - minPrice),
+    };
+  });
+
   const maxVolume = Math.max(...buckets.map(bucket => bucket.volume), Number.EPSILON);
   const slotWidth = 100 / MAX_FEED_POINTS;
-  const volumeBars = buckets.map((bucket, index) => {
-    const height = 2.5 + (bucket.volume / maxVolume) * CHART_VOLUME_MAX_HEIGHT;
+
+  const volumeBars: ChartVolumeBar[] = buckets.map((bucket, index) => {
+    const height = Math.max((bucket.volume / maxVolume) * CHART_VOLUME_MAX_HEIGHT, 1.2);
     return {
-      x: toX(bucket.slot) * ((100 - slotWidth) / 100) + slotWidth * 0.15,
-      width: slotWidth * 0.7,
-      y: 100 - height,
+      x: toX(bucket.slot) - slotWidth * 0.4,
+      width: slotWidth * 0.8,
+      y: CHART_VOLUME_BASE_Y - height,
       height,
       isUp: coordinates[index]?.isUp ?? true,
     };
   });
 
-  const firstPrice = firstBucket.price;
-  const lastPrice = lastBucket.price;
-  // Measure the span on the raw series: bucketing snaps the endpoints onto the
-  // grid, which would shave a slice off the day and mislabel it as a WINDOW.
   const firstPoint = allPoints[0];
   const lastPoint = allPoints[allPoints.length - 1];
+  const refTime = lastPoint?.timestamp ?? Date.now();
+  const utc0 = getUtc0Timestamp(refTime);
+
+  const dailyOpen = getDailyOpenPrice(allPoints, refTime);
+  const openPrice = dailyOpen.price > 0 ? dailyOpen.price : firstBucket.price;
+  const lastPrice = lastBucket.price;
+  const priceDelta = lastPrice - openPrice;
+
   const windowDuration =
     firstPoint && lastPoint ? lastPoint.timestamp - firstPoint.timestamp : 0;
+
+  const utc0MarkerX =
+    firstPoint &&
+    lastPoint &&
+    windowDuration > 0 &&
+    utc0 >= firstPoint.timestamp &&
+    utc0 <= lastPoint.timestamp
+      ? ((utc0 - firstPoint.timestamp) / windowDuration) * 100
+      : null;
+
+  const totalVolume = allPoints.reduce((sum, p) => sum + p.volume, 0);
 
   return {
     coordinates,
     linePath,
-    areaPath: linePath
-      ? `${linePath} L ${coordinates[coordinates.length - 1]?.x.toFixed(2) ?? 100} ${CHART_AREA_BASE_Y} L ${firstBucket.slot === 0 ? '0' : toX(firstBucket.slot).toFixed(2)} ${CHART_AREA_BASE_Y} Z`
-      : '',
+    areaPath,
     gridLevels,
     volumeBars,
-    livePriceY: coordinates[coordinates.length - 1]?.y ?? 50,
+    livePriceY: lastCoord?.y ?? 50,
     axisRange: maxPrice - minPrice,
-    windowChangePercent:
-      firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0,
-    isWindowUp: lastPrice >= firstPrice,
+    windowChangePercent: openPrice > 0 ? (priceDelta / openPrice) * 100 : 0,
+    windowChangeDollar: priceDelta,
+    high24h: maxPrice,
+    low24h: minPrice,
+    openPrice,
+    isUtc0Open: dailyOpen.isUtc0,
+    utc0MarkerX,
+    totalVolume,
+    isWindowUp: lastPrice >= openPrice,
     windowLabel:
       windowDuration >= MAX_HISTORY_AGE_MS - FULL_DAY_TOLERANCE_MS ? '24H' : 'WINDOW',
   };
@@ -457,11 +652,27 @@ const getBiasTone = (bias: ForecastBias): string => {
   return 'border-[#d6b85c]/45 bg-[#d6b85c]/10 text-[#ffd86a]';
 };
 
+type SimMode = 'live' | 'pump' | 'dump' | 'volatility';
+
+type HoveredPoint = {
+  x: number;
+  y: number;
+  price: number;
+  volume: number;
+  timestamp: number;
+  changePercent: number;
+  changeDollar: number;
+};
+
 export const LandingPriceFeed: React.FC = () => {
   const [points, setPoints] = useState<LandingMarketPoint[]>([]);
   const [feedStatus, setFeedStatus] = useState<FeedStatus>('connecting');
+  const [simMode, setSimMode] = useState<SimMode>('live');
+  const [hoveredPoint, setHoveredPoint] = useState<HoveredPoint | null>(null);
+
   const feedStatusRef = useRef<FeedStatus>('connecting');
   const hasLiveDataRef = useRef(false);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     feedStatusRef.current = feedStatus;
@@ -490,7 +701,7 @@ export const LandingPriceFeed: React.FC = () => {
         );
       })
       .catch(() => {
-        // The live stream remains the source of truth when history is unavailable.
+        // Fallback: live stream provides updates
       });
 
     const service = new SSEMarketService({
@@ -531,282 +742,620 @@ export const LandingPriceFeed: React.FC = () => {
     };
   }, []);
 
-  const latestPoint = getLatestPoint(points);
-  const chartModel = useMemo(() => buildChartModel(points), [points]);
+  const displayPoints = useMemo(() => {
+    if (simMode === 'live' || points.length === 0) return points;
+    const basePoint = points[points.length - 1] ?? EMPTY_POINT;
+    const basePrice = basePoint.price > 0 ? basePoint.price : 64000;
+
+    if (simMode === 'pump') {
+      const simPrice = basePrice * 1.054;
+      const simPoint: LandingMarketPoint = {
+        ...basePoint,
+        price: simPrice,
+        rsi: 78.4,
+        atrPercent: 0.0058,
+        normalizedVolume: 2.6,
+        volumePercentile: 0.92,
+        whaleTier: 2,
+        trendStrength: 0.88,
+        trendDirection: 'UPTREND',
+        hasIndicators: true,
+        timestamp: Date.now(),
+      };
+      return [...points.slice(0, -1), simPoint];
+    }
+    if (simMode === 'dump') {
+      const simPrice = basePrice * 0.918;
+      const simPoint: LandingMarketPoint = {
+        ...basePoint,
+        price: simPrice,
+        rsi: 21.6,
+        atrPercent: 0.0084,
+        normalizedVolume: 3.4,
+        volumePercentile: 0.96,
+        whaleTier: 3,
+        trendStrength: 0.92,
+        trendDirection: 'DOWNTREND',
+        hasIndicators: true,
+        timestamp: Date.now(),
+      };
+      return [...points.slice(0, -1), simPoint];
+    }
+    const simPrice = basePrice * 1.012;
+    const simPoint: LandingMarketPoint = {
+      ...basePoint,
+      price: simPrice,
+      rsi: 54.2,
+      atrPercent: 0.0142,
+      normalizedVolume: 4.8,
+      volumePercentile: 0.99,
+      whaleTier: 4,
+      trendStrength: 0.65,
+      trendDirection: 'VOLATILE',
+      hasIndicators: true,
+      timestamp: Date.now(),
+    };
+    return [...points.slice(0, -1), simPoint];
+  }, [points, simMode]);
+
+  const latestPoint = getLatestPoint(displayPoints);
+  const chartModel = useMemo(() => buildChartModel(displayPoints), [displayPoints]);
   const priceChangePercent = chartModel.windowChangePercent;
-  const priceOrbCoordinate =
-    chartModel.coordinates[chartModel.coordinates.length - 1] ?? null;
-  const priceTrailCoordinates = chartModel.coordinates.slice(-(TRAIL_LENGTH + 1), -1);
   const isPriceRising = priceChangePercent >= 0;
-  const orbColor = isPriceRising ? '#22c55e' : '#b22222';
-  const orbGlowColor = isPriceRising ? '#6ee7b7' : '#ff7777';
-  const lineColor = chartModel.isWindowUp ? '#22c55e' : '#b22222';
-  // Tailwind's motion-reduce: variants can't override inline transition styles,
-  // so reduced motion has to be resolved in JS.
+
+  const primaryColor = isPriceRising ? '#22c55e' : '#ff4444';
+  const glowColor = isPriceRising ? '#6ee7b7' : '#ff7777';
+
   const prefersReducedMotion = useReducedMotion();
   const glideTransition = prefersReducedMotion
     ? 'none'
-    : 'left 0.7s linear, top 0.7s linear, background-color 0.7s linear, box-shadow 0.7s linear';
-  const forecast = useMemo(() => buildForecast(points), [points]);
+    : 'left 0.4s ease-out, top 0.4s ease-out, background-color 0.4s ease-out';
+
+  const forecast = useMemo(() => buildForecast(displayPoints), [displayPoints]);
+
+  // Pointer scrubber interaction
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const container = chartContainerRef.current;
+      if (!container || chartModel.coordinates.length === 0) return;
+
+      const rect = container.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const plotWidth = rect.width;
+      const ratio = clamp(clientX / plotWidth, 0, 1);
+
+      const closestIndex = Math.round(ratio * (chartModel.coordinates.length - 1));
+      const coord = chartModel.coordinates[closestIndex];
+
+      if (coord) {
+        const deltaDollar = coord.price - chartModel.openPrice;
+        const deltaPercent =
+          chartModel.openPrice > 0 ? (deltaDollar / chartModel.openPrice) * 100 : 0;
+        setHoveredPoint({
+          x: coord.x,
+          y: coord.y,
+          price: coord.price,
+          volume: coord.volume,
+          timestamp: coord.timestamp,
+          changePercent: deltaPercent,
+          changeDollar: deltaDollar,
+        });
+      }
+    },
+    [chartModel.coordinates, chartModel.openPrice]
+  );
+
+  const handlePointerLeave = useCallback(() => {
+    setHoveredPoint(null);
+  }, []);
+
+  const activePoint = hoveredPoint ?? {
+    price: latestPoint.price,
+    changePercent: priceChangePercent,
+    changeDollar: chartModel.windowChangeDollar,
+    timestamp: latestPoint.timestamp || Date.now(),
+  };
+
+  const activePriceRising = activePoint.changePercent >= 0;
 
   return (
     <section
-      className="landing-price-feed bg-[#03050b]/92 relative max-w-full overflow-hidden border border-[#d6b85c]/25 p-3 font-mono shadow-[0_30px_90px_rgba(0,0,0,0.5),0_0_90px_rgba(178,34,34,0.2)] sm:p-4"
+      className="landing-price-feed relative max-w-full overflow-hidden border border-[#d6b85c]/30 bg-[#03050b]/95 p-3 font-mono shadow-[0_30px_90px_rgba(0,0,0,0.6),0_0_90px_rgba(214,184,92,0.15)] sm:p-5"
       aria-label="BTC live price feed and market pressure forecast"
       style={{
         clipPath:
-          'polygon(0 18px, 18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)',
+          'polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)',
       }}
     >
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(214,184,92,0.12),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,214,0,0.14),transparent_28%),radial-gradient(circle_at_72%_82%,rgba(178,34,34,0.28),transparent_34%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(214,184,92,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(178,34,34,0.06)_1px,transparent_1px)] bg-[length:28px_28px] opacity-70" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ffd86a] to-transparent" />
+      {/* Sci-Fi Background Glow & Grid */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(214,184,92,0.14),transparent_35%),radial-gradient(circle_at_88%_14%,rgba(255,214,0,0.16),transparent_30%),radial-gradient(circle_at_70%_85%,rgba(178,34,34,0.22),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(214,184,92,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(214,184,92,0.06)_1px,transparent_1px)] bg-[length:24px_24px] opacity-60" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#ffd86a] to-transparent" />
 
       <div className="relative z-10 flex flex-col gap-4">
+        {/* Header: Title, Live Price, 24H Delta, Feed Status */}
         <div className="flex min-w-0 flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-[0.34em] text-[#ffd86a]">
-              BTC/USD LIVE FEED
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.34em] text-[#ffd86a]">
+                BTC / USD REALTIME FEED
+              </span>
+              {hoveredPoint && (
+                <span className="rounded border border-cyan-500/30 bg-cyan-950/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-400">
+                  SCRUBBING
+                </span>
+              )}
             </div>
+
             <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
               <div
                 data-testid="landing-btc-price"
-                className="font-cyber text-4xl font-black italic leading-none tracking-tighter text-white sm:text-5xl"
+                className="font-cyber text-4xl font-black italic leading-none tracking-tighter text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] sm:text-5xl"
               >
-                {formatDisplayPrice(latestPoint.price, feedStatus)}
+                {formatDisplayPrice(activePoint.price, feedStatus, simMode !== 'live')}
               </div>
-              <div
-                data-testid="landing-window-change"
-                className={`text-sm font-black ${priceChangePercent >= 0 ? 'text-[#6ee7b7]' : 'text-[#ff7777]'}`}
-              >
-                <span className="mr-1 text-[10px] uppercase tracking-widest opacity-70">
-                  {chartModel.windowLabel}
-                </span>{' '}
-                {formatPercent(priceChangePercent)}
+
+              <div className="flex items-center gap-2">
+                <div
+                  data-testid="landing-window-change"
+                  className={`text-sm font-black ${
+                    activePriceRising ? 'text-[#6ee7b7]' : 'text-[#ff7777]'
+                  }`}
+                >
+                  <span className="border-current/30 mr-1 border px-1 py-0.5 text-[10px] uppercase tracking-widest opacity-80">
+                    {chartModel.windowLabel}
+                  </span>{' '}
+                  {formatPercent(activePoint.changePercent)}
+                </div>
+                <span className="font-mono text-xs text-slate-300 opacity-80">
+                  ({formatDeltaDollar(activePoint.changeDollar)})
+                </span>
               </div>
             </div>
           </div>
+
           <div className="flex items-center gap-2 self-start border border-[#22c55e]/30 bg-[#22c55e]/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#6ee7b7]">
             <span className="relative flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22c55e] opacity-60 motion-reduce:animate-none" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22c55e] opacity-75 motion-reduce:animate-none" />
               <span className="relative inline-flex size-2 rounded-full bg-[#22c55e]" />
             </span>
             <span data-testid="landing-feed-status">
-              {FEED_STATUS_COPY[feedStatus]}
+              {simMode !== 'live'
+                ? `SIM: ${simMode.toUpperCase()}`
+                : FEED_STATUS_COPY[feedStatus]}
             </span>
           </div>
         </div>
 
-        <div className="bg-[#05070d]/88 relative min-h-[170px] overflow-hidden border border-white/10 p-3 sm:min-h-[210px] sm:p-4">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(214,184,92,0.12),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.58))]" />
-          <div className="relative z-10 h-44 w-full sm:h-56">
-            {/* Plot area — right gutter reserved for the price axis. Keep the
-                inset and the axis width below in sync; the gutter also has to
-                clear the live orb, which straddles the plot's right edge. */}
-            <div className="absolute inset-y-0 left-0 right-16 sm:right-20">
-              <svg
-                className="h-full w-full"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <defs>
-                  <linearGradient id="landingPriceFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop stopColor={lineColor} stopOpacity="0.3" />
-                    <stop offset="1" stopColor={lineColor} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
+        {/* --- 24H / DAILY STATS BAR (High, Low, Open, Volume) --- */}
+        <div className="grid grid-cols-2 gap-2 text-[10px] font-bold uppercase tracking-wider sm:grid-cols-4">
+          <div className="border border-white/10 bg-black/40 px-2.5 py-1.5">
+            <span className="block text-[9px] text-slate-500">24H HIGH</span>
+            <span className="text-[#6ee7b7]">
+              {chartModel.high24h > 0 ? formatFullPrice(chartModel.high24h) : '---'}
+            </span>
+          </div>
+          <div className="border border-white/10 bg-black/40 px-2.5 py-1.5">
+            <span className="block text-[9px] text-slate-500">24H LOW</span>
+            <span className="text-[#ff7777]">
+              {chartModel.low24h > 0 ? formatFullPrice(chartModel.low24h) : '---'}
+            </span>
+          </div>
+          <div className="border border-white/10 bg-black/40 px-2.5 py-1.5">
+            <span className="block text-[9px] text-slate-500">
+              {chartModel.isUtc0Open ? 'UTC 0 OPEN' : '24H OPEN'}
+            </span>
+            <span className="text-[#ffd86a]">
+              {chartModel.openPrice > 0 ? formatFullPrice(chartModel.openPrice) : '---'}
+            </span>
+          </div>
+          <div className="border border-white/10 bg-black/40 px-2.5 py-1.5">
+            <span className="block text-[9px] text-slate-500">24H VOL</span>
+            <span className="text-slate-200">
+              {chartModel.totalVolume > 0
+                ? `${(chartModel.totalVolume / 1000).toFixed(1)}K BTC`
+                : 'LIVE'}
+            </span>
+          </div>
+        </div>
 
-                {chartModel.gridLevels.map((level, index) => (
-                  <line
-                    key={`grid-${index}`}
-                    x1="0"
-                    x2="100"
-                    y1={level.y}
-                    y2={level.y}
-                    stroke="#d6b85c"
-                    strokeDasharray={index === 1 ? '2 4' : undefined}
-                    strokeWidth="1"
-                    vectorEffect="non-scaling-stroke"
-                    opacity="0.14"
-                  />
-                ))}
-                {[25, 50, 75].map(gridX => (
-                  <line
-                    key={`vgrid-${gridX}`}
-                    x1={gridX}
-                    x2={gridX}
-                    y1="0"
-                    y2="100"
-                    stroke="#d6b85c"
-                    strokeWidth="1"
-                    vectorEffect="non-scaling-stroke"
-                    opacity="0.06"
-                  />
-                ))}
+        {/* --- INTERACTIVE MARKET SHOCK TESTER --- */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
+          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">
+            TEST ARENA RESPONSE:
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSimMode('live')}
+              className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                simMode === 'live'
+                  ? 'border border-[#22c55e] bg-[#22c55e]/20 text-[#6ee7b7] shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+                  : 'border border-white/10 bg-white/5 text-slate-400 hover:border-white/30 hover:text-white'
+              }`}
+            >
+              ● LIVE STREAM
+            </button>
+            <button
+              type="button"
+              onClick={() => setSimMode('pump')}
+              className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                simMode === 'pump'
+                  ? 'border border-[#22c55e] bg-[#22c55e]/20 text-[#6ee7b7] shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+                  : 'border border-white/10 bg-white/5 text-slate-400 hover:border-emerald-500/40 hover:text-emerald-300'
+              }`}
+            >
+              ▲ PUMP (+5%)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSimMode('dump')}
+              className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                simMode === 'dump'
+                  ? 'border border-[#b22222] bg-[#b22222]/20 text-[#ff7777] shadow-[0_0_8px_rgba(178,34,34,0.3)]'
+                  : 'border border-white/10 bg-white/5 text-slate-400 hover:border-red-500/40 hover:text-red-300'
+              }`}
+            >
+              ▼ DUMP (-8%)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSimMode('volatility')}
+              className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                simMode === 'volatility'
+                  ? 'border border-[#d6b85c] bg-[#d6b85c]/20 text-[#ffd86a] shadow-[0_0_8px_rgba(214,184,92,0.3)]'
+                  : 'border border-white/10 bg-white/5 text-slate-400 hover:border-amber-500/40 hover:text-amber-300'
+              }`}
+            >
+              ⚡ VOL SHOCK
+            </button>
+          </div>
+        </div>
 
-                {chartModel.volumeBars.map((bar, index) => (
-                  <rect
-                    key={`volume-${index}`}
-                    x={bar.x}
-                    y={bar.y}
-                    width={bar.width}
-                    height={bar.height}
-                    fill={bar.isUp ? '#22c55e' : '#b22222'}
-                    opacity="0.3"
-                  />
-                ))}
+        {/* --- MAIN CHART CONTAINER --- */}
+        <div className="bg-[#05070d]/92 relative min-h-[220px] overflow-hidden border border-white/10 p-2 sm:min-h-[270px] sm:p-4">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(214,184,92,0.08),transparent_40%),linear-gradient(180deg,transparent,rgba(2,6,23,0.7))]" />
 
-                <path d={chartModel.areaPath} fill="url(#landingPriceFill)" />
-                <path
-                  d={chartModel.linePath}
-                  fill="none"
-                  stroke={lineColor}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="5"
-                  vectorEffect="non-scaling-stroke"
-                  opacity="0.16"
-                />
-                <path
-                  d={chartModel.linePath}
-                  fill="none"
-                  stroke={lineColor}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.8"
-                  vectorEffect="non-scaling-stroke"
-                />
+          <div className="relative z-10 flex h-48 w-full flex-col sm:h-64">
+            {/* SVG Plot Area with Right Gutter for Price Axis */}
+            <div
+              ref={chartContainerRef}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={handlePointerLeave}
+              className="relative flex-1 cursor-crosshair touch-none select-none"
+            >
+              <div className="absolute inset-y-0 left-0 right-16 sm:right-20">
+                <svg
+                  className="h-full w-full overflow-visible"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient
+                      id="landingPriceAreaGrad"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor={primaryColor} stopOpacity="0.32" />
+                      <stop offset="60%" stopColor={primaryColor} stopOpacity="0.08" />
+                      <stop offset="100%" stopColor={primaryColor} stopOpacity="0.0" />
+                    </linearGradient>
 
-                <line
-                  x1="0"
-                  x2="100"
-                  y1={chartModel.livePriceY}
-                  y2={chartModel.livePriceY}
-                  stroke={orbColor}
-                  strokeDasharray="5 4"
-                  strokeWidth="1"
-                  vectorEffect="non-scaling-stroke"
-                  opacity="0.45"
-                />
-              </svg>
+                    <linearGradient id="volumeGradUp" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0.1" />
+                    </linearGradient>
 
-              {/* The window change lives in the header next to the price — an
-                  in-plot badge repeated it and sat on top of the line. */}
-              <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-400">
-                VOL
-              </span>
+                    <linearGradient id="volumeGradDown" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#ff4444" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#ff4444" stopOpacity="0.1" />
+                    </linearGradient>
 
-              {/* Player-style price orb + bullet trail (mirrors EntityRenderer dash trail) */}
-              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-                {priceTrailCoordinates.map((coordinate, index) => {
-                  const progress = (index + 1) / (priceTrailCoordinates.length + 1);
-                  const dotSize = 3 + progress * 5;
-                  const dotColor = coordinate.isUp ? '#22c55e' : '#b22222';
-                  const dotGlowColor = coordinate.isUp ? '#6ee7b7' : '#ff7777';
-                  return (
-                    <span
-                      key={`price-trail-${index}`}
-                      className="absolute rounded-full"
-                      style={{
-                        left: `${coordinate.x}%`,
-                        top: `${coordinate.y}%`,
-                        width: `${dotSize}px`,
-                        height: `${dotSize}px`,
-                        marginLeft: `${-dotSize / 2}px`,
-                        marginTop: `${-dotSize / 2}px`,
-                        opacity: 0.12 + progress * 0.5,
-                        backgroundColor: dotColor,
-                        boxShadow: `0 0 ${4 + progress * 8}px ${dotGlowColor}`,
-                        transition: glideTransition,
-                      }}
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="1.5" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+
+                  {/* Horizontal Price Grid Lines */}
+                  {chartModel.gridLevels.map((level, index) => (
+                    <line
+                      key={`grid-${index}`}
+                      x1="0"
+                      x2="100"
+                      y1={level.y}
+                      y2={level.y}
+                      stroke="#d6b85c"
+                      strokeDasharray={
+                        index === 0 || index === chartModel.gridLevels.length - 1
+                          ? undefined
+                          : '2 3'
+                      }
+                      strokeWidth="0.8"
+                      vectorEffect="non-scaling-stroke"
+                      opacity="0.15"
                     />
-                  );
-                })}
-                {priceOrbCoordinate && (
-                  <span
-                    className="absolute"
+                  ))}
+
+                  {/* Vertical Time Grid Lines */}
+                  {[20, 40, 60, 80].map(gridX => (
+                    <line
+                      key={`vgrid-${gridX}`}
+                      x1={gridX}
+                      x2={gridX}
+                      y1="0"
+                      y2="100"
+                      stroke="#d6b85c"
+                      strokeDasharray="2 4"
+                      strokeWidth="0.6"
+                      vectorEffect="non-scaling-stroke"
+                      opacity="0.08"
+                    />
+                  ))}
+
+                  {/* UTC 00:00 Daily Open Reference Marker */}
+                  {chartModel.utc0MarkerX !== null && (
+                    <g>
+                      <line
+                        x1={chartModel.utc0MarkerX}
+                        x2={chartModel.utc0MarkerX}
+                        y1="0"
+                        y2="100"
+                        stroke="#ffd86a"
+                        strokeDasharray="2 3"
+                        strokeWidth="0.8"
+                        vectorEffect="non-scaling-stroke"
+                        opacity="0.4"
+                      />
+                      <text
+                        x={Math.min(chartModel.utc0MarkerX + 1, 84)}
+                        y="94"
+                        fill="#ffd86a"
+                        fontSize="6"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                        opacity="0.65"
+                      >
+                        00:00 UTC
+                      </text>
+                    </g>
+                  )}
+
+                  {/* Volume Histogram */}
+                  {chartModel.volumeBars.map((bar, index) => (
+                    <rect
+                      key={`volume-${index}`}
+                      x={bar.x}
+                      y={bar.y}
+                      width={bar.width}
+                      height={bar.height}
+                      fill={bar.isUp ? 'url(#volumeGradUp)' : 'url(#volumeGradDown)'}
+                    />
+                  ))}
+
+                  {/* Area Gradient Fill */}
+                  {chartModel.areaPath && (
+                    <path d={chartModel.areaPath} fill="url(#landingPriceAreaGrad)" />
+                  )}
+
+                  {/* Glow Backdrop Line */}
+                  {chartModel.linePath && (
+                    <path
+                      d={chartModel.linePath}
+                      fill="none"
+                      stroke={primaryColor}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="4"
+                      vectorEffect="non-scaling-stroke"
+                      opacity="0.25"
+                      filter="url(#glow)"
+                    />
+                  )}
+
+                  {/* Crisp Primary Price Line */}
+                  {chartModel.linePath && (
+                    <path
+                      d={chartModel.linePath}
+                      fill="none"
+                      stroke={primaryColor}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  )}
+
+                  {/* Live Price Horizontal Guideline */}
+                  {!hoveredPoint && (
+                    <line
+                      x1="0"
+                      x2="100"
+                      y1={chartModel.livePriceY}
+                      y2={chartModel.livePriceY}
+                      stroke={primaryColor}
+                      strokeDasharray="4 3"
+                      strokeWidth="1"
+                      vectorEffect="non-scaling-stroke"
+                      opacity="0.5"
+                    />
+                  )}
+
+                  {/* Scrubber Crosshair Line */}
+                  {hoveredPoint && (
+                    <>
+                      <line
+                        x1={hoveredPoint.x}
+                        x2={hoveredPoint.x}
+                        y1="0"
+                        y2="100"
+                        stroke="#38bdf8"
+                        strokeDasharray="3 3"
+                        strokeWidth="1.2"
+                        vectorEffect="non-scaling-stroke"
+                        opacity="0.8"
+                      />
+                      <line
+                        x1="0"
+                        x2="100"
+                        y1={hoveredPoint.y}
+                        y2={hoveredPoint.y}
+                        stroke="#38bdf8"
+                        strokeDasharray="3 3"
+                        strokeWidth="1.2"
+                        vectorEffect="non-scaling-stroke"
+                        opacity="0.6"
+                      />
+                    </>
+                  )}
+                </svg>
+
+                {/* Live Price Pulse Beacon (At latest coordinate) */}
+                {!hoveredPoint && chartModel.coordinates.length > 0 && (
+                  <div
+                    className="pointer-events-none absolute"
                     style={{
-                      left: `${priceOrbCoordinate.x}%`,
-                      top: `${priceOrbCoordinate.y}%`,
+                      left: `${chartModel.coordinates[chartModel.coordinates.length - 1]?.x ?? 100}%`,
+                      top: `${chartModel.livePriceY}%`,
                       transition: glideTransition,
                     }}
                   >
                     <span
-                      className="absolute -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full opacity-40 motion-reduce:animate-none"
+                      className="absolute -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full opacity-60"
                       style={{
-                        width: '14px',
-                        height: '14px',
-                        backgroundColor: orbGlowColor,
+                        width: '18px',
+                        height: '18px',
+                        backgroundColor: glowColor,
                       }}
                     />
                     <span
-                      className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60"
+                      className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
                       style={{
-                        width: '14px',
-                        height: '14px',
-                        backgroundColor: orbColor,
-                        boxShadow: `0 0 14px ${orbGlowColor}, 0 0 28px ${orbColor}`,
-                        transition: glideTransition,
+                        width: '10px',
+                        height: '10px',
+                        backgroundColor: primaryColor,
+                        boxShadow: `0 0 16px ${glowColor}, 0 0 28px ${primaryColor}`,
                       }}
                     />
-                  </span>
+                  </div>
+                )}
+
+                {/* Scrubber Hover Cursor Point */}
+                {hoveredPoint && (
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: `${hoveredPoint.x}%`,
+                      top: `${hoveredPoint.y}%`,
+                    }}
+                  >
+                    <span
+                      className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-cyan-400"
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        boxShadow: '0 0 14px #38bdf8, 0 0 24px #0284c7',
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Hover Scrubber Tooltip Card */}
+                {hoveredPoint && (
+                  <div
+                    className="pointer-events-none absolute z-20 -translate-y-full transform rounded border border-cyan-500/50 bg-[#030712]/95 px-2.5 py-1.5 text-left font-mono text-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.8),0_0_12px_rgba(56,189,248,0.3)] backdrop-blur-md"
+                    style={{
+                      left: `${clamp(hoveredPoint.x, 15, 85)}%`,
+                      top: `${Math.max(hoveredPoint.y - 12, 18)}%`,
+                      transform: 'translate(-50%, -100%)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1 text-[9px] text-slate-400">
+                      <span>{formatClockTime(hoveredPoint.timestamp)}</span>
+                      <span>{formatTimeAgo(hoveredPoint.timestamp, Date.now())}</span>
+                    </div>
+                    <div className="mt-1 font-cyber text-sm font-bold text-white">
+                      {formatFullPrice(hoveredPoint.price)}
+                    </div>
+                    <div
+                      className={`text-[9px] font-bold ${
+                        hoveredPoint.changePercent >= 0
+                          ? 'text-[#6ee7b7]'
+                          : 'text-[#ff7777]'
+                      }`}
+                    >
+                      {formatPercent(hoveredPoint.changePercent)} (
+                      {formatDeltaDollar(hoveredPoint.changeDollar)})
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Price axis */}
-            <div className="absolute inset-y-0 right-0 w-16 border-l border-white/5 sm:w-20">
-              {chartModel.gridLevels.map((level, index) =>
-                // Ticks hidden behind the live marker read as a rendering glitch.
-                Math.abs(level.y - chartModel.livePriceY) <
-                AXIS_LABEL_COLLISION_Y ? null : (
+              {/* Price Axis (Right Gutter) */}
+              <div className="absolute inset-y-0 right-0 w-16 border-l border-white/10 sm:w-20">
+                {chartModel.gridLevels.map((level, index) => (
                   <span
                     key={`axis-${index}`}
-                    className="absolute right-0 -translate-y-1/2 pl-1 text-[8px] font-bold tracking-wide text-[#d6b85c]/60"
+                    className="absolute right-1 -translate-y-1/2 text-[8px] font-bold tracking-tight text-[#d6b85c]/70 sm:text-[9px]"
                     style={{ top: `${level.y}%` }}
                   >
                     {level.label}
                   </span>
-                )
-              )}
-              <span
-                className={`absolute right-0 z-10 -translate-y-1/2 px-1 py-0.5 text-[9px] font-black tracking-wide ${
-                  orbColor === '#22c55e' || feedStatus === 'connecting'
-                    ? 'text-slate-950'
-                    : 'text-white'
-                }`}
-                style={{
-                  top: `${chartModel.livePriceY}%`,
-                  backgroundColor: orbColor,
-                  boxShadow: `0 0 10px ${orbGlowColor}55`,
-                  transition: glideTransition,
-                }}
-              >
-                {/* Compact: the full price is already set huge in the header,
-                    and it overflowed the gutter onto the page at full width. */}
-                {feedStatus === 'connecting' || latestPoint.price <= 0
-                  ? '···'
-                  : formatAxisPrice(latestPoint.price, chartModel.axisRange)}
-              </span>
+                ))}
+
+                {/* Active / Hover Price Badge on Axis */}
+                <span
+                  className={`absolute right-0 z-10 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-black tracking-tight ${
+                    hoveredPoint
+                      ? 'bg-cyan-500 text-black shadow-[0_0_10px_#06b6d4]'
+                      : isPriceRising
+                        ? 'bg-[#22c55e] text-black shadow-[0_0_10px_#22c55e]'
+                        : 'bg-[#ff4444] text-white shadow-[0_0_10px_#ff4444]'
+                  }`}
+                  style={{
+                    top: `${hoveredPoint ? hoveredPoint.y : chartModel.livePriceY}%`,
+                    transition: hoveredPoint ? 'none' : glideTransition,
+                  }}
+                >
+                  {feedStatus === 'connecting' || activePoint.price <= 0
+                    ? '···'
+                    : formatAxisPrice(activePoint.price, chartModel.axisRange)}
+                </span>
+              </div>
+            </div>
+
+            {/* X-Axis Time Indicators */}
+            <div className="relative mt-2 flex justify-between border-t border-white/10 pr-16 pt-1 text-[8px] font-bold uppercase tracking-widest text-slate-500 sm:pr-20 sm:text-[9px]">
+              <span>-24H</span>
+              <span>-18H</span>
+              <span>-12H</span>
+              <span>-6H</span>
+              <span className="text-[#ffd86a]">NOW</span>
             </div>
           </div>
         </div>
 
-        <div className="landing-forecast-panel border border-[#d6b85c]/20 bg-black/30 p-3">
+        {/* --- MARKET PRESSURE FORECAST PANEL --- */}
+        <div className="landing-forecast-panel border border-[#d6b85c]/25 bg-black/40 p-3.5">
           {!latestPoint.hasIndicators && (
             <div className="border border-[#d6b85c]/30 bg-[#d6b85c]/10 p-3 text-[10px] font-black uppercase tracking-widest text-[#ffd86a]">
               WARMING UP — waiting for live market indicators
             </div>
           )}
+
           {latestPoint.hasIndicators && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
                   MARKET PRESSURE FORECAST
                 </div>
                 <div
-                  className={`landing-forecast-bias mt-2 inline-flex border px-3 py-2 text-sm font-black uppercase tracking-widest ${getBiasTone(forecast.bias)}`}
+                  className={`landing-forecast-bias mt-2 inline-flex border px-3 py-1.5 text-xs font-black uppercase tracking-widest ${getBiasTone(
+                    forecast.bias
+                  )}`}
                 >
                   {forecast.bias}
                 </div>
@@ -826,17 +1375,17 @@ export const LandingPriceFeed: React.FC = () => {
 
           {latestPoint.hasIndicators && (
             <div className="mt-3 grid gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300 sm:grid-cols-3">
-              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+              <div className="border border-white/10 bg-[#05070d]/80 p-2">
                 <span className="block text-slate-500">Projected range</span>
                 {formatCompactPrice(forecast.projectedLow)}–
                 {formatCompactPrice(forecast.projectedHigh)}
               </div>
-              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+              <div className="border border-white/10 bg-[#05070d]/80 p-2">
                 <span className="block text-slate-500">RSI / ATR</span>
                 {latestPoint.rsi.toFixed(1)} /{' '}
                 {(latestPoint.atrPercent * 100).toFixed(2)}%
               </div>
-              <div className="border border-white/10 bg-[#05070d]/70 p-2">
+              <div className="border border-white/10 bg-[#05070d]/80 p-2">
                 <span className="block text-slate-500">Volume</span>
                 {latestPoint.normalizedVolume.toFixed(2)}x · T{latestPoint.whaleTier}
               </div>
@@ -858,7 +1407,8 @@ export const LandingPriceFeed: React.FC = () => {
               </span>
             </div>
           )}
-          <p className="mt-3 text-[9px] leading-relaxed tracking-wide text-slate-600">
+
+          <p className="mt-3 text-[9px] leading-relaxed tracking-wide text-slate-500">
             Not financial advice. Indicators shown are gameplay mechanics only and
             should not be used for trading decisions.
           </p>

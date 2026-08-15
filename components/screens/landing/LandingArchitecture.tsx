@@ -1,127 +1,95 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Terminal } from 'lucide-react';
+import { trackRender } from '../../../utils/trackRender';
+import { staggerContainer, fadeInUp } from './motionVariants';
+
+const TECHNOLOGY_HIGHLIGHTS = [
+  {
+    badge: 'EVENT CORE',
+    title: 'Typed EventBus',
+    description:
+      '150+ typed events decouple every system through an Observer-pattern bus.',
+  },
+  {
+    badge: 'LIVE DATA',
+    title: 'Live Price Feed',
+    description:
+      'Real-time market WebSockets aggregate server-side into a ~1s SSE stream with failover.',
+  },
+  {
+    badge: 'ADAPTIVE',
+    title: 'Unified Difficulty Director',
+    description:
+      'Live RSI, ATR, and volume become spawn pressure and rewards every cycle.',
+  },
+] as const;
 
 export const LandingArchitecture: React.FC = () => {
-  const technologyHighlights = [
-    {
-      badge: 'EVENT CORE',
-      title: 'Typed EventBus',
-      description:
-        '150+ typed events decouple every system through an Observer-pattern bus.',
-    },
-    {
-      badge: 'LIVE DATA',
-      title: 'Live Price Feed',
-      description:
-        'Real-time market WebSockets aggregate server-side into a ~1s SSE stream with failover.',
-    },
-    {
-      badge: 'ADAPTIVE',
-      title: 'Unified Difficulty Director',
-      description:
-        'Live RSI, ATR, and volume become spawn pressure and rewards every cycle.',
-    },
-  ];
+  trackRender('LandingArchitecture');
 
   return (
-    <section id="dev" className="relative z-10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
+    <section
+      id="dev"
+      className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32"
+    >
       <div className="mx-auto max-w-7xl">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          {/* Descriptive Content */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          >
-            <Terminal className="mb-6 h-10 w-10 text-[#d6b85c] sm:mb-8 sm:h-12 sm:w-12" />
-            <h3 className="mb-6 font-cyber text-2xl font-black uppercase italic sm:mb-8 sm:text-3xl md:text-4xl lg:text-5xl">
-              Built to Run Itself
-            </h3>
-            <p className="mb-6 font-mono text-sm leading-relaxed text-slate-400 sm:mb-8">
-              As a solo indie developer, my requirement was simple: build a system that
-              manages itself.
-            </p>
-            <div className="mb-6 grid gap-3 sm:mb-8 sm:grid-cols-3">
-              {technologyHighlights.map(highlight => (
-                <div
-                  key={highlight.title}
-                  className="border border-white/10 bg-black/30 p-3"
-                >
-                  <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#ff6b6b]">
-                    {highlight.badge}
-                  </p>
-                  <p className="mb-2 text-sm font-bold text-white">{highlight.title}</p>
-                  <p className="font-mono text-[11px] leading-relaxed text-slate-400">
-                    {highlight.description}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={fadeInUp}
+          className="mb-12 text-center sm:mb-16"
+        >
+          <div className="mb-4 inline-flex items-center gap-2">
+            <Terminal className="h-5 w-5 text-[#d6b85c]" />
+            <span className="font-mono text-xs font-black uppercase tracking-[0.3em] text-[#ff6b6b]">
+              SOLO INDIE ARCHITECTURE
+            </span>
+          </div>
 
-            <div className="flex flex-wrap gap-2 sm:gap-4">
-              {['React 19', 'TypeScript', 'Canvas 2D', 'Railway', 'PostgreSQL'].map(
-                tag => (
-                  <span
-                    key={tag}
-                    className="border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold uppercase tracking-tighter text-slate-400 sm:px-3 sm:text-[10px]"
-                  >
-                    {tag}
-                  </span>
-                )
-              )}
-            </div>
-          </motion.div>
+          <h2 className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
+            BUILT TO RUN ITSELF
+          </h2>
+          <p className="mx-auto mt-6 max-w-2xl font-mono text-sm leading-relaxed text-slate-300 sm:text-base">
+            No framework runs inside the render loop. React never touches a combat frame
+            — the canvas reads refs and singleton services directly, allocates nothing
+            per frame, and recycles every bullet and enemy through fixed-size pools.
+          </p>
+        </motion.div>
 
-          {/* Visual Logic Diagram Sub-module */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
-            className="group relative overflow-hidden border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 p-6 sm:p-8"
-          >
-            <div className="absolute right-0 top-0 p-3 font-mono text-[10px] uppercase tracking-widest text-[#d6b85c] sm:p-4">
-              Design constraints
-            </div>
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="h-12 w-1 flex-shrink-0 bg-[#ff6b6b]" />
-                <div>
-                  <div className="text-xs font-black uppercase italic text-white">
-                    Systemic Balance
-                  </div>
-                  <div className="font-mono text-[10px] text-slate-400">
-                    Difficulty scales with Leverage, a risk multiplier (1x–100x).
-                  </div>
-                </div>
+        {/* Stacked ledger — deliberately not a card grid, so this section does not
+            repeat the rhythm of the engine cards directly above it. */}
+        <motion.dl
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-50px' }}
+          variants={staggerContainer}
+          className="mx-auto max-w-4xl border-t border-white/10 font-mono"
+        >
+          {TECHNOLOGY_HIGHLIGHTS.map((highlight, index) => (
+            <motion.div
+              key={highlight.title}
+              variants={fadeInUp}
+              className="group flex flex-col gap-2 border-b border-white/10 py-6 transition-colors duration-300 hover:bg-[#d6b85c]/[0.03] sm:flex-row sm:items-baseline sm:gap-8 sm:py-7"
+            >
+              <span className="font-cyber text-2xl font-black italic leading-none text-[#d6b85c]/40 transition-colors duration-300 group-hover:text-[#d6b85c] sm:w-16 sm:text-3xl">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div className="flex-1">
+                <dt className="font-cyber text-lg font-bold italic tracking-wide text-white transition-colors duration-300 group-hover:text-[#d6b85c] sm:text-xl">
+                  {highlight.title}
+                </dt>
+                <dd className="mt-2 text-xs leading-relaxed text-slate-300 sm:text-sm">
+                  {highlight.description}
+                </dd>
               </div>
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="h-12 w-1 flex-shrink-0 bg-[#d6b85c]" />
-                <div>
-                  <div className="text-xs font-black uppercase italic text-white">
-                    Real-Time Integrity
-                  </div>
-                  <div className="font-mono text-[10px] text-slate-400">
-                    WSS feed failover ensures zero game interruption.
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="h-12 w-1 flex-shrink-0 bg-white" />
-                <div>
-                  <div className="text-xs font-black uppercase italic text-white">
-                    60 FPS Native
-                  </div>
-                  <div className="font-mono text-[10px] text-slate-400">
-                    Canvas-optimized rendering pipeline bypasses DOM overhead.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff6b6b] sm:w-28 sm:text-right">
+                {highlight.badge}
+              </span>
+            </motion.div>
+          ))}
+        </motion.dl>
       </div>
     </section>
   );

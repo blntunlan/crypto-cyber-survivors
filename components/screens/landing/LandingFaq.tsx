@@ -5,29 +5,29 @@ import { staggerContainer, fadeInUp } from './motionVariants';
 
 const FAQ_ITEMS = [
   {
-    question: 'What makes Crypto Survivors different from other games?',
+    question: 'Does the live price actually change the run, or is it just a skin?',
     answer:
-      'Real-time BTC/USD price feeds directly influence gameplay difficulty. Market volatility creates unique challenges every session.',
+      'It changes the run. RSI, ATR and volume are computed server-side from the BTC/USD feed and fed straight into spawn pressure, enemy behaviour and reward multipliers. A quiet tape and a volatile one are not the same fight.',
   },
   {
-    question: 'Is this a play-to-earn or crypto wallet game?',
+    question: 'When should I cash out?',
     answer:
-      'No. This is a skill-based arcade game. No real money, no wallets, no blockchain transactions required.',
+      'That is the whole game. Your payout keeps climbing while you survive, but the run only pays if you reach a portal and extract. Die first and it is gone. Higher leverage raises both the yield and the speed at which the arena turns on you.',
   },
   {
-    question: 'What are Casual and Competitive modes?',
+    question: 'Do I need a crypto wallet? Can I lose real money?',
     answer:
-      'Casual mode offers relaxed difficulty for learning. Competitive mode features global leaderboards and anti-cheat validation.',
+      'No, and no. There are no wallets, no tokens and no blockchain transactions. The market feed is read-only price data — nothing you do here touches a real position.',
   },
   {
-    question: 'Does the game work offline?',
+    question: 'What happens if the price feed drops mid-run?',
     answer:
-      'Limited offline mode available via PWA. Full features require internet for live market data.',
+      'The run halts rather than continuing on stale prices. The game moves into a disconnected state and resumes from where it stopped once the stream recovers.',
   },
   {
-    question: 'What platforms are supported?',
+    question: 'Why can my payout differ from the number on screen?',
     answer:
-      'Web browser (desktop & mobile), PWA installable. Native apps planned for future releases.',
+      'Competitive payouts are recalculated on the server against the recorded run and the historical candles before coins land on your profile. The in-run counter is a projection; the server settles it.',
   },
 ];
 
@@ -44,12 +44,10 @@ export const LandingFaq: React.FC = () => {
           variants={fadeInUp}
           className="mb-12 text-center sm:mb-16"
         >
-          <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
-            Common Questions
-          </h2>
-          <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
+          {/* The visible headline is the heading — no eyebrow restating it. */}
+          <h2 className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
             FAQ
-          </div>
+          </h2>
         </m.div>
 
         <m.div

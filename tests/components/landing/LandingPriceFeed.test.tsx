@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '../../test-utils';
+import { render, screen, waitFor, fireEvent } from '../../test-utils';
 import { LandingPriceFeed } from '../../../components/screens/landing/LandingPriceFeed';
 
 const mocks = vi.hoisted(() => ({
@@ -63,6 +63,61 @@ describe('LandingPriceFeed', () => {
       expect(screen.getByTestId('landing-window-change')).toHaveTextContent(
         'WINDOW +20.00%'
       )
+    );
+  });
+
+  it('updates state on market shock simulations', async () => {
+    const now = Date.now();
+    mocks.getHistory.mockResolvedValue([
+      { price: 60000, volume: 100, timestamp: now - 24 * 60 * 60 * 1000 },
+      { price: 65000, volume: 150, timestamp: now },
+    ]);
+
+    render(<LandingPriceFeed />);
+
+    const pumpBtn = screen.getByText('▲ PUMP (+5%)');
+    fireEvent.click(pumpBtn);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('landing-feed-status')).toHaveTextContent('SIM: PUMP')
+    );
+    expect(screen.getByTestId('landing-btc-price')).not.toHaveTextContent('SYNCING');
+  });
+
+  it('anchors daily change to UTC 00:00 open when crossing the daily boundary', async () => {
+    const d = new Date();
+    const nowUtc = Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+      14,
+      0,
+      0,
+      0
+    );
+    const utc0 = Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    );
+    const yesterday = nowUtc - 24 * 60 * 60 * 1000;
+
+    mocks.getHistory.mockResolvedValue([
+      { price: 50000, volume: 10, timestamp: yesterday },
+      { price: 60000, volume: 20, timestamp: utc0 },
+      { price: 66000, volume: 30, timestamp: nowUtc },
+    ]);
+
+    render(<LandingPriceFeed />);
+
+    await waitFor(() => expect(screen.getByText('UTC 0 OPEN')).toBeInTheDocument());
+    expect(screen.getByText('$60,000.00')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-window-change')).toHaveTextContent(
+      '24H +10.00%'
     );
   });
 });

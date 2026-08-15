@@ -53,7 +53,7 @@ describe('LandingPage', () => {
     const playButton = screen.getByRole('button', { name: 'PLAY THE BETA' });
     expect(playButton).toHaveAttribute('data-ui-component', 'button');
 
-    const documentationButton = screen.getByRole('button', { name: 'Documentation' });
+    const documentationButton = screen.getByRole('button', { name: /documentation/i });
     expect(documentationButton).toHaveAttribute('data-ui-component', 'button');
 
     const menuButton = screen.getByRole('button', { name: 'Open menu' });

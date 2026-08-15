@@ -2,30 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { trackRender } from '../../../utils/trackRender';
 import { ArrowUpRight } from 'lucide-react';
-import { staggerContainer, fadeInUp } from './motionVariants';
+import { fadeInUp } from './motionVariants';
 
 const REPO_URL = 'https://github.com/blntunlan/crypto-cyber-survivors';
 
 export const LandingTeam: React.FC = () => {
   trackRender('LandingTeam');
-
-  const scope = [
-    {
-      area: 'Engine & Gameplay',
-      detail:
-        'Combat, physics, spawning, buffs, and the 60 FPS render loop — the singleton service layer.',
-    },
-    {
-      area: 'Market & Backend',
-      detail:
-        'Live price feed ingestion, indicator pipeline, the SSE aggregator, and the Railway API.',
-    },
-    {
-      area: 'Release & Ops',
-      detail:
-        'CI quality gates, anti-cheat, deployments, and production monitoring for the live runtime.',
-    },
-  ];
 
   return (
     <section
@@ -84,30 +66,6 @@ export const LandingTeam: React.FC = () => {
               </a>
             </div>
           </div>
-        </motion.div>
-
-        {/* What one person covers */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          variants={staggerContainer}
-          className="grid gap-6 md:grid-cols-3"
-        >
-          {scope.map(item => (
-            <motion.div
-              key={item.area}
-              variants={fadeInUp}
-              className="group relative border border-white/10 bg-white/5 p-6 transition-colors duration-300 hover:border-[#d6b85c]/30 sm:p-8"
-            >
-              <p className="mb-2 font-cyber text-lg font-bold italic tracking-wide text-white transition-colors duration-300 group-hover:text-[#d6b85c]">
-                {item.area}
-              </p>
-              <p className="font-mono text-sm leading-relaxed text-slate-400">
-                {item.detail}
-              </p>
-            </motion.div>
-          ))}
         </motion.div>
       </div>
     </section>

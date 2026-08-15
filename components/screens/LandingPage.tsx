@@ -101,6 +101,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <m.div
       ref={rootRef}
+      lang="en"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -143,15 +144,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-3 xl:flex">
           {/* Navigation Links */}
           <a href="#engine" className={`${framedNavButtonClass} w-[108px]`}>
-            <span className={desktopNavLabelClass}>Engine</span>
+            <span className={desktopNavLabelClass}>ENGINE</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#pipeline" className={`${framedNavButtonClass} w-[118px]`}>
-            <span className={desktopNavLabelClass}>Pipeline</span>
+            <span className={desktopNavLabelClass}>PIPELINE</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#dev" className={`${framedNavButtonClass} w-[120px]`}>
-            <span className={desktopNavLabelClass}>Solo Dev</span>
+            <span className={desktopNavLabelClass}>SOLO DEV</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#team" className={`${framedNavButtonClass} w-[96px]`}>
@@ -165,7 +166,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             size="sm"
             className="hidden w-[146px] xl:inline-flex"
           >
-            <span className={desktopNavLabelClass}>Documentation</span>
+            <span className={desktopNavLabelClass}>DOCUMENTATION</span>
           </ThemedButton>
         </div>
         {/* Desktop CTA */}
@@ -220,7 +221,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
-                  <span>Engine</span>
+                  <span>ENGINE</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
 
@@ -229,7 +230,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
-                  <span>Pipeline</span>
+                  <span>PIPELINE</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
 
@@ -238,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-[color:var(--ui-surface-inset)] p-4 text-left text-[color:var(--ui-text-secondary)] transition-all duration-300 hover:border-amber-500/40 hover:text-[color:var(--ui-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ui-focus-ring)]"
                 >
-                  <span>Solo Dev</span>
+                  <span>SOLO DEV</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-amber-500 opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                 </a>
                 <a

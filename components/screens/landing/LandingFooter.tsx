@@ -95,27 +95,27 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
                 onClick={onLaunch}
                 className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
-                Play
+                PLAY
               </button>
               <button
                 type="button"
                 onClick={onViewPrivacy}
                 className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
-                Privacy
+                PRIVACY
               </button>
               <button
                 type="button"
                 onClick={onViewTerms}
                 className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
-                Terms
+                TERMS
               </button>
               <a
                 href="mailto:info@crypto-survivors.com"
                 className="flex h-9 items-center justify-center border border-white/10 bg-white/5 px-4 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
               >
-                Contact
+                CONTACT
               </a>
             </div>
           </div>
@@ -137,7 +137,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
               right: '1rem',
             }}
           >
-            ↑ Back to Top
+            ↑ BACK TO TOP
           </m.button>
         )}
       </>
