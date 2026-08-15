@@ -153,3 +153,6 @@ supabase/.temp/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+# Antigravity CLI delegation run artifacts
+.agy-runs/

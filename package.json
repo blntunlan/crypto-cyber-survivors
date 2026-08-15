@@ -65,7 +65,8 @@
     "cloudflare:whoami": "npx --yes wrangler@4.76.0 whoami",
     "security:check": "node scripts/security-check.js",
     "indexnow:submit": "node scripts/submit-indexnow.mjs",
-    "deploy": "git push origin main"
+    "deploy": "git push origin main",
+    "agy:delegate": "node scripts/agy-delegate.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
