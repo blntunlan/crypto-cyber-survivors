@@ -25,6 +25,7 @@
 import { EventBus } from '../core/EventBus';
 import { TimeService } from '../core/TimeService';
 import { Logger } from '../system/Logger';
+import { EngagementMonitor } from './EngagementMonitor';
 
 /**
  * Flow state configuration - defines thresholds and targets
@@ -68,8 +69,21 @@ export const FLOW_STATE_CONFIG = {
   TIME_THRESHOLDS: {
     comfortableDuration: 10, // Seconds at high HP before "bored" (was 15 — too slow at 1x)
     stressedDuration: 8, // Seconds at low HP before "stressed" (was 10 — faster mercy response)
-    afkThreshold: 5, // Seconds without input = AFK
+    afkThreshold: 5, // Seconds without input = AFK (legacy fallback)
     outOfFlowMax: 60, // Max seconds outside flow before portal
+  },
+
+  // Dynamic AFK accumulator config (leaky-bucket Faz 4 / R2).
+  // ACTIVITY_THRESHOLD intentionally matches CORE_GAMEPLAY_LOOP_CONFIG's input
+  // threshold: both answer "is the player doing anything", and they are asserted
+  // equal in tests so a change to one cannot silently drift from the other.
+  AFK: {
+    SUSPICION_THRESHOLD: 0.6,
+    ACCRUAL_RATE: 0.08,
+    DECAY_RATE: 0.2,
+    THREAT_SCALE: 0.5,
+    ACTIVITY_THRESHOLD: 0.08,
+    IDLE_ACCRUAL_FLOOR: 0.35,
   },
 
   // Metric weights for engagement score
@@ -212,6 +226,7 @@ class FlowStateManagerClass {
   private dmgCount = 0;
 
   private readonly corrections: FlowStateCorrections = { ...DEFAULT_CORRECTIONS };
+  private readonly engagementMonitor = new EngagementMonitor(FLOW_STATE_CONFIG.AFK);
   private readonly analysis: FlowStateAnalysis = {
     state: 'flow',
     engagementScore: 0,
@@ -248,11 +263,20 @@ class FlowStateManagerClass {
    */
   update(
     hpPercent: number,
-    currentTime: number = TimeService.getGameTime()
+    currentTime: number = TimeService.getGameTime(),
+    activity: number = 0,
+    threatPressure: number = 0
   ): FlowStateAnalysis {
     // Update HP metrics
     this.metrics.hpPercent = hpPercent;
     this.metrics.currentHP = hpPercent / 100;
+
+    // Update dynamic engagement & AFK accumulator
+    const deltaTime =
+      this.lastAnalysisTime >= 0
+        ? Math.max(0, (currentTime - this.lastAnalysisTime) / 1000)
+        : 0;
+    this.engagementMonitor.update(deltaTime, activity, threatPressure);
 
     // Clean old events from ring buffers
     this.cleanOldEvents(currentTime);
@@ -381,15 +405,23 @@ class FlowStateManagerClass {
     this.metrics = this.getDefaultMetrics(now);
     this.currentState = 'flow';
     this.stateStartTime = now;
-    this.lastAnalysisTime = 0;
+    this.lastAnalysisTime = -1;
     this.killHead = 0;
     this.killCount = 0;
     this.dashHead = 0;
     this.dashCount = 0;
     this.dmgHead = 0;
     this.dmgCount = 0;
+    this.engagementMonitor.reset();
 
     Logger.debug('[FlowStateManager] Reset');
+  }
+
+  /**
+   * Current AFK suspicion score [0, 1]
+   */
+  getAfkSuspicion(): number {
+    return this.engagementMonitor.suspicion;
   }
 
   /**
@@ -405,6 +437,7 @@ class FlowStateManagerClass {
       engagement: analysis.engagementScore.toFixed(3),
       frustration: analysis.frustrationScore.toFixed(3),
       isAFK: analysis.isAFK,
+      afkSuspicion: this.engagementMonitor.suspicion.toFixed(3),
       isNearDeath: analysis.isNearDeath,
       timeInState: analysis.timeInCurrentState.toFixed(1),
       corrections: {
@@ -507,7 +540,9 @@ class FlowStateManagerClass {
 
     // Time tracking
     const deltaTime =
-      this.lastAnalysisTime > 0 ? (currentTime - this.lastAnalysisTime) / 1000 : 0;
+      this.lastAnalysisTime >= 0
+        ? Math.max(0, (currentTime - this.lastAnalysisTime) / 1000)
+        : 0;
 
     if (this.metrics.hpPercent < 30) {
       this.metrics.timeBelowHP30 += deltaTime;
@@ -646,11 +681,10 @@ class FlowStateManagerClass {
   }
 
   /**
-   * Check if player is AFK
+   * Check if player is AFK (via dynamic EngagementMonitor leaky-bucket accumulator)
    */
-  private isPlayerAFK(currentTime: number): boolean {
-    const timeSinceInput = (currentTime - this.metrics.lastInputTime) / 1000;
-    return timeSinceInput > FLOW_STATE_CONFIG.TIME_THRESHOLDS.afkThreshold;
+  private isPlayerAFK(_currentTime?: number): boolean {
+    return this.engagementMonitor.isAFK;
   }
 
   /**

@@ -37,6 +37,8 @@ export const CORE_GAMEPLAY_LOOP_CONFIG = {
   YOYO_SWING: 0.24,
   SMOOTHING_PER_FRAME: 0.16,
   INPUT_ACTIVITY_THRESHOLD: 0.08,
+  /** Enemy count at which idle time accrues AFK suspicion at full rate. */
+  AFK_THREAT_SATURATION_ENEMIES: 16,
   PHASE_SWITCH_SHAKE: 1.8,
   BUILD_HP_THRESHOLD: 58,
   RELEASE_HP_THRESHOLD: 38,
@@ -113,7 +115,31 @@ export class CoreGameplayLoop {
       FlowStateManager.recordInput(elapsedMs);
     }
 
-    const flowAnalysis = FlowStateManager.update(input.hpPercent, elapsedMs);
+    // `activity` above is a *feel* signal and deliberately counts auto-fire, but
+    // AFK detection must not: `didAttack` comes from CombatSystem.processAutoFire,
+    // which fires on a timer whenever anything is in range. Feeding it in would let
+    // a parked player's own weapons prove they are at the keyboard — the exact hole
+    // this accumulator exists to close. Movement and dash are the only genuinely
+    // player-driven parts.
+    const intentActivity = clamp(
+      input.movementMagnitude + (input.isDashing ? 0.35 : 0),
+      0,
+      1
+    );
+    // Standing still only reads as suspicious when something is demanding a
+    // reaction; an empty field is just a lull between waves.
+    const threatPressure = clamp(
+      input.enemyCount / CORE_GAMEPLAY_LOOP_CONFIG.AFK_THREAT_SATURATION_ENEMIES,
+      0,
+      1
+    );
+
+    const flowAnalysis = FlowStateManager.update(
+      input.hpPercent,
+      elapsedMs,
+      intentActivity,
+      threatPressure
+    );
 
     // Get price momentum state (cached, zero allocation)
     const momentum = PriceMomentumEngine.getLatest();
