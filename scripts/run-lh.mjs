@@ -4,7 +4,7 @@ import * as chromeLauncher from 'chrome-launcher';
 
 async function run(mode = 'desktop') {
   console.log('Starting Lighthouse audit in ' + mode + ' mode...');
-  
+
   const chrome = await chromeLauncher.launch({
     chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'],
   });
@@ -15,27 +15,33 @@ async function run(mode = 'desktop') {
     onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
     port: chrome.port,
     formFactor: mode === 'desktop' ? 'desktop' : 'mobile',
-    screenEmulation: mode === 'desktop' ? {
-      mobile: false,
-      width: 1350,
-      height: 940,
-      deviceScaleFactor: 1,
-      disabled: false,
-    } : {
-      mobile: true,
-      width: 412,
-      height: 823,
-      deviceScaleFactor: 1.75,
-      disabled: false,
-    },
-    throttling: mode === 'desktop' ? {
-      rttMs: 40,
-      throughputKbps: 10240,
-      cpuSlowdownMultiplier: 1,
-      requestLatencyMs: 0,
-      downloadThroughputKbps: 0,
-      uploadThroughputKbps: 0,
-    } : undefined,
+    screenEmulation:
+      mode === 'desktop'
+        ? {
+            mobile: false,
+            width: 1350,
+            height: 940,
+            deviceScaleFactor: 1,
+            disabled: false,
+          }
+        : {
+            mobile: true,
+            width: 412,
+            height: 823,
+            deviceScaleFactor: 1.75,
+            disabled: false,
+          },
+    throttling:
+      mode === 'desktop'
+        ? {
+            rttMs: 40,
+            throughputKbps: 10240,
+            cpuSlowdownMultiplier: 1,
+            requestLatencyMs: 0,
+            downloadThroughputKbps: 0,
+            uploadThroughputKbps: 0,
+          }
+        : undefined,
   };
 
   try {
@@ -47,11 +53,22 @@ async function run(mode = 'desktop') {
     const lhr = runnerResult.lhr;
     console.log('\n=== LIGHTHOUSE SCORES (' + mode.toUpperCase() + ') ===');
     Object.keys(lhr.categories).forEach(c => {
-      console.log(lhr.categories[c].title + ': ' + Math.round(lhr.categories[c].score * 100) + '/100');
+      console.log(
+        lhr.categories[c].title +
+          ': ' +
+          Math.round(lhr.categories[c].score * 100) +
+          '/100'
+      );
     });
 
     console.log('\n=== METRICS (' + mode.toUpperCase() + ') ===');
-    const perfRefs = ['first-contentful-paint', 'largest-contentful-paint', 'total-blocking-time', 'cumulative-layout-shift', 'speed-index'];
+    const perfRefs = [
+      'first-contentful-paint',
+      'largest-contentful-paint',
+      'total-blocking-time',
+      'cumulative-layout-shift',
+      'speed-index',
+    ];
     perfRefs.forEach(id => {
       const a = lhr.audits[id];
       if (a) {

@@ -37,7 +37,9 @@ try {
 }
 
 // 2. Run Diagnostic Vitest Suite
-console.log('\n🧪 [Agent: ResilienceTester & AuthAuditor] Executing diagnostic test matrix...');
+console.log(
+  '\n🧪 [Agent: ResilienceTester & AuthAuditor] Executing diagnostic test matrix...'
+);
 try {
   const testOutput = execSync('npx vitest run tests/diagnostics/', {
     encoding: 'utf8',

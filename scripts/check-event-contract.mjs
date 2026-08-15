@@ -68,8 +68,7 @@ const RULE_GUIDANCE = {
   declaredNotEmitted:
     'Remove the member from the GameEvent union and EventDataMap in types/events.ts, ' +
     'or emit it.',
-  emittedNotListened:
-    'Delete the emit, or wire the listener it was written for.',
+  emittedNotListened: 'Delete the emit, or wire the listener it was written for.',
   listenedNotEmitted:
     'Something has to emit this. A lost emitter means the feature behind these ' +
     'listeners is dead — verify before deleting the listeners.',
@@ -80,7 +79,8 @@ const RULE_GUIDANCE = {
 const toPosixPath = filePath => filePath.split(path.sep).join('/');
 
 const isSourceFile = filePath =>
-  (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) && !filePath.endsWith('.d.ts');
+  (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
+  !filePath.endsWith('.d.ts');
 
 const walk = async directory => {
   const entries = await fs.readdir(directory, { withFileTypes: true });

@@ -82,6 +82,7 @@ coverage_report*.txt
 failures.txt
 lint_results.txt
 lint_results.json
+CLIENT_SERVER_HEALTH_REPORT.md
 
 # Generated documentation
 docs/api/
