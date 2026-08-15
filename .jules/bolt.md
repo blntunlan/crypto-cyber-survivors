@@ -1,0 +1,3 @@
+## 2025-01-24 - Convert forEach to for loops in high-frequency paths
+**Learning:** High-frequency loop paths (e.g., 60 FPS update loops in physics systems like MovementSystem.ts) suffer from garbage collection (GC) pressure when using `Array.prototype.forEach` due to closure function allocations.
+**Action:** Replace `Array.prototype.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in hot paths to avoid closure allocations and reduce GC pressure. Ensure that `return` statements in the `forEach` callback are properly converted to `continue` statements. Always use a guard clause `if (e === undefined) continue;` to protect against sparse arrays.
