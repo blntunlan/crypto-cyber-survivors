@@ -37,17 +37,32 @@ interface SSEClient {
   pair: string;
 }
 
+const ALLOWED_PAIRS = ['BTC', 'ETH', 'SOL'] as const;
+type MarketPair = (typeof ALLOWED_PAIRS)[number];
+
 let nextClientId = 0;
 const clients: Map<number, SSEClient> = new Map();
 
 const router = Router();
+
+export function normalizeMarketPair(input: unknown): MarketPair | null {
+  const raw = typeof input === 'string' && input.trim() ? input : 'BTC';
+  const pair = raw.trim().toUpperCase();
+  return (ALLOWED_PAIRS as readonly string[]).includes(pair)
+    ? (pair as MarketPair)
+    : null;
+}
 
 /**
  * GET /api/v1/market/stream?pair=BTC
  * Content-Type: text/event-stream
  */
 router.get('/stream', (req: Request, res: Response) => {
-  const pair = (req.query.pair as string) ?? 'BTC';
+  const pair = normalizeMarketPair(req.query.pair);
+  if (!pair) {
+    res.status(400).json({ error: 'Unsupported market pair' });
+    return;
+  }
 
   // SSE headers
   res.writeHead(200, {
@@ -117,29 +132,134 @@ export function getSSEClientCount(): number {
 }
 
 /**
- * GET /api/v1/market/history?pair=BTC&limit=300
+ * GET /api/v1/market/history?pair=BTC&limit=300[&windowHours=24]
  * Returns recent price history for indicator warmup.
+ *
+ * Without `windowHours` the response is the `limit` most recent rows, so the
+ * span depends on the logger cadence (10s → 300 rows ≈ 50 minutes). Callers
+ * that need a fixed span (the landing 24h chart) pass `windowHours`, and the
+ * rows are bucketed server-side so `limit` points cover the whole window
+ * instead of the client downloading every row to throw most of them away.
  */
-router.get('/history', asyncHandler(async (req: Request, res: Response) => {
-  try {
-    const pair = (req.query.pair as string) ?? 'BTC';
-    const limit = Math.min(Math.max(Number(req.query.limit) || 300, 1), 10000);
+const historyCache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL_MS = 10000; // 10 seconds
+const MAX_HISTORY_CACHE_KEYS = 64;
 
-    const db = getDb();
-    const result = await db.execute(
-      sql`SELECT price, volume, timestamp
+function pruneHistoryCache(now: number = Date.now()): void {
+  for (const [key, cached] of historyCache.entries()) {
+    if (now - cached.timestamp >= CACHE_TTL_MS) {
+      historyCache.delete(key);
+    }
+  }
+
+  while (historyCache.size > MAX_HISTORY_CACHE_KEYS) {
+    let oldestKey: string | null = null;
+    let oldestTimestamp = Number.POSITIVE_INFINITY;
+
+    for (const [key, cached] of historyCache.entries()) {
+      if (cached.timestamp < oldestTimestamp) {
+        oldestTimestamp = cached.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    if (!oldestKey) {
+      break;
+    }
+    historyCache.delete(oldestKey);
+  }
+}
+
+setInterval(() => {
+  pruneHistoryCache();
+}, CACHE_TTL_MS).unref();
+
+export function getHistoryCacheSize(): number {
+  pruneHistoryCache();
+  return historyCache.size;
+}
+
+// price_history retention is 72h (railway-market-server cron/cleanup.ts), so a
+// longer window would silently return less than it promises.
+const MAX_WINDOW_HOURS = 72;
+
+export function normalizeWindowHours(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === '') {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return Math.min(parsed, MAX_WINDOW_HOURS);
+}
+
+/**
+ * One row per time bucket across the requested window, newest row within each
+ * bucket. Buckets are anchored to absolute epoch seconds rather than "now", so
+ * the boundaries stay stable between requests and the 10s response cache keeps
+ * returning a coherent series.
+ */
+export function bucketedHistoryQuery(pair: string, limit: number, windowHours: number) {
+  const windowSeconds = windowHours * 3600;
+  const bucketSeconds = Math.max(Math.ceil(windowSeconds / limit), 1);
+  const sinceIso = new Date(Date.now() - windowSeconds * 1000).toISOString();
+
+  return sql`SELECT DISTINCT ON (bucket) price, volume, timestamp
+      FROM (
+        SELECT price, volume, timestamp,
+               floor(extract(epoch FROM timestamp) / ${bucketSeconds})::bigint AS bucket
+        FROM price_history
+        WHERE pair = ${pair} AND timestamp >= ${sinceIso}::timestamptz
+      ) bucketed
+      ORDER BY bucket ASC, timestamp DESC`;
+}
+
+router.get(
+  '/history',
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const pair = normalizeMarketPair(req.query.pair);
+      if (!pair) {
+        res.status(400).json({ error: 'Unsupported market pair' });
+        return;
+      }
+
+      const limit = Math.min(Math.max(Number(req.query.limit) || 300, 1), 10000);
+      const windowHours = normalizeWindowHours(req.query.windowHours);
+
+      const cacheKey = `${pair}_${limit}_${windowHours ?? 'recent'}`;
+      const cached = historyCache.get(cacheKey);
+
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        res.json(cached.data);
+        return;
+      }
+
+      const db = getDb();
+      const result = windowHours
+        ? await db.execute(bucketedHistoryQuery(pair, limit, windowHours))
+        : await db.execute(
+            sql`SELECT price, volume, timestamp
           FROM price_history
           WHERE pair = ${pair}
           ORDER BY timestamp DESC
           LIMIT ${limit}`
-    );
+          );
 
-    // Reverse to chronological order
-    res.json(result.rows.reverse());
-  } catch (error) {
-    Logger.error('[Market] History fetch failed:', error);
-    res.status(500).json({ error: 'Failed to fetch price history' });
-  }
-}));
+      // The bucketed query already returns oldest-first; the recent query does not.
+      const responseData = windowHours ? result.rows : result.rows.reverse();
+      historyCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+      pruneHistoryCache();
+
+      res.json(responseData);
+    } catch (error) {
+      Logger.error('[Market] History fetch failed:', error);
+      res.status(500).json({ error: 'Failed to fetch price history' });
+    }
+  })
+);
 
 export default router;

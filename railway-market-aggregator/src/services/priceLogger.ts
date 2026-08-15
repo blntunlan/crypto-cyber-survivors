@@ -1,9 +1,11 @@
+import { sql } from 'drizzle-orm';
 import { BinanceService, type KlineData } from './binanceService';
 import { CoinbaseService } from './coinbaseService';
 import { DatabaseService } from './databaseService';
 import { Logger } from '../utils/logger';
 import { withRetry } from '../utils/retry';
 import { IndicatorService } from './indicatorService';
+import { getDb } from '../db';
 
 interface LoggerStats {
   totalLogged: number;
@@ -58,10 +60,74 @@ export class PriceLogger {
       }
     });
 
+    void this.seedHistoryIfEmpty();
+
     await this.switchToPrimary();
     this.startWatchdog();
 
     Logger.info('✅ Price logger started');
+  }
+
+  /**
+   * Cold-start warmup: If database has less than 24h history for supported pairs,
+   * seed 288 5-minute candles from Binance REST API into price_history.
+   */
+  private async seedHistoryIfEmpty(): Promise<void> {
+    try {
+      const pairs: Array<{ pair: string; symbol: string }> = [
+        { pair: 'BTC', symbol: 'BTCUSDT' },
+        { pair: 'ETH', symbol: 'ETHUSDT' },
+        { pair: 'SOL', symbol: 'SOLUSDT' },
+      ];
+
+      const db = getDb();
+      for (const { pair, symbol } of pairs) {
+        const sinceIso = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+        const countRes = await db.execute(
+          sql`SELECT COUNT(*)::int AS count FROM price_history WHERE pair = ${pair} AND timestamp >= ${sinceIso}::timestamptz`
+        );
+        const count = Number((countRes.rows[0] as { count?: number })?.count ?? 0);
+
+        if (count < 60) {
+          Logger.info(
+            `[PriceLogger] Seeding 24h history for ${pair} from Binance REST...`
+          );
+          const res = await fetch(
+            `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=288`,
+            { signal: AbortSignal.timeout(6000) }
+          );
+          if (!res.ok) {
+            Logger.warn(
+              `[PriceLogger] Binance seed request failed for ${pair}: ${res.status}`
+            );
+            continue;
+          }
+          const klines = (await res.json()) as Array<
+            [number, string, string, string, string, string]
+          >;
+          for (const k of klines) {
+            await this.db
+              .insertPriceLog({
+                pair,
+                price: parseFloat(k[4]),
+                high: parseFloat(k[2]),
+                low: parseFloat(k[3]),
+                volume: parseFloat(k[5]),
+                timestamp: new Date(k[0]),
+              })
+              .catch(() => {});
+          }
+          Logger.info(
+            `[PriceLogger] Seeded ${klines.length} historical candles for ${pair}`
+          );
+        }
+      }
+    } catch (error) {
+      Logger.warn(
+        '[PriceLogger] Cold-start history seeding failed (non-fatal):',
+        error
+      );
+    }
   }
 
   private startWatchdog(): void {
