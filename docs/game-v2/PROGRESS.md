@@ -8,9 +8,9 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
-| Phase | `V2-000 / Verification` |
-| Active task | `V2-000 / Verification` |
-| Status | Complete — isolated Game V2 entry boundary pending task handoff |
+| Phase | MVP-0 runtime foundation |
+| Active task | `V2-001` |
+| Status | `In Progress` — fixed-step simulation clock |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -51,16 +51,25 @@
 - V2-000 GREEN verification commands:
   `npx vitest run tests/game-v2/entry/AppSurface.test.ts tests/game-v2/architecture/GameV2Boundary.test.ts tests/server.test.ts tests/App.test.tsx tests/hooks/useSurfaceState.test.ts --pool=forks --maxWorkers=1`,
   `npm run typecheck`, and `npm run build`.
+- V2-000 task review found one Important architecture-guard gap. Fix round 1
+  strengthened the guard; fix round 2 replaced regex parsing with TypeScript AST
+  parsing and covered alias, relative, named/default, dynamic, plain and
+  comment-separated side-effect imports without comment/string/template false
+  positives.
+- V2-000 passed scoped re-review at `7f7fb1de`; commits
+  `33a7a885`, `e95b049c`, and `7f7fb1de` are the accepted task range.
 
 ## Verification Required
 
-1. Review the V2-000 task report and commit.
-2. Run task-scoped spec and quality review before V2-001.
+1. Execute V2-001 test-first from the implementation plan.
+2. Prove equal tick counts at 30/60/120 FPS, pause/reset behavior, invalid delta
+   rejection, render-delta cap, and catch-up/drop policy.
+3. Run task-scoped spec and quality review before V2-002.
 
 ## Exact Next Action
 
-Review V2-000 verification evidence, then begin V2-001 only after task
-acceptance.
+Generate the Task 2 SDD brief and dispatch the fixed-step clock implementer from
+the accepted V2-000 head.
 
 ## Known Pre-existing Working-tree Changes
 
