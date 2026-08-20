@@ -1,0 +1,4 @@
+import { EventBus } from '@/services/core/EventBus';
+import GameRuntime from '../services/gameplay/GameRuntime';
+import '../services/combat/PoolManager';
+import { GameV2App } from '@/game-v2/GameV2App';
