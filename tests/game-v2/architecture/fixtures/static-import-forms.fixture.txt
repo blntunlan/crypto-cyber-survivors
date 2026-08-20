@@ -1,4 +1,18 @@
 import { EventBus } from '@/services/core/EventBus';
 import GameRuntime from '../services/gameplay/GameRuntime';
+import { TimeService } from '../services/core/TimeService';
 import '../services/combat/PoolManager';
+import /* legacy */ '@/services/core/EventBus';
 import { GameV2App } from '@/game-v2/GameV2App';
+const replay = import('@/services/replay/Replay');
+const v2App = import('@/game-v2/GameV2App');
+
+// import { GameRenderer } from '@/services/renderers/GameRenderer';
+/*
+import { ResetOrchestrator } from '@/services/core/ResetOrchestrator';
+*/
+const importLikeString =
+  "import { GameRenderer } from '@/services/renderers/GameRenderer';";
+const importLikeTemplate = `
+import { ResetOrchestrator } from '@/services/core/ResetOrchestrator';
+`;

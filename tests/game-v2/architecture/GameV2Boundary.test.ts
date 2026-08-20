@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const GAME_V2_DIRECTORY = join(process.cwd(), 'game-v2');
@@ -12,8 +13,6 @@ const STATIC_IMPORT_FIXTURE_PATH = join(
   'static-import-forms.fixture.txt'
 );
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
-const STATIC_IMPORT_SPECIFIER_PATTERN =
-  /^\s*import(?:\s+type)?[ \t]*(?:['"]([^'"]+)['"]|[\s\S]*?\bfrom\s+['"]([^'"]+)['"])/gm;
 const forbiddenImports = [
   'components/GameEngine',
   'services/gameplay/GameRuntime',
@@ -36,10 +35,37 @@ const getSourceFiles = (directory: string): string[] =>
     return SOURCE_FILE_PATTERN.test(entry.name) ? [path] : [];
   });
 
-const getImportSpecifiers = (source: string): string[] =>
-  [...source.matchAll(STATIC_IMPORT_SPECIFIER_PATTERN)].map(
-    match => match[1] ?? match[2] ?? ''
+const getImportSpecifiers = (source: string): string[] => {
+  const sourceFile = ts.createSourceFile(
+    'GameV2Boundary.fixture.ts',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
   );
+  const specifiers: string[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
+    ) {
+      const [moduleSpecifier] = node.arguments;
+
+      if (moduleSpecifier && ts.isStringLiteral(moduleSpecifier)) {
+        specifiers.push(moduleSpecifier.text);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return specifiers;
+};
 
 const normalizeImportSpecifier = (specifier: string): string =>
   specifier.replace(/\\/g, '/').replace(/^(?:@\/|(?:\.\.?\/)+)/, '');
@@ -66,15 +92,28 @@ describe('Game V2 architecture boundary', () => {
     expect(getForbiddenImportSpecifiers(imports)).toEqual([]);
   });
 
-  it('detects alias, relative, named/default, and side-effect legacy imports', () => {
+  it('detects real forbidden imports while ignoring import-like text', () => {
     const fixtureImports = getImportSpecifiers(
       readFileSync(STATIC_IMPORT_FIXTURE_PATH, 'utf8')
     );
 
+    expect(fixtureImports).toEqual([
+      '@/services/core/EventBus',
+      '../services/gameplay/GameRuntime',
+      '../services/core/TimeService',
+      '../services/combat/PoolManager',
+      '@/services/core/EventBus',
+      '@/game-v2/GameV2App',
+      '@/services/replay/Replay',
+      '@/game-v2/GameV2App',
+    ]);
     expect(getForbiddenImportSpecifiers(fixtureImports)).toEqual([
       '@/services/core/EventBus',
       '../services/gameplay/GameRuntime',
+      '../services/core/TimeService',
       '../services/combat/PoolManager',
+      '@/services/core/EventBus',
+      '@/services/replay/Replay',
     ]);
     expect(getForbiddenImportSpecifiers(fixtureImports)).not.toContain(
       '@/game-v2/GameV2App'
