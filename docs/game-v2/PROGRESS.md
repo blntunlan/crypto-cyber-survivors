@@ -8,9 +8,9 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
-| Phase | MVP-0 implementation |
-| Active task | `V2-000` |
-| Status | `In Progress` — isolated entry boundary |
+| Phase | `V2-000 / Verification` |
+| Active task | `V2-000 / Verification` |
+| Status | Complete — isolated Game V2 entry boundary pending task handoff |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -40,17 +40,27 @@
 - Pre-change baseline passed 335 test files and 3165 tests.
 - SDD preflight resolved fixed-step dash timing, paused upgrade-command replay,
   and combat-to-progression kill-buffer contracts before implementation.
+- V2-000 added exact `three@0.185.1` and `@types/three@0.185.1` dependencies,
+  a `/game-v2` lazy entry surface, and a private noindex SPA fallback without
+  adding the route to public SEO paths.
+- V2-000 TDD RED commands:
+  `npx vitest run tests/game-v2/entry/AppSurface.test.ts tests/game-v2/architecture/GameV2Boundary.test.ts --pool=forks --maxWorkers=1`
+  (missing entry module and V2 boundary), then
+  `npx vitest run tests/server.test.ts --pool=forks --maxWorkers=1`
+  (missing private route set).
+- V2-000 GREEN verification commands:
+  `npx vitest run tests/game-v2/entry/AppSurface.test.ts tests/game-v2/architecture/GameV2Boundary.test.ts tests/server.test.ts tests/App.test.tsx tests/hooks/useSurfaceState.test.ts --pool=forks --maxWorkers=1`,
+  `npm run typecheck`, and `npm run build`.
 
 ## Verification Required
 
-1. Install approved Three.js dependencies.
-2. Execute Task 1 / V2-000 test-first.
-3. Run task-scoped spec and quality review before V2-001.
+1. Review the V2-000 task report and commit.
+2. Run task-scoped spec and quality review before V2-001.
 
 ## Exact Next Action
 
-Install the approved dependencies, generate the Task 1 SDD brief, and dispatch
-the isolated-entry implementer.
+Review V2-000 verification evidence, then begin V2-001 only after task
+acceptance.
 
 ## Known Pre-existing Working-tree Changes
 

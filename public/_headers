@@ -74,6 +74,12 @@
 /docs/navigation.json
   X-Robots-Tag: noindex
 
+/game-v2
+  X-Robots-Tag: noindex, nofollow
+
+/game-v2/
+  X-Robots-Tag: noindex, nofollow
+
 # Service Worker - no cache
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
