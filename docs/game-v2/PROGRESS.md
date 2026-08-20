@@ -8,9 +8,9 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
-| Phase | MVP-0 implementation planning |
-| Active task | `V2-PLAN-001` |
-| Status | `Verification` — dependency and execution approval required |
+| Phase | MVP-0 implementation |
+| Active task | `V2-000` |
+| Status | `In Progress` — isolated entry boundary |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -35,18 +35,22 @@
   before legacy providers/singletons and the simulation must not reuse legacy
   time, pool, renderer, or replay authorities.
 - The self-reviewed MVP-0 implementation plan was committed as `c6228dff`.
+- The user approved `three@0.185.1`, `@types/three@0.185.1`, and
+  subagent-driven Agent Orchestrator execution.
+- Pre-change baseline passed 335 test files and 3165 tests.
+- SDD preflight resolved fixed-step dash timing, paused upgrade-command replay,
+  and combat-to-progression kill-buffer contracts before implementation.
 
 ## Verification Required
 
-1. Obtain explicit approval for production dependency `three@0.185.1` and
-   development dependency `@types/three@0.185.1`.
-2. Confirm subagent-driven or inline execution; the prior Agent Orchestrator
-   decision makes subagent-driven execution the recommended default.
+1. Install approved Three.js dependencies.
+2. Execute Task 1 / V2-000 test-first.
+3. Run task-scoped spec and quality review before V2-001.
 
 ## Exact Next Action
 
-After the plan checkpoint commit, request dependency and execution approval.
-Then begin Task 1 / V2-000 with the test-first isolated entry boundary.
+Install the approved dependencies, generate the Task 1 SDD brief, and dispatch
+the isolated-entry implementer.
 
 ## Known Pre-existing Working-tree Changes
 

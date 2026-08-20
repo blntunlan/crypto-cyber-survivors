@@ -94,6 +94,12 @@ export type PlayerIntent = {
   dashPressed: boolean;
 };
 
+export type RunCommand = Readonly<{
+  tick: number;
+  type: 'choose-upgrade';
+  choiceId: 'starter-damage-2';
+}>;
+
 export type StepContext = {
   tick: number;
   deltaSeconds: number;
@@ -512,10 +518,32 @@ readonly radius: Float32Array;
 readonly health: Float32Array;
 readonly maxHealth: Float32Array;
 readonly faction: Int8Array;
+readonly moveSpeed: Float32Array;
+readonly lastFacingX: Float32Array;
+readonly lastFacingY: Float32Array;
+readonly dashDirectionX: Float32Array;
+readonly dashDirectionY: Float32Array;
+readonly dashRemainingSeconds: Float32Array;
+readonly invulnerabilityTicksRemaining: Uint16Array;
+readonly dashCooldownTicksRemaining: Uint16Array;
+readonly dashCharges: Uint8Array;
+readonly movementOverride: Uint8Array;
+readonly enemySpeed: Float32Array;
+readonly contactDamage: Float32Array;
+readonly contactCooldownTicksRemaining: Uint16Array;
+readonly xpValue: Float32Array;
+readonly projectileDamage: Float32Array;
+readonly projectileLifetimeTicksRemaining: Uint16Array;
+readonly weaponCooldownTicksRemaining: Uint16Array;
+readonly weaponDamage: Float32Array;
+readonly xp: Float32Array;
+readonly level: Uint16Array;
+readonly xpPickupValue: Float32Array;
 ```
 
-Add only the primitive arrays needed by later listed systems. Keep the free-slot
-stack preallocated and use numeric loops.
+These are the complete authoritative MVP-0 stores. Later tasks consume them but
+do not append hidden state that the Task 6 checkpoint writer cannot see. Keep
+the free-slot stack preallocated and use numeric loops.
 
 - [ ] **Step 4: Verify architecture and commit**
 
@@ -537,15 +565,17 @@ git commit -m "feat(game-v2): add fixed-capacity ECS world"
 - Create: `game-v2/replay/WorldSnapshotWriter.ts`
 - Create: `game-v2/replay/StateHasher.ts`
 - Create: `game-v2/replay/InputRecorder.ts`
+- Create: `game-v2/replay/CommandRecorder.ts`
 - Test: `tests/game-v2/replay/WorldSnapshot.test.ts`
 
 **Interfaces:**
 
 - Consumes: world, tick, run identity, RNG snapshot, lifecycle state, and one
-  normalized `PlayerIntent` per simulation tick.
+  normalized `PlayerIntent` per simulation tick plus explicit commands issued
+  while simulation is paused.
 - Produces: schema-versioned authoritative runtime checkpoint, lowercase
   8-character FNV-1a hex hash, and append-only input frames
-  `{ tick, moveX, moveY, dashPressed }`.
+  `{ tick, moveX, moveY, dashPressed }` plus `RunCommand` records.
 
 - [ ] **Step 1: Write failing canonical-order tests**
 
@@ -575,7 +605,9 @@ component masks, allocator state, all authoritative component values, RNG state,
 lifecycle phase/epoch, run identity, config version, and tick. Numbers are
 encoded from their typed stores, not locale strings. InputRecorder owns a
 fixed-capacity frame buffer of `216_000` ticks (60 minutes at 60 Hz) and throws
-on overflow rather than growing during a run.
+on overflow rather than growing during a run. CommandRecorder owns a fixed
+capacity of `64` commands, records upgrade selection against the paused
+simulation tick, and also throws on overflow.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -761,7 +793,6 @@ git commit -m "feat(game-v2): add deterministic desktop movement"
 
 - Create: `game-v2/systems/DashSystem.ts`
 - Modify: `game-v2/config/Mvp0Config.ts`
-- Modify: `game-v2/world/World.ts`
 - Test: `tests/game-v2/systems/DashSystem.test.ts`
 
 **Interfaces:**
@@ -795,8 +826,11 @@ export const DASH_COOLDOWN_SECONDS = 2.5;
 ```
 
 DashSystem runs before MovementSystem and writes a `movementOverride` flag plus
-dash velocity into preallocated player arrays. Timers decrement only in fixed
-steps.
+dash velocity into preallocated player arrays. Movement uses
+`min(deltaSeconds, dashRemainingSeconds)` on the final dash tick, so distance is
+exactly `DASH_SPEED * 0.18`. Invulnerability uses
+`ceil(0.18 * SIMULATION_HZ) = 11` ticks, an effective 183.33 ms safety window.
+Cooldowns decrement only in fixed steps.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -908,6 +942,7 @@ git commit -m "feat(game-v2): add auto-target starter weapon"
 **Files:**
 
 - Create: `game-v2/systems/CombatSystem.ts`
+- Create: `game-v2/contracts/CombatStepResult.ts`
 - Modify: `game-v2/config/Mvp0Config.ts`
 - Test: `tests/game-v2/systems/CombatSystem.test.ts`
 
@@ -915,7 +950,8 @@ git commit -m "feat(game-v2): add auto-target starter weapon"
 
 - Consumes: projectile/enemy/player stores and collision radii.
 - Produces: exactly-once projectile damage, contact damage at authored cadence,
-  entity destruction, and game-over signal.
+  entity destruction, game-over signal, and a preallocated kill-event buffer
+  containing killed enemy position and XP value.
 
 - [ ] **Step 1: Write failing projectile collision tests**
 
@@ -929,9 +965,13 @@ Prove contact damage respects its cooldown, dash i-frames reject damage without
 consuming health, health clamps at zero, and the death result emits exactly once:
 
 ```ts
-expect(combat.step(world, context)).toEqual({ playerDied: true, killedEnemies: 0 });
-expect(combat.step(world, nextContext)).toEqual({ playerDied: false, killedEnemies: 0 });
+expect(combat.step(world, context).playerDied).toBe(true);
+expect(combat.step(world, nextContext).playerDied).toBe(false);
 ```
+
+Also kill one enemy and assert `result.killCount === 1`, `killX[0]`, `killY[0]`,
+and `killXp[0]` contain its pre-destroy values. The next step resets
+`killCount` without allocating a new result.
 
 - [ ] **Step 3: Run RED**
 
@@ -944,7 +984,8 @@ npx vitest run tests/game-v2/systems/CombatSystem.test.ts --pool=forks --maxWork
 MVP-0 may use a bounded projectile×single-enemy pass because V2-010 locks one
 enemy. The public CombatSystem contract accepts a collision candidate provider
 so MVP-1 can replace it with a spatial index without rewriting damage rules.
-Reuse one mutable result object per system instance.
+Reuse one mutable `CombatStepResult` with fixed `killX`, `killY`, and `killXp`
+typed arrays per system instance.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -969,7 +1010,7 @@ git commit -m "feat(game-v2): resolve combat damage and death"
 **Interfaces:**
 
 - Consumes: killed enemy position/XP value, player pickup collision, and one
-  explicit upgrade selection.
+  explicit `RunCommand` upgrade selection.
 - Produces: pooled XP pickup, player XP/level, `level-up` lifecycle transition,
   starter weapon damage upgrade, and resumed play.
 
@@ -1001,8 +1042,9 @@ npx vitest run tests/game-v2/systems/ProgressionSystem.test.ts tests/game-v2/ui/
 
 ProgressionSystem uses ECS pickup slots. `resolveUpgrade` changes starter damage
 from `10` to `15`, clears the pending offer, and calls
-`lifecycle.resumeFromLevelUp()`. Overlay presentation does not modify world
-state directly.
+`lifecycle.resumeFromLevelUp()`. The UI records a `RunCommand` at the paused
+tick before resolution. Overlay presentation does not modify world state
+directly.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -1022,6 +1064,7 @@ git commit -m "feat(game-v2): add first paused level-up"
 - Create: `game-v2/runtime/GameV2Runtime.ts`
 - Create: `game-v2/runtime/createMvp0Runtime.ts`
 - Create: `game-v2/replay/ReplayRunner.ts`
+- Create: `game-v2/contracts/GameV2Debug.ts`
 - Modify: `game-v2/GameV2App.tsx`
 - Modify: `game-v2/game-v2.css`
 - Test: `tests/game-v2/integration/Mvp0Runtime.test.ts`
@@ -1065,7 +1108,9 @@ expect(at120.tick).toBe(at60.tick);
 ```
 
 Reject mismatched recording schema, config version, run seed, and missing input
-tick.
+tick. When playback reaches a recorded paused tick, apply its `RunCommand`
+before advancing the next simulation tick; reject a missing or duplicate
+required upgrade command.
 
 - [ ] **Step 3: Run RED**
 
@@ -1093,8 +1138,12 @@ sample recorded PlayerIntent
 
 `GameV2App` owns one runtime in a ref, starts one RAF, samples KeyboardInput into
 one mutable intent, writes one RenderSnapshot, renders, pauses simulation during
-level-up, and disposes RAF/input/renderer/runtime on unmount. React state changes
-only for low-frequency phase/level-up UI.
+level-up, records the explicit upgrade command, and disposes
+RAF/input/renderer/runtime on unmount. React state changes only for low-frequency
+phase/level-up UI. In development only, expose a read-only
+`window.gameV2Debug.getSnapshot()` returning tick, phase, player X/Y, level, and
+state hash; remove it on unmount and exclude it from production builds through
+the `import.meta.env.DEV` branch.
 
 - [ ] **Step 5: Verify integration GREEN**
 
@@ -1116,10 +1165,11 @@ or build regression.
 - [ ] **Step 6: Add and run browser smoke**
 
 The Playwright test opens `/game-v2?no-sw=true`, expects the WebGL canvas and V2
-marker, presses `KeyD`, confirms the player render marker changes, presses
-`Space`, reaches the level-up overlay through a deterministic test seed, chooses
-the upgrade, and confirms play resumes. A second test opens `/?no-sw=true` and
-proves the legacy landing/hub marker still renders.
+marker, reads `window.gameV2Debug.getSnapshot()`, presses `KeyD`, and confirms
+player X changed. It presses `Space`, confirms dash movement, reaches the
+level-up overlay through a deterministic test seed, chooses the upgrade, and
+confirms play resumes at level 2. A second test opens `/?no-sw=true` and proves
+the legacy landing/hub marker still renders.
 
 Run:
 
