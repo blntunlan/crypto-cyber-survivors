@@ -10,9 +10,9 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | Written design and tracking bootstrap |
 | Active task | `V2-DOC-001` |
-| Status | `Verification` |
+| Status | `Verification` — awaiting user review |
 | Baseline commit | `12edc510` |
-| Last green Game V2 commit | None yet |
+| Last verified design/content commit | `e0b22817` |
 | Production demo | Unchanged and authoritative |
 
 ## Completed This Checkpoint
@@ -26,19 +26,19 @@
 - The written materials were checked for placeholder text, ownership conflicts,
   scope expansion, and content-count ambiguity. The eight-ability budget now
   explicitly includes the three starting weapons.
+- The design and tracking checkpoint was committed as `e0b22817`.
 
 ## Verification Required
 
-1. Commit only Game V2 documentation files.
-2. Ask the user to review the written specification.
-3. Do not begin `V2-000` until the user approves the written spec and a detailed
+1. Ask the user to review the written specification.
+2. Do not begin `V2-000` until the user approves the written spec and a detailed
    implementation plan is produced.
 
 ## Exact Next Action
 
-After the documentation commit, provide links to the specification and tracking
-files and wait for user review. On approval, invoke the writing-plans workflow
-and decompose `V2-000` through `V2-014` into executable implementation steps.
+Provide links to the specification and tracking files and wait for user review.
+On approval, invoke the writing-plans workflow and decompose `V2-000` through
+`V2-014` into executable implementation steps.
 
 ## Known Pre-existing Working-tree Changes
 
