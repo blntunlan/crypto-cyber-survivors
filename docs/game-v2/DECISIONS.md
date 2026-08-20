@@ -22,3 +22,6 @@ explains migration impact.
 | V2-ADR-015 | Keep direct token conversion outside the first vertical slice. | Separate gameplay proof from wallet, economy, security, and legal risk. |
 | V2-ADR-016 | Treat the Agent Orchestrator as development infrastructure only. | Live gameplay and production authority must not depend on autonomous agents. |
 | V2-ADR-017 | Deliver completed LEGO milestones with resume-safe repository checkpoints. | Large, interrupted work must remain understandable and restartable. |
+| V2-ADR-018 | Select Game V2 at the root entry with an exact `/game-v2` lazy boundary. | The V2 route must not initialize legacy providers, debug side effects, or gameplay singletons. |
+| V2-ADR-019 | Use direct Three.js with an owned typed-array ECS, RNG, and replay core. | React Three Fiber and external simulation libraries would add a second runtime authority before the core contracts are proven. |
+| V2-ADR-020 | Keep `MASTER_PLAN.md` as stable task definitions and `PROGRESS.md` as live execution state. | Resume-safe tracking needs immutable acceptance criteria plus one unambiguous active-task checkpoint. |

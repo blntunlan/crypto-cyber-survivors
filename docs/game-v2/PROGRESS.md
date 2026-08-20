@@ -8,9 +8,9 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
-| Phase | Written design and tracking bootstrap |
-| Active task | `V2-DOC-001` |
-| Status | `Verification` — awaiting user review |
+| Phase | MVP-0 implementation planning |
+| Active task | `V2-PLAN-001` |
+| Status | `Verification` — dependency and execution approval required |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Production demo | Unchanged and authoritative |
@@ -27,18 +27,25 @@
   scope expansion, and content-count ambiguity. The eight-ability budget now
   explicitly includes the three starting weapons.
 - The design and tracking checkpoint was committed as `e0b22817`.
+- The user approved the written design.
+- The MVP-0 implementation plan was created at
+  `docs/superpowers/plans/2026-08-21-game-v2-mvp0-walking-skeleton.md`.
+- Agent Orchestrator read-only mapping confirmed the V2 entry must lazy-load
+  before legacy providers/singletons and the simulation must not reuse legacy
+  time, pool, renderer, or replay authorities.
 
 ## Verification Required
 
-1. Ask the user to review the written specification.
-2. Do not begin `V2-000` until the user approves the written spec and a detailed
-   implementation plan is produced.
+1. Self-review and commit the detailed MVP-0 implementation plan.
+2. Obtain explicit approval for production dependency `three@0.185.1` and
+   development dependency `@types/three@0.185.1`.
+3. Confirm subagent-driven or inline execution; the prior Agent Orchestrator
+   decision makes subagent-driven execution the recommended default.
 
 ## Exact Next Action
 
-Provide links to the specification and tracking files and wait for user review.
-On approval, invoke the writing-plans workflow and decompose `V2-000` through
-`V2-014` into executable implementation steps.
+After the plan checkpoint commit, request dependency and execution approval.
+Then begin Task 1 / V2-000 with the test-first isolated entry boundary.
 
 ## Known Pre-existing Working-tree Changes
 

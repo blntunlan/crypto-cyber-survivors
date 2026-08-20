@@ -3,11 +3,13 @@
 > Status: Design-approved; implementation plan not yet approved
 > Branch: `codex/threejs-gameplay-v2`
 > Design contract: `docs/superpowers/specs/2026-08-21-threejs-gameplay-v2-design.md`
+> Live execution state: `docs/game-v2/PROGRESS.md`
 
 ## Operating Rules
 
 1. Tasks are completed in dependency order.
-2. At most one task is `In Progress` in the canonical tracker.
+2. At most one task is `In Progress` in `PROGRESS.md`; this file keeps stable
+   task definitions and acceptance criteria.
 3. Every task has an acceptance test before it is marked `Done`.
 4. A milestone closes only with a playable build and evidence.
 5. Half-integrated behavior stays behind the Game V2 entry boundary and cannot
