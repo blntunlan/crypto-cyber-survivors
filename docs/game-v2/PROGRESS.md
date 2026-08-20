@@ -13,6 +13,7 @@
 | Status | `Verification` — dependency and execution approval required |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
+| Last verified implementation-plan commit | `c6228dff` |
 | Production demo | Unchanged and authoritative |
 
 ## Completed This Checkpoint
@@ -33,13 +34,13 @@
 - Agent Orchestrator read-only mapping confirmed the V2 entry must lazy-load
   before legacy providers/singletons and the simulation must not reuse legacy
   time, pool, renderer, or replay authorities.
+- The self-reviewed MVP-0 implementation plan was committed as `c6228dff`.
 
 ## Verification Required
 
-1. Self-review and commit the detailed MVP-0 implementation plan.
-2. Obtain explicit approval for production dependency `three@0.185.1` and
+1. Obtain explicit approval for production dependency `three@0.185.1` and
    development dependency `@types/three@0.185.1`.
-3. Confirm subagent-driven or inline execution; the prior Agent Orchestrator
+2. Confirm subagent-driven or inline execution; the prior Agent Orchestrator
    decision makes subagent-driven execution the recommended default.
 
 ## Exact Next Action
