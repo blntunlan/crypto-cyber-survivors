@@ -22,3 +22,9 @@ export const DASH_INVULNERABILITY_TICKS = Math.ceil(
   DASH_INVULNERABILITY_SECONDS * SIMULATION_HZ
 );
 export const DASH_COOLDOWN_TICKS = Math.ceil(DASH_COOLDOWN_SECONDS * SIMULATION_HZ);
+export const ENEMY_HEALTH = 30;
+export const ENEMY_RADIUS = 0.6;
+export const ENEMY_MOVE_SPEED = 2.2;
+export const ENEMY_CONTACT_DAMAGE = 15;
+export const ENEMY_XP_VALUE = 5;
+export const ENEMY_FACTION = -1;

@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-010` |
-| Status | `In Progress` — the first pooled enemy is next |
+| Active task | `V2-011` |
+| Status | `In Progress` — auto-target and the first weapon are next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -254,17 +254,41 @@
   also passed before the checkpoint commit.
 - V2-009 passed independent task review on its first round. The accepted commit
   is `da5abd0b`; no Critical, Important, or Minor findings remain.
+- V2-010 added a fully initialized ECS enemy using only the World's
+  generation-safe free-slot allocator. Point spawns consume no RNG; ring spawns
+  consume exactly one injected deterministic angle sample after request and
+  capacity validation.
+- Enemy chase scans slots in ascending order, validates the complete player and
+  enemy boundary before mutation, normalizes direction without overflow, copies
+  previous positions before integration, and clamps travel at the remaining
+  distance so zero-distance and near-target movement remain finite.
+- Enemy release requires the complete enemy component mask and delegates slot
+  clearing, generation advancement, and deterministic reuse to the World. A
+  dirty-slot respawn fixture proved no enemy, dash, weapon, projectile, XP, or
+  cooldown state survives reuse.
+- V2-010 initial TDD RED command:
+  `npx vitest run tests/game-v2/systems/EnemySystem.test.ts tests/game-v2/world/World.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because `EnemySystem` did not exist while all
+  27 World tests passed.
+- V2-010 focused GREEN verification passed 60 tests. A deliberate mutation pass
+  changed all-bit matching to any-bit, changed enemy speed, skipped the ring RNG
+  sample, broke previous-position ordering and zero-distance handling, and
+  disabled release; 12 of 33 enemy tests failed before production restoration.
+- The complete Game V2 suite passed 13 files and 308 tests. Typecheck,
+  architecture (89 baseline singleton files), focused ESLint, and focused
+  Prettier also passed.
 
 ## Verification Required
 
-1. Implement V2-010 one-enemy ECS pooling, chase movement, and complete reuse
-   reset semantics.
-2. Verify generation-safe release/respawn and zero-distance numeric safety.
+1. Implement V2-011 deterministic nearest-target selection and the first
+   fixed-tick automatic weapon.
+2. Verify pooled projectile spawn cadence, tie-breaking, lifetime, and complete
+   generation-safe reuse initialization.
 
 ## Exact Next Action
 
-Generate the V2-010 task brief and dispatch its implementer from the accepted
-V2-009 checkpoint.
+Generate the V2-011 task brief and dispatch its implementer from the accepted
+V2-010 checkpoint after independent review.
 
 ## Known Pre-existing Working-tree Changes
 
