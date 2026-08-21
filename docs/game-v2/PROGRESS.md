@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-001` |
-| Status | `Verification` — fixed-step simulation clock |
+| Active task | `V2-002` |
+| Status | `In Progress` — seeded RNG and run identity |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -63,17 +63,23 @@
   failed because `SimulationClock` did not exist.
 - V2-001 GREEN command:
   `npx vitest run tests/game-v2/runtime/SimulationClock.test.ts --pool=forks --maxWorkers=1`
-  passed all 10 focused tests.
-- V2-001 `npm run typecheck` passed.
+  passed all 11 focused tests; the combined V2 suite passed 19 tests.
+- V2-001 `npm run typecheck`, focused lint, formatting, and hooks passed.
+- V2-001 review required stronger paused-reset and 250 ms cap mutation
+  coverage. Fix commit `336e9e6b` passed scoped re-review; accepted commits are
+  `b434d4ff` and `336e9e6b`.
 
 ## Verification Required
 
-1. Commit the V2-001 implementation and focused tests.
-2. Run task-scoped self-review before V2-002.
+1. Execute V2-002 test-first from the implementation plan.
+2. Lock seeded golden behavior, invalid seed/bound validation, and RNG
+   snapshot/restore.
+3. Run task-scoped spec and quality review before V2-003.
 
 ## Exact Next Action
 
-Commit the V2-001 fixed-step clock and write its task report.
+Generate the Task 3 SDD brief and dispatch a fresh seeded-RNG implementer from
+the accepted V2-001 head.
 
 ## Known Pre-existing Working-tree Changes
 
