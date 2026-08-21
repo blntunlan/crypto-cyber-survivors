@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-008` |
-| Status | `In Progress` — V2-008 implementation is complete; independent review is pending |
+| Status | `In Progress` — V2-008 review fix round 1 is complete; scoped re-review is pending |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -225,10 +225,16 @@
   integration, and retained idle velocity. Nine focused tests failed before
   the production implementation was restored and the 38-test focused suite
   returned to green.
+- V2-008 review fix round 1 separated movement strength from facing direction:
+  sub-unit intent now preserves its original magnitude, over-unit input clamps
+  to unit speed, and facing remains unit length for every non-zero input. A
+  max-axis-scaled magnitude calculation prevents huge finite axes from
+  overflowing into zero or non-finite movement. Three focused RED failures
+  covered the defect; the amended focused suite passes 41 tests.
 
 ## Verification Required
 
-1. Independently review the V2-008 implementation and its mutation-sensitive
+1. Scoped re-review the V2-008 magnitude/facing fix and its huge-finite-axis
    evidence against the locked task brief.
 2. On acceptance, advance the active task to V2-009 dash and invulnerability.
 

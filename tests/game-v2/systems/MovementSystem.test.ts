@@ -99,6 +99,69 @@ describe('MovementSystem', () => {
     expect(world.y[slot]).toBeCloseTo(4.8);
   });
 
+  it('preserves sub-unit cardinal strength while facing the unit direction', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+
+    movement.step(world, player, {
+      tick: 31,
+      deltaSeconds: 0.5,
+      intent: intent(0.5, 0),
+    });
+
+    expect(world.velocityX[slot]).toBe(3);
+    expect(world.velocityY[slot]).toBe(0);
+    expect(world.x[slot]).toBe(1.5);
+    expect(world.y[slot]).toBe(0);
+    expect(world.lastFacingX[slot]).toBe(1);
+    expect(world.lastFacingY[slot]).toBe(0);
+  });
+
+  it('preserves a sub-unit vector while normalizing its facing separately', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+
+    movement.step(world, player, {
+      tick: 32,
+      deltaSeconds: 1,
+      intent: intent(0.3, 0.4),
+    });
+
+    expect(world.velocityX[slot]).toBeCloseTo(1.8);
+    expect(world.velocityY[slot]).toBeCloseTo(2.4);
+    expect(world.x[slot]).toBeCloseTo(1.8);
+    expect(world.y[slot]).toBeCloseTo(2.4);
+    expect(world.lastFacingX[slot]).toBeCloseTo(0.6);
+    expect(world.lastFacingY[slot]).toBeCloseTo(0.8);
+  });
+
+  it('clamps huge finite axes to finite unit velocity and facing', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+    world.x[slot] = 2;
+    world.y[slot] = -5;
+
+    movement.step(world, player, {
+      tick: 33,
+      deltaSeconds: 1 / SIMULATION_HZ,
+      intent: intent(Number.MAX_VALUE, -Number.MAX_VALUE),
+    });
+
+    expect(world.previousX[slot]).toBe(2);
+    expect(world.previousY[slot]).toBe(-5);
+    expect(world.velocityX[slot]).toBeCloseTo(4.242640687119286);
+    expect(world.velocityY[slot]).toBeCloseTo(-4.242640687119286);
+    expect(world.lastFacingX[slot]).toBeCloseTo(0.7071067811865476);
+    expect(world.lastFacingY[slot]).toBeCloseTo(-0.7071067811865476);
+    expect(Number.isFinite(world.x[slot])).toBe(true);
+    expect(Number.isFinite(world.y[slot])).toBe(true);
+    expect(Number.isFinite(world.velocityX[slot])).toBe(true);
+    expect(Number.isFinite(world.velocityY[slot])).toBe(true);
+    expect(
+      Math.hypot(world.velocityX[slot] ?? 0, world.velocityY[slot] ?? 0)
+    ).toBeCloseTo(PLAYER_MOVE_SPEED);
+  });
+
   it('captures the current position before integrating the new position', () => {
     const { world, player, slot } = createPlayer();
     const movement = new MovementSystem();

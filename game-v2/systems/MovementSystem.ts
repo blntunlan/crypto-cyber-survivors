@@ -40,20 +40,30 @@ export class MovementSystem {
     const moveX = context.intent.moveX;
     const moveY = context.intent.moveY;
 
-    let directionX = 0;
-    let directionY = 0;
-    const magnitude = Math.hypot(moveX, moveY);
+    let movementX = moveX;
+    let movementY = moveY;
+    let facingX = 0;
+    let facingY = 0;
+    const maxAxis = Math.max(Math.abs(moveX), Math.abs(moveY));
 
-    if (magnitude > 0) {
-      const inverseMagnitude = 1 / magnitude;
-      directionX = moveX * inverseMagnitude;
-      directionY = moveY * inverseMagnitude;
+    if (maxAxis > 0) {
+      const scaledX = moveX / maxAxis;
+      const scaledY = moveY / maxAxis;
+      const scaledMagnitude = Math.hypot(scaledX, scaledY);
+      const inverseScaledMagnitude = 1 / scaledMagnitude;
+      facingX = scaledX * inverseScaledMagnitude;
+      facingY = scaledY * inverseScaledMagnitude;
+
+      if (maxAxis * scaledMagnitude > 1) {
+        movementX = facingX;
+        movementY = facingY;
+      }
     }
 
     const currentX = world.x[slot] ?? 0;
     const currentY = world.y[slot] ?? 0;
-    const velocityX = directionX * PLAYER_MOVE_SPEED;
-    const velocityY = directionY * PLAYER_MOVE_SPEED;
+    const velocityX = movementX * PLAYER_MOVE_SPEED;
+    const velocityY = movementY * PLAYER_MOVE_SPEED;
 
     world.previousX[slot] = currentX;
     world.previousY[slot] = currentY;
@@ -62,9 +72,9 @@ export class MovementSystem {
     world.x[slot] = currentX + velocityX * context.deltaSeconds;
     world.y[slot] = currentY + velocityY * context.deltaSeconds;
 
-    if (magnitude > 0) {
-      world.lastFacingX[slot] = directionX;
-      world.lastFacingY[slot] = directionY;
+    if (maxAxis > 0) {
+      world.lastFacingX[slot] = facingX;
+      world.lastFacingY[slot] = facingY;
     }
   }
 }
