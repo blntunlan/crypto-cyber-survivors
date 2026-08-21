@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-008` |
-| Status | `In Progress` — V2-008 review fix round 1 is complete; scoped re-review is pending |
+| Active task | `V2-009` |
+| Status | `In Progress` — dash and invulnerability are next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -231,16 +231,20 @@
   max-axis-scaled magnitude calculation prevents huge finite axes from
   overflowing into zero or non-finite movement. Three focused RED failures
   covered the defect; the amended focused suite passes 41 tests.
+- V2-008 fix round 1 passed scoped re-review. The accepted commits are
+  `6dac956c` and `b3375eb5`; the complete V2 suite passed 242 tests and no
+  Critical, Important, or Minor findings remain.
 
 ## Verification Required
 
-1. Scoped re-review the V2-008 magnitude/facing fix and its huge-finite-axis
-   evidence against the locked task brief.
-2. On acceptance, advance the active task to V2-009 dash and invulnerability.
+1. Implement V2-009 dash timing, direction, exact distance, one charge,
+   cooldown, and tick-based invulnerability in ECS stores.
+2. Verify ordered DashSystem-before-MovementSystem behavior and reset safety.
 
 ## Exact Next Action
 
-Generate the V2-008 review package and dispatch a fresh independent reviewer.
+Generate the V2-009 task brief and dispatch its implementer from the accepted
+V2-008 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 
