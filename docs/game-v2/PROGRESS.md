@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-006` |
-| Status | `Verification` — one-way Three.js scene bridge awaits task review |
+| Active task | `V2-007` |
+| Status | `In Progress` — fixed top-down orthographic camera is next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -175,16 +175,30 @@
 - V2-006 focused verification passed 38 tests. The complete Game V2 suite
   passed 8 files and 177 tests; typecheck, architecture, focused ESLint, and
   focused Prettier also passed.
+- V2-006 review found duplicated typed-storage validation and missing rejection
+  of internally consistent render storage above the 4,096-slot bound.
+- Fix round 1 centralized typed-array kind, equal-length, and capacity checks in
+  one allocation-free render snapshot validator shared by writer and bridge.
+  Both boundaries now reject forged 4,097-slot storage before output or scene
+  mutation.
+- The fix began with two expected RED failures. A no-op validator mutant caused
+  three focused failures; after restoration, focused verification passed 40/40
+  and the complete Game V2 suite passed 179/179. Typecheck, architecture,
+  focused ESLint/Prettier, and hooks passed.
+- V2-006 fix round 1 passed scoped re-review. Accepted commits are `0fc81e67`
+  and `f31d98bc`; no Critical, Important, or Minor findings remain.
 
 ## Verification Required
 
-1. Review V2-006 against the task brief and controller safety/hot-path rulings.
-2. Re-run focused verification for any review amendments before acceptance.
+1. Implement V2-007 fixed top-down orthographic camera with deterministic
+   aspect-ratio resize and allocation-free follow behavior.
+2. Verify 16:9, 4:3, and 21:9 framing plus invalid resize/follow atomics and
+   immutable combat orientation.
 
 ## Exact Next Action
 
-Dispatch the V2-006 task reviewer against the implementation commit and the
-ignored Task 7 report.
+Generate the V2-007 task brief and dispatch its implementer from the accepted
+V2-006 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 
