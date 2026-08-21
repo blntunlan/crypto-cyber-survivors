@@ -33,7 +33,7 @@ describe('GameV2Lifecycle', () => {
   });
 
   it.each([
-    ['idle', [] as LifecycleCommand[]],
+    ['idle', ['pauseForLevelUp', 'resumeFromLevelUp', 'endRun'] as LifecycleCommand[]],
     ['playing', ['start', 'resumeFromLevelUp'] as LifecycleCommand[]],
     ['level-up', ['start', 'pauseForLevelUp', 'endRun'] as LifecycleCommand[]],
     [
