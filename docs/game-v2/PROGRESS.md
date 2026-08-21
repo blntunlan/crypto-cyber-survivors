@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-007` |
-| Status | `In Progress` — fixed top-down orthographic camera is next |
+| Status | `In Review` — fixed top-down orthographic camera implementation is ready |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -187,18 +187,32 @@
   focused ESLint/Prettier, and hooks passed.
 - V2-006 fix round 1 passed scoped re-review. Accepted commits are `0fc81e67`
   and `f31d98bc`; no Critical, Important, or Minor findings remain.
+- V2-007 implemented a real, owned `OrthographicCamera` with a fixed vertical
+  world span, aspect-derived width, fixed top-down combat orientation, and
+  direct allocation-free player X/Z follow.
+- Camera construction and resize/follow boundaries reject invalid numeric input
+  before mutation. Resize updates projection exactly once only after both
+  dimensions validate; follow never changes Y, projection, rotation,
+  quaternion, up vector, near, or far.
+- V2-007 initial TDD RED command:
+  `npx vitest run tests/game-v2/presentation/OrthographicCameraController.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because `OrthographicCameraController` did
+  not exist.
+- V2-007 focused GREEN verification passed 22 tests, including 16:9, 4:3,
+  21:9, fractional viewport, orientation, projection, and atomic-invalid-input
+  coverage. The complete Game V2 suite passed 9 files and 201 tests; typecheck,
+  architecture, focused ESLint, and focused Prettier also passed.
 
 ## Verification Required
 
-1. Implement V2-007 fixed top-down orthographic camera with deterministic
-   aspect-ratio resize and allocation-free follow behavior.
-2. Verify 16:9, 4:3, and 21:9 framing plus invalid resize/follow atomics and
-   immutable combat orientation.
+1. Independently review V2-007 fixed top-down orthographic camera implementation.
+2. Confirm framing, invalid-input atomicity, immutable combat orientation, and
+   absence of renderer/simulation/global authority coupling.
 
 ## Exact Next Action
 
-Generate the V2-007 task brief and dispatch its implementer from the accepted
-V2-006 checkpoint.
+Generate a review package for the V2-007 implementation and dispatch an
+independent reviewer from the accepted V2-006 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 
