@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-003` |
-| Status | `In Progress` — lifecycle and reset contract |
+| Status | `Verification` — lifecycle and reset contract implemented |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -79,18 +79,24 @@
   `Math.random()` and failed restore cannot mutate state or subsequent output.
   Fix commit `aa7abb8e` added mutation-sensitive guards and passed scoped
   re-review; accepted commits are `a8c7328c` and `aa7abb8e`.
+- V2-003 TDD RED command:
+  `npx vitest run tests/game-v2/runtime/GameV2Lifecycle.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because `GameV2Lifecycle` did not exist.
+- V2-003 GREEN focused verification passed 11 tests covering legal transitions,
+  every illegal transition's phase/epoch preservation, exactly-once reset epoch
+  increments, disposal from every live phase, and post-dispose command rejection.
+- The combined Game V2 suite passed 5 files and 59 tests. V2-003 focused ESLint,
+  Prettier, and `npm run typecheck` also passed.
 
 ## Verification Required
 
-1. Execute V2-003 lifecycle/reset contract test-first.
-2. Prove legal transitions, illegal-transition rejection, reset epoch behavior,
-   idempotent dispose, and post-dispose command rejection.
-3. Run task-scoped spec and quality review before V2-004.
+1. Run task-scoped spec and quality review for V2-003.
+2. Confirm the accepted Task 4 commit, then begin V2-004.
 
 ## Exact Next Action
 
-Generate the Task 4 SDD brief and dispatch a fresh lifecycle implementer from
-the accepted V2-002 head.
+Complete the scoped V2-003 review, then generate the Task 5 SDD brief and
+dispatch the V2-004 ECS implementer from the accepted Task 4 head.
 
 ## Known Pre-existing Working-tree Changes
 
