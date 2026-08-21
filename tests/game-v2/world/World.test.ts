@@ -390,6 +390,99 @@ describe('World', () => {
     ]);
   });
 
+  it('round-trips every live handle through the single entity-id encoder', () => {
+    const world = new World(8);
+    world.generations[0] = 3;
+    world.generations[1] = 5;
+    const first = world.createEntity(ComponentMask.Transform);
+    const second = world.createEntity(ComponentMask.Enemy);
+
+    expect(world.slotOf(first)).toBe(0);
+    expect(world.slotOf(second)).toBe(1);
+    // Independent literals: generation * capacity 8 + slot.
+    expect(first).toBe(24);
+    expect(second).toBe(41);
+    expect(world.entityIdOf(0)).toBe(24);
+    expect(world.entityIdOf(1)).toBe(41);
+    expect(world.entityIdOf(world.slotOf(first))).toBe(first);
+    expect(world.entityIdOf(world.slotOf(second))).toBe(second);
+    expect(world.isAlive(world.entityIdOf(world.slotOf(second)))).toBe(true);
+  });
+
+  it('encodes the bumped generation term after a slot is destroyed and recreated', () => {
+    const world = new World(8);
+    const first = world.createEntity(ComponentMask.Transform);
+    const second = world.createEntity(ComponentMask.Enemy);
+    const secondSlot = world.slotOf(second);
+
+    expect(secondSlot).toBe(1);
+    expect(second).toBe(1);
+
+    world.destroyEntity(second);
+
+    const replacement = world.createEntity(ComponentMask.Enemy);
+    const replacementSlot = world.slotOf(replacement);
+
+    expect(replacementSlot).toBe(secondSlot);
+    expect(world.generations[replacementSlot]).toBe(1);
+    // Independent literals: generation 1 * capacity 8 + slot 1.
+    expect(replacement).toBe(9);
+    expect(world.entityIdOf(replacementSlot)).toBe(9);
+    expect(world.entityIdOf(replacementSlot)).toBe(replacement);
+    expect(world.entityIdOf(world.slotOf(first))).toBe(first);
+    expect(world.isAlive(first)).toBe(true);
+  });
+
+  it.each([
+    -1,
+    8,
+    9,
+    1.5,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number.MAX_SAFE_INTEGER,
+  ])('rejects slot %s outside the world capacity without mutating state', slot => {
+    const world = new World(8);
+    world.createEntity(ComponentMask.Transform);
+
+    expect(() => world.entityIdOf(slot)).toThrow(RangeError);
+
+    expect(world.activeCount).toBe(1);
+    expect(world.freeSlotCount).toBe(7);
+    expect(world.generations[0]).toBe(0);
+    expect(world.masks[0]).toBe(ComponentMask.Transform);
+  });
+
+  it('refuses to encode a retired slot into an entity handle', () => {
+    const world = new World(2);
+    world.generations[0] = LAST_ISSUABLE_ENTITY_GENERATION;
+    const finalGenerationEntity = world.createEntity(ComponentMask.Transform);
+
+    expect(world.entityIdOf(0)).toBe(finalGenerationEntity);
+
+    world.destroyEntity(finalGenerationEntity);
+
+    expect(world.generations[0]).toBe(RETIRED_ENTITY_GENERATION);
+    expect(() => world.entityIdOf(0)).toThrow(RangeError);
+    expect(() => world.entityIdOf(0)).toThrow('retired');
+    expect(world.isAlive(finalGenerationEntity)).toBe(false);
+  });
+
+  it('encodes a reusable free slot into a handle that is already dead', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.Transform);
+    const slot = world.slotOf(entity);
+
+    world.destroyEntity(entity);
+
+    const freeSlotId = world.entityIdOf(slot);
+
+    expect(freeSlotId).not.toBe(entity);
+    expect(world.isAlive(freeSlotId)).toBe(false);
+    expect(() => world.slotOf(freeSlotId)).toThrow('stale entity');
+  });
+
   it('retires a live final-generation entity during reset', () => {
     const world = new World(1);
     world.generations[0] = LAST_ISSUABLE_ENTITY_GENERATION;

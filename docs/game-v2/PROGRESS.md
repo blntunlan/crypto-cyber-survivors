@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-011` |
-| Status | `Verification` — V2-011 implemented and verified; independent review pending |
+| Active task | `V2-012` (not started) |
+| Status | `Done` — V2-011 accepted after review fix round 1 |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -378,12 +378,63 @@
   and focused Prettier on all six changed files also passed. No production
   `services/**` file, legacy demo file, `EnemySystem`, `DashSystem`,
   `MovementSystem`, `World`, or `RenderSnapshotWriter` was modified.
+- V2-011 review fix round 1 removed a duplicated entity-handle encoding. The
+  rule `generation * capacity + slot` is `World`'s contract, but V2-011
+  re-derived it in `TargetingSystem.entityIdOfSlot` and an identical
+  `WeaponSystem.entityIdOfSlot`, both substituting `world.masks.length` for the
+  private `capacity`. `WeaponSystem` fed that re-derived id straight into
+  `world.destroyEntity(...)` on the projectile-expiry path, so any change to the
+  encoding or store layout would have silently destroyed the wrong slot instead
+  of failing loudly.
+- `World` now owns the encoding in one public validating method,
+  `entityIdOf(slot)`. `createEntity` returns `this.entityIdOf(slot)`, so exactly
+  one expression of the rule exists; the change is behaviour-preserving because
+  `createEntity` already read `generation` from `this.generations[slot]` and
+  never mutated it before returning. `capacity` stays private, so the contract
+  cannot be bypassed. Both systems deleted their private helper and the
+  accompanying `masks.length` comment and now call `world.entityIdOf(slot)`.
+  `WorldSnapshotWriter.ts:90` was left alone: it reads a length for iteration
+  bounds and does not re-derive the encoding.
+- The documented rule for invalid input: a `slot` that is not an integer inside
+  `[0, capacity)` throws `RangeError` (non-finite and fractional slots fail the
+  same check); a slot whose generation is `RETIRED_ENTITY_GENERATION` throws
+  `RangeError`, because a retired slot can never be allocated again and owns no
+  issuable handle, so returning the sentinel-encoded number would hand the
+  caller a value that only looks like an entity. A currently-free but reusable
+  slot does encode: the returned id carries that slot's live generation and,
+  because the slot mask is zero, `isAlive` reports it as dead, so it can never
+  be mistaken for a live entity. The method allocates nothing on the success
+  path and is safe inside the per-tick projectile loop.
+- Fix-round RED command:
+  `npx vitest run tests/game-v2/world/World.test.ts --pool=forks --maxWorkers=1`
+  reported `Tests 12 failed | 27 passed (39)`, every failure being
+  `TypeError: world.entityIdOf is not a function`.
+- A three-mutant deliberate pass ran against the complete 355-test Game V2
+  suite. Failures per mutant: dropping the generation term (`return slot`) 12;
+  using `capacity + 1` 11; dropping the slot term
+  (`generation * this.capacity`) 39. The round-trip test first killed nothing,
+  so it was strengthened to seed generations 3 and 5 before allocation and to
+  assert the independent literals 24 and 41; it then killed all three mutants.
+  Every one of the five new World tests now kills at least one mutant. The
+  production implementation was restored and re-verified green after each.
+- Fix-round verification passed
+  `npx vitest run tests/game-v2/world/World.test.ts tests/game-v2/systems/TargetingSystem.test.ts tests/game-v2/systems/WeaponSystem.test.ts tests/game-v2/replay/WorldSnapshot.test.ts --pool=forks --maxWorkers=1`
+  (4 files, 127 tests) and
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (15 files,
+  355 tests, up from 343 by the twelve new World tests only). `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files), focused ESLint, and
+  focused Prettier on the four changed files also passed. The `8c5ecef3`
+  world-snapshot golden is unaffected: a method was added, no data layout
+  changed, and the replay suite stays green. No targeting, cadence,
+  projectile-integration, lifetime, or capacity-guard assertion was weakened.
+- V2-011 is accepted. The accepted commit range is `f76377e4` plus the fix
+  commit carrying this checkpoint,
+  `refactor(game-v2): centralize entity handle encoding in World`, whose SHA is
+  recorded in the next checkpoint because a commit cannot contain its own hash.
 
 ## Verification Required
 
-1. Independently review V2-011 targeting determinism, weapon cadence,
-   capacity-refusal atomicity, and generation-safe projectile reuse.
-2. Implement V2-012 collision, damage, and death: exactly-once projectile
+1. Implement V2-012 collision, damage, and death: exactly-once projectile
    damage, contact damage at its authored cadence, dash i-frame rejection,
    entity destruction, the game-over signal, and the preallocated kill-event
    buffer.
@@ -391,7 +442,7 @@
 ## Exact Next Action
 
 Generate the V2-012 task brief (collision, damage, and death) and dispatch its
-implementer from the accepted V2-011 checkpoint after independent review.
+implementer from the accepted V2-011 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 

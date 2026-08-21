@@ -152,6 +152,48 @@ export class World {
     this.entitiesInUse += 1;
     this.masks[slot] = mask;
 
+    return this.entityIdOf(slot);
+  }
+
+  /**
+   * Encodes a store slot into this world's canonical entity handle.
+   *
+   * This method is the single owner of the `generation * capacity + slot`
+   * handle encoding. `createEntity` returns through it, and no consumer may
+   * re-derive the rule from a component-store length; `capacity` stays private
+   * so this contract cannot be bypassed.
+   *
+   * Rules for invalid input:
+   * - A `slot` that is not an integer inside `[0, capacity)` throws
+   *   `RangeError`. Non-finite and fractional slots fail the same check.
+   * - A slot whose generation is `RETIRED_ENTITY_GENERATION` throws
+   *   `RangeError`. A retired slot can never be allocated again, so it owns no
+   *   issuable handle; returning the sentinel-encoded number would hand the
+   *   caller a value that only looks like an entity.
+   *
+   * A currently-free but still reusable slot does encode: the returned id
+   * carries that slot's live generation, and because the slot's mask is zero
+   * `isAlive` reports it as dead, so it can never be mistaken for a live
+   * entity.
+   *
+   * The method allocates nothing on the success path and is safe to call from
+   * per-tick system loops.
+   */
+  public entityIdOf(slot: number): EntityId {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= this.capacity) {
+      throw new RangeError('slot must be an integer inside the world capacity');
+    }
+
+    const generation = this.generations[slot];
+
+    if (generation === undefined) {
+      throw new Error('entity generation storage is corrupt');
+    }
+
+    if (generation === RETIRED_ENTITY_GENERATION) {
+      throw new RangeError('retired slot has no entity handle');
+    }
+
     return generation * this.capacity + slot;
   }
 

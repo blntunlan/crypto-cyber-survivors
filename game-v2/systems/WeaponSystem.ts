@@ -30,14 +30,6 @@ const DEFAULT_FIRE_DIRECTION_Y = 0;
 const isProjectile = (mask: number | undefined): boolean =>
   mask !== undefined && (mask & PROJECTILE_ENTITY_MASK) === PROJECTILE_ENTITY_MASK;
 
-/**
- * `World` keeps its capacity private, but every parallel component store is
- * exactly `capacity` long, so the mask store length is the authoritative
- * capacity used by the world's `generation * capacity + slot` handle encoding.
- */
-const entityIdOfSlot = (world: World, slot: number): EntityId =>
-  (world.generations[slot] ?? 0) * world.masks.length + slot;
-
 export class WeaponSystem {
   private readonly targetingSystem: TargetingSystem;
 
@@ -135,7 +127,7 @@ export class WeaponSystem {
       const lifetime = world.projectileLifetimeTicksRemaining[slot] ?? 0;
 
       if (lifetime === 0) {
-        world.destroyEntity(entityIdOfSlot(world, slot));
+        world.destroyEntity(world.entityIdOf(slot));
         continue;
       }
 
@@ -172,7 +164,7 @@ export class WeaponSystem {
       const nextLifetime = lifetime - 1;
 
       if (nextLifetime === 0) {
-        world.destroyEntity(entityIdOfSlot(world, slot));
+        world.destroyEntity(world.entityIdOf(slot));
         continue;
       }
 

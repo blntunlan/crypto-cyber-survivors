@@ -17,14 +17,6 @@ const WEAPON_RANGE_SQUARED = WEAPON_RANGE * WEAPON_RANGE;
 const isCandidate = (mask: number | undefined): boolean =>
   mask !== undefined && (mask & CANDIDATE_ENTITY_MASK) === CANDIDATE_ENTITY_MASK;
 
-/**
- * `World` keeps its capacity private, but every parallel component store is
- * exactly `capacity` long, so the mask store length is the authoritative
- * capacity used by the world's `generation * capacity + slot` handle encoding.
- */
-const entityIdOfSlot = (world: World, slot: number): EntityId =>
-  (world.generations[slot] ?? 0) * world.masks.length + slot;
-
 export class TargetingSystem {
   /**
    * Returns the nearest live enemy inside `WEAPON_RANGE`, or `NO_ENTITY`.
@@ -119,6 +111,6 @@ export class TargetingSystem {
       return NO_ENTITY;
     }
 
-    return entityIdOfSlot(world, bestSlot);
+    return world.entityIdOf(bestSlot);
   }
 }
