@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-005` |
-| Status | `Verification` — implementation complete; controller review pending |
+| Active task | `V2-006` |
+| Status | `Ready` — one-way Three.js scene bridge is next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -150,16 +150,20 @@
 - V2-005 focused verification passed 2 files and 80 tests; the complete Game V2
   suite passed 7 files and 139 tests. Typecheck, architecture, focused ESLint,
   and focused Prettier also passed.
+- V2-005 review fix round 1 passed scoped re-review. The accepted commits are
+  `cf679aac` and `7288e45a`; no Critical, Important, or Minor findings remain.
 
 ## Verification Required
 
-1. Complete controller spec and code review for V2-005.
-2. After acceptance, begin V2-006 from the accepted V2-005 head.
+1. Implement V2-006 preallocated render snapshots and one-way ECS-to-Three.js
+   synchronization without WebGL construction in unit tests.
+2. Prove interpolation, bounded instances, destroyed-entity hiding, simulation
+   non-mutation, and exactly-once disposal.
 
 ## Exact Next Action
 
-Review the V2-005 task commit and its ignored SDD evidence report, then accept
-or return focused findings to the implementer.
+Generate the Task 7 SDD brief and dispatch the V2-006 Three.js bridge
+implementer from the accepted replay head.
 
 ## Known Pre-existing Working-tree Changes
 
