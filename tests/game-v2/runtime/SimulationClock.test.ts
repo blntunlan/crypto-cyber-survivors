@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SIMULATION_STEP_MS } from '@/game-v2/config/Mvp0Config';
 import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 
 const simulate = (fps: number): number => {
@@ -60,11 +61,14 @@ describe('SimulationClock', () => {
     const clock = new SimulationClock();
 
     clock.advance(1000 / 60 + 1, () => undefined);
+    clock.pause();
+    clock.advance(1000, () => undefined);
     clock.reset();
 
     expect(clock.tick).toBe(0);
     expect(clock.advance(1000 / 60 - 1, () => undefined).steps).toBe(0);
     expect(clock.advance(1, () => undefined).steps).toBe(1);
+    expect(clock.tick).toBe(1);
   });
 
   it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
@@ -86,7 +90,9 @@ describe('SimulationClock', () => {
 
     expect(result.steps).toBe(8);
     expect(steps).toBe(8);
-    expect(result.droppedMilliseconds).toBeGreaterThanOrEqual(750);
+    expect(result.droppedMilliseconds).toBeCloseTo(250 - 8 * SIMULATION_STEP_MS, 8);
+    expect(result.interpolationAlpha).toBe(0);
+    expect(clock.tick).toBe(8);
   });
 
   it('drops excess catch-up time after at most eight fixed steps', () => {

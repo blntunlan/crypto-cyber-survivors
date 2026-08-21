@@ -63,7 +63,7 @@ export class SimulationClock {
     }
 
     const acceptedDeltaMs = Math.min(renderDeltaMs, MAX_RENDER_DELTA_MS);
-    let droppedMilliseconds = renderDeltaMs - acceptedDeltaMs;
+    let droppedMilliseconds = 0;
     this.accumulatorMs += acceptedDeltaMs;
 
     while (
