@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-006` |
-| Status | `Ready` — one-way Three.js scene bridge is next |
+| Status | `Verification` — one-way Three.js scene bridge awaits task review |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -152,18 +152,39 @@
   and focused Prettier also passed.
 - V2-005 review fix round 1 passed scoped re-review. The accepted commits are
   `cf679aac` and `7288e45a`; no Critical, Important, or Minor findings remain.
+- V2-006 added fixed-capacity render snapshots with explicit player, enemy,
+  projectile, and XP-pickup counts plus ascending all-bit ECS category packing.
+- The snapshot writer validates category storage, capacity, player cardinality,
+  finite previous/current positions, and non-negative finite radius before
+  changing any output count or typed-array byte.
+- The one-way Three.js bridge maps simulation X/Y to Three X/Z, interpolates
+  every active prefix, keeps one player mesh and bounded instanced category
+  meshes presentation-only, and validates alpha, counts, storage, scene caps,
+  and active-prefix values atomically before scene mutation.
+- Moving instance buffers use `DynamicDrawUsage`; MVP-0 bounded instance pools
+  disable frustum culling so moving transforms cannot inherit stale bounds.
+- V2-006 owns real Three scene/math/resources while receiving a renderer port,
+  constructs no WebGL renderer, allocates no sync-path scratch, and disposes the
+  renderer plus every distinct geometry/material exactly once.
+- V2-006 initial TDD RED command:
+  `npx vitest run tests/game-v2/presentation/ThreeRenderBridge.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because `RenderSnapshot` did not exist.
+- A follow-up hot-path RED test observed static-draw usage (`35044`) instead of
+  `DynamicDrawUsage` (`35048`) before dynamic usage and the culling policy were
+  implemented.
+- V2-006 focused verification passed 38 tests. The complete Game V2 suite
+  passed 8 files and 177 tests; typecheck, architecture, focused ESLint, and
+  focused Prettier also passed.
 
 ## Verification Required
 
-1. Implement V2-006 preallocated render snapshots and one-way ECS-to-Three.js
-   synchronization without WebGL construction in unit tests.
-2. Prove interpolation, bounded instances, destroyed-entity hiding, simulation
-   non-mutation, and exactly-once disposal.
+1. Review V2-006 against the task brief and controller safety/hot-path rulings.
+2. Re-run focused verification for any review amendments before acceptance.
 
 ## Exact Next Action
 
-Generate the Task 7 SDD brief and dispatch the V2-006 Three.js bridge
-implementer from the accepted replay head.
+Dispatch the V2-006 task reviewer against the implementation commit and the
+ignored Task 7 report.
 
 ## Known Pre-existing Working-tree Changes
 
