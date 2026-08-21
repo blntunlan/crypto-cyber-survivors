@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-005` |
-| Status | `Ready` — canonical snapshot and replay hash are next |
+| Status | `Verification` — implementation complete; controller review pending |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -115,17 +115,38 @@
 - V2-004 final verification passed: the Game V2 suite (6 files, 86 tests),
   `npm run typecheck`, `npm run check:architecture`, focused ESLint, and
   focused Prettier.
+- V2-005 added schema-versioned canonical runtime/world checkpoints, explicit
+  little-endian binary FNV-1a hashing, and the hard-coded `8c5ecef3` golden.
+- Checkpoints cover the complete world capacity in ascending slot order and
+  hash only the allocator's authoritative free-stack prefix. Writer and hasher
+  both reject incomplete active/free/retired partitions, sentinel misuse,
+  unsupported nested schemas, non-finite values, and worlds above 4,096 slots.
+- The canonical mutable `PlayerIntent` and immutable `RunCommand` contracts now
+  exist before first use. Input recording owns 216,000 preallocated typed-array
+  frames; command recording owns 64 preallocated entries and stores frozen
+  copies so caller mutation cannot rewrite history.
+- V2-005 initial TDD RED command:
+  `npx vitest run tests/game-v2/replay/WorldSnapshot.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because the replay modules did not exist.
+- Follow-up RED tests caught six allocator-partition acceptance defects, the
+  lifecycle prototype-key phase defect, and missing 4,096-slot rejection in
+  both writer and hasher.
+- Mutation-sensitive checks proved the command-reference test catches retained
+  caller objects and independent literals catch 4,095 world capacity, reduced
+  recorder budgets, config schema 2, and shifted generation sentinels.
+- V2-005 focused verification passed 2 files and 66 tests; the complete Game V2
+  suite passed 7 files and 125 tests. Typecheck, architecture, focused ESLint,
+  and focused Prettier also passed.
 
 ## Verification Required
 
-1. Implement V2-005 canonical world/runtime checkpoints and stable FNV-1a hash.
-2. Add fixed-capacity per-tick input and paused-command recorders, including
-   overflow and invalid-input rejection.
+1. Complete controller spec and code review for V2-005.
+2. After acceptance, begin V2-006 from the accepted V2-005 head.
 
 ## Exact Next Action
 
-Generate the Task 6 SDD brief and dispatch the V2-005 replay/checkpoint
-implementer from the accepted V2-004 head.
+Review the V2-005 task commit and its ignored SDD evidence report, then accept
+or return focused findings to the implementer.
 
 ## Known Pre-existing Working-tree Changes
 

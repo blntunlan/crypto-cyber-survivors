@@ -1,8 +1,10 @@
 import { ZERO_SEED_FALLBACK } from '@/game-v2/contracts/RunIdentity';
 
-export type RngSnapshot = Readonly<{ schemaVersion: 1; state: number }>;
-
-const RNG_SNAPSHOT_SCHEMA_VERSION = 1 as const;
+export const RNG_SNAPSHOT_SCHEMA_VERSION = 1 as const;
+export type RngSnapshot = Readonly<{
+  schemaVersion: typeof RNG_SNAPSHOT_SCHEMA_VERSION;
+  state: number;
+}>;
 const UINT32_MAX = 0xffffffff;
 
 const assertSeed = (seed: number): void => {

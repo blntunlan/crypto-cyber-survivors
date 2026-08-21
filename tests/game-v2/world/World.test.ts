@@ -1,6 +1,11 @@
-import { type EntityId } from '@/game-v2/contracts/EntityId';
+import {
+  LAST_ISSUABLE_ENTITY_GENERATION,
+  RETIRED_ENTITY_GENERATION,
+  type EntityId,
+} from '@/game-v2/contracts/EntityId';
 import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
+import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
 import { describe, expect, it } from 'vitest';
 
 const componentStores = (world: World): Array<ArrayLike<number>> => [
@@ -103,6 +108,7 @@ describe('World', () => {
   );
 
   it('allocates the locked 4096-slot capacity with complete fixed stores', () => {
+    expect(MAX_WORLD_CAPACITY).toBe(4096);
     const world = new World(4096);
     const stores = componentStores(world);
 
@@ -325,14 +331,16 @@ describe('World', () => {
   });
 
   it('retires a slot at the final generation instead of wrapping it into validity', () => {
+    expect(LAST_ISSUABLE_ENTITY_GENERATION).toBe(0xfffffffe);
+    expect(RETIRED_ENTITY_GENERATION).toBe(0xffffffff);
     const world = new World(1);
-    world.generations[0] = 0xfffffffe;
+    world.generations[0] = LAST_ISSUABLE_ENTITY_GENERATION;
     const finalGenerationEntity = world.createEntity(ComponentMask.Transform);
 
     world.destroyEntity(finalGenerationEntity);
 
     expect(world.isAlive(finalGenerationEntity)).toBe(false);
-    expect(world.generations[0]).toBe(0xffffffff);
+    expect(world.generations[0]).toBe(RETIRED_ENTITY_GENERATION);
     expect(world.freeSlotCount).toBe(0);
     expect(world.activeCount).toBe(0);
     expect(() => world.createEntity(ComponentMask.Transform)).toThrow(
@@ -342,7 +350,7 @@ describe('World', () => {
 
   it('keeps retired slots out of the deterministic free stack after reset', () => {
     const world = new World(2);
-    world.generations[0] = 0xfffffffe;
+    world.generations[0] = LAST_ISSUABLE_ENTITY_GENERATION;
     const finalGenerationEntity = world.createEntity(ComponentMask.Transform);
 
     world.destroyEntity(finalGenerationEntity);
@@ -358,7 +366,7 @@ describe('World', () => {
 
   it('never issues the retired-generation sentinel from a free-stack slot', () => {
     const world = new World(1);
-    world.generations[0] = 0xffffffff;
+    world.generations[0] = RETIRED_ENTITY_GENERATION;
 
     expect(() => world.createEntity(ComponentMask.Transform)).toThrow('retired');
 
@@ -384,12 +392,12 @@ describe('World', () => {
 
   it('retires a live final-generation entity during reset', () => {
     const world = new World(1);
-    world.generations[0] = 0xfffffffe;
+    world.generations[0] = LAST_ISSUABLE_ENTITY_GENERATION;
     world.createEntity(ComponentMask.Transform);
 
     world.reset();
 
-    expect(world.generations[0]).toBe(0xffffffff);
+    expect(world.generations[0]).toBe(RETIRED_ENTITY_GENERATION);
     expect(world.freeSlotCount).toBe(0);
     expect(() => world.createEntity(ComponentMask.Transform)).toThrow(
       'capacity exhausted'

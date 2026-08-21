@@ -1,10 +1,12 @@
-import { type EntityId } from '@/game-v2/contracts/EntityId';
+import {
+  LAST_ISSUABLE_ENTITY_GENERATION,
+  RETIRED_ENTITY_GENERATION,
+  type EntityId,
+} from '@/game-v2/contracts/EntityId';
 import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
+import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
 
-const MAX_WORLD_CAPACITY = 4096;
 const MAX_UINT32 = 0xffffffff;
-const RETIRED_GENERATION = MAX_UINT32;
-const LAST_ISSUABLE_GENERATION = RETIRED_GENERATION - 1;
 
 const assertCapacity = (capacity: number): void => {
   if (
@@ -142,7 +144,7 @@ export class World {
       throw new Error('entity generation storage is corrupt');
     }
 
-    if (generation > LAST_ISSUABLE_GENERATION) {
+    if (generation > LAST_ISSUABLE_ENTITY_GENERATION) {
       throw new Error('retired slot cannot be allocated');
     }
 
@@ -164,12 +166,12 @@ export class World {
     this.clearSlot(slot);
     this.entitiesInUse -= 1;
 
-    if (generation < LAST_ISSUABLE_GENERATION) {
+    if (generation < LAST_ISSUABLE_ENTITY_GENERATION) {
       this.generations[slot] = generation + 1;
       this.freeSlots[this.freeSlotsInUse] = slot;
       this.freeSlotsInUse += 1;
     } else {
-      this.generations[slot] = RETIRED_GENERATION;
+      this.generations[slot] = RETIRED_ENTITY_GENERATION;
     }
   }
 
@@ -231,7 +233,9 @@ export class World {
 
       if (wasAlive) {
         this.generations[slot] =
-          generation < LAST_ISSUABLE_GENERATION ? generation + 1 : RETIRED_GENERATION;
+          generation < LAST_ISSUABLE_ENTITY_GENERATION
+            ? generation + 1
+            : RETIRED_ENTITY_GENERATION;
       }
     }
 
@@ -242,7 +246,7 @@ export class World {
         throw new Error('entity generation storage is corrupt');
       }
 
-      if (generation < RETIRED_GENERATION) {
+      if (generation < RETIRED_ENTITY_GENERATION) {
         this.freeSlots[nextFreeSlotCount] = slot;
         nextFreeSlotCount += 1;
       }
