@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-002` |
-| Status | `In Progress` — seeded RNG and run identity |
+| Active task | `V2-003` |
+| Status | `In Progress` — lifecycle and reset contract |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -68,18 +68,29 @@
 - V2-001 review required stronger paused-reset and 250 ms cap mutation
   coverage. Fix commit `336e9e6b` passed scoped re-review; accepted commits are
   `b434d4ff` and `336e9e6b`.
+- V2-002 TDD RED command:
+  `npx vitest run tests/game-v2/runtime/DeterministicRng.test.ts --pool=forks --maxWorkers=1`
+  failed because the new RNG and run-identity modules did not exist.
+- V2-002 GREEN command passed all 25 focused tests, including the hard-coded
+  xorshift32 golden sequence, zero-seed normalization, invalid input rejection,
+  immutable run identity, and snapshot/restore validation.
+- V2-002 `npm run typecheck`, focused ESLint, and focused Prettier checks passed.
+- V2-002 review required direct proof that run identity never consumes
+  `Math.random()` and failed restore cannot mutate state or subsequent output.
+  Fix commit `aa7abb8e` added mutation-sensitive guards and passed scoped
+  re-review; accepted commits are `a8c7328c` and `aa7abb8e`.
 
 ## Verification Required
 
-1. Execute V2-002 test-first from the implementation plan.
-2. Lock seeded golden behavior, invalid seed/bound validation, and RNG
-   snapshot/restore.
-3. Run task-scoped spec and quality review before V2-003.
+1. Execute V2-003 lifecycle/reset contract test-first.
+2. Prove legal transitions, illegal-transition rejection, reset epoch behavior,
+   idempotent dispose, and post-dispose command rejection.
+3. Run task-scoped spec and quality review before V2-004.
 
 ## Exact Next Action
 
-Generate the Task 3 SDD brief and dispatch a fresh seeded-RNG implementer from
-the accepted V2-001 head.
+Generate the Task 4 SDD brief and dispatch a fresh lifecycle implementer from
+the accepted V2-002 head.
 
 ## Known Pre-existing Working-tree Changes
 
