@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-007` |
-| Status | `In Review` — fixed top-down orthographic camera implementation is ready |
+| Active task | `V2-008` |
+| Status | `In Progress` — desktop input and deterministic movement are next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -202,17 +202,20 @@
   21:9, fractional viewport, orientation, projection, and atomic-invalid-input
   coverage. The complete Game V2 suite passed 9 files and 201 tests; typecheck,
   architecture, focused ESLint, and focused Prettier also passed.
+- V2-007 passed independent task review on its first round. The accepted commit
+  is `1bf74fdd`; no Critical, Important, or Minor findings remain.
 
 ## Verification Required
 
-1. Independently review V2-007 fixed top-down orthographic camera implementation.
-2. Confirm framing, invalid-input atomicity, immutable combat orientation, and
-   absence of renderer/simulation/global authority coupling.
+1. Implement V2-008 keyboard intent sampling and deterministic fixed-step
+   movement without allocations in sample/step paths.
+2. Verify diagonal normalization, edge-triggered Space, blur/dispose cleanup,
+   stale-handle rejection, previous-position capture, and one-second parity.
 
 ## Exact Next Action
 
-Generate a review package for the V2-007 implementation and dispatch an
-independent reviewer from the accepted V2-006 checkpoint.
+Generate the V2-008 task brief and dispatch its implementer from the accepted
+V2-007 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 
