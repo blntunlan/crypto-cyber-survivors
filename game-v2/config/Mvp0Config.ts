@@ -13,3 +13,4 @@ export const TOP_DOWN_CAMERA_HEIGHT = 40;
 export const TOP_DOWN_CAMERA_UP_X = 0;
 export const TOP_DOWN_CAMERA_UP_Y = 0;
 export const TOP_DOWN_CAMERA_UP_Z = -1;
+export const PLAYER_MOVE_SPEED = 6;

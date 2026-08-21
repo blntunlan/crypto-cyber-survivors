@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-008` |
-| Status | `In Progress` — desktop input and deterministic movement are next |
+| Status | `In Progress` — V2-008 implementation is complete; independent review is pending |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -204,18 +204,37 @@
   architecture, focused ESLint, and focused Prettier also passed.
 - V2-007 passed independent task review on its first round. The accepted commit
   is `1bf74fdd`; no Critical, Important, or Minor findings remain.
+- V2-008 added an injected-target desktop keyboard adapter that samples WASD
+  and Arrow aliases into a caller-owned intent, normalizes diagonals, publishes
+  one Space edge per press, and clears/removes all owned state and listeners on
+  blur or idempotent disposal.
+- V2-008 added the stable fixed-step context contract and an allocation-free
+  movement system. It validates the complete call boundary before mutation,
+  captures previous positions before integration, writes six-unit-per-second
+  normalized velocity, preserves last non-zero facing while idle, and ignores
+  dash input until V2-009.
+- V2-008 initial TDD RED command:
+  `npx vitest run tests/game-v2/input/KeyboardInput.test.ts tests/game-v2/systems/MovementSystem.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because both production modules did not
+  exist.
+- V2-008 focused GREEN verification passed 38 tests. The complete Game V2 suite
+  passed 11 files and 239 tests; typecheck, architecture, focused ESLint, and
+  focused Prettier also passed.
+- A deliberate mutation pass changed Space to level-triggered, removed
+  normalization, changed speed from six, captured previous position after
+  integration, and retained idle velocity. Nine focused tests failed before
+  the production implementation was restored and the 38-test focused suite
+  returned to green.
 
 ## Verification Required
 
-1. Implement V2-008 keyboard intent sampling and deterministic fixed-step
-   movement without allocations in sample/step paths.
-2. Verify diagonal normalization, edge-triggered Space, blur/dispose cleanup,
-   stale-handle rejection, previous-position capture, and one-second parity.
+1. Independently review the V2-008 implementation and its mutation-sensitive
+   evidence against the locked task brief.
+2. On acceptance, advance the active task to V2-009 dash and invulnerability.
 
 ## Exact Next Action
 
-Generate the V2-008 task brief and dispatch its implementer from the accepted
-V2-007 checkpoint.
+Generate the V2-008 review package and dispatch a fresh independent reviewer.
 
 ## Known Pre-existing Working-tree Changes
 
