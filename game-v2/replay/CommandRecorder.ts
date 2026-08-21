@@ -29,38 +29,50 @@ function assertCommand(command: unknown): asserts command is RunCommand {
 }
 
 export class CommandRecorder {
-  private readonly entries: Array<RunCommand | undefined> = new Array(
+  readonly #commands: Array<RunCommand | undefined> = new Array(
     COMMAND_RECORDING_CAPACITY
   );
 
-  private commandsInUse = 0;
+  #commandsInUse = 0;
 
   public get count(): number {
-    return this.commandsInUse;
+    return this.#commandsInUse;
   }
 
-  public get commands(): ReadonlyArray<RunCommand | undefined> {
-    return this.entries;
+  public get capacity(): number {
+    return COMMAND_RECORDING_CAPACITY;
   }
 
   public record(command: RunCommand): void {
-    if (this.commandsInUse >= COMMAND_RECORDING_CAPACITY) {
+    if (this.#commandsInUse >= COMMAND_RECORDING_CAPACITY) {
       throw new RangeError('command recording capacity exhausted');
     }
 
     assertCommand(command);
 
     const previous =
-      this.commandsInUse === 0 ? undefined : this.entries[this.commandsInUse - 1];
+      this.#commandsInUse === 0 ? undefined : this.#commands[this.#commandsInUse - 1];
     if (previous !== undefined && command.tick <= previous.tick) {
       throw new RangeError('command ticks must be strictly increasing');
     }
 
-    this.entries[this.commandsInUse] = Object.freeze({
+    this.#commands[this.#commandsInUse] = Object.freeze({
       tick: command.tick,
       type: command.type,
       choiceId: command.choiceId,
     });
-    this.commandsInUse += 1;
+    this.#commandsInUse += 1;
+  }
+
+  public read(index: number): RunCommand {
+    if (!Number.isSafeInteger(index) || index < 0 || index >= this.#commandsInUse) {
+      throw new RangeError('command index is out of bounds');
+    }
+
+    const command = this.#commands[index];
+    if (command === undefined) {
+      throw new Error('command recording storage is corrupt');
+    }
+    return command;
   }
 }

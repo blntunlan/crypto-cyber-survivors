@@ -134,8 +134,21 @@
 - Mutation-sensitive checks proved the command-reference test catches retained
   caller objects and independent literals catch 4,095 world capacity, reduced
   recorder budgets, config schema 2, and shifted generation sentinels.
-- V2-005 focused verification passed 2 files and 66 tests; the complete Game V2
-  suite passed 7 files and 125 tests. Typecheck, architecture, focused ESLint,
+- V2-005 review fix round 1 moved both recorder backing stores and counts into
+  ECMAScript private fields. Input playback now uses allocation-free
+  `read(index, callerOutput)`; command playback returns the existing frozen
+  record through allocation-free `read(index)`. Public history mutation paths
+  no longer exist.
+- Review fix round 1 also consolidated capacity, typed-store, finite-value,
+  allocator-partition, and generation-sentinel validation into one pure replay
+  validator with an exhaustive frozen store schema. Writer and hasher retain
+  only their boundary-specific schema and free-slot length checks.
+- Fix-round RED proved the public recorder arrays/read API defects and the
+  missing shared validator module. A validator no-op mutant caused all four
+  writer/hasher forged-state parity rows to fail before the real validator was
+  restored.
+- V2-005 focused verification passed 2 files and 80 tests; the complete Game V2
+  suite passed 7 files and 139 tests. Typecheck, architecture, focused ESLint,
   and focused Prettier also passed.
 
 ## Verification Required

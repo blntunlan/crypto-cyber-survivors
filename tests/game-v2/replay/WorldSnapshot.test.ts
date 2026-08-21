@@ -15,6 +15,7 @@ import { CommandRecorder } from '@/game-v2/replay/CommandRecorder';
 import { InputRecorder } from '@/game-v2/replay/InputRecorder';
 import { hashRuntimeCheckpoint } from '@/game-v2/replay/StateHasher';
 import { writeCheckpoint } from '@/game-v2/replay/WorldSnapshotWriter';
+import { validateAuthoritativeWorldState } from '@/game-v2/replay/WorldStateValidator';
 
 const ALL_FIXTURE_COMPONENTS =
   ComponentMask.Transform |
@@ -454,8 +455,67 @@ describe('canonical runtime checkpoint', () => {
   });
 });
 
+describe('shared authoritative world validation', () => {
+  type CorruptibleWorldState = Pick<
+    World,
+    'contactDamage' | 'freeSlots' | 'generations' | 'xpPickupValue'
+  >;
+
+  it('accepts both clean live-world and snapshot representations', () => {
+    const input = createRuntimeInput();
+    const checkpoint = writeCheckpoint(createRuntimeInput());
+
+    expect(() =>
+      validateAuthoritativeWorldState(input.world, input.world.masks.length)
+    ).not.toThrow();
+    expect(() =>
+      validateAuthoritativeWorldState(checkpoint.world, checkpoint.world.capacity)
+    ).not.toThrow();
+  });
+
+  it.each([
+    [
+      'non-finite component',
+      (state: CorruptibleWorldState) => {
+        state.contactDamage[0] = Number.NaN;
+      },
+    ],
+    [
+      'active retired sentinel',
+      (state: CorruptibleWorldState) => {
+        state.generations[0] = RETIRED_ENTITY_GENERATION;
+      },
+    ],
+    [
+      'duplicate free prefix slot',
+      (state: CorruptibleWorldState) => {
+        state.freeSlots[1] = state.freeSlots[0] ?? 0;
+      },
+    ],
+    [
+      'authoritative store length mismatch',
+      (state: CorruptibleWorldState) => {
+        Object.defineProperty(state, 'xpPickupValue', {
+          value: new Float32Array(2),
+        });
+      },
+    ],
+  ] as const)(
+    'rejects the same forged %s through writer and hasher',
+    (_name, corrupt) => {
+      const input = createRuntimeInput();
+      corrupt(input.world);
+      expect(() => writeCheckpoint(input)).toThrow();
+
+      const checkpoint = writeCheckpoint(createRuntimeInput());
+      corrupt(checkpoint.world);
+      expect(() => hashRuntimeCheckpoint(checkpoint)).toThrow();
+    }
+  );
+});
+
 describe('InputRecorder', () => {
-  it('preallocates the configured typed arrays and records contiguous normalized ticks', () => {
+  it('keeps preallocated history private and reads contiguous frames into caller output', () => {
     const recorder = new InputRecorder();
     const mutableIntent: PlayerIntent = {
       moveX: 0,
@@ -466,11 +526,12 @@ describe('InputRecorder', () => {
     mutableIntent.moveY = 0.8;
     mutableIntent.dashPressed = true;
 
-    expect(recorder.ticks).toBeInstanceOf(Uint32Array);
-    expect(recorder.moveX).toBeInstanceOf(Float32Array);
-    expect(recorder.moveY).toBeInstanceOf(Float32Array);
-    expect(recorder.dashPressed).toBeInstanceOf(Uint8Array);
-    expect(recorder.ticks.length).toBe(INPUT_RECORDING_CAPACITY);
+    expect('ticks' in recorder).toBe(false);
+    expect('moveX' in recorder).toBe(false);
+    expect('moveY' in recorder).toBe(false);
+    expect('dashPressed' in recorder).toBe(false);
+    expect('framesInUse' in recorder).toBe(false);
+    expect(recorder.capacity).toBe(216_000);
 
     recorder.record(1, mutableIntent);
     mutableIntent.moveX = 0;
@@ -479,13 +540,53 @@ describe('InputRecorder', () => {
     recorder.record(2, { moveX: -1, moveY: 0, dashPressed: false });
 
     expect(recorder.count).toBe(2);
-    expect(recorder.ticks.subarray(0, recorder.count)).toEqual(new Uint32Array([1, 2]));
-    expect(recorder.moveX[0]).toBeCloseTo(0.6);
-    expect(recorder.moveY[0]).toBeCloseTo(0.8);
-    expect(recorder.dashPressed.subarray(0, recorder.count)).toEqual(
-      new Uint8Array([1, 0])
-    );
+    const first = { tick: 0, moveX: 0, moveY: 0, dashPressed: false };
+    const second = { tick: 0, moveX: 0, moveY: 0, dashPressed: true };
+    recorder.read(0, first);
+    recorder.read(1, second);
+    expect(first.tick).toBe(1);
+    expect(first.moveX).toBeCloseTo(0.6);
+    expect(first.moveY).toBeCloseTo(0.8);
+    expect(first.dashPressed).toBe(true);
+    expect(second).toEqual({ tick: 2, moveX: -1, moveY: 0, dashPressed: false });
   });
+
+  it('does not let caller output mutation rewrite recorded history', () => {
+    const recorder = new InputRecorder();
+    recorder.record(1, { moveX: 0.25, moveY: -0.5, dashPressed: true });
+    const output = { tick: 0, moveX: 0, moveY: 0, dashPressed: false };
+
+    recorder.read(0, output);
+    output.tick = 99;
+    output.moveX = 1;
+    output.moveY = 0;
+    output.dashPressed = false;
+    recorder.read(0, output);
+
+    expect(output).toEqual({
+      tick: 1,
+      moveX: 0.25,
+      moveY: -0.5,
+      dashPressed: true,
+    });
+  });
+
+  it.each([-1, 1, 1.5, Number.NaN])(
+    'rejects invalid read index %s without changing caller output',
+    index => {
+      const recorder = new InputRecorder();
+      recorder.record(1, { moveX: 0.25, moveY: -0.5, dashPressed: true });
+      const output = { tick: 77, moveX: 0.75, moveY: 0, dashPressed: false };
+
+      expect(() => recorder.read(index, output)).toThrow(/index/i);
+      expect(output).toEqual({
+        tick: 77,
+        moveX: 0.75,
+        moveY: 0,
+        dashPressed: false,
+      });
+    }
+  );
 
   it.each([
     ['missing first tick', 2, { moveX: 0, moveY: 0, dashPressed: false }],
@@ -498,22 +599,19 @@ describe('InputRecorder', () => {
     if (tick !== 2 || _name !== 'missing first tick') {
       recorder.record(1, { moveX: 0.25, moveY: -0.5, dashPressed: true });
     }
-    const before = {
-      count: recorder.count,
-      tick: recorder.ticks[0],
-      moveX: recorder.moveX[0],
-      moveY: recorder.moveY[0],
-      dash: recorder.dashPressed[0],
-    };
+    const beforeCount = recorder.count;
+    const before = { tick: 0, moveX: 0, moveY: 0, dashPressed: false };
+    if (beforeCount > 0) {
+      recorder.read(0, before);
+    }
 
     expect(() => recorder.record(tick, intent as never)).toThrow();
-    expect({
-      count: recorder.count,
-      tick: recorder.ticks[0],
-      moveX: recorder.moveX[0],
-      moveY: recorder.moveY[0],
-      dash: recorder.dashPressed[0],
-    }).toEqual(before);
+    expect(recorder.count).toBe(beforeCount);
+    if (beforeCount > 0) {
+      const after = { tick: 0, moveX: 0, moveY: 0, dashPressed: false };
+      recorder.read(0, after);
+      expect(after).toEqual(before);
+    }
   });
 
   it('throws on fixed-capacity overflow without altering the recorded prefix', () => {
@@ -530,7 +628,14 @@ describe('InputRecorder', () => {
       })
     ).toThrow(/capacity|overflow/i);
     expect(recorder.count).toBe(INPUT_RECORDING_CAPACITY);
-    expect(recorder.ticks[INPUT_RECORDING_CAPACITY - 1]).toBe(INPUT_RECORDING_CAPACITY);
+    const last = { tick: 0, moveX: 0, moveY: 0, dashPressed: true };
+    recorder.read(INPUT_RECORDING_CAPACITY - 1, last);
+    expect(last).toEqual({
+      tick: INPUT_RECORDING_CAPACITY,
+      moveX: 0,
+      moveY: 0,
+      dashPressed: false,
+    });
   });
 });
 
@@ -551,10 +656,13 @@ describe('CommandRecorder', () => {
     recorder.record(first);
     recorder.record(second);
 
-    expect(recorder.commands.length).toBe(COMMAND_RECORDING_CAPACITY);
+    expect('commands' in recorder).toBe(false);
+    expect('entries' in recorder).toBe(false);
+    expect('commandsInUse' in recorder).toBe(false);
+    expect(recorder.capacity).toBe(64);
     expect(recorder.count).toBe(2);
-    expect(recorder.commands[0]).toEqual(first);
-    expect(recorder.commands[1]).toEqual(second);
+    expect(recorder.read(0)).toEqual(first);
+    expect(recorder.read(1)).toEqual(second);
   });
 
   it('copies and freezes commands so caller mutation cannot rewrite recorded history', () => {
@@ -568,13 +676,19 @@ describe('CommandRecorder', () => {
     recorder.record(callerOwned);
     (callerOwned as { tick: number }).tick = 99;
 
-    expect(recorder.commands[0]).not.toBe(callerOwned);
-    expect(recorder.commands[0]).toEqual({
+    expect(recorder.read(0)).not.toBe(callerOwned);
+    expect(recorder.read(0)).toEqual({
       tick: 7,
       type: 'choose-upgrade',
       choiceId: 'starter-damage-2',
     });
-    expect(Object.isFrozen(recorder.commands[0])).toBe(true);
+    expect(Object.isFrozen(recorder.read(0))).toBe(true);
+  });
+
+  it.each([-1, 0, 0.5, Number.NaN])('rejects invalid command read index %s', index => {
+    const recorder = new CommandRecorder();
+    expect(() => recorder.read(index)).toThrow(/index/i);
+    expect(recorder.count).toBe(0);
   });
 
   it.each([
@@ -592,7 +706,7 @@ describe('CommandRecorder', () => {
     const recorder = new CommandRecorder();
     expect(() => recorder.record(command as never)).toThrow();
     expect(recorder.count).toBe(0);
-    expect(recorder.commands[0]).toBeUndefined();
+    expect(() => recorder.read(0)).toThrow(/index/i);
   });
 
   it('rejects duplicate and non-monotonic paused ticks without changing the prefix', () => {
@@ -612,7 +726,7 @@ describe('CommandRecorder', () => {
         })
       ).toThrow(/tick/i);
       expect(recorder.count).toBe(1);
-      expect(recorder.commands[0]?.tick).toBe(9);
+      expect(recorder.read(0).tick).toBe(9);
     }
   });
 
@@ -634,7 +748,7 @@ describe('CommandRecorder', () => {
       })
     ).toThrow(/capacity|overflow/i);
     expect(recorder.count).toBe(COMMAND_RECORDING_CAPACITY);
-    expect(recorder.commands[COMMAND_RECORDING_CAPACITY - 1]?.tick).toBe(
+    expect(recorder.read(COMMAND_RECORDING_CAPACITY - 1).tick).toBe(
       COMMAND_RECORDING_CAPACITY - 1
     );
   });

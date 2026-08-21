@@ -7,10 +7,8 @@ import {
   type WorldSnapshot,
 } from '@/game-v2/contracts/WorldSnapshot';
 import { RUN_IDENTITY_SCHEMA_VERSION } from '@/game-v2/contracts/RunIdentity';
-import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
-import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
-import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
 import { RNG_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/runtime/DeterministicRng';
+import { validateAuthoritativeWorldState } from '@/game-v2/replay/WorldStateValidator';
 
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
@@ -98,169 +96,16 @@ const assertSchemaVersion = (value: unknown, expected: number, name: string): vo
   }
 };
 
-const assertStore = <T extends ArrayBufferView & { readonly length: number }>(
-  value: unknown,
-  constructor: abstract new (length: number) => T,
-  capacity: number,
-  name: string
-): T => {
-  if (!(value instanceof constructor) || value.length !== capacity) {
-    throw new RangeError(`${name} must be a canonical typed store`);
-  }
-  return value;
-};
-
-const assertFiniteFloatStore = (store: Float32Array, name: string): void => {
-  for (let slot = 0; slot < store.length; slot += 1) {
-    const value = store[slot];
-    if (value === undefined || !Number.isFinite(value)) {
-      throw new RangeError(`${name} must contain only finite values`);
-    }
-  }
-};
-
 const validateWorld = (world: WorldSnapshot): void => {
   assertSchemaVersion(
     world.schemaVersion,
     WORLD_SNAPSHOT_SCHEMA_VERSION,
     'world snapshot'
   );
-  const capacity = assertUint32(world.capacity, 'world capacity', false);
-  if (capacity > MAX_WORLD_CAPACITY) {
-    throw new RangeError(
-      `world capacity must be no greater than ${MAX_WORLD_CAPACITY}`
-    );
+  validateAuthoritativeWorldState(world, world.capacity);
+  if (world.freeSlots.length !== world.freeSlotCount) {
+    throw new RangeError('freeSlots length must equal freeSlotCount');
   }
-  const activeCount = assertUint32(world.activeCount, 'activeCount');
-  const freeSlotCount = assertUint32(world.freeSlotCount, 'freeSlotCount');
-  if (activeCount > capacity || freeSlotCount > capacity) {
-    throw new RangeError('allocator counts must not exceed world capacity');
-  }
-  assertStore(world.freeSlots, Uint16Array, freeSlotCount, 'freeSlots');
-  const generations = assertStore(
-    world.generations,
-    Uint32Array,
-    capacity,
-    'generations'
-  );
-  const masks = assertStore(world.masks, Uint32Array, capacity, 'masks');
-  let observedActiveCount = 0;
-  let observedRetiredCount = 0;
-  for (let slot = 0; slot < capacity; slot += 1) {
-    const mask = masks[slot];
-    const generation = generations[slot];
-    if (mask === undefined || (mask & ~ALL_COMPONENT_MASK) !== 0) {
-      throw new RangeError('world contains an unsupported component mask');
-    }
-    if (mask !== 0) {
-      if (generation === RETIRED_ENTITY_GENERATION) {
-        throw new RangeError('active slot cannot use the retired generation');
-      }
-      observedActiveCount += 1;
-    } else if (generation === RETIRED_ENTITY_GENERATION) {
-      observedRetiredCount += 1;
-    }
-    if (generations[slot] === undefined) {
-      throw new RangeError('generation storage is incomplete');
-    }
-  }
-  if (observedActiveCount !== activeCount) {
-    throw new RangeError('activeCount does not match component masks');
-  }
-
-  const freeSlotSeen = new Uint8Array(capacity);
-  for (let index = 0; index < freeSlotCount; index += 1) {
-    const slot = world.freeSlots[index];
-    if (slot === undefined || slot >= capacity || freeSlotSeen[slot] !== 0) {
-      throw new RangeError('free slot prefix is invalid');
-    }
-    if (masks[slot] !== 0) {
-      throw new RangeError('active slot cannot appear in free slot prefix');
-    }
-    if (generations[slot] === RETIRED_ENTITY_GENERATION) {
-      throw new RangeError('retired slot cannot appear in free slot prefix');
-    }
-    freeSlotSeen[slot] = 1;
-  }
-
-  for (let slot = 0; slot < capacity; slot += 1) {
-    if (
-      masks[slot] === 0 &&
-      generations[slot] !== RETIRED_ENTITY_GENERATION &&
-      freeSlotSeen[slot] === 0
-    ) {
-      throw new RangeError('allocator omitted a reusable slot from its free prefix');
-    }
-  }
-  if (observedActiveCount + freeSlotCount + observedRetiredCount !== capacity) {
-    throw new RangeError(
-      'allocator partition must cover every world slot exactly once'
-    );
-  }
-
-  const floatStores = [
-    ['x', world.x],
-    ['y', world.y],
-    ['previousX', world.previousX],
-    ['previousY', world.previousY],
-    ['velocityX', world.velocityX],
-    ['velocityY', world.velocityY],
-    ['radius', world.radius],
-    ['health', world.health],
-    ['maxHealth', world.maxHealth],
-    ['moveSpeed', world.moveSpeed],
-    ['lastFacingX', world.lastFacingX],
-    ['lastFacingY', world.lastFacingY],
-    ['dashDirectionX', world.dashDirectionX],
-    ['dashDirectionY', world.dashDirectionY],
-    ['dashRemainingSeconds', world.dashRemainingSeconds],
-    ['enemySpeed', world.enemySpeed],
-    ['contactDamage', world.contactDamage],
-    ['xpValue', world.xpValue],
-    ['projectileDamage', world.projectileDamage],
-    ['weaponDamage', world.weaponDamage],
-    ['xp', world.xp],
-    ['xpPickupValue', world.xpPickupValue],
-  ] as const;
-  for (const [name, candidate] of floatStores) {
-    const store = assertStore(candidate, Float32Array, capacity, name);
-    assertFiniteFloatStore(store, name);
-  }
-
-  assertStore(world.faction, Int8Array, capacity, 'faction');
-  assertStore(
-    world.invulnerabilityTicksRemaining,
-    Uint16Array,
-    capacity,
-    'invulnerabilityTicksRemaining'
-  );
-  assertStore(
-    world.dashCooldownTicksRemaining,
-    Uint16Array,
-    capacity,
-    'dashCooldownTicksRemaining'
-  );
-  assertStore(world.dashCharges, Uint8Array, capacity, 'dashCharges');
-  assertStore(world.movementOverride, Uint8Array, capacity, 'movementOverride');
-  assertStore(
-    world.contactCooldownTicksRemaining,
-    Uint16Array,
-    capacity,
-    'contactCooldownTicksRemaining'
-  );
-  assertStore(
-    world.projectileLifetimeTicksRemaining,
-    Uint16Array,
-    capacity,
-    'projectileLifetimeTicksRemaining'
-  );
-  assertStore(
-    world.weaponCooldownTicksRemaining,
-    Uint16Array,
-    capacity,
-    'weaponCooldownTicksRemaining'
-  );
-  assertStore(world.level, Uint16Array, capacity, 'level');
 };
 
 const validateCheckpoint = (checkpoint: RuntimeCheckpoint): void => {
