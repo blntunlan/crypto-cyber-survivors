@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-003` |
-| Status | `Verification` — lifecycle and reset contract implemented |
+| Active task | `V2-004` |
+| Status | `Ready` — typed-array ECS world is next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -87,16 +87,21 @@
   increments, disposal from every live phase, and post-dispose command rejection.
 - The combined Game V2 suite passed 5 files and 59 tests. V2-003 focused ESLint,
   Prettier, and `npm run typecheck` also passed.
+- V2-003 review found one missing idle-phase illegal-transition test row. Fix
+  commit `2ae0a48f` added pause/resume/end-run rejection coverage, preserved
+  phase/epoch assertions, and passed scoped re-review. Accepted commits are
+  `2efbed75` and `2ae0a48f`.
 
 ## Verification Required
 
-1. Run task-scoped spec and quality review for V2-003.
-2. Confirm the accepted Task 4 commit, then begin V2-004.
+1. Implement V2-004 fixed-capacity typed-array entity/component storage.
+2. Prove stale handles, capacity overflow, reset invalidation, component masks,
+   and complete numeric-store clearing with focused tests.
 
 ## Exact Next Action
 
-Complete the scoped V2-003 review, then generate the Task 5 SDD brief and
-dispatch the V2-004 ECS implementer from the accepted Task 4 head.
+Generate the Task 5 SDD brief and dispatch the V2-004 ECS implementer from the
+accepted Task 4 head.
 
 ## Known Pre-existing Working-tree Changes
 
