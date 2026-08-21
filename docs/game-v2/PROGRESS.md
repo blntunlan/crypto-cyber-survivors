@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-004` |
-| Status | `Verification` — typed-array ECS world implemented; acceptance review next |
+| Active task | `V2-005` |
+| Status | `Ready` — canonical snapshot and replay hash are next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -103,26 +103,29 @@
   output had 3 expected failures: final-generation destruction incorrectly
   retained the slot, the retired sentinel could be issued, and reset aged an
   already-free generation.
-- V2-004 GREEN focused verification passed 24 tests. Coverage includes stale,
+- V2-004 GREEN focused verification passed 27 tests. Coverage includes stale,
   unsafe, non-finite, fractional, negative, and cross-generation handles;
   zero/unknown masks; capacity bounds; every authoritative component-store
   clear; reset invalidation; deterministic active free-stack prefix order; and
   permanent final-generation slot retirement.
-- V2-004 final verification passed: the Game V2 suite (6 files, 83 tests),
+- V2-004 review required mutation-sensitive proof of the valid 4,096 capacity
+  boundary, empty-slot liveness masks, and exact unique component-bit positions.
+  Test-only fix commit `7a7f598a` killed all three mutants and passed scoped
+  re-review; accepted commits are `84c02928` and `7a7f598a`.
+- V2-004 final verification passed: the Game V2 suite (6 files, 86 tests),
   `npm run typecheck`, `npm run check:architecture`, focused ESLint, and
   focused Prettier.
 
 ## Verification Required
 
-1. Review V2-004 fixed-capacity typed-array entity/component storage and its
-   deterministic checkpoint-reader surface.
-2. After acceptance, implement V2-005 snapshot and replay hash against the
-   active `freeSlots` prefix, `freeSlotCount`, and `activeCount` contract.
+1. Implement V2-005 canonical world/runtime checkpoints and stable FNV-1a hash.
+2. Add fixed-capacity per-tick input and paused-command recorders, including
+   overflow and invalid-input rejection.
 
 ## Exact Next Action
 
-Perform the V2-004 implementation review from commit `c23c061c`, then continue
-with V2-005 only after its acceptance evidence is recorded.
+Generate the Task 6 SDD brief and dispatch the V2-005 replay/checkpoint
+implementer from the accepted V2-004 head.
 
 ## Known Pre-existing Working-tree Changes
 
