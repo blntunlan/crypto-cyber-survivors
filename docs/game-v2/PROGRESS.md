@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-004` |
-| Status | `Ready` — typed-array ECS world is next |
+| Status | `Verification` — typed-array ECS world implemented; acceptance review next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -91,17 +91,38 @@
   commit `2ae0a48f` added pause/resume/end-run rejection coverage, preserved
   phase/epoch assertions, and passed scoped re-review. Accepted commits are
   `2efbed75` and `2ae0a48f`.
+- V2-004 introduced a fixed-capacity, typed-array ECS world with world-local
+  arithmetic entity handles, `Uint32Array` generations, deterministic
+  preallocated free-slot storage, complete MVP-0 component stores, and
+  allocation-free all-bit component queries.
+- V2-004 TDD RED command:
+  `npx vitest run tests/game-v2/world/World.test.ts --pool=forks --maxWorkers=1`
+  failed because the ECS world and component-mask modules did not exist.
+- V2-004 follow-up RED tests caught a retired-slot reset stack reconstruction
+  defect, then a generation-sentinel/empty-slot reset defect. The final RED
+  output had 3 expected failures: final-generation destruction incorrectly
+  retained the slot, the retired sentinel could be issued, and reset aged an
+  already-free generation.
+- V2-004 GREEN focused verification passed 24 tests. Coverage includes stale,
+  unsafe, non-finite, fractional, negative, and cross-generation handles;
+  zero/unknown masks; capacity bounds; every authoritative component-store
+  clear; reset invalidation; deterministic active free-stack prefix order; and
+  permanent final-generation slot retirement.
+- V2-004 final verification passed: the Game V2 suite (6 files, 83 tests),
+  `npm run typecheck`, `npm run check:architecture`, focused ESLint, and
+  focused Prettier.
 
 ## Verification Required
 
-1. Implement V2-004 fixed-capacity typed-array entity/component storage.
-2. Prove stale handles, capacity overflow, reset invalidation, component masks,
-   and complete numeric-store clearing with focused tests.
+1. Review V2-004 fixed-capacity typed-array entity/component storage and its
+   deterministic checkpoint-reader surface.
+2. After acceptance, implement V2-005 snapshot and replay hash against the
+   active `freeSlots` prefix, `freeSlotCount`, and `activeCount` contract.
 
 ## Exact Next Action
 
-Generate the Task 5 SDD brief and dispatch the V2-004 ECS implementer from the
-accepted Task 4 head.
+Perform the V2-004 implementation review from commit `c23c061c`, then continue
+with V2-005 only after its acceptance evidence is recorded.
 
 ## Known Pre-existing Working-tree Changes
 
