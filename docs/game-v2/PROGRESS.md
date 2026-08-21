@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-012` (not started) |
-| Status | `Done` — V2-011 accepted after review fix round 1 |
+| Active task | `V2-013` (not started) |
+| Status | `Done` — V2-012 accepted after independent review and a hardening round |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -431,18 +431,135 @@
   commit carrying this checkpoint,
   `refactor(game-v2): centralize entity handle encoding in World`, whose SHA is
   recorded in the next checkpoint because a commit cannot contain its own hash.
+- V2-012 was the first task delegated to the Antigravity CLI (`agy`,
+  `gemini-3.7-flash-high`) instead of a Claude subagent. The orchestrator wrote
+  the spec, agy wrote the code, and the orchestrator reviewed the diff and
+  applied the fixes below. The wrapper run is recorded under
+  `.agy-runs/1787348980031-v2-012-combat/`; it exited `ERROR` despite producing
+  a complete report and all four files, so the result was treated as unverified
+  until independently checked.
+- Before delegating, `GEMINI.md` gained a Game V2 section. It previously
+  described only the legacy runtime, so it instructed a delegate to reach for
+  `PoolManager`, `SpatialGrid` and `TimeService` — all forbidden imports inside
+  `game-v2/**`.
+- V2-012 added `CombatSystem`, the `CombatStepResult` contract, and an injected
+  `CollisionCandidateProvider` whose bounded ascending-slot default is the MVP-0
+  production path. Step order is fixed: projectile-to-enemy, then
+  enemy-to-player contact, then the death latch.
+- Constants were derived from stated properties rather than chosen, and each
+  property is asserted: `PLAYER_MAX_HEALTH = 100` survives 6 contact hits
+  (inside the required 3..8 band), `ENEMY_CONTACT_COOLDOWN_SECONDS = 1.0` yields
+  6.0 s to die against the required `2 * DASH_COOLDOWN_SECONDS = 5.0` s, and
+  `COMBAT_KILL_BUFFER_CAPACITY = 32` exceeds the 4 physically concurrent
+  projectiles. A config test also pins 0.2333 units of per-tick projectile
+  travel below the 0.8-unit combined collision radius, so discrete collision
+  cannot tunnel.
+- V2-012 initial TDD RED command:
+  `npx vitest run tests/game-v2/systems/CombatSystem.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution because `CombatSystem` did not exist.
+- The delegated mutation pass covered six mutants: multi-enemy projectile
+  damage (4 kills), skipped projectile release (6), post-destroy kill-position
+  reads (3), i-frames consuming the contact cooldown (1), a latch-free
+  `playerDied` (1), and reversed step order (1).
+- Orchestrator review found one Critical defect. `PLAYER_MAX_HEALTH` and
+  `PLAYER_RADIUS` had no writer anywhere in `game-v2/**`: only the test helper
+  assigned them. In production the player would have entered every run with a
+  zeroed slot, so `CombatSystem.step` would have latched `playerDied` on its
+  first call and contact overlap would have been measured against a zero-radius
+  player. The whole suite was green because every test supplied those values by
+  hand. The fix adds `CombatSystem.resetPlayer`, mirroring
+  `DashSystem.resetPlayer` and `WeaponSystem.resetPlayer`; V2-014 composition
+  calls all three.
+- Orchestrator review found one Important defect. Kill-buffer overflow threw
+  after `world.health[enemySlot]` had already been written, leaving a damaged
+  but undestroyed enemy behind. The capacity check now runs before any mutation.
+  Rejection is atomic for the enemy that could not be recorded; kills already
+  recorded earlier in the same tick still stand, which is accepted because the
+  throw signals a broken invariant rather than a recoverable condition.
+- Orchestrator review removed two dead alias constants, `PLAYER_HEALTH` and
+  `KILL_BUFFER_CAPACITY`, which duplicated names for values nothing imported.
+- Both orchestrator fixes are mutation-proved. A no-op `resetPlayer` fails 3 of
+  the 30 focused tests; moving the capacity check back after the health write
+  fails 1. Production restored to 30/30.
+- `CombatSystem.step(world, playerEntity, context)` takes the player handle as
+  its second argument, unlike the two-argument snippet in Task 13 of the MVP-0
+  plan. The three-argument form matches `DashSystem`, `MovementSystem`, and
+  `WeaponSystem`; the plan snippet is superseded on this point only.
+- Known limitation carried into V2-013: no production code constructs the player
+  entity yet, so the mandated real-path test still builds it through a helper
+  while driving real `EnemySystem` and `WeaponSystem` behaviour. A production
+  player factory arrives with V2-014 composition.
+- An independent review of the uncommitted V2-012 change set confirmed both
+  orchestrator fixes. `resetPlayer` is the only production writer of the player's
+  health, max health and radius, and the kill-buffer capacity check provably
+  precedes every world mutation. The reviewer ran 23 mutants and restored the
+  file byte-identically, verified by hash and by `diff`.
+- The review found no Critical defect and five Important gaps, all of them
+  contracts that no test pinned. Every one is now closed in this checkpoint and
+  each fix is mutation-proved.
+- `CombatSystem` no longer latches player death. `playerDied` is derived from the
+  player's health at step entry, so the system holds no per-run state at all and
+  `reset()` was removed. This is decision V2-ADR-025: `RuntimeCheckpoint` carries
+  `World` and not system fields, so a locally latched death would have been
+  re-announced after a restore and ended the run twice.
+- `CombatSystem.step` now requires `Body` on the player and rejects a player
+  whose `maxHealth` is still zero (decision V2-ADR-026). The first prevented a
+  silent zero-radius contact hitbox; the second is what keeps a missing
+  `resetPlayer` loud now that death is derived from health rather than latched.
+- `resolveContactDamage` validates enemy position and radius before touching the
+  contact cooldown. A `NaN` coordinate previously failed both overlap
+  rejections, so a corrupt enemy would have damaged the player from any
+  distance while `findCollidingEnemy` threw on the same input.
+- Four contracts that passed by luck are now pinned: exactly `killCapacity` kills
+  in one tick must succeed (both prior overflow tests overshot the bound, so
+  tightening it by one survived), the lowest-slot tie-break between co-located
+  enemies (it feeds `StateHasher` and therefore the replay hash), the inclusive
+  exact-touch boundary on both combat loops, and enemy contact cooldowns
+  continuing to advance during dash i-frames.
+- The hardening round's mutation table, focused suite of 40 tests:
+  capacity bound tightened by one 1; descending collision scan 1; projectile
+  exact-touch made exclusive 1; contact exact-touch made exclusive 1; i-frames
+  freezing the cooldown 1; contact-loop `NaN` guard removed 1; projectile-loop
+  `NaN` guard removed 1; death edge reverted to a raw health check 2;
+  `resetPlayer` initialization guard removed 1. Production was restored
+  byte-identically after every mutant, verified by sha256.
+- One mutant exposed a test that passed for the wrong reason. The first
+  projectile-loop `NaN` assertion was written against `step`, where the contact
+  loop throws for the same enemy, so deleting the guard under test still passed.
+  It was rewritten against `CollisionCandidateProvider.findCollidingEnemy`
+  directly and now kills the mutant.
+- Deferred deliberately, with reasons: `World.capacity` is private with no public
+  accessor, so all five systems bound their loops with `world.masks.length`; a
+  `World.slotCount` getter is a repo-wide follow-up, not a V2-012 regression.
+  Kill records already written before an overflow throw are still lost rather
+  than deferred, which stays accepted because the throw signals a broken
+  invariant. The `health <= 0` skip in `findCollidingEnemy` is unreachable in
+  production and stays as a defensive guard.
+- Bookkeeping correction to the entry above: the V2-012 diff to `Mvp0Config.ts`
+  adds five constants across seven lines, not seven constants. All five are read
+  from production code.
+- Post-hardening verification: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+  passes 16 files and 395 tests, up from 385 by the ten new CombatSystem tests
+  only. `npm run typecheck`, `npm run check:architecture` (89 baseline singleton
+  files) and focused ESLint all pass. No existing assertion was weakened.
 
 ## Verification Required
 
-1. Implement V2-012 collision, damage, and death: exactly-once projectile
-   damage, contact damage at its authored cadence, dash i-frame rejection,
-   entity destruction, the game-over signal, and the preallocated kill-event
-   buffer.
+1. Implement V2-013 XP pickup and one level-up: pooled pickup spawned from the
+   kill buffer, walk-over collection, the first threshold advancing level 1 to 2
+   with surplus XP retained, the lifecycle pausing at `level-up`, one upgrade
+   choice recorded as a `RunCommand` at the paused tick, and the starter weapon
+   damage upgrade proving itself in fewer hits to kill.
 
 ## Exact Next Action
 
-Generate the V2-012 task brief (collision, damage, and death) and dispatch its
-implementer from the accepted V2-011 checkpoint.
+Delegate V2-013 from the written brief. The brief fixes the seams the delegate
+must not invent: `ProgressionSystem` takes `GameV2Lifecycle`, `CommandRecorder`
+and `WeaponSystem` as required constructor dependencies; it never writes
+`world.weaponDamage` itself but calls a new `WeaponSystem.applyDamageUpgrade`, so
+V2-ADR-024's one-writer rule survives; `resolveUpgrade` records the command
+before mutating; the pickup batch rejects atomically on capacity; and constants
+are derived from stated properties rather than chosen.
 
 ## Known Pre-existing Working-tree Changes
 
