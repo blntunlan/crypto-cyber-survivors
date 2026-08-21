@@ -81,6 +81,11 @@ function assertSpawnRequest(request: unknown): asserts request is EnemySpawnRequ
         'ring center must be finite and radius must be finite and non-negative'
       );
     }
+
+    assertFiniteCoordinate(candidate.centerX + candidate.radius);
+    assertFiniteCoordinate(candidate.centerX - candidate.radius);
+    assertFiniteCoordinate(candidate.centerY + candidate.radius);
+    assertFiniteCoordinate(candidate.centerY - candidate.radius);
     return;
   }
 

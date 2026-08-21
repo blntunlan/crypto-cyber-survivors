@@ -277,6 +277,36 @@
 - The complete Game V2 suite passed 13 files and 308 tests. Typecheck,
   architecture (89 baseline singleton files), focused ESLint, and focused
   Prettier also passed.
+- V2-010 fix round 1 closed an unobserved RNG-consumption defect. A well-formed
+  ring request whose geometry cannot survive Float32 storage
+  (`{ type: 'ring', centerX: 3e38, centerY: 0, radius: 3e38 }`) passed
+  `assertSpawnRequest`, consumed one `rng.nextFloat()` sample, and only then
+  threw from the post-sample `assertFiniteCoordinate` calls. The existing
+  `'rejects coordinates that cannot remain finite in ECS storage'` test asserted
+  the throw but never the sample count, so the consumption was unlocked.
+- Fix-round RED command:
+  `npx vitest run tests/game-v2/systems/EnemySystem.test.ts --pool=forks --maxWorkers=1`
+  failed 1 of 33 enemy tests after the test was extended with an injected
+  sample-counting `nextFloat` stub. The ring row reported
+  `AssertionError: expected 1 to be +0` at `expect(samples).toBe(0)`; the point
+  row already consumed no sample.
+- The ring branch of `assertSpawnRequest` now validates the four worst-case
+  reachable coordinates (`centerX ± radius`, `centerY ± radius`) with the
+  existing `assertFiniteCoordinate` helper before any RNG sample is drawn.
+  Because `cos`/`sin` stay in `[-1, 1]`, every reachable spawn coordinate lies
+  inside those bounds. The post-sample `assertFiniteCoordinate(spawnX)` and
+  `assertFiniteCoordinate(spawnY)` calls remain as defence in depth.
+- Mutation proof: temporarily removing the four pre-sample assertions returned
+  the focused pair to 1 failed / 59 passed of 60; restoring them returned it to
+  60 passed of 60.
+- Fix-round verification passed
+  `npx vitest run tests/game-v2/systems/EnemySystem.test.ts tests/game-v2/world/World.test.ts --pool=forks --maxWorkers=1`
+  (2 files, 60 tests) and `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+  (13 files, 308 tests). `npm run typecheck`, focused ESLint on
+  `game-v2/systems/EnemySystem.ts` and
+  `tests/game-v2/systems/EnemySystem.test.ts`, and focused Prettier on the same
+  two files also passed. No other spawn path changed and no existing assertion
+  was weakened.
 
 ## Verification Required
 

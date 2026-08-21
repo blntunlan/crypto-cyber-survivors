@@ -226,10 +226,12 @@ describe('EnemySystem', () => {
   ])('rejects coordinates that cannot remain finite in ECS storage', request => {
     const { world } = createWorldWithPlayer();
     const enemySystem = new EnemySystem();
+    let samples = 0;
 
     expect(() =>
-      enemySystem.spawnEnemy(world, { nextFloat: () => 0 }, request)
+      enemySystem.spawnEnemy(world, { nextFloat: () => (samples += 1) }, request)
     ).toThrow(RangeError);
+    expect(samples).toBe(0);
     expect(world.activeCount).toBe(1);
   });
 
