@@ -28,3 +28,13 @@ export const ENEMY_MOVE_SPEED = 2.2;
 export const ENEMY_CONTACT_DAMAGE = 15;
 export const ENEMY_XP_VALUE = 5;
 export const ENEMY_FACTION = -1;
+export const WEAPON_RANGE = 12;
+export const WEAPON_COOLDOWN_SECONDS = 0.5;
+export const WEAPON_COOLDOWN_TICKS = Math.ceil(WEAPON_COOLDOWN_SECONDS * SIMULATION_HZ);
+export const PROJECTILE_SPEED = 14;
+export const PROJECTILE_DAMAGE = 10;
+export const PROJECTILE_RADIUS = 0.2;
+export const PROJECTILE_LIFETIME_SECONDS = 1.5;
+export const PROJECTILE_LIFETIME_TICKS = Math.ceil(
+  PROJECTILE_LIFETIME_SECONDS * SIMULATION_HZ
+);

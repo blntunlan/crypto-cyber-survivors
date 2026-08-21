@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-011` |
-| Status | `In Progress` — auto-target and the first weapon are next |
+| Status | `Verification` — V2-011 implemented and verified; independent review pending |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -308,17 +308,90 @@
   two files also passed. No other spawn path changed and no existing assertion
   was weakened.
 
+- V2-011 added `TargetingSystem` (deterministic nearest-target selection) and
+  `WeaponSystem` (fixed-tick auto-fire, pooled projectile spawn, projectile
+  integration, lifetime countdown, and pool return). `Mvp0Config.ts` gained
+  `WEAPON_RANGE = 12`, `WEAPON_COOLDOWN_SECONDS = 0.5`,
+  `WEAPON_COOLDOWN_TICKS = Math.ceil(0.5 * SIMULATION_HZ) = 30`,
+  `PROJECTILE_SPEED = 14`, `PROJECTILE_DAMAGE = 10`, `PROJECTILE_RADIUS = 0.2`,
+  `PROJECTILE_LIFETIME_SECONDS = 1.5`, and
+  `PROJECTILE_LIFETIME_TICKS = Math.ceil(1.5 * SIMULATION_HZ) = 90`.
+  `contracts/EntityId.ts` gained `NO_ENTITY = -1`; `0` is a valid handle
+  (generation 0, slot 0) and cannot serve as a sentinel.
+- `PROJECTILE_RADIUS = 0.2` is one third of `ENEMY_RADIUS = 0.6`, so a
+  projectile never reads as an enemy, and its 0.4-unit diameter is 2.2 percent
+  of `TOP_DOWN_CAMERA_VISIBLE_HEIGHT = 18`. Per-tick travel at
+  `PROJECTILE_SPEED = 14` is 0.2333 units, well under the 1.6-unit combined
+  projectile/enemy diameter, so V2-012 can use a discrete overlap test without
+  tunnelling. A config test locks that inequality.
+- Targeting scans slots ascending, requires the all-bit candidate mask
+  `Transform | Enemy | Health`, gates on `health > 0`, validates the player
+  boundary and every scanned enemy before returning, and never mutates the
+  World. The `WEAPON_RANGE` boundary is inclusive: an enemy at exactly 12 units
+  is a valid target, and both the exact boundary and the next representable
+  distance beyond it are tested. Overflow safety rejects any candidate whose
+  larger axis exceeds `WEAPON_RANGE` before squaring, so the squared term stays
+  bounded by `2 * WEAPON_RANGE^2` even at the Float32 coordinate limit.
+- `WeaponSystem.step` decrements the cooldown before the fire test, producing
+  fires at ticks 0, 30, 60 and 90 across 120 ticks rather than 0, 31, 62.
+  A tick with no target creates no projectile and does not re-arm the cooldown,
+  so the weapon fires on the first tick a target exists. Firing is refused
+  atomically when `world.freeSlotCount` is zero — the guard runs before the
+  projectile-advance pass, so no live projectile is partially advanced on the
+  rejection path.
+- Projectiles spawn at the player position with `x`, `y`, `previousX`,
+  `previousY`, `velocityX`, `velocityY`, `radius`, `projectileDamage`, and
+  `projectileLifetimeTicksRemaining` all written. Damage is copied from the
+  player's `weaponDamage`, which `resetPlayer` initializes to
+  `PROJECTILE_DAMAGE`, so V2-013 upgrades need no new store. Zero-distance
+  targets fall back to normalized `lastFacingX/lastFacingY` and then to a fixed
+  positive-X axis, so a NaN or Infinity velocity component is impossible.
+  Integration captures `previousX/previousY` before moving.
+- V2-011 TDD RED command:
+  `npx vitest run tests/game-v2/systems/TargetingSystem.test.ts tests/game-v2/systems/WeaponSystem.test.ts --pool=forks --maxWorkers=1`
+  failed both files during module resolution with
+  `Failed to resolve import "@/game-v2/systems/TargetingSystem"` and
+  `Failed to resolve import "@/game-v2/systems/WeaponSystem"`, reporting
+  `Test Files 2 failed (2)` and `Tests no tests`.
+- A nine-mutant deliberate pass ran against the 35 focused tests. Failures per
+  mutant: targeting all-bit mask to any-bit 15; projectile all-bit mask to
+  any-bit 12; tie-break `<` to `<=` 2; inverted decrement/fire order 1; removed
+  capacity guard 1; previous-position captured after integration 1; inclusive
+  range boundary made exclusive 1; lifetime countdown and pool return removed 3;
+  zero-distance direction fallback removed 3. Two fixtures were strengthened
+  because they first killed too little: test players now own `Health` with
+  positive health and the mask decoys carry positive health (the any-bit mutant
+  went from 1 kill to 15), and the capacity-refusal fixture now holds a live
+  projectile so the guard's atomicity is observable (that mutant went from 0
+  kills to 1). The production implementation was restored and re-verified green
+  after every mutant.
+- V2-011 deviates from two lines of the plan's Task 12 by orchestrator decision,
+  recorded as `V2-ADR-021` and `V2-ADR-022`: the "RNG only for exact-distance
+  tie resolution" interface line is superseded by zero-RNG ascending-slot
+  tie-breaking, and projectile integration, lifetime countdown, and pool return
+  are owned by V2-011 instead of being left unowned. Collision, damage, and
+  death remain V2-012 scope.
+- V2-011 focused GREEN verification passed 2 files and 35 tests. The complete
+  Game V2 suite passed 15 files and 343 tests, up from the 13 files and 308
+  tests of the accepted V2-010 checkpoint. `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files), focused ESLint,
+  and focused Prettier on all six changed files also passed. No production
+  `services/**` file, legacy demo file, `EnemySystem`, `DashSystem`,
+  `MovementSystem`, `World`, or `RenderSnapshotWriter` was modified.
+
 ## Verification Required
 
-1. Implement V2-011 deterministic nearest-target selection and the first
-   fixed-tick automatic weapon.
-2. Verify pooled projectile spawn cadence, tie-breaking, lifetime, and complete
-   generation-safe reuse initialization.
+1. Independently review V2-011 targeting determinism, weapon cadence,
+   capacity-refusal atomicity, and generation-safe projectile reuse.
+2. Implement V2-012 collision, damage, and death: exactly-once projectile
+   damage, contact damage at its authored cadence, dash i-frame rejection,
+   entity destruction, the game-over signal, and the preallocated kill-event
+   buffer.
 
 ## Exact Next Action
 
-Generate the V2-011 task brief and dispatch its implementer from the accepted
-V2-010 checkpoint after independent review.
+Generate the V2-012 task brief (collision, damage, and death) and dispatch its
+implementer from the accepted V2-011 checkpoint after independent review.
 
 ## Known Pre-existing Working-tree Changes
 
