@@ -252,6 +252,8 @@
 - V2-009 focused GREEN verification passed 59 tests. The complete Game V2 suite
   passed 12 files and 275 tests; typecheck, architecture, and focused ESLint
   also passed before the checkpoint commit.
+- V2-009 passed independent task review on its first round. The accepted commit
+  is `da5abd0b`; no Critical, Important, or Minor findings remain.
 
 ## Verification Required
 
@@ -261,8 +263,8 @@
 
 ## Exact Next Action
 
-Generate the V2-010 task brief and dispatch its implementer from the V2-009
-checkpoint after independent task review.
+Generate the V2-010 task brief and dispatch its implementer from the accepted
+V2-009 checkpoint.
 
 ## Known Pre-existing Working-tree Changes
 
