@@ -411,6 +411,49 @@ function spawnProjectileFan(
 
 // ─── Shared: Targeting (SpatialGrid + Viewport) ─────────────────────────
 
+// Pre-allocated context for zero-allocation targeting queries
+const TARGETING_CONTEXT = {
+  playerX: 0,
+  playerY: 0,
+  bestX: 0,
+  bestY: 0,
+  bestDistSq: Infinity,
+  bestSpeed: 0,
+  found: false,
+  viewportBounds: null as import('../renderers/CullingUtils').ViewportBounds | null,
+};
+
+function checkEnemyCandidate(
+  enemy: {
+    x: number;
+    y: number;
+    speed: number;
+    radius?: number;
+    isDying?: boolean;
+    active?: boolean;
+  },
+  ctx: typeof TARGETING_CONTEXT
+) {
+  if (enemy.isDying || !enemy.active) return;
+
+  if (ctx.viewportBounds) {
+    const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    if (!isCircleVisible(enemy.x, enemy.y, r, ctx.viewportBounds)) return;
+  }
+
+  const dx = enemy.x - ctx.playerX;
+  const dy = enemy.y - ctx.playerY;
+  const distSq = dx * dx + dy * dy;
+
+  if (distSq < ctx.bestDistSq) {
+    ctx.bestX = enemy.x;
+    ctx.bestY = enemy.y;
+    ctx.bestDistSq = distSq;
+    ctx.bestSpeed = enemy.speed;
+    ctx.found = true;
+  }
+}
+
 function findNearestEnemy(
   pool: IPoolManager,
   playerX: number,
@@ -423,60 +466,35 @@ function findNearestEnemy(
       ? createViewportBounds(screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
       : null;
 
-  let bestX = 0;
-  let bestY = 0;
-  let bestDistSq = Infinity;
-  let bestSpeed = 0;
-  let found = false;
-
-  const checkEnemy = (enemy: {
-    x: number;
-    y: number;
-    speed: number;
-    radius?: number;
-    isDying?: boolean;
-    active?: boolean;
-  }) => {
-    if (enemy.isDying || !enemy.active) return;
-
-    if (viewportBounds) {
-      const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-      if (!isCircleVisible(enemy.x, enemy.y, r, viewportBounds)) return;
-    }
-
-    const dx = enemy.x - playerX;
-    const dy = enemy.y - playerY;
-    const distSq = dx * dx + dy * dy;
-
-    if (distSq < bestDistSq) {
-      bestX = enemy.x;
-      bestY = enemy.y;
-      bestDistSq = distSq;
-      bestSpeed = enemy.speed;
-      found = true;
-    }
-  };
+  const ctx = TARGETING_CONTEXT;
+  ctx.playerX = playerX;
+  ctx.playerY = playerY;
+  ctx.bestDistSq = Infinity;
+  ctx.found = false;
+  ctx.viewportBounds = viewportBounds;
 
   // Step 1: SpatialGrid 3x3 (immediate surroundings)
-  enemyGrid.forEachInRange(playerX, playerY, 1, checkEnemy);
+  enemyGrid.forEachInRangeWithContext(playerX, playerY, 1, ctx, checkEnemyCandidate);
 
   // Step 2: SpatialGrid 7x7 (extended range)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
-    enemyGrid.forEachInRange(playerX, playerY, 3, checkEnemy);
+  if (!ctx.found) {
+    enemyGrid.forEachInRangeWithContext(playerX, playerY, 3, ctx, checkEnemyCandidate);
   }
 
   // Step 3: Fallback brute-force for edge-of-viewport enemies
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
+  if (!ctx.found) {
     const enemies = pool.activeEnemies;
     for (let i = 0; i < enemies.length; i++) {
-      checkEnemy(enemies[i]!);
+      const enemy = enemies[i];
+      if (enemy === undefined) continue;
+      checkEnemyCandidate(enemy, ctx);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return found
-    ? { x: bestX, y: bestY, dist: Math.sqrt(bestDistSq), speed: bestSpeed }
+  return ctx.found
+    ? { x: ctx.bestX, y: ctx.bestY, dist: Math.sqrt(ctx.bestDistSq), speed: ctx.bestSpeed }
     : null;
 }

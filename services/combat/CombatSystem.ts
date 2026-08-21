@@ -132,6 +132,44 @@ export class CombatSystem implements ICombatSystem {
     return true;
   }
 
+  // Pre-allocated context for zero-allocation targeting queries
+  private static readonly TARGETING_CONTEXT = {
+    playerX: 0,
+    playerY: 0,
+    bestX: 0,
+    bestY: 0,
+    bestDistSq: Infinity,
+    bestSpeed: 0,
+    found: false,
+    viewportBounds: null as import('../renderers/CullingUtils').ViewportBounds | null,
+  };
+
+  private static checkEnemyCandidate(
+    enemy: { x: number; y: number; speed: number; radius?: number; isDying?: boolean; active?: boolean },
+    ctx: typeof CombatSystem.TARGETING_CONTEXT
+  ) {
+    if (enemy.isDying || !enemy.active) return;
+
+    if (ctx.viewportBounds) {
+      const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+      if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, ctx.viewportBounds)) {
+        return;
+      }
+    }
+
+    const dx = enemy.x - ctx.playerX;
+    const dy = enemy.y - ctx.playerY;
+    const distSq = dx * dx + dy * dy;
+
+    if (distSq < ctx.bestDistSq) {
+      ctx.bestX = enemy.x;
+      ctx.bestY = enemy.y;
+      ctx.bestDistSq = distSq;
+      ctx.bestSpeed = enemy.speed;
+      ctx.found = true;
+    }
+  }
+
   /**
    * Search for the nearest on-screen enemy to the player.
    * Uses squared distance calculation for optimal loop performance.
@@ -150,89 +188,42 @@ export class CombatSystem implements ICombatSystem {
         ? createViewportBounds(screenWidth, screenHeight, 0)
         : null;
 
-    let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
-      null;
+    const ctx = CombatSystem.TARGETING_CONTEXT;
+    ctx.playerX = player.x;
+    ctx.playerY = player.y;
+    ctx.bestDistSq = Infinity;
+    ctx.found = false;
+    ctx.viewportBounds = viewportBounds;
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
     // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRange(player.x, player.y, 1, enemy => {
-      // Skip dead or dying enemies
-      if (enemy.isDying || !enemy.active) {
-        return;
-      }
-
-      // Optimized viewport check - only calculate if bounds exist
-      if (viewportBounds) {
-        const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-        if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
-          return;
-        }
-      }
-
-      const dx = enemy.x - player.x;
-      const dy = enemy.y - player.y;
-      const distSq = dx * dx + dy * dy;
-
-      if (!bestCandidate || distSq < bestCandidate.distSq) {
-        bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-      }
-    });
+    enemyGrid.forEachInRangeWithContext(player.x, player.y, 1, ctx, CombatSystem.checkEnemyCandidate);
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
-      enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
-        if (enemy.isDying || !enemy.active) return;
-
-        if (viewportBounds) {
-          const enemyRadius =
-            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) return;
-        }
-
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distSq = dx * dx + dy * dy;
-
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-        }
-      });
+    if (!ctx.found) {
+      enemyGrid.forEachInRangeWithContext(player.x, player.y, 3, ctx, CombatSystem.checkEnemyCandidate);
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
     // This handles edge cases where enemies are at the very edges of wide viewports.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
+    if (!ctx.found) {
       const enemies = pool.activeEnemies;
       for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i]!;
-        if (enemy.isDying || !enemy.active) continue;
-
-        // Optimized viewport check in fallback scan
-        if (viewportBounds) {
-          const enemyRadius =
-            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
-            continue;
-          }
-        }
-
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distSq = dx * dx + dy * dy;
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-        }
+        const enemy = enemies[i];
+        if (enemy === undefined) continue;
+        CombatSystem.checkEnemyCandidate(enemy, ctx);
       }
     }
 
-    return bestCandidate
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    return ctx.found
       ? {
-          x: bestCandidate.x,
-          y: bestCandidate.y,
-          dist: Math.sqrt(bestCandidate.distSq),
-          speed: bestCandidate.speed,
+          x: ctx.bestX,
+          y: ctx.bestY,
+          dist: Math.sqrt(ctx.bestDistSq),
+          speed: ctx.bestSpeed,
         }
       : null;
   }
