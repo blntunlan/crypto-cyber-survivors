@@ -1,5 +1,5 @@
 import { type EntityId } from '@/game-v2/contracts/EntityId';
-import { ComponentMask } from '@/game-v2/world/ComponentMask';
+import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
 import { describe, expect, it } from 'vitest';
 
@@ -37,15 +37,27 @@ const componentStores = (world: World): Array<ArrayLike<number>> => [
   world.xpPickupValue,
 ];
 
-const seedEveryComponentStore = (world: World, slot: number): void => {
+const seedEveryComponentStore = (world: World, slot: number, firstValue = 1): void => {
   const stores = componentStores(world);
 
   for (let index = 0; index < stores.length; index += 1) {
     const store = stores[index];
 
     if (store) {
-      (store as { [slot: number]: number })[slot] = index + 1;
+      (store as { [slot: number]: number })[slot] = index + firstValue;
     }
+  }
+};
+
+const expectEveryComponentStoreToRetainValues = (
+  world: World,
+  slot: number,
+  firstValue: number
+): void => {
+  const stores = componentStores(world);
+
+  for (let index = 0; index < stores.length; index += 1) {
+    expect(stores[index]?.[slot]).toBe(index + firstValue);
   }
 };
 
@@ -58,12 +70,58 @@ const expectEveryComponentStoreToBeCleared = (world: World, slot: number): void 
 };
 
 describe('World', () => {
+  it('assigns every component bit to its unique canonical position', () => {
+    const bits = [
+      ComponentMask.Transform,
+      ComponentMask.Velocity,
+      ComponentMask.Body,
+      ComponentMask.Health,
+      ComponentMask.Faction,
+      ComponentMask.Player,
+      ComponentMask.Enemy,
+      ComponentMask.Projectile,
+      ComponentMask.XpPickup,
+    ];
+    let combinedMask = 0;
+
+    for (let index = 0; index < bits.length; index += 1) {
+      const bit = bits[index];
+
+      expect(bit).toBe(1 << index);
+      combinedMask |= bit ?? 0;
+    }
+
+    expect(new Set(bits).size).toBe(9);
+    expect(combinedMask).toBe(ALL_COMPONENT_MASK);
+  });
+
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4097])(
     'rejects invalid capacity %s before a world exists',
     capacity => {
       expect(() => new World(capacity)).toThrow(RangeError);
     }
   );
+
+  it('allocates the locked 4096-slot capacity with complete fixed stores', () => {
+    const world = new World(4096);
+    const stores = componentStores(world);
+
+    expect(world.masks).toHaveLength(4096);
+    expect(world.generations).toHaveLength(4096);
+    expect(world.freeSlots).toHaveLength(4096);
+    expect(world.freeSlotCount).toBe(4096);
+
+    for (let index = 0; index < stores.length; index += 1) {
+      expect(stores[index]).toHaveLength(4096);
+    }
+
+    const entity = world.createEntity(ComponentMask.Transform);
+
+    expect(world.slotOf(entity)).toBe(0);
+    expect(world.isAlive(entity)).toBe(true);
+    expect(world.activeCount).toBe(1);
+    expect(world.freeSlotCount).toBe(4095);
+  });
 
   it('reuses released slots in deterministic stack order while stale handles stay invalid', () => {
     const world = new World(4);
@@ -209,6 +267,33 @@ describe('World', () => {
     expect(world.freeSlotCount).toBe(freeSlotCountBefore);
     expect(world.health[slot]).toBe(17);
     expect(world.isAlive(replacement)).toBe(true);
+  });
+
+  it('rejects an unissued same-generation handle without mutating world storage', () => {
+    const world = new World(2);
+    const allocated = world.createEntity(ComponentMask.Transform);
+    const allocatedSlot = world.slotOf(allocated);
+    const unissuedHandle = 1 as EntityId;
+    const unissuedSlot = 1;
+    seedEveryComponentStore(world, allocatedSlot, 1);
+    seedEveryComponentStore(world, unissuedSlot, 101);
+
+    expect(world.isAlive(unissuedHandle)).toBe(false);
+    expect(() => world.slotOf(unissuedHandle)).toThrow('stale entity');
+    expect(() => world.destroyEntity(unissuedHandle)).toThrow('stale entity');
+    expect(() => world.hasComponents(unissuedHandle, ComponentMask.Transform)).toThrow(
+      'stale entity'
+    );
+
+    expect(world.activeCount).toBe(1);
+    expect(world.freeSlotCount).toBe(1);
+    expect(world.freeSlots[0]).toBe(1);
+    expect(world.masks[allocatedSlot]).toBe(ComponentMask.Transform);
+    expect(world.masks[unissuedSlot]).toBe(0);
+    expect(world.generations[allocatedSlot]).toBe(0);
+    expect(world.generations[unissuedSlot]).toBe(0);
+    expectEveryComponentStoreToRetainValues(world, allocatedSlot, 1);
+    expectEveryComponentStoreToRetainValues(world, unissuedSlot, 101);
   });
 
   it('invalidates every prior handle and clears all stores on reset', () => {
