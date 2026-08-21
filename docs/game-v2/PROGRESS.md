@@ -10,7 +10,7 @@
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
 | Active task | `V2-001` |
-| Status | `In Progress` — fixed-step simulation clock |
+| Status | `Verification` — fixed-step simulation clock |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -58,18 +58,22 @@
   positives.
 - V2-000 passed scoped re-review at `7f7fb1de`; commits
   `33a7a885`, `e95b049c`, and `7f7fb1de` are the accepted task range.
+- V2-001 TDD RED command:
+  `npx vitest run tests/game-v2/runtime/SimulationClock.test.ts --pool=forks --maxWorkers=1`
+  failed because `SimulationClock` did not exist.
+- V2-001 GREEN command:
+  `npx vitest run tests/game-v2/runtime/SimulationClock.test.ts --pool=forks --maxWorkers=1`
+  passed all 10 focused tests.
+- V2-001 `npm run typecheck` passed.
 
 ## Verification Required
 
-1. Execute V2-001 test-first from the implementation plan.
-2. Prove equal tick counts at 30/60/120 FPS, pause/reset behavior, invalid delta
-   rejection, render-delta cap, and catch-up/drop policy.
-3. Run task-scoped spec and quality review before V2-002.
+1. Commit the V2-001 implementation and focused tests.
+2. Run task-scoped self-review before V2-002.
 
 ## Exact Next Action
 
-Generate the Task 2 SDD brief and dispatch the fixed-step clock implementer from
-the accepted V2-000 head.
+Commit the V2-001 fixed-step clock and write its task report.
 
 ## Known Pre-existing Working-tree Changes
 
