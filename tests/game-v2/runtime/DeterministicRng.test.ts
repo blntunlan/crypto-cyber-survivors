@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createRunIdentity, type RunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { DeterministicRng, type RngSnapshot } from '@/game-v2/runtime/DeterministicRng';
 
@@ -75,26 +75,48 @@ describe('DeterministicRng', () => {
     expect([rng.nextUint32(), rng.nextUint32(), rng.nextUint32()]).toEqual(expected);
   });
 
-  it('rejects snapshots with the wrong schema or invalid state', () => {
+  it.each([
+    { schemaVersion: 2, state: 1 },
+    { schemaVersion: 1, state: 0 },
+    { schemaVersion: 1, state: Number.NaN },
+    { schemaVersion: 1, state: -1 },
+    { schemaVersion: 1, state: 0x1_0000_0000 },
+  ])('rejects invalid snapshot %j without mutating RNG state', invalidSnapshot => {
     const rng = new DeterministicRng(0x12345678);
+    rng.nextUint32();
+    const before = rng.snapshot();
+    const expectedRng = new DeterministicRng(0);
+    expectedRng.restore(before);
+    const expectedSequence = [
+      expectedRng.nextUint32(),
+      expectedRng.nextUint32(),
+      expectedRng.nextUint32(),
+    ];
 
-    expect(() =>
-      rng.restore({ schemaVersion: 2, state: 1 } as unknown as RngSnapshot)
-    ).toThrow(RangeError);
-    expect(() => rng.restore({ schemaVersion: 1, state: 0 })).toThrow(RangeError);
-    expect(() => rng.restore({ schemaVersion: 1, state: Number.NaN })).toThrow(
+    expect(() => rng.restore(invalidSnapshot as unknown as RngSnapshot)).toThrow(
       RangeError
     );
-    expect(() => rng.restore({ schemaVersion: 1, state: -1 })).toThrow(RangeError);
-    expect(() => rng.restore({ schemaVersion: 1, state: 0x1_0000_0000 })).toThrow(
-      RangeError
+    expect(rng.snapshot()).toEqual(before);
+    expect([rng.nextUint32(), rng.nextUint32(), rng.nextUint32()]).toEqual(
+      expectedSequence
     );
   });
 });
 
 describe('createRunIdentity', () => {
   it('returns an immutable schema-versioned identity without consuming randomness', () => {
-    const identity = createRunIdentity('run-42', 0x12345678);
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
+      throw new Error('createRunIdentity must not consume ambient randomness');
+    });
+    let identity: RunIdentity;
+
+    try {
+      identity = createRunIdentity('run-42', 0x12345678);
+      expect(randomSpy).not.toHaveBeenCalled();
+    } finally {
+      randomSpy.mockRestore();
+    }
+
     const typedIdentity: RunIdentity = identity;
     const rng = new DeterministicRng(typedIdentity.seed);
 
