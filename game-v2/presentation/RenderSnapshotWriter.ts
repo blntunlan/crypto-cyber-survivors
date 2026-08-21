@@ -4,6 +4,7 @@ import {
 } from '@/game-v2/contracts/RenderSnapshot';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
+import { validateRenderCategoryStorage } from '@/game-v2/presentation/RenderSnapshotValidator';
 
 const PLAYER_MASK = ComponentMask.Transform | ComponentMask.Player;
 const ENEMY_MASK = ComponentMask.Transform | ComponentMask.Enemy;
@@ -12,38 +13,6 @@ const XP_PICKUP_MASK = ComponentMask.Transform | ComponentMask.XpPickup;
 
 const hasAllBits = (actual: number, required: number): boolean =>
   (actual & required) === required;
-
-const assertCategoryStorage = (
-  category: RenderCategorySnapshot,
-  name: string,
-  requiredCapacity?: number
-): number => {
-  if (!(category.slots instanceof Uint16Array)) {
-    throw new TypeError(`${name} slot storage is invalid`);
-  }
-
-  const capacity = category.slots.length;
-  if (requiredCapacity !== undefined && capacity !== requiredCapacity) {
-    throw new RangeError(`${name} storage capacity is invalid`);
-  }
-
-  if (
-    !(category.previousX instanceof Float32Array) ||
-    !(category.previousY instanceof Float32Array) ||
-    !(category.currentX instanceof Float32Array) ||
-    !(category.currentY instanceof Float32Array) ||
-    !(category.radius instanceof Float32Array) ||
-    category.previousX.length !== capacity ||
-    category.previousY.length !== capacity ||
-    category.currentX.length !== capacity ||
-    category.currentY.length !== capacity ||
-    category.radius.length !== capacity
-  ) {
-    throw new RangeError(`${name} storage capacity is inconsistent`);
-  }
-
-  return capacity;
-};
 
 const assertFiniteTransform = (world: World, slot: number): void => {
   const previousX = world.previousX[slot];
@@ -82,10 +51,19 @@ const copyTransform = (
 
 export class RenderSnapshotWriter {
   public write(world: World, output: RenderSnapshot): void {
-    const playerCapacity = assertCategoryStorage(output.player, 'player', 1);
-    const enemyCapacity = assertCategoryStorage(output.enemies, 'enemy');
-    const projectileCapacity = assertCategoryStorage(output.projectiles, 'projectile');
-    const xpPickupCapacity = assertCategoryStorage(output.xpPickups, 'XP pickup');
+    const playerCapacity = validateRenderCategoryStorage(output.player, 'player');
+    const enemyCapacity = validateRenderCategoryStorage(output.enemies, 'enemy');
+    const projectileCapacity = validateRenderCategoryStorage(
+      output.projectiles,
+      'projectile'
+    );
+    const xpPickupCapacity = validateRenderCategoryStorage(
+      output.xpPickups,
+      'XP pickup'
+    );
+    if (playerCapacity !== 1) {
+      throw new RangeError('player storage capacity must be exactly one');
+    }
     let playerCount = 0;
     let enemyCount = 0;
     let projectileCount = 0;

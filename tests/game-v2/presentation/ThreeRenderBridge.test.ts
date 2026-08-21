@@ -8,7 +8,10 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import { MVP0_CONFIG_VERSION } from '@/game-v2/config/Mvp0Config';
-import { RenderSnapshot } from '@/game-v2/contracts/RenderSnapshot';
+import {
+  RenderSnapshot,
+  type RenderCategorySnapshot,
+} from '@/game-v2/contracts/RenderSnapshot';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { ThreeScene, type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
@@ -90,6 +93,17 @@ const matrixValues = (scene: ThreeScene): number[] => {
   const matrix = new Matrix4();
   scene.enemyMesh.getMatrixAt(0, matrix);
   return matrix.toArray();
+};
+
+const forgeOversizedCategoryStorage = (category: RenderCategorySnapshot): void => {
+  Object.defineProperties(category, {
+    slots: { value: new Uint16Array(4097) },
+    previousX: { value: new Float32Array(4097) },
+    previousY: { value: new Float32Array(4097) },
+    currentX: { value: new Float32Array(4097) },
+    currentY: { value: new Float32Array(4097) },
+    radius: { value: new Float32Array(4097) },
+  });
 };
 
 const sceneState = (scene: ThreeScene): unknown => ({
@@ -215,6 +229,21 @@ describe('RenderSnapshotWriter', () => {
     expect(snapshotState(snapshot)).toEqual(before);
     expect(snapshot.enemyCount).toBe(1);
     expect(snapshot.enemies.currentX[0]).toBe(41);
+  });
+
+  it('rejects consistent 4097-slot forged storage before changing output', () => {
+    const world = new World(1);
+    const snapshot = createSnapshot(1);
+    snapshot.enemyCount = 1;
+    snapshot.enemies.currentX[0] = 41;
+    forgeOversizedCategoryStorage(snapshot.enemies);
+    snapshot.enemies.currentX[0] = 41;
+    const before = snapshotState(snapshot);
+
+    expect(() => new RenderSnapshotWriter().write(world, snapshot)).toThrow(
+      /4096|capacity/i
+    );
+    expect(snapshotState(snapshot)).toEqual(before);
   });
 
   it.each([
@@ -424,6 +453,18 @@ describe('ThreeRenderBridge', () => {
     const before = sceneState(scene);
 
     expect(() => bridge.sync(snapshot, 0.5)).toThrow(/count|capacity/i);
+    expect(sceneState(scene)).toEqual(before);
+  });
+
+  it('rejects consistent 4097-slot forged storage before changing the scene', () => {
+    const snapshot = createSnapshot(1);
+    const scene = createScene(undefined, 1);
+    const bridge = new ThreeRenderBridge(scene);
+    bridge.sync(snapshot, 0);
+    forgeOversizedCategoryStorage(snapshot.enemies);
+    const before = sceneState(scene);
+
+    expect(() => bridge.sync(snapshot, 0.5)).toThrow(/4096|capacity/i);
     expect(sceneState(scene)).toEqual(before);
   });
 

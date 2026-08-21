@@ -4,6 +4,7 @@ import {
   type RenderCategorySnapshot,
   type RenderSnapshot,
 } from '@/game-v2/contracts/RenderSnapshot';
+import { validateRenderCategoryStorage } from '@/game-v2/presentation/RenderSnapshotValidator';
 import { type ThreeScene } from '@/game-v2/presentation/ThreeScene';
 
 const assertCount = (count: number, capacity: number, name: string): void => {
@@ -20,28 +21,11 @@ const assertCount = (count: number, capacity: number, name: string): void => {
 const assertCategory = (
   category: RenderCategorySnapshot,
   count: number,
+  storageCapacity: number,
   sceneCapacity: number,
   name: string
 ): void => {
-  if (!(category.slots instanceof Uint16Array)) {
-    throw new TypeError(`${name} slot storage is invalid`);
-  }
-  const capacity = category.slots.length;
-  if (
-    !(category.previousX instanceof Float32Array) ||
-    !(category.previousY instanceof Float32Array) ||
-    !(category.currentX instanceof Float32Array) ||
-    !(category.currentY instanceof Float32Array) ||
-    !(category.radius instanceof Float32Array) ||
-    category.previousX.length !== capacity ||
-    category.previousY.length !== capacity ||
-    category.currentX.length !== capacity ||
-    category.currentY.length !== capacity ||
-    category.radius.length !== capacity
-  ) {
-    throw new RangeError(`${name} storage capacity is inconsistent`);
-  }
-  assertCount(count, capacity, name);
+  assertCount(count, storageCapacity, name);
   if (count > sceneCapacity) {
     throw new RangeError(`${name} count exceeds scene capacity`);
   }
@@ -81,25 +65,41 @@ export class ThreeRenderBridge {
       throw new RangeError('render interpolation alpha must be finite and in [0, 1]');
     }
 
-    assertCategory(snapshot.player, snapshot.playerCount, 1, 'player');
+    const playerCapacity = validateRenderCategoryStorage(snapshot.player, 'player');
+    const enemyCapacity = validateRenderCategoryStorage(snapshot.enemies, 'enemy');
+    const projectileCapacity = validateRenderCategoryStorage(
+      snapshot.projectiles,
+      'projectile'
+    );
+    const xpPickupCapacity = validateRenderCategoryStorage(
+      snapshot.xpPickups,
+      'XP pickup'
+    );
+    if (playerCapacity !== 1) {
+      throw new RangeError('player storage capacity must be exactly one');
+    }
+    assertCategory(snapshot.player, snapshot.playerCount, playerCapacity, 1, 'player');
     if (snapshot.playerCount > 1) {
       throw new RangeError('player count must be zero or one');
     }
     assertCategory(
       snapshot.enemies,
       snapshot.enemyCount,
+      enemyCapacity,
       this.threeScene.enemyCapacity,
       'enemy'
     );
     assertCategory(
       snapshot.projectiles,
       snapshot.projectileCount,
+      projectileCapacity,
       this.threeScene.projectileCapacity,
       'projectile'
     );
     assertCategory(
       snapshot.xpPickups,
       snapshot.xpPickupCount,
+      xpPickupCapacity,
       this.threeScene.xpPickupCapacity,
       'XP pickup'
     );
