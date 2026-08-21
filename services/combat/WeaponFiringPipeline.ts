@@ -23,7 +23,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type WeaponConfig, type WeaponBehavior } from '../../types/weapons';
 import { COMBAT_CONFIG } from '../../config';
 import { COLORS } from '../../constants';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { createViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { enemyGrid } from './SpatialGrid';
 import { PredictiveTargeting } from '../../strategies/combat/PredictiveTargeting';
 
@@ -420,7 +420,7 @@ const TARGETING_CONTEXT = {
   bestDistSq: Infinity,
   bestSpeed: 0,
   found: false,
-  viewportBounds: null as import('../renderers/CullingUtils').ViewportBounds | null,
+  viewportBounds: null as ViewportBounds | null,
 };
 
 function checkEnemyCandidate(

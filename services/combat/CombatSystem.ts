@@ -6,7 +6,7 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { createViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -141,7 +141,7 @@ export class CombatSystem implements ICombatSystem {
     bestDistSq: Infinity,
     bestSpeed: 0,
     found: false,
-    viewportBounds: null as import('../renderers/CullingUtils').ViewportBounds | null,
+    viewportBounds: null as ViewportBounds | null,
   };
 
   private static checkEnemyCandidate(
@@ -151,7 +151,7 @@ export class CombatSystem implements ICombatSystem {
     if (enemy.isDying || !enemy.active) return;
 
     if (ctx.viewportBounds) {
-      const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+      const enemyRadius = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
       if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, ctx.viewportBounds)) {
         return;
       }
