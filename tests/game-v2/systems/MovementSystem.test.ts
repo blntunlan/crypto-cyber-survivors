@@ -32,6 +32,8 @@ const movementState = (world: World): unknown => ({
   velocityY: [...world.velocityY],
   lastFacingX: [...world.lastFacingX],
   lastFacingY: [...world.lastFacingY],
+  dashRemainingSeconds: [...world.dashRemainingSeconds],
+  movementOverride: [...world.movementOverride],
 });
 
 const seedMovementState = (world: World, slot: number): void => {
@@ -243,6 +245,67 @@ describe('MovementSystem', () => {
     expect(world.previousX[slot]).toBeCloseTo(5.9, 4);
   });
 
+  it('integrates only dash velocity during movement override and preserves facing', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+    world.x[slot] = 5;
+    world.y[slot] = -2;
+    world.previousX[slot] = 100;
+    world.previousY[slot] = 200;
+    world.velocityX[slot] = 12;
+    world.velocityY[slot] = -4;
+    world.lastFacingX[slot] = 1;
+    world.lastFacingY[slot] = 0;
+    world.dashRemainingSeconds[slot] = 0.18;
+    world.movementOverride[slot] = 1;
+
+    movement.step(world, player, {
+      tick: 40,
+      deltaSeconds: 0.05,
+      intent: intent(-1, 1),
+    });
+
+    expect(world.previousX[slot]).toBe(5);
+    expect(world.previousY[slot]).toBe(-2);
+    expect(world.x[slot]).toBeCloseTo(5.6);
+    expect(world.y[slot]).toBeCloseTo(-2.2);
+    expect(world.dashRemainingSeconds[slot]).toBeCloseTo(0.13);
+    expect(world.movementOverride[slot]).toBe(1);
+    expect(world.velocityX[slot]).toBe(12);
+    expect(world.velocityY[slot]).toBe(-4);
+    expect(world.lastFacingX[slot]).toBe(1);
+    expect(world.lastFacingY[slot]).toBe(0);
+  });
+
+  it('uses only the final partial dash time and discards ordinary movement leftover', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+    world.x[slot] = 2;
+    world.y[slot] = 3;
+    world.velocityX[slot] = 16;
+    world.velocityY[slot] = 0;
+    world.lastFacingX[slot] = 1;
+    world.dashRemainingSeconds[slot] = 0.005;
+    world.movementOverride[slot] = 1;
+
+    movement.step(world, player, {
+      tick: 41,
+      deltaSeconds: 1 / SIMULATION_HZ,
+      intent: intent(-1, 0),
+    });
+
+    expect(world.previousX[slot]).toBe(2);
+    expect(world.previousY[slot]).toBe(3);
+    expect(world.x[slot]).toBeCloseTo(2.08);
+    expect(world.y[slot]).toBe(3);
+    expect(world.dashRemainingSeconds[slot]).toBe(0);
+    expect(world.movementOverride[slot]).toBe(0);
+    expect(world.velocityX[slot]).toBe(0);
+    expect(world.velocityY[slot]).toBe(0);
+    expect(world.lastFacingX[slot]).toBe(1);
+    expect(world.lastFacingY[slot]).toBe(0);
+  });
+
   it('rejects stale handles without mutating movement-observable stores', () => {
     const { world, player, slot } = createPlayer();
     const movement = new MovementSystem();
@@ -346,4 +409,51 @@ describe('MovementSystem', () => {
     ).toThrow(/intent|finite/i);
     expect(movementState(world)).toEqual(before);
   });
+
+  it('rejects a non-boolean dash edge atomically through the shared context boundary', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+    seedMovementState(world, slot);
+    const before = movementState(world);
+
+    expect(() =>
+      movement.step(world, player, {
+        tick: 1,
+        deltaSeconds: 1 / SIMULATION_HZ,
+        intent: { moveX: 1, moveY: 0, dashPressed: 1 } as unknown as PlayerIntent,
+      })
+    ).toThrow(/dash|boolean/i);
+    expect(movementState(world)).toEqual(before);
+  });
+
+  it.each([
+    ['current x', (world: World, slot: number) => (world.x[slot] = Number.NaN)],
+    [
+      'dash velocity',
+      (world: World, slot: number) => (world.velocityX[slot] = Infinity),
+    ],
+    [
+      'dash remaining',
+      (world: World, slot: number) => (world.dashRemainingSeconds[slot] = Number.NaN),
+    ],
+  ])(
+    'rejects malformed %s during override without partial mutation',
+    (_name, forge) => {
+      const { world, player, slot } = createPlayer();
+      const movement = new MovementSystem();
+      seedMovementState(world, slot);
+      world.movementOverride[slot] = 1;
+      forge(world, slot);
+      const before = movementState(world);
+
+      expect(() =>
+        movement.step(world, player, {
+          tick: 42,
+          deltaSeconds: 1 / SIMULATION_HZ,
+          intent: intent(1, 0),
+        })
+      ).toThrow(/finite|dash|position|velocity/i);
+      expect(movementState(world)).toEqual(before);
+    }
+  );
 });

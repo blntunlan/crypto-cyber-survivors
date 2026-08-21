@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-009` |
-| Status | `In Progress` — dash and invulnerability are next |
+| Active task | `V2-010` |
+| Status | `In Progress` — the first pooled enemy is next |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -234,17 +234,35 @@
 - V2-008 fix round 1 passed scoped re-review. The accepted commits are
   `6dac956c` and `b3375eb5`; the complete V2 suite passed 242 tests and no
   Critical, Important, or Minor findings remain.
+- V2-009 added a one-charge dash with overflow-safe current-intent/last-facing
+  direction selection, exact 0.18-second partial-tick integration, 150-tick
+  cooldown restoration, and an 11-collision-tick invulnerability window.
+- DashSystem now resolves before MovementSystem: it owns direction, fixed-tick
+  cooldown/i-frame progression, and override velocity, while MovementSystem
+  remains the only position integrator and clears completed dash motion without
+  leaking ordinary movement into the final partial tick.
+- V2-009 extracted the allocation-free fixed-step context trust boundary for
+  both systems and added atomic rejection for stale/wrong-mask targets, invalid
+  contexts, and malformed non-finite dash state.
+- V2-009 initial TDD RED command:
+  `npx vitest run tests/game-v2/systems/DashSystem.test.ts tests/game-v2/systems/MovementSystem.test.ts --pool=forks --maxWorkers=1`
+  failed because `DashSystem` did not exist and six Movement override/shared
+  validation behaviors were absent. A follow-up RED test caught a boolean
+  precedence defect that started a vertical dash without a press.
+- V2-009 focused GREEN verification passed 59 tests. The complete Game V2 suite
+  passed 12 files and 275 tests; typecheck, architecture, and focused ESLint
+  also passed before the checkpoint commit.
 
 ## Verification Required
 
-1. Implement V2-009 dash timing, direction, exact distance, one charge,
-   cooldown, and tick-based invulnerability in ECS stores.
-2. Verify ordered DashSystem-before-MovementSystem behavior and reset safety.
+1. Implement V2-010 one-enemy ECS pooling, chase movement, and complete reuse
+   reset semantics.
+2. Verify generation-safe release/respawn and zero-distance numeric safety.
 
 ## Exact Next Action
 
-Generate the V2-009 task brief and dispatch its implementer from the accepted
-V2-008 checkpoint.
+Generate the V2-010 task brief and dispatch its implementer from the V2-009
+checkpoint after independent task review.
 
 ## Known Pre-existing Working-tree Changes
 
