@@ -35,7 +35,8 @@ const PLAYER_MASK =
   ComponentMask.Velocity |
   ComponentMask.Body |
   ComponentMask.Health |
-  ComponentMask.Player;
+  ComponentMask.Player |
+  ComponentMask.AbilityLoadout;
 
 const ENEMY_MASK =
   ComponentMask.Transform |

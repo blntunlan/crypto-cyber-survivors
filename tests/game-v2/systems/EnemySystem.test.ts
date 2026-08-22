@@ -389,7 +389,8 @@ describe('EnemySystem', () => {
     world.dashCharges[slot] = 57;
     world.movementOverride[slot] = 1;
     world.weaponCooldownTicksRemaining[slot] = 58;
-    world.weaponDamage[slot] = 59;
+    world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 59;
+    world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 1;
     world.xp[slot] = 60;
     world.level[slot] = 61;
     world.projectileDamage[slot] = 62;
@@ -431,7 +432,8 @@ describe('EnemySystem', () => {
     expect(world.dashCharges[slot]).toBe(0);
     expect(world.movementOverride[slot]).toBe(0);
     expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
-    expect(world.weaponDamage[slot]).toBe(0);
+    expect(world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
+    expect(world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.xp[slot]).toBe(0);
     expect(world.level[slot]).toBe(0);
     expect(world.projectileDamage[slot]).toBe(0);

@@ -26,7 +26,8 @@ const ALL_FIXTURE_COMPONENTS =
   ComponentMask.Player |
   ComponentMask.Enemy |
   ComponentMask.Projectile |
-  ComponentMask.XpPickup;
+  ComponentMask.XpPickup |
+  ComponentMask.AbilityLoadout;
 
 type RuntimeInput = Parameters<typeof writeCheckpoint>[0];
 
@@ -58,17 +59,23 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.projectileDamage[slot] = 10.25;
   world.projectileLifetimeTicksRemaining[slot] = 88;
   world.weaponCooldownTicksRemaining[slot] = 17;
-  world.weaponDamage[slot] = 15.5;
   world.xp[slot] = 4.25;
   world.level[slot] = 3;
   world.xpPickupValue[slot] = 6.5;
+  world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 3;
+  world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 2;
+  world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 2)] = 7;
+  world.abilitySlotTier[world.abilitySlotIndexOf(slot, 2)] = 1;
 };
 
 const writeComponentFixtureReverse = (world: World, slot: number): void => {
+  world.abilitySlotTier[world.abilitySlotIndexOf(slot, 2)] = 1;
+  world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 2)] = 7;
+  world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 2;
+  world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 3;
   world.xpPickupValue[slot] = 6.5;
   world.level[slot] = 3;
   world.xp[slot] = 4.25;
-  world.weaponDamage[slot] = 15.5;
   world.weaponCooldownTicksRemaining[slot] = 17;
   world.projectileLifetimeTicksRemaining[slot] = 88;
   world.projectileDamage[slot] = 10.25;
@@ -150,7 +157,7 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    expect(hashA).toBe('8c5ecef3');
+    expect(hashA).toBe('23a14f9e');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -240,7 +247,27 @@ describe('canonical runtime checkpoint', () => {
       ['cooldown', (world, slot) => (world.dashCooldownTicksRemaining[slot] = 150)],
       ['enemy', (world, slot) => (world.enemySpeed[slot] = 3)],
       ['projectile', (world, slot) => (world.projectileDamage[slot] = 11)],
-      ['weapon/progression', (world, slot) => (world.weaponDamage[slot] = 16)],
+      ['progression', (world, slot) => (world.xp[slot] = 5)],
+      [
+        'ability identity',
+        (world, slot) =>
+          (world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 4),
+      ],
+      [
+        'ability tier',
+        (world, slot) => (world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 3),
+      ],
+      [
+        'ability slot position',
+        (world, slot) => {
+          const from = world.abilitySlotIndexOf(slot, 0);
+          const to = world.abilitySlotIndexOf(slot, 1);
+          world.abilitySlotIdentity[to] = world.abilitySlotIdentity[from] ?? 0;
+          world.abilitySlotTier[to] = world.abilitySlotTier[from] ?? 0;
+          world.abilitySlotIdentity[from] = 0;
+          world.abilitySlotTier[from] = 0;
+        },
+      ],
       ['XP pickup', (world, slot) => (world.xpPickupValue[slot] = 7)],
     ];
 
@@ -390,19 +417,19 @@ describe('canonical runtime checkpoint', () => {
     const checkpoint = writeCheckpoint(createRuntimeInput());
     const unsupportedCheckpoint = {
       ...checkpoint,
-      schemaVersion: 2,
+      schemaVersion: 99,
     } as unknown as RuntimeCheckpoint;
     const unsupportedWorld = {
       ...checkpoint,
-      world: { ...checkpoint.world, schemaVersion: 2 },
+      world: { ...checkpoint.world, schemaVersion: 99 },
     } as unknown as RuntimeCheckpoint;
     const unsupportedRunIdentity = {
       ...checkpoint,
-      runIdentity: { ...checkpoint.runIdentity, schemaVersion: 2 },
+      runIdentity: { ...checkpoint.runIdentity, schemaVersion: 99 },
     } as unknown as RuntimeCheckpoint;
     const unsupportedRng = {
       ...checkpoint,
-      rngSnapshot: { ...checkpoint.rngSnapshot, schemaVersion: 2 },
+      rngSnapshot: { ...checkpoint.rngSnapshot, schemaVersion: 99 },
     } as unknown as RuntimeCheckpoint;
 
     expect(() => hashRuntimeCheckpoint(unsupportedCheckpoint)).toThrow(/schema/i);
@@ -416,6 +443,66 @@ describe('canonical runtime checkpoint', () => {
     invalidRngInput.rngSnapshot = unsupportedRng.rngSnapshot;
     expect(() => writeCheckpoint(invalidRunInput)).toThrow(/schema/i);
     expect(() => writeCheckpoint(invalidRngInput)).toThrow(/schema/i);
+  });
+
+  it('rejects ability loadout state that breaks its structural invariants', () => {
+    const cases: ReadonlyArray<readonly [string, RegExp, (world: World) => void]> = [
+      [
+        'tier above the ceiling',
+        /tier is outside/i,
+        world => {
+          world.abilitySlotTier[world.abilitySlotIndexOf(0, 0)] = 4;
+        },
+      ],
+      [
+        'tier without an identity',
+        /pair an identity with a tier/i,
+        world => {
+          world.abilitySlotIdentity[world.abilitySlotIndexOf(0, 1)] = 0;
+          world.abilitySlotTier[world.abilitySlotIndexOf(0, 1)] = 1;
+        },
+      ],
+      [
+        'identity without a tier',
+        /pair an identity with a tier/i,
+        world => {
+          world.abilitySlotIdentity[world.abilitySlotIndexOf(0, 1)] = 5;
+          world.abilitySlotTier[world.abilitySlotIndexOf(0, 1)] = 0;
+        },
+      ],
+      [
+        'loadout on an entity without the component',
+        /requires the AbilityLoadout component/i,
+        world => {
+          world.masks[0] = ALL_FIXTURE_COMPONENTS ^ ComponentMask.AbilityLoadout;
+        },
+      ],
+      [
+        'loadout on an empty world slot',
+        /requires the AbilityLoadout component/i,
+        world => {
+          world.abilitySlotIdentity[world.abilitySlotIndexOf(1, 0)] = 5;
+          world.abilitySlotTier[world.abilitySlotIndexOf(1, 0)] = 1;
+        },
+      ],
+    ];
+
+    for (const [name, message, mutate] of cases) {
+      const input = createRuntimeInput();
+      mutate(input.world);
+      expect(() => writeCheckpoint(input), name).toThrow(message);
+    }
+  });
+
+  it('rejects an ability store that is not one entry per ability slot', () => {
+    const input = createRuntimeInput();
+    Object.defineProperty(input.world, 'abilitySlotTier', {
+      value: new Uint8Array(input.world.masks.length),
+    });
+
+    expect(() => writeCheckpoint(input)).toThrow(
+      'abilitySlotTier must be a canonical typed store'
+    );
   });
 
   it('rejects a non-finite checkpoint value without producing a hash', () => {
@@ -444,7 +531,7 @@ describe('canonical runtime checkpoint', () => {
     expect(() => writeCheckpoint(input)).toThrow(/4096/);
   });
 
-  it('refuses to hash a forged schema-1 snapshot above the 4096-slot bound', () => {
+  it('refuses to hash a forged canonical snapshot above the 4096-slot bound', () => {
     const checkpoint = writeCheckpoint(createRuntimeInput());
     const oversized = {
       ...checkpoint,

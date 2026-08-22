@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-100` — four-slot ability loadout; brief written, implementation not started |
-| Status | `Not Started` — the brief is at `docs/game-v2/tasks/V2-100-ability-loadout.md` |
+| Active task | `V2-100` — four-slot ability loadout; implemented, mutation-proved, and verified |
+| Status | `Verification` — awaiting acceptance; brief and outcome at `docs/game-v2/tasks/V2-100-ability-loadout.md` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -831,6 +831,71 @@
   through V2-ADR-038, which are recorded in `DECISIONS.md` when the task starts
   rather than now.
 
+### V2-100 — four-slot ability loadout (2026-08-22)
+
+- Four ability slots are now authoritative run state. `game-v2/contracts/AbilitySlot.ts`
+  holds the typed contract (`ABILITY_SLOT_COUNT`, `AbilitySlotIndex`,
+  `AbilityActivation`, `AbilityTier`, `AbilityDefinition`) and the single owner
+  of the store stride, `abilityStoreIndex`. `World.abilitySlotIndexOf` is its
+  validating wrapper for live worlds; the validator and hasher call the bare
+  function because they hold no `World`.
+- State lives in two `Uint8Array` stores of length `capacity * ABILITY_SLOT_COUNT`
+  and a new `ComponentMask.AbilityLoadout` bit that every reader demands
+  (V2-ADR-036, V2-ADR-026). `World.clearSlot` and `World.reset` clear them, so a
+  recycled slot never inherits a build.
+- `AbilityLoadoutSystem` is the only writer: `add` fills the lowest free slot and
+  refuses both a fifth ability and a duplicate identity, `remove` frees exactly
+  one, `advanceTier` stops at the identity's `authoredTiers`, and `resetOwner`
+  clears all four. It holds no per-run state (V2-ADR-025).
+- The registry is a validated value built by `createAbilityRegistry` and injected
+  into the system (V2-ADR-039). Four-slot occupancy is untestable with the single
+  identity MVP-1 starts with, and the alternative — placeholder identities in
+  production config — is the `MVP0_SPAWN_FREE_SLOT_RESERVE` mistake again.
+- Identities hash as stable numeric codes in `1..255`, never strings; the empty
+  slot is code `0` (V2-ADR-037). `WORLD_SNAPSHOT_SCHEMA_VERSION` moved from `1`
+  to `2`.
+- The starter weapon now derives its damage from the tier in its slot, and
+  `World.weaponDamage` was deleted (V2-ADR-038). `applyDamageUpgrade` became
+  `advanceStarterTier`, and `starterDamageOf` is the read the HUD readout uses,
+  so the HUD and the simulation cannot disagree. A second upgrade throws because
+  `starter-projectile.authoredTiers` is `2` until V2-102 authors tier 3, rather
+  than because a weapon-local guard says so.
+- The validator gained structural loadout invariants that need no registry: a
+  tier above `ABILITY_MAX_TIER`, an identity without a tier, a tier without an
+  identity, and loadout bytes on a slot without the component are all rejected.
+  A checkpoint therefore stays readable when V2-106 and V2-107 add identities.
+- The scripted acceptance run is byte-for-byte the same game — still 789 ticks,
+  still one recorded upgrade command — but its hashes moved because the world
+  now carries loadout bytes: initial `284ae166` → `8272f478`, final
+  `09fc36e7` → `b09663a6`. No test pins those values; `Mvp0Runtime` and
+  `ReplayRunner` compare hashes to each other, which is why cross-FPS replay
+  still holds without a re-pin.
+- V2-100 RED command:
+  `npx vitest run tests/game-v2/config/AbilityRegistry.test.ts tests/game-v2/systems/AbilityLoadoutSystem.test.ts --pool=forks --maxWorkers=1`
+  reported `Test Files 2 failed` with both failures in module resolution.
+- V2-100 GREEN verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (26 files, 533
+  tests, up from 24 files and 498 tests at the MVP-0 gate), `npm run typecheck`,
+  `npm run lint` (0 errors, 0 warnings), `npx prettier --check` on every changed
+  path, `npm run check:architecture` (89 baseline singleton files),
+  `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt),
+  `npm run check:ui-contract`, `npm run check:event-contract`, `npm run build`,
+  and `npx playwright test e2e/game-v2-walking-skeleton.spec.ts
+  --project=chromium --workers=1 --reporter=list` (2 passed).
+- `npm run test` reported 361 files and 3699 tests with zero failures. The
+  `LandingPriceFeed` failure recorded at the MVP-0 gate did not reproduce, so it
+  is flaky rather than permanently broken; it was not touched either way.
+- A twelve-mutant deliberate pass ran against the loadout work and every mutant
+  died: `add` picking the highest free slot, allowing a duplicate identity,
+  replacing slot 0 when full, using the universal ceiling instead of
+  `authoredTiers`, skipping the identity clear in `clearSlot`, omitting the tier
+  from the hash, hashing the identity as a string, reading a constant tier in
+  `WeaponSystem`, skipping `resetOwner` in `resetPlayer`, dropping the
+  identity/tier pairing rule, dropping the component requirement, and skipping
+  ability-index validation in the stride. No survivors, so no test needed
+  strengthening this round.
+- New decisions: V2-ADR-036 through V2-ADR-039.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
@@ -841,8 +906,10 @@
    498 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
    (expect 2 passed). Both were last confirmed green on 2026-08-22.
-3. `V2-100` has no implementation yet, so it has nothing to verify. Its first
-   command is the RED run listed in Step 3 of its brief.
+3. `V2-100` is implemented and verified but not accepted. Re-run
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 26 files,
+   533 tests) before touching code; the MVP-0 expectation of 24 files and 498
+   tests is superseded.
 
 ## Known MVP-0 Limitations
 
@@ -875,10 +942,10 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Start `V2-100` at Step 1 of `docs/game-v2/tasks/V2-100-ability-loadout.md`:
-record V2-ADR-036 through V2-ADR-038 in `DECISIONS.md`, then write the failing
-`AbilityLoadoutSystem` contract tests before any implementation file exists. Do
-not deploy, cut over production, or replace the legacy demo.
+Accept the `V2-100` checkpoint. On acceptance, generate the `V2-101` task brief
+(six-slot passive loadout), which reuses the `AbilityLoadoutSystem` shape for a
+separate six-slot, five-level store and must not widen the four ability slots.
+Do not deploy, cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do

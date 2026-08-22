@@ -8,6 +8,7 @@ export const ComponentMask = {
   Enemy: 1 << 6,
   Projectile: 1 << 7,
   XpPickup: 1 << 8,
+  AbilityLoadout: 1 << 9,
 } as const;
 
 export const ALL_COMPONENT_MASK =
@@ -19,4 +20,5 @@ export const ALL_COMPONENT_MASK =
   ComponentMask.Player |
   ComponentMask.Enemy |
   ComponentMask.Projectile |
-  ComponentMask.XpPickup;
+  ComponentMask.XpPickup |
+  ComponentMask.AbilityLoadout;

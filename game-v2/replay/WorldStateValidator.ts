@@ -1,7 +1,12 @@
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
+import {
+  ABILITY_MAX_TIER,
+  ABILITY_SLOT_COUNT,
+  abilityStoreIndex,
+} from '@/game-v2/contracts/AbilitySlot';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
 import { type WorldSnapshot } from '@/game-v2/contracts/WorldSnapshot';
-import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
+import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 
 const UINT32_MAX = 0xffffffff;
 
@@ -31,7 +36,6 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'contactDamage',
     'xpValue',
     'projectileDamage',
-    'weaponDamage',
     'xp',
     'xpPickupValue',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
@@ -54,6 +58,11 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'weaponCooldownTicksRemaining',
     'level',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per ability slot per world slot rather than one per world slot. */
+  stridedUint8: Object.freeze([
+    'abilitySlotIdentity',
+    'abilitySlotTier',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
 });
 
 type ListedStoreName =
@@ -61,7 +70,8 @@ type ListedStoreName =
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint32)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.int8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8)[number]
-  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number];
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number];
 type AssertNever<T extends never> = T;
 export type AuthoritativeWorldStoreSchemaCoverage = AssertNever<
   Exclude<AuthoritativeStoreName, ListedStoreName>
@@ -121,6 +131,42 @@ const validateStores = (state: AuthoritativeWorldState, capacity: number): void 
   }
   for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16) {
     assertStore(state[name], Uint16Array, capacity, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * ABILITY_SLOT_COUNT, name);
+  }
+};
+
+/**
+ * Ability loadout state is validated without consulting the registry: a
+ * checkpoint must stay readable when V2-106 and V2-107 add identities, so the
+ * invariants here are the structural ones only (V2-ADR-036, V2-ADR-037).
+ */
+const validateAbilityLoadout = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsLoadout = (mask & ComponentMask.AbilityLoadout) !== 0;
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const storeIndex = abilityStoreIndex(slot, index);
+      const identity = state.abilitySlotIdentity[storeIndex] ?? 0;
+      const tier = state.abilitySlotTier[storeIndex] ?? 0;
+
+      if (tier > ABILITY_MAX_TIER) {
+        throw new RangeError('ability slot tier is outside the supported range');
+      }
+
+      if ((identity === 0) !== (tier === 0)) {
+        throw new RangeError('ability slot must pair an identity with a tier');
+      }
+
+      if (identity !== 0 && !ownsLoadout) {
+        throw new RangeError('ability loadout requires the AbilityLoadout component');
+      }
+    }
   }
 };
 
@@ -200,4 +246,6 @@ export const validateAuthoritativeWorldState = (
       'allocator partition must cover every world slot exactly once'
     );
   }
+
+  validateAbilityLoadout(state, capacity);
 };

@@ -61,8 +61,9 @@ and the boundary-guard inversion.
 Goal: prove that constrained builds create meaningful play before market
 complexity is introduced.
 
-Status: `In Progress`. Active task `V2-100`; brief at
-`docs/game-v2/tasks/V2-100-ability-loadout.md`.
+Status: `In Progress`. `V2-100` is implemented, mutation-proved, and verified,
+awaiting acceptance; brief and outcome at
+`docs/game-v2/tasks/V2-100-ability-loadout.md`. `V2-101` is next.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

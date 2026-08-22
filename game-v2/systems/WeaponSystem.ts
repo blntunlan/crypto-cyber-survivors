@@ -1,19 +1,25 @@
 import {
-  PROJECTILE_DAMAGE,
   PROJECTILE_LIFETIME_TICKS,
   PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
-  STARTER_WEAPON_DAMAGE_TIER_2,
+  STARTER_PROJECTILE_DAMAGE_BY_TIER,
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
+import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
+import {
+  type AbilitySlotIndex,
+  type AbilityTier,
+} from '@/game-v2/contracts/AbilitySlot';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { assertStepContext } from '@/game-v2/systems/StepContextValidator';
 import { TargetingSystem } from '@/game-v2/systems/TargetingSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
 
-const PLAYER_ENTITY_MASK = ComponentMask.Transform | ComponentMask.Player;
+const PLAYER_ENTITY_MASK =
+  ComponentMask.Transform | ComponentMask.Player | ComponentMask.AbilityLoadout;
 
 /**
  * MVP-0 projectiles carry no faction. Ownership and hit filtering belong to
@@ -33,9 +39,14 @@ const isProjectile = (mask: number | undefined): boolean =>
 
 export class WeaponSystem {
   private readonly targetingSystem: TargetingSystem;
+  private readonly loadout: AbilityLoadoutSystem;
 
-  public constructor(targetingSystem: TargetingSystem = new TargetingSystem()) {
+  public constructor(
+    targetingSystem: TargetingSystem = new TargetingSystem(),
+    loadout: AbilityLoadoutSystem = new AbilityLoadoutSystem()
+  ) {
     this.targetingSystem = targetingSystem;
+    this.loadout = loadout;
   }
 
   public resetPlayer(world: World, playerEntity: EntityId): void {
@@ -47,10 +58,41 @@ export class WeaponSystem {
     }
 
     world.weaponCooldownTicksRemaining[slot] = 0;
-    world.weaponDamage[slot] = PROJECTILE_DAMAGE;
+    this.loadout.resetOwner(world, playerEntity);
+    this.loadout.add(world, playerEntity, STARTER_PROJECTILE.id);
   }
 
-  public applyDamageUpgrade(world: World, playerEntity: EntityId): void {
+  /**
+   * Advances the starter weapon one tier.
+   *
+   * Damage is derived from the tier held in the loadout, so this is the whole
+   * upgrade: there is no second weapon-damage authority to keep in step
+   * (V2-ADR-038). The loadout refuses to pass the identity's authored ceiling,
+   * which is what makes a second call throw rather than double-upgrade.
+   */
+  public advanceStarterTier(world: World, playerEntity: EntityId): AbilityTier {
+    this.assertPlayer(world, playerEntity);
+
+    return this.loadout.advanceTier(
+      world,
+      playerEntity,
+      this.starterSlotIndex(world, playerEntity)
+    );
+  }
+
+  /**
+   * The damage the starter weapon fires with right now.
+   *
+   * Exposed for the read-only runtime readout so the HUD reads the same derived
+   * value the simulation fires with, instead of a second stored copy.
+   */
+  public starterDamageOf(world: World, playerEntity: EntityId): number {
+    this.assertPlayer(world, playerEntity);
+
+    return this.starterDamage(world, playerEntity);
+  }
+
+  private assertPlayer(world: World, playerEntity: EntityId): number {
     const slot = world.slotOf(playerEntity);
     const mask = world.masks[slot];
 
@@ -58,11 +100,44 @@ export class WeaponSystem {
       throw new RangeError('player entity is missing required components');
     }
 
-    if (world.weaponDamage[slot] !== PROJECTILE_DAMAGE) {
-      throw new RangeError('player weapon damage is not at tier 1');
+    return slot;
+  }
+
+  private starterSlotIndex(world: World, playerEntity: EntityId): AbilitySlotIndex {
+    const index = this.loadout.indexOf(world, playerEntity, STARTER_PROJECTILE.id);
+
+    if (index === null) {
+      throw new RangeError('player holds no starter weapon');
     }
 
-    world.weaponDamage[slot] = STARTER_WEAPON_DAMAGE_TIER_2;
+    return index;
+  }
+
+  /**
+   * Reads authored damage for the tier the loadout currently holds.
+   *
+   * A tier with no authored damage throws instead of silently firing tier-1
+   * damage: the loadout ceiling should make it unreachable, and a restored or
+   * hand-written checkpoint that breaks that invariant must fail loudly.
+   */
+  private starterDamage(world: World, playerEntity: EntityId): number {
+    const tier = this.loadout.tierAt(
+      world,
+      playerEntity,
+      this.starterSlotIndex(world, playerEntity)
+    );
+
+    if (tier === null) {
+      throw new RangeError('player holds no starter weapon');
+    }
+
+    const damage = STARTER_PROJECTILE_DAMAGE_BY_TIER[tier - 1];
+
+    if (damage === undefined) {
+      throw new RangeError('starter weapon tier has no authored damage');
+    }
+
+    return damage;
   }
 
   /**
@@ -88,14 +163,13 @@ export class WeaponSystem {
 
     const playerX = world.x[playerSlot];
     const playerY = world.y[playerSlot];
-    const weaponDamage = world.weaponDamage[playerSlot];
+    const weaponDamage = this.starterDamage(world, playerEntity);
     const lastFacingX = world.lastFacingX[playerSlot];
     const lastFacingY = world.lastFacingY[playerSlot];
 
     if (
       playerX === undefined ||
       playerY === undefined ||
-      weaponDamage === undefined ||
       lastFacingX === undefined ||
       lastFacingY === undefined ||
       !Number.isFinite(playerX) ||

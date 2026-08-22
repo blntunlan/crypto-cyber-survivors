@@ -325,7 +325,7 @@ export class ProgressionSystem {
     }
 
     this.commandRecorder.record(command);
-    this.weaponSystem.applyDamageUpgrade(world, playerEntity);
+    this.weaponSystem.advanceStarterTier(world, playerEntity);
     this.lifecycle.resumeFromLevelUp();
   }
 

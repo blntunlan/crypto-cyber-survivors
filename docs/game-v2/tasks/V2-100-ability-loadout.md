@@ -113,7 +113,7 @@ occupiedCount(world, owner): number
 
 ## Steps
 
-- [ ] **Step 1: Write failing contract tests (RED)**
+- [x] **Step 1: Write failing contract tests (RED)**
 
 Prove: four slots start empty; `add` fills the lowest free index and returns it;
 a fifth `add` throws instead of replacing; adding a held identity throws;
@@ -122,7 +122,7 @@ walks 1 to 2 to 3 and throws at 4; `resetOwner` clears every slot; every
 operation rejects an out-of-range index, a retired handle, and a non-owner
 entity.
 
-- [ ] **Step 2: Write failing persistence tests (RED)**
+- [x] **Step 2: Write failing persistence tests (RED)**
 
 Prove: loadout state is part of `snapshotHash()` — two worlds differing only in
 one slot identity, activation, or tier hash differently; a checkpoint restore
@@ -130,19 +130,19 @@ reproduces the loadout exactly; `World.reset()` clears both stores; the
 `WorldStateValidator` rejects an out-of-range identity code, a tier outside
 1–3, and a tier on an empty slot.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 ```powershell
 npx vitest run tests/game-v2/systems/AbilityLoadoutSystem.test.ts tests/game-v2/config/AbilityRegistry.test.ts tests/game-v2/replay/WorldSnapshot.test.ts --pool=forks --maxWorkers=1
 ```
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Contract, registry, stores, validator, snapshot/hash coverage, then the system.
 Keep every read allocation-free: `readSlot` returns a reused view or plain
 numbers, never a fresh object per call on a 60 Hz path.
 
-- [ ] **Step 5: Migrate the starter weapon (V2-ADR-038)**
+- [x] **Step 5: Migrate the starter weapon (V2-ADR-038)**
 
 The MVP-0 run must stay behaviorally identical: slot 0 holds
 `starter-projectile` at tier 1 with `PROJECTILE_DAMAGE`, the single level-up
@@ -151,7 +151,7 @@ acceptance run final state hash is expected to change only because the world now
 carries loadout bytes. Re-record and re-pin the hash in the same commit that
 changes it, and state the old and new value in `PROGRESS.md`.
 
-- [ ] **Step 6: Verify (GREEN)**
+- [x] **Step 6: Verify (GREEN)**
 
 ```powershell
 npx vitest run tests/game-v2 --pool=forks --maxWorkers=1
@@ -163,7 +163,7 @@ npm run build
 npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list
 ```
 
-- [ ] **Step 7: Mutation pass**
+- [x] **Step 7: Mutation pass**
 
 Deliberate mutants that must be killed: returning the highest free index instead
 of the lowest; allowing a duplicate identity; skipping the full-loadout throw;
@@ -185,3 +185,22 @@ rather than hidden.
    change explained and re-pinned.
 5. `npm run check:architecture`, `check:reset-coverage`, `lint`, `typecheck`,
    `build`, the full `tests/game-v2` suite, and the e2e smoke all pass.
+
+## Outcome (2026-08-22)
+
+Delivered and verified; awaiting acceptance.
+
+Deviations from the brief above, each deliberate:
+
+- The read path is `identityAt` / `activationAt` / `tierAt` / `indexOf` rather
+  than an `AbilitySlotView` object. A view object per read would allocate on a
+  60 Hz path, and the HUD that would consume one belongs to V2-103.
+- The registry is injected into `AbilityLoadoutSystem` rather than imported
+  (V2-ADR-039). Four-slot occupancy is untestable with the single identity
+  MVP-1 starts with, and inventing placeholder identities in production config
+  is the failure `MVP0_SPAWN_FREE_SLOT_RESERVE` already cost once.
+- The tier ceiling is the identity's `authoredTiers`, not the universal
+  maximum, so `starter-projectile` stops at tier 2 until V2-102 authors tier 3.
+  The alternative was inventing an unreachable tier-3 damage constant.
+- `World.weaponDamage` was removed rather than left in place, so the derived
+  tier damage is the only weapon-damage authority (V2-ADR-038).

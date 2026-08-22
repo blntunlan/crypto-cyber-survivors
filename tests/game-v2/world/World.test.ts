@@ -3,6 +3,7 @@ import {
   RETIRED_ENTITY_GENERATION,
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
+import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
 import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
@@ -36,7 +37,6 @@ const componentStores = (world: World): Array<ArrayLike<number>> => [
   world.projectileDamage,
   world.projectileLifetimeTicksRemaining,
   world.weaponCooldownTicksRemaining,
-  world.weaponDamage,
   world.xp,
   world.level,
   world.xpPickupValue,
@@ -86,6 +86,7 @@ describe('World', () => {
       ComponentMask.Enemy,
       ComponentMask.Projectile,
       ComponentMask.XpPickup,
+      ComponentMask.AbilityLoadout,
     ];
     let combinedMask = 0;
 
@@ -96,8 +97,66 @@ describe('World', () => {
       combinedMask |= bit ?? 0;
     }
 
-    expect(new Set(bits).size).toBe(9);
+    expect(new Set(bits).size).toBe(10);
     expect(combinedMask).toBe(ALL_COMPONENT_MASK);
+  });
+
+  it('allocates ability loadout stores at one entry per ability slot', () => {
+    const world = new World(8);
+
+    expect(world.abilitySlotIdentity).toHaveLength(8 * ABILITY_SLOT_COUNT);
+    expect(world.abilitySlotTier).toHaveLength(8 * ABILITY_SLOT_COUNT);
+    expect(world.abilitySlotIndexOf(3, 2)).toBe(abilityStoreIndex(3, 2));
+    expect(world.abilitySlotIndexOf(0, 0)).toBe(0);
+    expect(world.abilitySlotIndexOf(7, ABILITY_SLOT_COUNT - 1)).toBe(
+      8 * ABILITY_SLOT_COUNT - 1
+    );
+  });
+
+  it('rejects an ability store index outside the world or the loadout', () => {
+    const world = new World(8);
+
+    for (const slot of [-1, 8, 1.5, Number.NaN]) {
+      expect(() => world.abilitySlotIndexOf(slot, 0)).toThrow(
+        'slot must be an integer inside the world capacity'
+      );
+    }
+
+    for (const index of [-1, ABILITY_SLOT_COUNT, 1.5, Number.NaN]) {
+      expect(() => world.abilitySlotIndexOf(0, index)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+    }
+  });
+
+  it('clears ability loadout entries when a slot is destroyed or the world resets', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.AbilityLoadout);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.AbilityLoadout);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, index)] = index + 1;
+      world.abilitySlotTier[world.abilitySlotIndexOf(slot, index)] = 1;
+      world.abilitySlotIdentity[world.abilitySlotIndexOf(neighbourSlot, index)] = 9;
+      world.abilitySlotTier[world.abilitySlotIndexOf(neighbourSlot, index)] = 2;
+    }
+
+    world.destroyEntity(entity);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      expect(world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, index)]).toBe(0);
+      expect(world.abilitySlotTier[world.abilitySlotIndexOf(slot, index)]).toBe(0);
+      expect(
+        world.abilitySlotIdentity[world.abilitySlotIndexOf(neighbourSlot, index)]
+      ).toBe(9);
+    }
+
+    world.reset();
+
+    expect(world.abilitySlotIdentity.every(value => value === 0)).toBe(true);
+    expect(world.abilitySlotTier.every(value => value === 0)).toBe(true);
   });
 
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4097])(
@@ -176,7 +235,7 @@ describe('World', () => {
     expect(world.freeSlotCount).toBe(0);
   });
 
-  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 9, 0x1_0000_0000])(
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 10, 0x1_0000_0000])(
     'rejects invalid component mask %s without consuming a slot',
     mask => {
       const world = new World(1);

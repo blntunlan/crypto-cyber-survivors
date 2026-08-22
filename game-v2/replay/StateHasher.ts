@@ -6,6 +6,7 @@ import {
   WORLD_SNAPSHOT_SCHEMA_VERSION,
   type WorldSnapshot,
 } from '@/game-v2/contracts/WorldSnapshot';
+import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
 import { RUN_IDENTITY_SCHEMA_VERSION } from '@/game-v2/contracts/RunIdentity';
 import { RNG_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/runtime/DeterministicRng';
 import { validateAuthoritativeWorldState } from '@/game-v2/replay/WorldStateValidator';
@@ -180,10 +181,15 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.f32(world.projectileDamage[slot] ?? 0);
     hash.u16(world.projectileLifetimeTicksRemaining[slot] ?? 0);
     hash.u16(world.weaponCooldownTicksRemaining[slot] ?? 0);
-    hash.f32(world.weaponDamage[slot] ?? 0);
     hash.f32(world.xp[slot] ?? 0);
     hash.u16(world.level[slot] ?? 0);
     hash.f32(world.xpPickupValue[slot] ?? 0);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const abilityIndex = abilityStoreIndex(slot, index);
+      hash.u8(world.abilitySlotIdentity[abilityIndex] ?? 0);
+      hash.u8(world.abilitySlotTier[abilityIndex] ?? 0);
+    }
   }
 };
 

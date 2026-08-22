@@ -3,6 +3,7 @@ import {
   RETIRED_ENTITY_GENERATION,
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
+import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
 import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
 
@@ -63,10 +64,16 @@ export class World {
   public readonly projectileDamage: Float32Array;
   public readonly projectileLifetimeTicksRemaining: Uint16Array;
   public readonly weaponCooldownTicksRemaining: Uint16Array;
-  public readonly weaponDamage: Float32Array;
   public readonly xp: Float32Array;
   public readonly level: Uint16Array;
   public readonly xpPickupValue: Float32Array;
+  /**
+   * Ability loadout state, `ABILITY_SLOT_COUNT` entries per world slot
+   * (V2-ADR-036). Address them only through `abilitySlotIndexOf`; an empty slot
+   * stores identity code `0` and tier `0`.
+   */
+  public readonly abilitySlotIdentity: Uint8Array;
+  public readonly abilitySlotTier: Uint8Array;
 
   private readonly capacity: number;
   private freeSlotsInUse: number;
@@ -105,10 +112,11 @@ export class World {
     this.projectileDamage = new Float32Array(capacity);
     this.projectileLifetimeTicksRemaining = new Uint16Array(capacity);
     this.weaponCooldownTicksRemaining = new Uint16Array(capacity);
-    this.weaponDamage = new Float32Array(capacity);
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
     this.xpPickupValue = new Float32Array(capacity);
+    this.abilitySlotIdentity = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
+    this.abilitySlotTier = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
     this.freeSlotsInUse = capacity;
 
     for (let slot = 0; slot < capacity; slot += 1) {
@@ -195,6 +203,30 @@ export class World {
     }
 
     return generation * this.capacity + slot;
+  }
+
+  /**
+   * Encodes one ability slot of one world slot into its store index.
+   *
+   * This method is the single owner of the `slot * ABILITY_SLOT_COUNT + index`
+   * stride (V2-ADR-036), for the same reason `entityIdOf` owns the handle
+   * encoding: a consumer re-deriving the rule from a store length would read or
+   * write another entity's loadout the moment either layout changed.
+   */
+  public abilitySlotIndexOf(slot: number, abilityIndex: number): number {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= this.capacity) {
+      throw new RangeError('slot must be an integer inside the world capacity');
+    }
+
+    if (
+      !Number.isInteger(abilityIndex) ||
+      abilityIndex < 0 ||
+      abilityIndex >= ABILITY_SLOT_COUNT
+    ) {
+      throw new RangeError('ability slot index must be an integer inside the loadout');
+    }
+
+    return abilityStoreIndex(slot, abilityIndex);
   }
 
   public destroyEntity(entity: EntityId): void {
@@ -327,9 +359,14 @@ export class World {
     this.projectileDamage[slot] = 0;
     this.projectileLifetimeTicksRemaining[slot] = 0;
     this.weaponCooldownTicksRemaining[slot] = 0;
-    this.weaponDamage[slot] = 0;
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;
+
+    const abilityBase = abilityStoreIndex(slot, 0);
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      this.abilitySlotIdentity[abilityBase + index] = 0;
+      this.abilitySlotTier[abilityBase + index] = 0;
+    }
   }
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import {
   ENEMY_FACTION,
   ENEMY_HEALTH,
@@ -10,6 +12,7 @@ import {
   PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
   SIMULATION_HZ,
+  STARTER_WEAPON_DAMAGE_TIER_2,
   WEAPON_COOLDOWN_SECONDS,
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
@@ -23,7 +26,8 @@ const PLAYER_MASK =
   ComponentMask.Transform |
   ComponentMask.Velocity |
   ComponentMask.Health |
-  ComponentMask.Player;
+  ComponentMask.Player |
+  ComponentMask.AbilityLoadout;
 const PLAYER_HEALTH = 100;
 const ENEMY_MASK =
   ComponentMask.Transform |
@@ -112,7 +116,8 @@ const worldState = (world: World): unknown => ({
   lastFacingX: [...world.lastFacingX],
   lastFacingY: [...world.lastFacingY],
   weaponCooldownTicksRemaining: [...world.weaponCooldownTicksRemaining],
-  weaponDamage: [...world.weaponDamage],
+  abilitySlotIdentity: [...world.abilitySlotIdentity],
+  abilitySlotTier: [...world.abilitySlotTier],
   projectileDamage: [...world.projectileDamage],
   projectileLifetimeTicksRemaining: [...world.projectileLifetimeTicksRemaining],
 });
@@ -145,13 +150,78 @@ describe('WeaponSystem', () => {
     const player = createPlayer(world);
     const slot = world.slotOf(player);
     world.weaponCooldownTicksRemaining[slot] = 17;
-    world.weaponDamage[slot] = 3;
     const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
 
     weapon.resetPlayer(world, player);
 
     expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
-    expect(world.weaponDamage[slot]).toBe(PROJECTILE_DAMAGE);
+    expect(loadout.identityAt(world, player, 0)).toBe(STARTER_PROJECTILE.id);
+    expect(loadout.tierAt(world, player, 0)).toBe(1);
+    expect(loadout.occupiedCount(world, player)).toBe(1);
+    expect(weapon.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
+  });
+
+  it('rebuilds the loadout from scratch on a second resetPlayer', () => {
+    const world = new World(4);
+    const player = createPlayer(world);
+    const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
+
+    weapon.resetPlayer(world, player);
+    weapon.advanceStarterTier(world, player);
+    weapon.resetPlayer(world, player);
+
+    expect(loadout.tierAt(world, player, 0)).toBe(1);
+    expect(loadout.occupiedCount(world, player)).toBe(1);
+  });
+
+  it('advances the starter weapon exactly once and then refuses', () => {
+    const world = new World(4);
+    const player = createPlayer(world);
+    const weapon = new WeaponSystem();
+
+    weapon.resetPlayer(world, player);
+
+    expect(weapon.advanceStarterTier(world, player)).toBe(2);
+    expect(weapon.starterDamageOf(world, player)).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(() => weapon.advanceStarterTier(world, player)).toThrow(
+      'ability has no authored tier above 2'
+    );
+  });
+
+  it('refuses to fire a tier no authored damage exists for', () => {
+    const world = new World(4);
+    const player = createPlayer(world);
+    createEnemy(world, 3, 0);
+    const weapon = new WeaponSystem();
+
+    weapon.resetPlayer(world, player);
+    world.abilitySlotTier[world.abilitySlotIndexOf(world.slotOf(player), 0)] = 3;
+
+    expect(() => weapon.starterDamageOf(world, player)).toThrow(
+      'starter weapon tier has no authored damage'
+    );
+    expect(() => weapon.step(world, player, context(0))).toThrow(
+      'starter weapon tier has no authored damage'
+    );
+  });
+
+  it('refuses to fire without a starter weapon in the loadout', () => {
+    const world = new World(4);
+    const player = createPlayer(world);
+    const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
+
+    weapon.resetPlayer(world, player);
+    loadout.remove(world, player, 0);
+
+    expect(() => weapon.step(world, player, context(0))).toThrow(
+      'player holds no starter weapon'
+    );
+    expect(() => weapon.advanceStarterTier(world, player)).toThrow(
+      'player holds no starter weapon'
+    );
   });
 
   it('fires at ticks 0, 30, 60 and 90 across 120 ticks', () => {
@@ -215,18 +285,18 @@ describe('WeaponSystem', () => {
     expect(velocityY).toBeCloseTo(PROJECTILE_SPEED * 0.8, 4);
   });
 
-  it('carries the current player weapon damage into the projectile', () => {
+  it('carries the tier damage the loadout currently holds into the projectile', () => {
     const world = new World(8);
     const player = createPlayer(world, 0, 0);
     createEnemy(world, 4, 0);
     const weapon = new WeaponSystem();
     weapon.resetPlayer(world, player);
-    world.weaponDamage[world.slotOf(player)] = 25;
+    weapon.advanceStarterTier(world, player);
 
     weapon.step(world, player, context(0));
     const slot = projectileSlots(world)[0] as number;
 
-    expect(world.projectileDamage[slot]).toBe(25);
+    expect(world.projectileDamage[slot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
   });
 
   it('creates no projectile without a target and stays ready to fire', () => {
@@ -421,7 +491,8 @@ describe('WeaponSystem', () => {
     world.contactCooldownTicksRemaining[slot] = 85;
     world.xpValue[slot] = 86;
     world.weaponCooldownTicksRemaining[slot] = 87;
-    world.weaponDamage[slot] = 88;
+    world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 88;
+    world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 1;
     world.xp[slot] = 89;
     world.level[slot] = 90;
     world.xpPickupValue[slot] = 91;
@@ -476,7 +547,8 @@ describe('WeaponSystem', () => {
     expect(world.contactCooldownTicksRemaining[slot]).toBe(0);
     expect(world.xpValue[slot]).toBe(0);
     expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
-    expect(world.weaponDamage[slot]).toBe(0);
+    expect(world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
+    expect(world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.xp[slot]).toBe(0);
     expect(world.level[slot]).toBe(0);
     expect(world.xpPickupValue[slot]).toBe(0);

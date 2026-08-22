@@ -26,6 +26,7 @@ import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
@@ -35,7 +36,8 @@ const PLAYER_MASK =
   ComponentMask.Velocity |
   ComponentMask.Body |
   ComponentMask.Health |
-  ComponentMask.Player;
+  ComponentMask.Player |
+  ComponentMask.AbilityLoadout;
 
 const XP_PICKUP_MASK =
   ComponentMask.Transform | ComponentMask.Body | ComponentMask.XpPickup;
@@ -77,7 +79,7 @@ const createCombatResultWithKills = (
 
 /**
  * Creates a raw player entity without initializing health, maxHealth, radius,
- * weaponDamage, xp, or level. The system-specific resetPlayer methods must own
+ * the ability loadout, xp, or level. The system-specific resetPlayer methods must own
  * their respective fields.
  */
 const createRawPlayer = (world: World, x = 0, y = 0): EntityId => {
@@ -870,7 +872,9 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     restoredSystem.resolveUpgrade(world, player, restoredPausedTickCommand);
 
     expect(commandRecorder.read(0)).toEqual(restoredPausedTickCommand);
-    expect(world.weaponDamage[world.slotOf(player)]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
     expect(lifecycle.phase).toBe('playing');
   });
 });
@@ -879,7 +883,6 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
   it('resolves upgrade by recording command, applying weapon upgrade, and resuming lifecycle', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
-    const playerSlot = world.slotOf(player);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
@@ -908,7 +911,9 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
 
     expect(commandRecorder.count).toBe(1);
     expect(commandRecorder.read(0)).toEqual(command);
-    expect(world.weaponDamage[playerSlot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
     expect(lifecycle.phase).toBe('playing');
 
     expect(() => progression.resolveUpgrade(world, player, command)).toThrow(
@@ -966,14 +971,15 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     progression.resolveUpgrade(world, player, restoredPausedTickCommand);
 
     expect(commandRecorder.read(0)).toEqual(restoredPausedTickCommand);
-    expect(world.weaponDamage[world.slotOf(player)]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
     expect(lifecycle.phase).toBe('playing');
   });
 
   it('records command BEFORE applying damage upgrade so recorder failure does not mutate world', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
-    const playerSlot = world.slotOf(player);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
@@ -999,24 +1005,28 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     expect(() =>
       progression.resolveUpgrade(world, player, badCommand as unknown as RunCommand)
     ).toThrow();
-    expect(world.weaponDamage[playerSlot]).toBe(PROJECTILE_DAMAGE);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
     expect(lifecycle.phase).toBe('level-up');
   });
 });
 
-describe('WeaponSystem.applyDamageUpgrade', () => {
-  it('upgrades player weapon damage to STARTER_WEAPON_DAMAGE_TIER_2', () => {
+describe('WeaponSystem.advanceStarterTier', () => {
+  it('raises the starter slot to tier 2 and with it the fired damage', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
-    const slot = world.slotOf(player);
     const weaponSystem = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
     weaponSystem.resetPlayer(world, player);
 
-    expect(world.weaponDamage[slot]).toBe(PROJECTILE_DAMAGE);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
+    expect(loadout.tierAt(world, player, 0)).toBe(1);
 
-    weaponSystem.applyDamageUpgrade(world, player);
+    expect(weaponSystem.advanceStarterTier(world, player)).toBe(2);
 
-    expect(world.weaponDamage[slot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(loadout.tierAt(world, player, 0)).toBe(2);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
   });
 
   it('rejects a second upgrade application with RangeError', () => {
@@ -1025,9 +1035,9 @@ describe('WeaponSystem.applyDamageUpgrade', () => {
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
 
-    weaponSystem.applyDamageUpgrade(world, player);
+    weaponSystem.advanceStarterTier(world, player);
 
-    expect(() => weaponSystem.applyDamageUpgrade(world, player)).toThrow(RangeError);
+    expect(() => weaponSystem.advanceStarterTier(world, player)).toThrow(RangeError);
   });
 
   it('rejects an uninitialized player or missing player components', () => {
@@ -1035,7 +1045,7 @@ describe('WeaponSystem.applyDamageUpgrade', () => {
     const invalidPlayer = world.createEntity(ComponentMask.Transform);
     const weaponSystem = new WeaponSystem();
 
-    expect(() => weaponSystem.applyDamageUpgrade(world, invalidPlayer)).toThrow(
+    expect(() => weaponSystem.advanceStarterTier(world, invalidPlayer)).toThrow(
       RangeError
     );
   });
@@ -1068,7 +1078,7 @@ describe('End-to-end real production path integration test', () => {
     lifecycle.start();
 
     expect(world.health[playerSlot]).toBe(PLAYER_MAX_HEALTH);
-    expect(world.weaponDamage[playerSlot]).toBe(PROJECTILE_DAMAGE);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
     expect(world.xp[playerSlot]).toBe(0);
     expect(world.level[playerSlot]).toBe(1);
     expect(lifecycle.phase).toBe('playing');
@@ -1164,7 +1174,9 @@ describe('End-to-end real production path integration test', () => {
 
     expect(commandRecorder.count).toBe(1);
     expect(commandRecorder.read(0)).toEqual(upgradeCommand);
-    expect(world.weaponDamage[playerSlot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
     expect(lifecycle.phase).toBe('playing');
 
     // 5. Post-resume: spawn second enemy at x = 3, y = 0

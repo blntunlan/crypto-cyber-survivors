@@ -130,10 +130,11 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   projectileDamage: world.projectileDamage.slice(),
   projectileLifetimeTicksRemaining: world.projectileLifetimeTicksRemaining.slice(),
   weaponCooldownTicksRemaining: world.weaponCooldownTicksRemaining.slice(),
-  weaponDamage: world.weaponDamage.slice(),
   xp: world.xp.slice(),
   level: world.level.slice(),
   xpPickupValue: world.xpPickupValue.slice(),
+  abilitySlotIdentity: world.abilitySlotIdentity.slice(),
+  abilitySlotTier: world.abilitySlotTier.slice(),
 });
 
 export const writeCheckpoint = (input: RuntimeCheckpointInput): RuntimeCheckpoint => {

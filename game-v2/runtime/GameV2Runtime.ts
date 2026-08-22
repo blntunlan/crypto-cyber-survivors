@@ -59,7 +59,8 @@ const PLAYER_ENTITY_MASK =
   ComponentMask.Velocity |
   ComponentMask.Body |
   ComponentMask.Health |
-  ComponentMask.Player;
+  ComponentMask.Player |
+  ComponentMask.AbilityLoadout;
 
 const ENEMY_MASK = ComponentMask.Transform | ComponentMask.Enemy;
 const PROJECTILE_MASK = ComponentMask.Transform | ComponentMask.Projectile;
@@ -410,7 +411,7 @@ export class GameV2Runtime {
       playerHealth: this.world.health[playerSlot] ?? 0,
       playerMaxHealth: this.world.maxHealth[playerSlot] ?? 0,
       playerLevel: this.world.level[playerSlot] ?? 0,
-      weaponDamage: this.world.weaponDamage[playerSlot] ?? 0,
+      weaponDamage: this.weaponSystem.starterDamageOf(this.world, this.playerEntity),
       invulnerabilityTicks: this.world.invulnerabilityTicksRemaining[playerSlot] ?? 0,
       dashCooldownTicks: this.world.dashCooldownTicksRemaining[playerSlot] ?? 0,
       enemyCount,

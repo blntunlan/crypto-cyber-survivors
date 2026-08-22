@@ -48,6 +48,18 @@ export const COMBAT_KILL_BUFFER_CAPACITY = 32;
 export const XP_PICKUP_RADIUS = 0.3;
 export const LEVEL_2_XP_THRESHOLD = 5;
 export const STARTER_WEAPON_DAMAGE_TIER_2 = 15;
+
+/**
+ * Authored starter-projectile damage per tier, indexed by `tier - 1`.
+ *
+ * Only two tiers are authored: tier 3 effects belong to V2-102, and
+ * `STARTER_PROJECTILE.authoredTiers` is what keeps the loadout from reaching a
+ * tier this table cannot answer (V2-ADR-038).
+ */
+export const STARTER_PROJECTILE_DAMAGE_BY_TIER: readonly number[] = Object.freeze([
+  PROJECTILE_DAMAGE,
+  STARTER_WEAPON_DAMAGE_TIER_2,
+]);
 export const PLAYER_STARTING_LEVEL = 1;
 export const MVP0_MAX_PLAYER_LEVEL = 2;
 

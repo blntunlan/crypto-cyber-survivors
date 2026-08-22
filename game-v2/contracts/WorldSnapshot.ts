@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 1 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 2 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -35,8 +35,10 @@ export type WorldSnapshot = Readonly<{
   projectileDamage: Float32Array;
   projectileLifetimeTicksRemaining: Uint16Array;
   weaponCooldownTicksRemaining: Uint16Array;
-  weaponDamage: Float32Array;
   xp: Float32Array;
   level: Uint16Array;
   xpPickupValue: Float32Array;
+  /** `ABILITY_SLOT_COUNT` entries per world slot (V2-ADR-036). */
+  abilitySlotIdentity: Uint8Array;
+  abilitySlotTier: Uint8Array;
 }>;
