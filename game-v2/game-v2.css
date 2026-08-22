@@ -1,3 +1,58 @@
 .game-v2 {
+  position: relative;
   min-height: 100dvh;
+}
+
+.game-v2 .level-up-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+}
+
+.game-v2 .level-up-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  color: #f9fafb;
+}
+
+.game-v2 .level-up-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.game-v2 .level-up-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.game-v2 .level-up-choice-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.game-v2 .level-up-choice-button:hover {
+  background-color: #1d4ed8;
+}
+
+.game-v2 .level-up-choice-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }

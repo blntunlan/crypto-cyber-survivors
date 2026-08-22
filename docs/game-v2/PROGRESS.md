@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-013` (not started) |
-| Status | `Done` — V2-012 accepted after independent review and a hardening round |
+| Active task | `V2-013` (implementation complete; independent review pending) |
+| Status | `Review pending` — XP pickup and the first paused level-up are implemented and locally verified |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -542,24 +542,61 @@
   passes 16 files and 395 tests, up from 385 by the ten new CombatSystem tests
   only. `npm run typecheck`, `npm run check:architecture` (89 baseline singleton
   files) and focused ESLint all pass. No existing assertion was weakened.
+- V2-013 added a state-free `ProgressionSystem` that consumes the bounded combat
+  kill buffer, publishes one world-pooled XP pickup per kill, collects inclusive
+  walk-over overlaps exactly once, advances level 1 to 2 with surplus XP
+  retained, and pauses the lifecycle at `level-up`. `ProgressionStepResult` is
+  preallocated scratch output; offer authority is derived only from
+  `lifecycle.phase`, with no `pendingOffer`, paused-tick latch, or system reset.
+- Kill count, Float32 buffer shape and bounds, every kill row, player state,
+  every existing pickup, aggregate Float32 XP, lifecycle phase, and world
+  capacity are validated before the first pickup is created or collected. A
+  malformed later kill cannot publish an earlier pickup; a malformed later
+  pickup or aggregate XP overflow cannot destroy an earlier collectible pickup.
+  Exact-touch prediction uses the same `Math.fround(0.3)` radius written to the
+  Float32 world store, avoiding a prevalidation/store boundary disagreement.
+- V2-ADR-024 remains intact: `WeaponSystem.applyDamageUpgrade` is the only
+  progression writer of `world.weaponDamage`; `ProgressionSystem` records the
+  explicit `RunCommand` first, calls that method second, then resumes the
+  lifecycle. Recorder rejection leaves weapon and lifecycle unchanged, a fresh
+  system instance can resolve an already-paused lifecycle, and a second choice
+  is rejected because the lifecycle is no longer `level-up`.
+- The MVP-0 overlay exposes exactly one native button, calls
+  `onChoose('starter-damage-2')`, displays the 10 to 15 damage change, and is a
+  modal dialog named by its visible title. All new selectors are rooted under
+  `.game-v2`, including visible focus styling; no three-card, timeout, reroll,
+  or banish scope was introduced.
+- V2-013 resume RED first reproduced the interrupted state at 2 failed / 32
+  passed of 34. After replacing the obsolete reset and paused-tick tests, the
+  meaningful RED was 6 failed / 32 passed of 38: stale offer output,
+  malformed-later-kill partial publish, malformed-later-pickup partial
+  collection, idle lifecycle mutation, fresh-system rejection, and paused-tick
+  latch rejection. The semantic-dialog RED separately failed 1 of 6 overlay
+  tests because no accessible dialog existed.
+- Five deliberate mutants were killed by one focused test each: exclusive
+  exact-touch, removed typed-buffer validation, reversed recorder/weapon order,
+  removed lifecycle-playing guard, and removed Float32 representability guard.
+  Each production mutation was restored before final verification.
+- V2-013 verification passes focused 2 files / 41 tests and the full Game V2
+  suite at 18 files / 436 tests. `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files), focused ESLint,
+  focused Prettier, and `npm run check:ui-contract` all pass. The UI gate needed
+  normal process permissions because its `git cat-file` child process is denied
+  by the workspace sandbox; outside that sandbox the configured baseline is
+  reachable and the gate reports `UI contract: passed`.
 
 ## Verification Required
 
-1. Implement V2-013 XP pickup and one level-up: pooled pickup spawned from the
-   kill buffer, walk-over collection, the first threshold advancing level 1 to 2
-   with surplus XP retained, the lifecycle pausing at `level-up`, one upgrade
-   choice recorded as a `RunCommand` at the paused tick, and the starter weapon
-   damage upgrade proving itself in fewer hits to kill.
+1. Independently review the V2-013 commit against the Task 14 resume brief,
+   especially state-free checkpoint behavior, pre-mutation batch validation,
+   `WeaponSystem` one-writer ownership, command ordering, the one-choice overlay,
+   and `.game-v2` CSS scoping.
 
 ## Exact Next Action
 
-Delegate V2-013 from the written brief. The brief fixes the seams the delegate
-must not invent: `ProgressionSystem` takes `GameV2Lifecycle`, `CommandRecorder`
-and `WeaponSystem` as required constructor dependencies; it never writes
-`world.weaponDamage` itself but calls a new `WeaponSystem.applyDamageUpgrade`, so
-V2-ADR-024's one-writer rule survives; `resolveUpgrade` records the command
-before mutating; the pickup batch rejects atomically on capacity; and constants
-are derived from stated properties rather than chosen.
+Generate the V2-013 review package from base `43f2f441` to the implementation
+commit and dispatch a fresh independent reviewer. Do not start V2-014 until
+V2-013 is accepted or its review findings are fixed and re-reviewed.
 
 ## Known Pre-existing Working-tree Changes
 

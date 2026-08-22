@@ -3,6 +3,7 @@ import {
   PROJECTILE_LIFETIME_TICKS,
   PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
+  STARTER_WEAPON_DAMAGE_TIER_2,
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
@@ -47,6 +48,21 @@ export class WeaponSystem {
 
     world.weaponCooldownTicksRemaining[slot] = 0;
     world.weaponDamage[slot] = PROJECTILE_DAMAGE;
+  }
+
+  public applyDamageUpgrade(world: World, playerEntity: EntityId): void {
+    const slot = world.slotOf(playerEntity);
+    const mask = world.masks[slot];
+
+    if (mask === undefined || (mask & PLAYER_ENTITY_MASK) !== PLAYER_ENTITY_MASK) {
+      throw new RangeError('player entity is missing required components');
+    }
+
+    if (world.weaponDamage[slot] !== PROJECTILE_DAMAGE) {
+      throw new RangeError('player weapon damage is not at tier 1');
+    }
+
+    world.weaponDamage[slot] = STARTER_WEAPON_DAMAGE_TIER_2;
   }
 
   /**
