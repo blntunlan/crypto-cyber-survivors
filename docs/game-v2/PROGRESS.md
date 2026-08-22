@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-013` (review fix round 1 complete; scoped re-review pending) |
-| Status | `Re-review pending` — terminal death now dominates same-tick progression and the fix is locally verified |
+| Active task | `V2-013` (review fix round 2 complete; scoped re-review pending) |
+| Status | `Re-review pending` — upgraded projectile hit count is now proven by discrete damage events |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -612,18 +612,34 @@
   suite at 18 files / 439 tests. Typecheck, the 89-file singleton architecture
   baseline, focused ESLint, focused Prettier, and the escalated UI contract gate
   all pass before commit.
+- V2-013 review fix round 2 replaces aggregate health-loss division with
+  discrete positive health-drop events in the real production integration.
+  Every event must equal the active tier's exact projectile damage, including
+  the lethal clear-to-zero event, before the independent event counters assert
+  exactly 3 tier-1 hits and exactly 2 tier-2 hits.
+- The reviewer mutant was reproduced by keeping player `weaponDamage` at 15 but
+  forcing every spawned projectile to copy base damage 10. The prior aggregate
+  test falsely passed because `30 / 15 = 2`; with the new event assertions the
+  same mutant fails `expected 10 to be 15`. `WeaponSystem.ts` was then restored
+  byte-identically to SHA-256
+  `E14737F4C50921B377CE8F296B608E1EA964FB0D4D4ABE009EC0738F420F87A5`, has no
+  diff, and the integration returns GREEN.
+- Fix-round-2 verification passes the focused progression suite at 38/38 and
+  all Game V2 tests at 18 files / 439 tests. Typecheck, focused ESLint,
+  focused Prettier, and diff-check also pass; production source remains
+  unchanged.
 
 ## Verification Required
 
-1. Re-review the V2-013 fix commit against the accepted findings: runtime
-   boolean validation, death-before-progression ordering and result clearing,
-   runtime-owned `endRun()`, exact 3-to-2 production hit counts, and V2-ADR-027.
+1. Re-review the V2-013 test-only fix commit against the one accepted finding:
+   positive health-drop events must independently prove per-hit tier damage and
+   exact 3-to-2 hit counts, including the lethal event.
 
 ## Exact Next Action
 
-Generate the scoped V2-013 fix review package from implementation commit
-`ae1e5002` through the fix commit and dispatch a fresh independent re-reviewer.
-Do not start V2-014 until V2-013 is accepted.
+Generate the scoped V2-013 fix-round-2 review package from `7e44965f` through
+the test-only fix commit and dispatch a fresh independent re-reviewer. Do not
+start V2-014 until V2-013 is accepted.
 
 ## Known Pre-existing Working-tree Changes
 

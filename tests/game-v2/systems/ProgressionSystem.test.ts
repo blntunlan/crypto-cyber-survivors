@@ -1095,8 +1095,11 @@ describe('End-to-end real production path integration test', () => {
       weaponSystem.step(world, player, ctx);
       const combatRes = combatSystem.step(world, player, ctx);
       const enemy1HealthAfterCombat = world.health[enemy1Slot] ?? 0;
-      enemy1ProjectileHits +=
-        (enemy1HealthBeforeTick - enemy1HealthAfterCombat) / PROJECTILE_DAMAGE;
+      const enemy1HealthDrop = enemy1HealthBeforeTick - enemy1HealthAfterCombat;
+      if (enemy1HealthDrop > 0) {
+        expect(enemy1HealthDrop).toBe(PROJECTILE_DAMAGE);
+        enemy1ProjectileHits += 1;
+      }
       enemy1HealthBeforeTick = enemy1HealthAfterCombat;
       const progRes = progressionSystem.step(world, player, combatRes, ctx);
 
@@ -1185,9 +1188,11 @@ describe('End-to-end real production path integration test', () => {
       weaponSystem.step(world, player, ctx);
       const combatRes = combatSystem.step(world, player, ctx);
       const enemy2HealthAfterCombat = world.health[enemy2Slot] ?? 0;
-      enemy2ProjectileHits +=
-        (enemy2HealthBeforeTick - enemy2HealthAfterCombat) /
-        STARTER_WEAPON_DAMAGE_TIER_2;
+      const enemy2HealthDrop = enemy2HealthBeforeTick - enemy2HealthAfterCombat;
+      if (enemy2HealthDrop > 0) {
+        expect(enemy2HealthDrop).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+        enemy2ProjectileHits += 1;
+      }
       enemy2HealthBeforeTick = enemy2HealthAfterCombat;
       progressionSystem.step(world, player, combatRes, ctx);
 
