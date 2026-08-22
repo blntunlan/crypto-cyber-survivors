@@ -29,6 +29,7 @@ import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import { TargetingSystem } from '@/game-v2/systems/TargetingSystem';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { World } from '@/game-v2/world/World';
 
@@ -93,6 +94,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
   const commandRecorder = new CommandRecorder();
   const targetingSystem = new TargetingSystem();
   const abilityLoadout = new AbilityLoadoutSystem();
+  const passiveLoadout = new PassiveLoadoutSystem();
   const weaponSystem = new WeaponSystem(targetingSystem, abilityLoadout);
 
   return new GameV2Runtime({
@@ -107,11 +109,16 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     renderSnapshot: new RenderSnapshot(MVP0_RENDER_CAPACITIES),
     renderSnapshotWriter: new RenderSnapshotWriter(),
     dashSystem: new DashSystem(),
-    movementSystem: new MovementSystem(),
+    movementSystem: new MovementSystem(passiveLoadout),
     enemySystem: new EnemySystem(),
     weaponSystem,
     combatSystem: new CombatSystem(),
-    progressionSystem: new ProgressionSystem(lifecycle, commandRecorder, weaponSystem),
+    progressionSystem: new ProgressionSystem(
+      lifecycle,
+      commandRecorder,
+      weaponSystem,
+      passiveLoadout
+    ),
     presentation:
       options.renderTarget === undefined || options.renderTarget === null
         ? null

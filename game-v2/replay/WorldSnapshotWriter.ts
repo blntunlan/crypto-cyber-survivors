@@ -113,7 +113,6 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   health: world.health.slice(),
   maxHealth: world.maxHealth.slice(),
   faction: world.faction.slice(),
-  moveSpeed: world.moveSpeed.slice(),
   lastFacingX: world.lastFacingX.slice(),
   lastFacingY: world.lastFacingY.slice(),
   dashDirectionX: world.dashDirectionX.slice(),
@@ -135,6 +134,8 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   xpPickupValue: world.xpPickupValue.slice(),
   abilitySlotIdentity: world.abilitySlotIdentity.slice(),
   abilitySlotTier: world.abilitySlotTier.slice(),
+  passiveSlotIdentity: world.passiveSlotIdentity.slice(),
+  passiveSlotLevel: world.passiveSlotLevel.slice(),
 });
 
 export const writeCheckpoint = (input: RuntimeCheckpointInput): RuntimeCheckpoint => {

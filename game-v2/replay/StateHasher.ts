@@ -7,6 +7,7 @@ import {
   type WorldSnapshot,
 } from '@/game-v2/contracts/WorldSnapshot';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { RUN_IDENTITY_SCHEMA_VERSION } from '@/game-v2/contracts/RunIdentity';
 import { RNG_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/runtime/DeterministicRng';
 import { validateAuthoritativeWorldState } from '@/game-v2/replay/WorldStateValidator';
@@ -164,7 +165,6 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.f32(world.health[slot] ?? 0);
     hash.f32(world.maxHealth[slot] ?? 0);
     hash.i8(world.faction[slot] ?? 0);
-    hash.f32(world.moveSpeed[slot] ?? 0);
     hash.f32(world.lastFacingX[slot] ?? 0);
     hash.f32(world.lastFacingY[slot] ?? 0);
     hash.f32(world.dashDirectionX[slot] ?? 0);
@@ -189,6 +189,12 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
       const abilityIndex = abilityStoreIndex(slot, index);
       hash.u8(world.abilitySlotIdentity[abilityIndex] ?? 0);
       hash.u8(world.abilitySlotTier[abilityIndex] ?? 0);
+    }
+
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      const passiveIndex = passiveStoreIndex(slot, index);
+      hash.u8(world.passiveSlotIdentity[passiveIndex] ?? 0);
+      hash.u8(world.passiveSlotLevel[passiveIndex] ?? 0);
     }
   }
 };

@@ -53,6 +53,26 @@ describe('ReplayRunner', () => {
     expect(result.commandsApplied).toBe(recording.commands.length);
   });
 
+  it('replays a recorded passive choice to the same state at every frame rate', () => {
+    const run = driveScriptedRun(SCENARIO_SEED, 'passive-move-speed');
+    const recording = run.runtime.exportRecording();
+    const liveHash = run.runtime.snapshotHash();
+    run.runtime.dispose();
+
+    expect(run.upgradeApplied).toBe(true);
+    expect(recording.commands[0]?.choiceId).toBe('passive-move-speed');
+
+    const replayRunner = new ReplayRunner();
+    const at30 = replayRunner.run(recording, 30);
+    const at60 = replayRunner.run(recording, 60);
+    const at120 = replayRunner.run(recording, 120);
+
+    expect(at60.finalHash).toBe(liveHash);
+    expect(at30.finalHash).toBe(at60.finalHash);
+    expect(at120.finalHash).toBe(at60.finalHash);
+    expect(at60.commandsApplied).toBe(recording.commands.length);
+  });
+
   it('rejects an unsupported recording schema version', () => {
     const { recording } = buildScenarioRecording();
     const replayRunner = new ReplayRunner();

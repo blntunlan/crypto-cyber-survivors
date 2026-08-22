@@ -4,6 +4,7 @@ import {
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
@@ -20,7 +21,6 @@ const componentStores = (world: World): Array<ArrayLike<number>> => [
   world.health,
   world.maxHealth,
   world.faction,
-  world.moveSpeed,
   world.lastFacingX,
   world.lastFacingY,
   world.dashDirectionX,
@@ -87,6 +87,7 @@ describe('World', () => {
       ComponentMask.Projectile,
       ComponentMask.XpPickup,
       ComponentMask.AbilityLoadout,
+      ComponentMask.PassiveLoadout,
     ];
     let combinedMask = 0;
 
@@ -97,7 +98,7 @@ describe('World', () => {
       combinedMask |= bit ?? 0;
     }
 
-    expect(new Set(bits).size).toBe(10);
+    expect(new Set(bits).size).toBe(11);
     expect(combinedMask).toBe(ALL_COMPONENT_MASK);
   });
 
@@ -111,6 +112,59 @@ describe('World', () => {
     expect(world.abilitySlotIndexOf(7, ABILITY_SLOT_COUNT - 1)).toBe(
       8 * ABILITY_SLOT_COUNT - 1
     );
+  });
+
+  it('allocates passive loadout stores at one entry per passive slot', () => {
+    const world = new World(8);
+
+    expect(world.passiveSlotIdentity).toHaveLength(8 * PASSIVE_SLOT_COUNT);
+    expect(world.passiveSlotLevel).toHaveLength(8 * PASSIVE_SLOT_COUNT);
+    expect(world.passiveSlotIndexOf(3, 2)).toBe(passiveStoreIndex(3, 2));
+    expect(world.passiveSlotIndexOf(7, PASSIVE_SLOT_COUNT - 1)).toBe(
+      8 * PASSIVE_SLOT_COUNT - 1
+    );
+
+    for (const slot of [-1, 8, 1.5, Number.NaN]) {
+      expect(() => world.passiveSlotIndexOf(slot, 0)).toThrow(
+        'slot must be an integer inside the world capacity'
+      );
+    }
+
+    for (const index of [-1, PASSIVE_SLOT_COUNT, 1.5, Number.NaN]) {
+      expect(() => world.passiveSlotIndexOf(0, index)).toThrow(
+        'passive slot index must be an integer inside the loadout'
+      );
+    }
+  });
+
+  it('clears passive loadout entries when a slot is destroyed or the world resets', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.PassiveLoadout);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.PassiveLoadout);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, index)] = index + 1;
+      world.passiveSlotLevel[world.passiveSlotIndexOf(slot, index)] = 1;
+      world.passiveSlotIdentity[world.passiveSlotIndexOf(neighbourSlot, index)] = 9;
+      world.passiveSlotLevel[world.passiveSlotIndexOf(neighbourSlot, index)] = 2;
+    }
+
+    world.destroyEntity(entity);
+
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      expect(world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, index)]).toBe(0);
+      expect(world.passiveSlotLevel[world.passiveSlotIndexOf(slot, index)]).toBe(0);
+      expect(
+        world.passiveSlotIdentity[world.passiveSlotIndexOf(neighbourSlot, index)]
+      ).toBe(9);
+    }
+
+    world.reset();
+
+    expect(world.passiveSlotIdentity.every(value => value === 0)).toBe(true);
+    expect(world.passiveSlotLevel.every(value => value === 0)).toBe(true);
   });
 
   it('rejects an ability store index outside the world or the loadout', () => {
@@ -235,7 +289,7 @@ describe('World', () => {
     expect(world.freeSlotCount).toBe(0);
   });
 
-  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 10, 0x1_0000_0000])(
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 11, 0x1_0000_0000])(
     'rejects invalid component mask %s without consuming a slot',
     mask => {
       const world = new World(1);

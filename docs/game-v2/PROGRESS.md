@@ -9,8 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-100` — four-slot ability loadout; implemented, mutation-proved, and verified |
-| Status | `Verification` — awaiting acceptance; brief and outcome at `docs/game-v2/tasks/V2-100-ability-loadout.md` |
+| Active task | `V2-101` — six-slot passive loadout; implemented, mutation-proved, and verified |
+| Status | `Verification` — awaiting acceptance; briefs and outcomes in `docs/game-v2/tasks/` |
+| Closed | `V2-100` accepted at `677e1d24` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -896,6 +897,74 @@
   strengthening this round.
 - New decisions: V2-ADR-036 through V2-ADR-039.
 
+### V2-101 — six-slot passive loadout (2026-08-22)
+
+- The user accepted `V2-100`; it is closed at `677e1d24`.
+- Six passive slots now exist as authoritative run state, separate from the four
+  ability slots (V2-ADR-040). `game-v2/contracts/PassiveSlot.ts` holds
+  `PASSIVE_SLOT_COUNT = 6`, `PASSIVE_MAX_LEVEL = 5`, the authored speed table,
+  and `passiveStoreIndex`; `World.passiveSlotIndexOf` is its validating wrapper,
+  mirroring the ability pair exactly.
+- `PassiveLoadoutSystem` is the only writer. `addOrLevelUp` levels a held
+  identity in place — never consuming a second slot — places a new one in the
+  lowest free slot at level 1, refuses a seventh identity, and refuses to pass
+  the identity's `authoredLevels`. `isOfferable` answers §5.3's offer rule: a
+  held passive is offerable below its ceiling, a new one only while a slot is
+  free.
+- `move-speed` is the first identity, and all five of its levels are authored:
+  `PASSIVE_MOVE_SPEED_BY_LEVEL` adds one twelfth of the 6.0 base per level, so
+  level 5 is 8.5 and the escape margin over `ENEMY_MOVE_SPEED` widens from 3.8
+  to 6.3. Every entry is exactly representable in Float32, so the derived speed
+  adds no rounding to replay.
+- `World.moveSpeed` was deleted (V2-ADR-041). It was already a dead store —
+  nothing read or wrote it and `MovementSystem` used the constant directly — and
+  speed is now derived from the passive level, so there is exactly one authority
+  for it. `WORLD_SNAPSHOT_SCHEMA_VERSION` moved from `2` to `3`.
+- The level-up card gained a second fixed choice (V2-ADR-042) so the passive has
+  a real production path. It is still the MVP-0 card: paused, no reveal, no
+  countdown, no timeout choice, no reroll or banish. `RunCommand.choiceId` is now
+  a two-value union validated by `CommandRecorder`, so a replay cannot carry a
+  choice the runtime cannot apply.
+- The two choices produce genuinely different runs at MVP-0 balance, which is the
+  clearest evidence the passive is live: the same scripted input dies at tick 789
+  after taking the weapon tier and at tick 731 after taking the speed passive,
+  because MVP-0's spawn cadence is tuned against the tier-2 kill period and
+  speed alone cannot buy that back.
+- State hashes moved again, as expected for a schema change: initial
+  `8272f478` → `5e6a93e5`, weapon-choice run `b09663a6` → `5450dfff` at the same
+  tick 789, and the new passive-choice run hashes `8bf087bf` at tick 731. No test
+  pins these; they are compared against each other.
+- V2-101 RED command:
+  `npx vitest run tests/game-v2/config/PassiveRegistry.test.ts tests/game-v2/systems/PassiveLoadoutSystem.test.ts --pool=forks --maxWorkers=1`
+  reported `Test Files 2 failed` with both failures in module resolution.
+- V2-101 GREEN verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (28 files, 571
+  tests, up from 26 files and 533 tests at V2-100), `npm run typecheck`,
+  `npm run lint` (0 errors, 0 warnings), `npx prettier --write` over
+  `game-v2`, `tests/game-v2`, and `docs/game-v2`, `npm run check:architecture`,
+  `npm run check:reset-coverage`, `npm run check:ui-contract`, `npm run build`,
+  `npm run test` (363 files, 3737 tests, zero failures), and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed). The e2e now also asserts the passive choice is offered.
+- A fourteen-mutant deliberate pass ran. Twelve died immediately: highest-free
+  slot, a held identity consuming a second slot, dropping the seventh-identity
+  throw, dropping the level ceiling, `isOfferable` ignoring the ceiling, skipping
+  the passive clear in `clearSlot`, omitting the level from the hash, ignoring
+  the level in `MovementSystem`, accepting any `choiceId`, resolving the passive
+  command as a weapon upgrade, and dropping either validator rule.
+- Two mutants survived and both were fixed at the source rather than by adding a
+  test that pins ceremony:
+  - Deleting `MovementSystem.resetPlayer` changed nothing, because
+    `World.clearSlot` and `World.reset` already guarantee a fresh slot carries no
+    passive bytes. The method and its runtime call were removed; it looked like a
+    guarantee while guaranteeing nothing. `WeaponSystem.resetPlayer` stays
+    because it installs the starter ability rather than clearing state.
+  - The overlay's `moveSpeedUpgradable && nextMoveSpeed !== undefined` guard
+    could be weakened to `||` undetected, because the only tested hidden case was
+    the ceiling, where both halves are false. A second case now covers the other
+    reason the passive can be unofferable — no free slot — and both mutants die.
+- New decisions: V2-ADR-040 through V2-ADR-042.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
@@ -906,12 +975,17 @@
    498 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
    (expect 2 passed). Both were last confirmed green on 2026-08-22.
-3. `V2-100` is implemented and verified but not accepted. Re-run
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 26 files,
-   533 tests) before touching code; the MVP-0 expectation of 24 files and 498
-   tests is superseded.
+3. `V2-101` is implemented and verified but not accepted. Re-run
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 28 files,
+   571 tests) before touching code; earlier counts are superseded.
 
 ## Known MVP-0 Limitations
+
+- One level-up exists per run (`MVP0_MAX_PLAYER_LEVEL = 2`), so neither the
+  four-slot ability cap, the six-slot passive cap, nor any level above 1 is
+  reachable in production. Those limits are proved by contract tests using
+  injected registries (V2-ADR-039) rather than by gameplay, and become reachable
+  when V2-104 replaces the fixed card with the real offer flow.
 
 - XP pickups have no lifetime and no magnet, so they accumulate for the whole
   run. `MVP0_WORLD_CAPACITY = 512` is the only bound, and a run long enough to
@@ -942,10 +1016,12 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the `V2-100` checkpoint. On acceptance, generate the `V2-101` task brief
-(six-slot passive loadout), which reuses the `AbilityLoadoutSystem` shape for a
-separate six-slot, five-level store and must not widen the four ability slots.
-Do not deploy, cut over production, or replace the legacy demo.
+Accept the `V2-101` checkpoint. On acceptance, generate the `V2-102` task brief
+(three-tier ability schema), which must give every registered ability typed
+acquisition, Tier 2, and Tier 3 effects — including the starter projectile's
+tier 3, which `authoredTiers` currently withholds — without introducing a
+universal damage/radius multiplier pipeline. Do not deploy, cut over production,
+or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do

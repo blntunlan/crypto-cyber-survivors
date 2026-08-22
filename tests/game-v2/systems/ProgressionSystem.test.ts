@@ -26,7 +26,10 @@ import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
+import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
+import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
@@ -37,7 +40,8 @@ const PLAYER_MASK =
   ComponentMask.Body |
   ComponentMask.Health |
   ComponentMask.Player |
-  ComponentMask.AbilityLoadout;
+  ComponentMask.AbilityLoadout |
+  ComponentMask.PassiveLoadout;
 
 const XP_PICKUP_MASK =
   ComponentMask.Transform | ComponentMask.Body | ComponentMask.XpPickup;
@@ -1005,6 +1009,104 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     expect(() =>
       progression.resolveUpgrade(world, player, badCommand as unknown as RunCommand)
     ).toThrow();
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
+    expect(lifecycle.phase).toBe('level-up');
+  });
+});
+
+describe('Passive upgrade resolution', () => {
+  it('resolves the passive choice into a move-speed level and resumes', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    const passiveLoadout = new PassiveLoadoutSystem();
+    const movement = new MovementSystem(passiveLoadout);
+    const progression = new ProgressionSystem(
+      lifecycle,
+      commandRecorder,
+      weaponSystem,
+      passiveLoadout
+    );
+    weaponSystem.resetPlayer(world, player);
+    progression.resetPlayer(world, player);
+    lifecycle.start();
+    lifecycle.pauseForLevelUp();
+
+    const command: RunCommand = {
+      tick: 12,
+      type: 'choose-upgrade',
+      choiceId: 'passive-move-speed',
+    };
+
+    progression.resolveUpgrade(world, player, command);
+
+    expect(commandRecorder.read(0)).toEqual(command);
+    expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBe(1);
+    expect(movement.moveSpeedOf(world, player)).toBe(PASSIVE_MOVE_SPEED_BY_LEVEL[1]);
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
+    expect(lifecycle.phase).toBe('playing');
+  });
+
+  it('leaves the passive untouched when the weapon choice is taken', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    const passiveLoadout = new PassiveLoadoutSystem();
+    const progression = new ProgressionSystem(
+      lifecycle,
+      commandRecorder,
+      weaponSystem,
+      passiveLoadout
+    );
+    weaponSystem.resetPlayer(world, player);
+    progression.resetPlayer(world, player);
+    lifecycle.start();
+    lifecycle.pauseForLevelUp();
+
+    progression.resolveUpgrade(world, player, {
+      tick: 3,
+      type: 'choose-upgrade',
+      choiceId: 'starter-damage-2',
+    });
+
+    expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBeNull();
+    expect(weaponSystem.starterDamageOf(world, player)).toBe(
+      STARTER_WEAPON_DAMAGE_TIER_2
+    );
+  });
+
+  it('rejects an unsupported choice before it can change the world', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    const passiveLoadout = new PassiveLoadoutSystem();
+    const progression = new ProgressionSystem(
+      lifecycle,
+      commandRecorder,
+      weaponSystem,
+      passiveLoadout
+    );
+    weaponSystem.resetPlayer(world, player);
+    progression.resetPlayer(world, player);
+    lifecycle.start();
+    lifecycle.pauseForLevelUp();
+
+    expect(() =>
+      progression.resolveUpgrade(world, player, {
+        tick: 4,
+        type: 'choose-upgrade',
+        choiceId: 'passive-unknown',
+      } as unknown as RunCommand)
+    ).toThrow('unsupported upgrade choice');
+
+    expect(commandRecorder.count).toBe(0);
+    expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBeNull();
     expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
     expect(lifecycle.phase).toBe('level-up');
   });

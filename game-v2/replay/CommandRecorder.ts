@@ -1,5 +1,5 @@
 import { COMMAND_RECORDING_CAPACITY } from '@/game-v2/config/Mvp0Config';
-import { type RunCommand } from '@/game-v2/contracts/RunCommand';
+import { isRunUpgradeChoiceId, type RunCommand } from '@/game-v2/contracts/RunCommand';
 
 function assertCommand(command: unknown): asserts command is RunCommand {
   if (command === null || typeof command !== 'object') {
@@ -23,7 +23,7 @@ function assertCommand(command: unknown): asserts command is RunCommand {
     throw new TypeError('unsupported run command');
   }
 
-  if (candidate.choiceId !== 'starter-damage-2') {
+  if (!isRunUpgradeChoiceId(candidate.choiceId)) {
     throw new TypeError('unsupported upgrade choice');
   }
 }

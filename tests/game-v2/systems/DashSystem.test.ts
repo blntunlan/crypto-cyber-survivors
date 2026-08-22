@@ -14,7 +14,10 @@ import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
 
 const PLAYER_MASK =
-  ComponentMask.Transform | ComponentMask.Velocity | ComponentMask.Player;
+  ComponentMask.Transform |
+  ComponentMask.Velocity |
+  ComponentMask.Player |
+  ComponentMask.PassiveLoadout;
 const FIXED_DELTA_SECONDS = 1 / SIMULATION_HZ;
 
 const intent = (moveX: number, moveY: number, dashPressed: boolean): PlayerIntent => ({

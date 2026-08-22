@@ -10,9 +10,11 @@ import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type ProgressionStepResult } from '@/game-v2/contracts/ProgressionStepResult';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
+import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
 import { type CommandRecorder } from '@/game-v2/replay/CommandRecorder';
 import { type GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { assertStepContext } from '@/game-v2/systems/StepContextValidator';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { type WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
@@ -52,16 +54,19 @@ export class ProgressionSystem {
   private readonly lifecycle: GameV2Lifecycle;
   private readonly commandRecorder: CommandRecorder;
   private readonly weaponSystem: WeaponSystem;
+  private readonly passiveLoadout: PassiveLoadoutSystem;
   private readonly result: ProgressionStepResult;
 
   public constructor(
     lifecycle: GameV2Lifecycle,
     commandRecorder: CommandRecorder,
-    weaponSystem: WeaponSystem
+    weaponSystem: WeaponSystem,
+    passiveLoadout: PassiveLoadoutSystem = new PassiveLoadoutSystem()
   ) {
     this.lifecycle = lifecycle;
     this.commandRecorder = commandRecorder;
     this.weaponSystem = weaponSystem;
+    this.passiveLoadout = passiveLoadout;
     this.result = {
       pickupsSpawned: 0,
       xpCollected: 0,
@@ -324,8 +329,16 @@ export class ProgressionSystem {
       );
     }
 
+    // The command is recorded before it is applied, so a recorder failure can
+    // never leave the world upgraded by a command no replay carries.
     this.commandRecorder.record(command);
-    this.weaponSystem.advanceStarterTier(world, playerEntity);
+
+    if (command.choiceId === 'starter-damage-2') {
+      this.weaponSystem.advanceStarterTier(world, playerEntity);
+    } else {
+      this.passiveLoadout.addOrLevelUp(world, playerEntity, MOVE_SPEED_PASSIVE.id);
+    }
+
     this.lifecycle.resumeFromLevelUp();
   }
 

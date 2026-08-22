@@ -2,12 +2,21 @@ import { describe, expect, it } from 'vitest';
 
 import { PLAYER_MOVE_SPEED, SIMULATION_HZ } from '@/game-v2/config/Mvp0Config';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
+import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
+import {
+  PASSIVE_MAX_LEVEL,
+  PASSIVE_MOVE_SPEED_BY_LEVEL,
+} from '@/game-v2/contracts/PassiveSlot';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
 
 const PLAYER_MASK =
-  ComponentMask.Transform | ComponentMask.Velocity | ComponentMask.Player;
+  ComponentMask.Transform |
+  ComponentMask.Velocity |
+  ComponentMask.Player |
+  ComponentMask.PassiveLoadout;
 
 const createPlayer = (): { world: World; player: number; slot: number } => {
   const world = new World(4);
@@ -46,6 +55,87 @@ const seedMovementState = (world: World, slot: number): void => {
   world.lastFacingX[slot] = 0.6;
   world.lastFacingY[slot] = -0.8;
 };
+
+describe('MovementSystem passive speed', () => {
+  it('walks at the base speed with no passive held', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+
+    expect(movement.moveSpeedOf(world, player)).toBe(PLAYER_MOVE_SPEED);
+    expect(movement.moveSpeedLevelOf(world, player)).toBe(0);
+    expect(movement.moveSpeedUpgradable(world, player)).toBe(true);
+
+    movement.step(world, player, {
+      tick: 0,
+      deltaSeconds: 1,
+      intent: { moveX: 1, moveY: 0, dashPressed: false },
+    });
+
+    expect(world.x[slot]).toBeCloseTo(PLAYER_MOVE_SPEED, 6);
+  });
+
+  it('walks at the authored speed of every move-speed level', () => {
+    const passives = new PassiveLoadoutSystem();
+
+    for (let level = 1; level <= PASSIVE_MAX_LEVEL; level += 1) {
+      const { world, player, slot } = createPlayer();
+      const movement = new MovementSystem(passives);
+
+      for (let step = 0; step < level; step += 1) {
+        passives.addOrLevelUp(world, player, MOVE_SPEED_PASSIVE.id);
+      }
+
+      const authored = PASSIVE_MOVE_SPEED_BY_LEVEL[level] as number;
+
+      expect(movement.moveSpeedOf(world, player)).toBe(authored);
+      expect(movement.moveSpeedLevelOf(world, player)).toBe(level);
+      expect(movement.moveSpeedUpgradable(world, player)).toBe(
+        level < PASSIVE_MAX_LEVEL
+      );
+
+      movement.step(world, player, {
+        tick: 0,
+        deltaSeconds: 1,
+        intent: { moveX: 1, moveY: 0, dashPressed: false },
+      });
+
+      expect(world.x[slot]).toBeCloseTo(authored, 6);
+      expect(world.velocityX[slot]).toBeCloseTo(authored, 6);
+    }
+  });
+
+  it('refuses to move at a level no authored speed exists for', () => {
+    const { world, player, slot } = createPlayer();
+    const movement = new MovementSystem();
+
+    world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] =
+      MOVE_SPEED_PASSIVE.code;
+    world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = PASSIVE_MAX_LEVEL + 1;
+
+    expect(() => movement.moveSpeedOf(world, player)).toThrow(
+      'passive move-speed level has no authored speed'
+    );
+  });
+
+  it('rejects a player entity without the passive component', () => {
+    const world = new World(4);
+    const player = world.createEntity(
+      ComponentMask.Transform | ComponentMask.Velocity | ComponentMask.Player
+    );
+    const movement = new MovementSystem();
+
+    expect(() => movement.moveSpeedOf(world, player)).toThrow(
+      'entity does not own a passive loadout'
+    );
+    expect(() =>
+      movement.step(world, player, {
+        tick: 0,
+        deltaSeconds: 1 / SIMULATION_HZ,
+        intent: { moveX: 1, moveY: 0, dashPressed: false },
+      })
+    ).toThrow('player entity is missing required components');
+  });
+});
 
 describe('MovementSystem', () => {
   it('moves one fixed tick at exactly six world units per second', () => {

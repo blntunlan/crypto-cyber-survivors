@@ -1,12 +1,20 @@
-import { PLAYER_MOVE_SPEED } from '@/game-v2/config/Mvp0Config';
+import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
+import {
+  PASSIVE_MOVE_SPEED_BY_LEVEL,
+  type PassiveLevel,
+} from '@/game-v2/contracts/PassiveSlot';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { assertStepContext } from '@/game-v2/systems/StepContextValidator';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
 
 const REQUIRED_PLAYER_MASK =
-  ComponentMask.Transform | ComponentMask.Velocity | ComponentMask.Player;
+  ComponentMask.Transform |
+  ComponentMask.Velocity |
+  ComponentMask.Player |
+  ComponentMask.PassiveLoadout;
 
 const assertPlayerMask = (mask: number | undefined): void => {
   if (mask === undefined || (mask & REQUIRED_PLAYER_MASK) !== REQUIRED_PLAYER_MASK) {
@@ -15,6 +23,46 @@ const assertPlayerMask = (mask: number | undefined): void => {
 };
 
 export class MovementSystem {
+  private readonly passiveLoadout: PassiveLoadoutSystem;
+
+  public constructor(
+    passiveLoadout: PassiveLoadoutSystem = new PassiveLoadoutSystem()
+  ) {
+    this.passiveLoadout = passiveLoadout;
+  }
+
+  /** Whether another `move-speed` level could be taken right now. */
+  public moveSpeedUpgradable(world: World, playerEntity: EntityId): boolean {
+    return this.passiveLoadout.isOfferable(world, playerEntity, MOVE_SPEED_PASSIVE.id);
+  }
+
+  /** The `move-speed` passive level, or `0` when the player does not hold it. */
+  public moveSpeedLevelOf(world: World, playerEntity: EntityId): number {
+    return this.passiveLoadout.levelOf(world, playerEntity, MOVE_SPEED_PASSIVE.id) ?? 0;
+  }
+
+  /**
+   * The walking speed the player currently has.
+   *
+   * Speed is derived from the `move-speed` passive level rather than stored, so
+   * the loadout is the only authority for it (V2-ADR-041). Level `null` reads as
+   * the unmodified base speed.
+   */
+  public moveSpeedOf(world: World, playerEntity: EntityId): number {
+    const level: PassiveLevel | null = this.passiveLoadout.levelOf(
+      world,
+      playerEntity,
+      MOVE_SPEED_PASSIVE.id
+    );
+    const speed = PASSIVE_MOVE_SPEED_BY_LEVEL[level ?? 0];
+
+    if (speed === undefined) {
+      throw new RangeError('passive move-speed level has no authored speed');
+    }
+
+    return speed;
+  }
+
   public step(world: World, playerEntity: EntityId, context: StepContext): void {
     assertStepContext(context);
     const slot = world.slotOf(playerEntity);
@@ -102,8 +150,9 @@ export class MovementSystem {
       }
     }
 
-    const velocityX = movementX * PLAYER_MOVE_SPEED;
-    const velocityY = movementY * PLAYER_MOVE_SPEED;
+    const moveSpeed = this.moveSpeedOf(world, playerEntity);
+    const velocityX = movementX * moveSpeed;
+    const velocityY = movementY * moveSpeed;
     const nextX = currentX + velocityX * context.deltaSeconds;
     const nextY = currentY + velocityY * context.deltaSeconds;
 

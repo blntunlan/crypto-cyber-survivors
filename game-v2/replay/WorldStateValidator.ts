@@ -5,6 +5,11 @@ import {
   abilityStoreIndex,
 } from '@/game-v2/contracts/AbilitySlot';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
+import {
+  PASSIVE_MAX_LEVEL,
+  PASSIVE_SLOT_COUNT,
+  passiveStoreIndex,
+} from '@/game-v2/contracts/PassiveSlot';
 import { type WorldSnapshot } from '@/game-v2/contracts/WorldSnapshot';
 import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 
@@ -26,7 +31,6 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'radius',
     'health',
     'maxHealth',
-    'moveSpeed',
     'lastFacingX',
     'lastFacingY',
     'dashDirectionX',
@@ -63,6 +67,11 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'abilitySlotIdentity',
     'abilitySlotTier',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per passive slot per world slot. */
+  passiveStridedUint8: Object.freeze([
+    'passiveSlotIdentity',
+    'passiveSlotLevel',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
 });
 
 type ListedStoreName =
@@ -71,7 +80,8 @@ type ListedStoreName =
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.int8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number]
-  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number];
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8)[number];
 type AssertNever<T extends never> = T;
 export type AuthoritativeWorldStoreSchemaCoverage = AssertNever<
   Exclude<AuthoritativeStoreName, ListedStoreName>
@@ -135,6 +145,9 @@ const validateStores = (state: AuthoritativeWorldState, capacity: number): void 
   for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8) {
     assertStore(state[name], Uint8Array, capacity * ABILITY_SLOT_COUNT, name);
   }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * PASSIVE_SLOT_COUNT, name);
+  }
 };
 
 /**
@@ -165,6 +178,35 @@ const validateAbilityLoadout = (
 
       if (identity !== 0 && !ownsLoadout) {
         throw new RangeError('ability loadout requires the AbilityLoadout component');
+      }
+    }
+  }
+};
+
+/** The passive equivalent of `validateAbilityLoadout`, registry-free for the same reason. */
+const validatePassiveLoadout = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsLoadout = (mask & ComponentMask.PassiveLoadout) !== 0;
+
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      const storeIndex = passiveStoreIndex(slot, index);
+      const identity = state.passiveSlotIdentity[storeIndex] ?? 0;
+      const level = state.passiveSlotLevel[storeIndex] ?? 0;
+
+      if (level > PASSIVE_MAX_LEVEL) {
+        throw new RangeError('passive slot level is outside the supported range');
+      }
+
+      if ((identity === 0) !== (level === 0)) {
+        throw new RangeError('passive slot must pair an identity with a level');
+      }
+
+      if (identity !== 0 && !ownsLoadout) {
+        throw new RangeError('passive loadout requires the PassiveLoadout component');
       }
     }
   }
@@ -248,4 +290,5 @@ export const validateAuthoritativeWorldState = (
   }
 
   validateAbilityLoadout(state, capacity);
+  validatePassiveLoadout(state, capacity);
 };

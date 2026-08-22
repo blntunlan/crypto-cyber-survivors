@@ -10,6 +10,8 @@ import {
 } from '@/game-v2/config/Mvp0Config';
 import { type GameV2RuntimeReadout } from '@/game-v2/contracts/GameV2Debug';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
+import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
+import { type RunUpgradeChoiceId } from '@/game-v2/contracts/RunCommand';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import { createMvp0Runtime } from '@/game-v2/runtime/createMvp0Runtime';
@@ -130,7 +132,10 @@ export type ScriptedRun = {
  * The controller reads runtime state between frames, so the run is adaptive,
  * but the input it produces is recorded tick by tick and therefore replayable.
  */
-export const driveScriptedRun = (seed: number): ScriptedRun => {
+export const driveScriptedRun = (
+  seed: number,
+  choiceId: RunUpgradeChoiceId = 'starter-damage-2'
+): ScriptedRun => {
   const renderer = createFakeRenderer();
   const { source, intent } = createManualIntentSource();
   const runtime = createMvp0Runtime({
@@ -174,10 +179,15 @@ export const driveScriptedRun = (seed: number): ScriptedRun => {
 
     if (readout.phase === 'level-up') {
       levelUpReached = true;
-      runtime.chooseUpgrade('starter-damage-2');
+      runtime.chooseUpgrade(choiceId);
       const afterUpgrade = runtime.readout();
+      const effectApplied =
+        choiceId === 'starter-damage-2'
+          ? afterUpgrade.weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2
+          : afterUpgrade.moveSpeedLevel === 1 &&
+            afterUpgrade.moveSpeed === PASSIVE_MOVE_SPEED_BY_LEVEL[1];
       upgradeApplied =
-        afterUpgrade.weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2 &&
+        effectApplied &&
         afterUpgrade.playerLevel === MVP0_MAX_PLAYER_LEVEL &&
         afterUpgrade.phase === 'playing';
       previousHealth = afterUpgrade.playerHealth;

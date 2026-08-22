@@ -12,6 +12,22 @@ import {
 } from '@/game-v2/runtime/createMvp0Runtime';
 import { type GameV2Runtime, type IntentSource } from '@/game-v2/runtime/GameV2Runtime';
 import { LevelUpOverlay } from '@/game-v2/ui/LevelUpOverlay';
+import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
+
+type LevelUpOffer = {
+  damageBefore: number;
+  moveSpeedBefore: number;
+  moveSpeedLevel: number;
+  moveSpeedUpgradable: boolean;
+};
+
+/** What the card shows before a run has produced a readout. */
+const INITIAL_LEVEL_UP_OFFER: LevelUpOffer = {
+  damageBefore: PROJECTILE_DAMAGE,
+  moveSpeedBefore: PASSIVE_MOVE_SPEED_BY_LEVEL[0] ?? 0,
+  moveSpeedLevel: 0,
+  moveSpeedUpgradable: true,
+};
 
 import './game-v2.css';
 
@@ -57,7 +73,7 @@ export const GameV2App = ({
   const runtimeRef = useRef<GameV2Runtime | null>(null);
 
   const [phase, setPhase] = useState<GameV2Phase>('idle');
-  const [damageBefore, setDamageBefore] = useState(PROJECTILE_DAMAGE);
+  const [offer, setOffer] = useState<LevelUpOffer>(INITIAL_LEVEL_UP_OFFER);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
@@ -141,7 +157,13 @@ export const GameV2App = ({
           lastPhase = runtime.phase;
 
           if (runtime.phase === 'level-up') {
-            setDamageBefore(runtime.readout().weaponDamage);
+            const readout = runtime.readout();
+            setOffer({
+              damageBefore: readout.weaponDamage,
+              moveSpeedBefore: readout.moveSpeed,
+              moveSpeedLevel: readout.moveSpeedLevel,
+              moveSpeedUpgradable: readout.moveSpeedUpgradable,
+            });
           }
 
           setPhase(runtime.phase);
@@ -200,7 +222,7 @@ export const GameV2App = ({
 
     runtime.reset();
     runtime.start();
-    setDamageBefore(PROJECTILE_DAMAGE);
+    setOffer(INITIAL_LEVEL_UP_OFFER);
     setPhase(runtime.phase);
   }, []);
 
@@ -230,7 +252,13 @@ export const GameV2App = ({
           />
         </div>
         {failure === null && phase === 'level-up' ? (
-          <LevelUpOverlay damageBefore={damageBefore} onChoose={handleChoose} />
+          <LevelUpOverlay
+            damageBefore={offer.damageBefore}
+            moveSpeedBefore={offer.moveSpeedBefore}
+            moveSpeedLevel={offer.moveSpeedLevel}
+            moveSpeedUpgradable={offer.moveSpeedUpgradable}
+            onChoose={handleChoose}
+          />
         ) : null}
         {failure !== null ? (
           <div className="level-up-overlay" data-testid="game-v2-failure-overlay">

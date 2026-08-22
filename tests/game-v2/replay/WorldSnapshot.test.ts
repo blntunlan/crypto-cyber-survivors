@@ -27,7 +27,8 @@ const ALL_FIXTURE_COMPONENTS =
   ComponentMask.Enemy |
   ComponentMask.Projectile |
   ComponentMask.XpPickup |
-  ComponentMask.AbilityLoadout;
+  ComponentMask.AbilityLoadout |
+  ComponentMask.PassiveLoadout;
 
 type RuntimeInput = Parameters<typeof writeCheckpoint>[0];
 
@@ -42,7 +43,6 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.health[slot] = 91.5;
   world.maxHealth[slot] = 120;
   world.faction[slot] = -1;
-  world.moveSpeed[slot] = 6.25;
   world.lastFacingX[slot] = -0.6;
   world.lastFacingY[slot] = 0.8;
   world.dashDirectionX[slot] = 1;
@@ -66,9 +66,17 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 2;
   world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 2)] = 7;
   world.abilitySlotTier[world.abilitySlotIndexOf(slot, 2)] = 1;
+  world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] = 2;
+  world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 5;
+  world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 4)] = 9;
+  world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 4)] = 1;
 };
 
 const writeComponentFixtureReverse = (world: World, slot: number): void => {
+  world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 4)] = 1;
+  world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 4)] = 9;
+  world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 5;
+  world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] = 2;
   world.abilitySlotTier[world.abilitySlotIndexOf(slot, 2)] = 1;
   world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 2)] = 7;
   world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 2;
@@ -92,7 +100,6 @@ const writeComponentFixtureReverse = (world: World, slot: number): void => {
   world.dashDirectionX[slot] = 1;
   world.lastFacingY[slot] = 0.8;
   world.lastFacingX[slot] = -0.6;
-  world.moveSpeed[slot] = 6.25;
   world.faction[slot] = -1;
   world.maxHealth[slot] = 120;
   world.health[slot] = 91.5;
@@ -157,7 +164,7 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    expect(hashA).toBe('23a14f9e');
+    expect(hashA).toBe('756a894e');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -243,7 +250,28 @@ describe('canonical runtime checkpoint', () => {
       ['body', (world, slot) => (world.radius[slot] = 0.75)],
       ['health', (world, slot) => (world.health[slot] = 90)],
       ['faction', (world, slot) => (world.faction[slot] = 1)],
-      ['player', (world, slot) => (world.moveSpeed[slot] = 6.5)],
+      ['player', (world, slot) => (world.lastFacingX[slot] = 0.25)],
+      [
+        'passive identity',
+        (world, slot) =>
+          (world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] = 6),
+      ],
+      [
+        'passive level',
+        (world, slot) =>
+          (world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 4),
+      ],
+      [
+        'passive slot position',
+        (world, slot) => {
+          const from = world.passiveSlotIndexOf(slot, 0);
+          const to = world.passiveSlotIndexOf(slot, 1);
+          world.passiveSlotIdentity[to] = world.passiveSlotIdentity[from] ?? 0;
+          world.passiveSlotLevel[to] = world.passiveSlotLevel[from] ?? 0;
+          world.passiveSlotIdentity[from] = 0;
+          world.passiveSlotLevel[from] = 0;
+        },
+      ],
       ['cooldown', (world, slot) => (world.dashCooldownTicksRemaining[slot] = 150)],
       ['enemy', (world, slot) => (world.enemySpeed[slot] = 3)],
       ['projectile', (world, slot) => (world.projectileDamage[slot] = 11)],
@@ -492,6 +520,64 @@ describe('canonical runtime checkpoint', () => {
       mutate(input.world);
       expect(() => writeCheckpoint(input), name).toThrow(message);
     }
+  });
+
+  it('rejects passive loadout state that breaks its structural invariants', () => {
+    const cases: ReadonlyArray<readonly [string, RegExp, (world: World) => void]> = [
+      [
+        'level above the ceiling',
+        /level is outside/i,
+        world => {
+          world.passiveSlotLevel[world.passiveSlotIndexOf(0, 0)] = 6;
+        },
+      ],
+      [
+        'level without an identity',
+        /pair an identity with a level/i,
+        world => {
+          world.passiveSlotLevel[world.passiveSlotIndexOf(0, 1)] = 1;
+        },
+      ],
+      [
+        'identity without a level',
+        /pair an identity with a level/i,
+        world => {
+          world.passiveSlotIdentity[world.passiveSlotIndexOf(0, 1)] = 5;
+        },
+      ],
+      [
+        'loadout on an entity without the component',
+        /requires the PassiveLoadout component/i,
+        world => {
+          world.masks[0] = ALL_FIXTURE_COMPONENTS ^ ComponentMask.PassiveLoadout;
+        },
+      ],
+      [
+        'loadout on an empty world slot',
+        /requires the PassiveLoadout component/i,
+        world => {
+          world.passiveSlotIdentity[world.passiveSlotIndexOf(1, 0)] = 5;
+          world.passiveSlotLevel[world.passiveSlotIndexOf(1, 0)] = 1;
+        },
+      ],
+    ];
+
+    for (const [name, message, mutate] of cases) {
+      const input = createRuntimeInput();
+      mutate(input.world);
+      expect(() => writeCheckpoint(input), name).toThrow(message);
+    }
+  });
+
+  it('rejects a passive store that is not one entry per passive slot', () => {
+    const input = createRuntimeInput();
+    Object.defineProperty(input.world, 'passiveSlotLevel', {
+      value: new Uint8Array(input.world.masks.length),
+    });
+
+    expect(() => writeCheckpoint(input)).toThrow(
+      'passiveSlotLevel must be a canonical typed store'
+    );
   });
 
   it('rejects an ability store that is not one entry per ability slot', () => {

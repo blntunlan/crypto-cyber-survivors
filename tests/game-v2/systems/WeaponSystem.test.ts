@@ -476,7 +476,8 @@ describe('WeaponSystem', () => {
     world.health[slot] = 71;
     world.maxHealth[slot] = 72;
     world.faction[slot] = 73;
-    world.moveSpeed[slot] = 74;
+    world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] = 74;
+    world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 1;
     world.lastFacingX[slot] = 75;
     world.lastFacingY[slot] = -76;
     world.dashDirectionX[slot] = 77;
@@ -532,7 +533,8 @@ describe('WeaponSystem', () => {
     expect(world.health[slot]).toBe(0);
     expect(world.maxHealth[slot]).toBe(0);
     expect(world.faction[slot]).toBe(0);
-    expect(world.moveSpeed[slot]).toBe(0);
+    expect(world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)]).toBe(0);
+    expect(world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)]).toBe(0);
     expect(world.lastFacingX[slot]).toBe(0);
     expect(world.lastFacingY[slot]).toBe(0);
     expect(world.dashDirectionX[slot]).toBe(0);

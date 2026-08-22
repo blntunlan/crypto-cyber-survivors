@@ -4,6 +4,7 @@ import {
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
 
@@ -47,7 +48,6 @@ export class World {
   public readonly health: Float32Array;
   public readonly maxHealth: Float32Array;
   public readonly faction: Int8Array;
-  public readonly moveSpeed: Float32Array;
   public readonly lastFacingX: Float32Array;
   public readonly lastFacingY: Float32Array;
   public readonly dashDirectionX: Float32Array;
@@ -74,6 +74,13 @@ export class World {
    */
   public readonly abilitySlotIdentity: Uint8Array;
   public readonly abilitySlotTier: Uint8Array;
+  /**
+   * Passive loadout state, `PASSIVE_SLOT_COUNT` entries per world slot
+   * (V2-ADR-040). Address them only through `passiveSlotIndexOf`; an empty slot
+   * stores identity code `0` and level `0`.
+   */
+  public readonly passiveSlotIdentity: Uint8Array;
+  public readonly passiveSlotLevel: Uint8Array;
 
   private readonly capacity: number;
   private freeSlotsInUse: number;
@@ -95,7 +102,6 @@ export class World {
     this.health = new Float32Array(capacity);
     this.maxHealth = new Float32Array(capacity);
     this.faction = new Int8Array(capacity);
-    this.moveSpeed = new Float32Array(capacity);
     this.lastFacingX = new Float32Array(capacity);
     this.lastFacingY = new Float32Array(capacity);
     this.dashDirectionX = new Float32Array(capacity);
@@ -117,6 +123,8 @@ export class World {
     this.xpPickupValue = new Float32Array(capacity);
     this.abilitySlotIdentity = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
     this.abilitySlotTier = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
+    this.passiveSlotIdentity = new Uint8Array(capacity * PASSIVE_SLOT_COUNT);
+    this.passiveSlotLevel = new Uint8Array(capacity * PASSIVE_SLOT_COUNT);
     this.freeSlotsInUse = capacity;
 
     for (let slot = 0; slot < capacity; slot += 1) {
@@ -227,6 +235,26 @@ export class World {
     }
 
     return abilityStoreIndex(slot, abilityIndex);
+  }
+
+  /**
+   * Encodes one passive slot of one world slot into its store index, mirroring
+   * `abilitySlotIndexOf` (V2-ADR-040).
+   */
+  public passiveSlotIndexOf(slot: number, passiveIndex: number): number {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= this.capacity) {
+      throw new RangeError('slot must be an integer inside the world capacity');
+    }
+
+    if (
+      !Number.isInteger(passiveIndex) ||
+      passiveIndex < 0 ||
+      passiveIndex >= PASSIVE_SLOT_COUNT
+    ) {
+      throw new RangeError('passive slot index must be an integer inside the loadout');
+    }
+
+    return passiveStoreIndex(slot, passiveIndex);
   }
 
   public destroyEntity(entity: EntityId): void {
@@ -342,7 +370,6 @@ export class World {
     this.health[slot] = 0;
     this.maxHealth[slot] = 0;
     this.faction[slot] = 0;
-    this.moveSpeed[slot] = 0;
     this.lastFacingX[slot] = 0;
     this.lastFacingY[slot] = 0;
     this.dashDirectionX[slot] = 0;
@@ -367,6 +394,12 @@ export class World {
     for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
       this.abilitySlotIdentity[abilityBase + index] = 0;
       this.abilitySlotTier[abilityBase + index] = 0;
+    }
+
+    const passiveBase = passiveStoreIndex(slot, 0);
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      this.passiveSlotIdentity[passiveBase + index] = 0;
+      this.passiveSlotLevel[passiveBase + index] = 0;
     }
   }
 }

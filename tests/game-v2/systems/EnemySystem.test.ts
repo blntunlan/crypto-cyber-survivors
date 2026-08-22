@@ -378,7 +378,8 @@ describe('EnemySystem', () => {
     world.contactDamage[slot] = 52;
     world.contactCooldownTicksRemaining[slot] = 53;
     world.xpValue[slot] = 54;
-    world.moveSpeed[slot] = 55;
+    world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)] = 55;
+    world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 1;
     world.lastFacingX[slot] = 56;
     world.lastFacingY[slot] = -57;
     world.dashDirectionX[slot] = 58;
@@ -421,7 +422,8 @@ describe('EnemySystem', () => {
     expect(world.contactDamage[slot]).toBe(ENEMY_CONTACT_DAMAGE);
     expect(world.contactCooldownTicksRemaining[slot]).toBe(0);
     expect(world.xpValue[slot]).toBe(ENEMY_XP_VALUE);
-    expect(world.moveSpeed[slot]).toBe(0);
+    expect(world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 0)]).toBe(0);
+    expect(world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)]).toBe(0);
     expect(world.lastFacingX[slot]).toBe(0);
     expect(world.lastFacingY[slot]).toBe(0);
     expect(world.dashDirectionX[slot]).toBe(0);

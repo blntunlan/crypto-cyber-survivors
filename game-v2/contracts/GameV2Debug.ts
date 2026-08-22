@@ -16,6 +16,9 @@ export type GameV2RuntimeReadout = Readonly<{
   playerMaxHealth: number;
   playerLevel: number;
   weaponDamage: number;
+  moveSpeed: number;
+  moveSpeedLevel: number;
+  moveSpeedUpgradable: boolean;
   invulnerabilityTicks: number;
   dashCooldownTicks: number;
   enemyCount: number;

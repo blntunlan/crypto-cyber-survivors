@@ -223,6 +223,12 @@ test.describe('Game V2 walking skeleton', () => {
     await page.waitForTimeout(300);
     expect((await readSnapshot(page)).tick).toBe(pausedTick);
 
+    // Both fixed choices are offered; V2-104 replaces this card with the real
+    // three-card flow.
+    await expect(
+      page.getByRole('button', { name: /increase move speed/i })
+    ).toBeVisible();
+
     await page.getByRole('button', { name: /increase damage/i }).click();
     await expect(page.getByTestId('level-up-overlay')).toBeHidden();
 

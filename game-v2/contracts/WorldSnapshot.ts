@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 2 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 3 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -18,7 +18,6 @@ export type WorldSnapshot = Readonly<{
   health: Float32Array;
   maxHealth: Float32Array;
   faction: Int8Array;
-  moveSpeed: Float32Array;
   lastFacingX: Float32Array;
   lastFacingY: Float32Array;
   dashDirectionX: Float32Array;
@@ -41,4 +40,7 @@ export type WorldSnapshot = Readonly<{
   /** `ABILITY_SLOT_COUNT` entries per world slot (V2-ADR-036). */
   abilitySlotIdentity: Uint8Array;
   abilitySlotTier: Uint8Array;
+  /** `PASSIVE_SLOT_COUNT` entries per world slot (V2-ADR-040). */
+  passiveSlotIdentity: Uint8Array;
+  passiveSlotLevel: Uint8Array;
 }>;

@@ -60,7 +60,8 @@ const PLAYER_ENTITY_MASK =
   ComponentMask.Body |
   ComponentMask.Health |
   ComponentMask.Player |
-  ComponentMask.AbilityLoadout;
+  ComponentMask.AbilityLoadout |
+  ComponentMask.PassiveLoadout;
 
 const ENEMY_MASK = ComponentMask.Transform | ComponentMask.Enemy;
 const PROJECTILE_MASK = ComponentMask.Transform | ComponentMask.Projectile;
@@ -75,6 +76,9 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   playerMaxHealth: 0,
   playerLevel: 0,
   weaponDamage: 0,
+  moveSpeed: 0,
+  moveSpeedLevel: 0,
+  moveSpeedUpgradable: false,
   invulnerabilityTicks: 0,
   dashCooldownTicks: 0,
   enemyCount: 0,
@@ -412,6 +416,15 @@ export class GameV2Runtime {
       playerMaxHealth: this.world.maxHealth[playerSlot] ?? 0,
       playerLevel: this.world.level[playerSlot] ?? 0,
       weaponDamage: this.weaponSystem.starterDamageOf(this.world, this.playerEntity),
+      moveSpeed: this.movementSystem.moveSpeedOf(this.world, this.playerEntity),
+      moveSpeedLevel: this.movementSystem.moveSpeedLevelOf(
+        this.world,
+        this.playerEntity
+      ),
+      moveSpeedUpgradable: this.movementSystem.moveSpeedUpgradable(
+        this.world,
+        this.playerEntity
+      ),
       invulnerabilityTicks: this.world.invulnerabilityTicksRemaining[playerSlot] ?? 0,
       dashCooldownTicks: this.world.dashCooldownTicksRemaining[playerSlot] ?? 0,
       enemyCount,
