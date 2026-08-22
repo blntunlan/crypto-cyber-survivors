@@ -1,6 +1,6 @@
 # Game V2 LEGO Master Plan
 
-> Status: Design-approved; implementation plan not yet approved
+> Status: MVP-0 accepted and closed at `085697b5`; MVP-1 is the active milestone
 > Branch: `codex/threejs-gameplay-v2`
 > Design contract: `docs/superpowers/specs/2026-08-21-threejs-gameplay-v2-design.md`
 > Live execution state: `docs/game-v2/PROGRESS.md`
@@ -31,6 +31,13 @@ required.
 Goal: produce the smallest real Three.js game loop that is playable and
 headlessly replayable.
 
+Status: `Done`. Accepted 2026-08-22 at `085697b5` after review round 1 was
+applied and re-verified. V2-000 through V2-014 are closed. Three review
+findings were accepted as real and deferred rather than fixed; they are listed
+in `PROGRESS.md` under `Deferred Review Findings` and are owned by V2-407
+(cross-engine determinism), the anti-cheat replay path (`RunRecording.finalHash`),
+and the boundary-guard inversion.
+
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
 | V2-000 | Game V2 package/entry boundary | — | New runtime can build without changing the production entry. |
@@ -53,6 +60,9 @@ headlessly replayable.
 
 Goal: prove that constrained builds create meaningful play before market
 complexity is introduced.
+
+Status: `In Progress`. Active task `V2-100`; brief at
+`docs/game-v2/tasks/V2-100-ability-loadout.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

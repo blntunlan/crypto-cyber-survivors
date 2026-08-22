@@ -8,9 +8,10 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
-| Phase | MVP-0 runtime foundation |
-| Active task | `V2-014` — reviewed independently; every Critical and Important finding is closed |
-| Status | `Verification` — review round 1 is applied and re-verified; awaiting acceptance |
+| Phase | MVP-1 combat and build core |
+| Active task | `V2-100` — four-slot ability loadout; brief written, implementation not started |
+| Status | `Not Started` — the brief is at `docs/game-v2/tasks/V2-100-ability-loadout.md` |
+| MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -803,15 +804,45 @@
   single pre-existing `LandingPriceFeed` failure.
 - New decisions: V2-ADR-033 through V2-ADR-035.
 
+### MVP-0 acceptance (2026-08-22)
+
+- The V2-014 checkpoint was re-verified from a clean session before acceptance,
+  as the resume protocol requires. `npx vitest run tests/game-v2 --pool=forks
+  --maxWorkers=1` reported 24 files and 498 tests passed in 52.5 s, matching the
+  recorded expectation exactly, and `npx playwright test
+  e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1
+  --reporter=list` reported 2 passed in 1.3 m.
+- The user accepted the checkpoint. `V2-000` through `V2-014` are closed and
+  MVP-0 is `Done` at `085697b5`. `MASTER_PLAN.md` records the milestone status
+  and the three deferred review findings against their owning later blocks.
+- Nothing about the acceptance changes production: `/game-v2` remains behind the
+  V2 entry boundary, the legacy demo stays authoritative, and no cutover or
+  deploy was performed.
+- The three findings under `Deferred Review Findings` stay open by design and
+  are now owned by later blocks: `RunRecording.finalHash` by the anti-cheat
+  replay path, the boundary denylist inversion by the architecture guard, and
+  cross-engine `Math.hypot`/`Math.cos`/`Math.sin` determinism by `V2-407`.
+- The `V2-100` task brief was generated at
+  `docs/game-v2/tasks/V2-100-ability-loadout.md`. It scopes the four-slot
+  contract, its authoritative storage in `World`, hash and reset coverage, and
+  the starter-weapon migration that gives the loadout a real production reader,
+  and it explicitly excludes the passive slots, the tier-effect schema, the HUD,
+  the card flow, and the later ability identities. It proposes V2-ADR-036
+  through V2-ADR-038, which are recorded in `DECISIONS.md` when the task starts
+  rather than now.
+
 ## Verification Required
 
-1. Nothing from review round 1 remains open. Every Critical and Important
-   finding is fixed, mutation-proved, and re-verified.
+1. Nothing from MVP-0 remains open. Every Critical and Important review finding
+   is fixed, mutation-proved, and re-verified, and the three deferred findings
+   are assigned to later blocks.
 2. Re-run the last GREEN commands before touching code:
    `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 24 files,
    498 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
-   (expect 2 passed).
+   (expect 2 passed). Both were last confirmed green on 2026-08-22.
+3. `V2-100` has no implementation yet, so it has nothing to verify. Its first
+   command is the RED run listed in Step 3 of its brief.
 
 ## Known MVP-0 Limitations
 
@@ -844,9 +875,10 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the V2-014 checkpoint. On acceptance, record V2-000 through V2-014 as
-closed, close MVP-0, and generate the `V2-100` task brief (four-slot ability
-loadout). Do not deploy, cut over production, or replace the legacy demo.
+Start `V2-100` at Step 1 of `docs/game-v2/tasks/V2-100-ability-loadout.md`:
+record V2-ADR-036 through V2-ADR-038 in `DECISIONS.md`, then write the failing
+`AbilityLoadoutSystem` contract tests before any implementation file exists. Do
+not deploy, cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do
