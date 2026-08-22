@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { Vector3 } from 'three';
+
 import { OrthographicCameraController } from '@/game-v2/presentation/OrthographicCameraController';
+import { sceneZOf } from '@/game-v2/presentation/WorldToScene';
 
 const cameraState = (controller: OrthographicCameraController): unknown => {
   const { camera } = controller;
@@ -20,6 +23,36 @@ const cameraState = (controller: OrthographicCameraController): unknown => {
     projection: camera.projectionMatrix.toArray(),
   };
 };
+
+describe('screen orientation', () => {
+  it('puts simulation +Y at the top of the screen and +X on the right', () => {
+    const controller = new OrthographicCameraController();
+    controller.resize(1280, 800);
+    controller.camera.updateMatrixWorld(true);
+
+    const above = new Vector3(0, 0, sceneZOf(5)).project(controller.camera);
+    const right = new Vector3(5, 0, sceneZOf(0)).project(controller.camera);
+
+    expect(above.y).toBeGreaterThan(0);
+    expect(above.x).toBeCloseTo(0, 6);
+    expect(right.x).toBeGreaterThan(0);
+    expect(right.y).toBeCloseTo(0, 6);
+  });
+
+  it('follows the player without rotating the view', () => {
+    const controller = new OrthographicCameraController();
+    controller.resize(1280, 800);
+    controller.follow(3, sceneZOf(4));
+    controller.camera.updateMatrixWorld(true);
+
+    const player = new Vector3(3, 0, sceneZOf(4)).project(controller.camera);
+    const aboveThePlayer = new Vector3(3, 0, sceneZOf(6)).project(controller.camera);
+
+    expect(player.x).toBeCloseTo(0, 6);
+    expect(player.y).toBeCloseTo(0, 6);
+    expect(aboveThePlayer.y).toBeGreaterThan(player.y);
+  });
+});
 
 describe('OrthographicCameraController', () => {
   it.each([

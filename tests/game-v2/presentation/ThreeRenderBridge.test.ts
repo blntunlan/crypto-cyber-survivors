@@ -16,6 +16,8 @@ import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { ThreeScene, type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
 import { ThreeRenderBridge } from '@/game-v2/presentation/ThreeRenderBridge';
+import { OrthographicCameraController } from '@/game-v2/presentation/OrthographicCameraController';
+import { sceneZOf } from '@/game-v2/presentation/WorldToScene';
 import { hashRuntimeCheckpoint } from '@/game-v2/replay/StateHasher';
 import { writeCheckpoint } from '@/game-v2/replay/WorldSnapshotWriter';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
@@ -285,9 +287,9 @@ describe('ThreeRenderBridge', () => {
   });
 
   it.each([
-    [0, -2, 4],
-    [0.5, 3, 1],
-    [1, 8, -2],
+    [0, -2, sceneZOf(4)],
+    [0.5, 3, sceneZOf(1)],
+    [1, 8, sceneZOf(-2)],
   ] as const)(
     'interpolates alpha %s and maps simulation X/Y into Three X/Z',
     (alpha, expectedX, expectedZ) => {
@@ -310,6 +312,46 @@ describe('ThreeRenderBridge', () => {
       expect(scene.playerMesh.scale.toArray()).toEqual([1.5, 1.5, 1.5]);
     }
   );
+
+  it('draws simulation +Y above the player, not below it', () => {
+    const world = new World(2);
+    const player = world.createEntity(TRANSFORM_PLAYER);
+    const enemy = world.createEntity(TRANSFORM_ENEMY);
+    setTransform(world, world.slotOf(player), {
+      previousX: 0,
+      previousY: 0,
+      currentX: 0,
+      currentY: 0,
+      radius: 1,
+    });
+    // The enemy stands at +Y, which a player pressing W walks toward.
+    setTransform(world, world.slotOf(enemy), {
+      previousX: 0,
+      previousY: 5,
+      currentX: 0,
+      currentY: 5,
+      radius: 1,
+    });
+    const snapshot = createSnapshot();
+    new RenderSnapshotWriter().write(world, snapshot);
+    const scene = createScene();
+    const camera = new OrthographicCameraController();
+    camera.resize(1280, 800);
+
+    new ThreeRenderBridge(scene).sync(snapshot, 1);
+    camera.follow(scene.playerMesh.position.x, scene.playerMesh.position.z);
+    camera.camera.updateMatrixWorld(true);
+
+    const matrix = new Matrix4();
+    const enemyPosition = new Vector3();
+    scene.enemyMesh.getMatrixAt(0, matrix);
+    matrix.decompose(enemyPosition, new Quaternion(), new Vector3());
+
+    const projectedEnemy = enemyPosition.clone().project(camera.camera);
+    const projectedPlayer = scene.playerMesh.position.clone().project(camera.camera);
+
+    expect(projectedEnemy.y).toBeGreaterThan(projectedPlayer.y);
+  });
 
   it('packs deterministic instance transforms, updates buffers, and never mutates simulation or snapshot', () => {
     const world = new World(4);
@@ -347,11 +389,11 @@ describe('ThreeRenderBridge', () => {
     const scale = new Vector3();
     scene.enemyMesh.getMatrixAt(0, matrix);
     matrix.decompose(position, rotation, scale);
-    expect(position.toArray()).toEqual([1, 0, 3]);
+    expect(position.toArray()).toEqual([1, 0, sceneZOf(3)]);
     expect(scale.toArray()).toEqual([0.5, 0.5, 0.5]);
     scene.enemyMesh.getMatrixAt(1, matrix);
     matrix.decompose(position, rotation, scale);
-    expect(position.toArray()).toEqual([10, 0, 12]);
+    expect(position.toArray()).toEqual([10, 0, sceneZOf(12)]);
     expect(scale.toArray()).toEqual([2, 2, 2]);
     expect(scene.enemyMesh.count).toBe(2);
     expect(scene.enemyMesh.instanceMatrix.version).toBeGreaterThan(beforeVersion);

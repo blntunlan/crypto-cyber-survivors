@@ -5,6 +5,7 @@ import {
   type RenderSnapshot,
 } from '@/game-v2/contracts/RenderSnapshot';
 import { validateRenderCategoryStorage } from '@/game-v2/presentation/RenderSnapshotValidator';
+import { sceneZOf } from '@/game-v2/presentation/WorldToScene';
 import { type ThreeScene } from '@/game-v2/presentation/ThreeScene';
 
 const assertCount = (count: number, capacity: number, name: string): void => {
@@ -143,7 +144,7 @@ export class ThreeRenderBridge {
     mesh.position.set(
       interpolate(player.previousX[0] ?? 0, player.currentX[0] ?? 0, alpha),
       0,
-      interpolate(player.previousY[0] ?? 0, player.currentY[0] ?? 0, alpha)
+      sceneZOf(interpolate(player.previousY[0] ?? 0, player.currentY[0] ?? 0, alpha))
     );
     mesh.scale.setScalar(player.radius[0] ?? 0);
   }
@@ -162,10 +163,12 @@ export class ThreeRenderBridge {
           alpha
         ),
         0,
-        interpolate(
-          category.previousY[index] ?? 0,
-          category.currentY[index] ?? 0,
-          alpha
+        sceneZOf(
+          interpolate(
+            category.previousY[index] ?? 0,
+            category.currentY[index] ?? 0,
+            alpha
+          )
         )
       );
       this.scratch.scale.setScalar(category.radius[index] ?? 0);

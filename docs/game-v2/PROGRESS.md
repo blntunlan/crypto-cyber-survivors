@@ -965,6 +965,30 @@
     reason the passive can be unofferable — no free slot — and both mutants die.
 - New decisions: V2-ADR-040 through V2-ADR-042.
 
+### Screen orientation fix (2026-08-22)
+
+- The user ran the game and reported that `W` moved the player down. It did:
+  `ThreeRenderBridge` wrote simulation `Y` straight into Three `Z`, while the
+  top-down camera's `up = (0, 0, -1)` — which is what keeps `+X` on the right —
+  puts `-Z` at the top of the screen. Simulation `+Y` therefore rendered
+  downwards for every entity, not only the player.
+- Fixed in presentation only, through one owner: `sceneZOf` in
+  `game-v2/presentation/WorldToScene.ts` (V2-ADR-043). No authoritative value
+  moved, so no state hash, recording, or replay changed — the suite's hash
+  comparisons all still hold.
+- The bug survived the whole MVP-0 gate because every presentation test asserted
+  the mapping it was written against (`worldY === sceneZ`) rather than what a
+  player sees. The regression test now projects two entities through the real
+  camera and asserts the one at `+Y` lands higher on screen, which is a claim the
+  old mapping cannot satisfy. A second camera test pins `+Y` up and `+X` right
+  independently of the bridge.
+- Verified: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (28 files,
+  574 tests), `npm run typecheck`, `npm run lint` (0/0), `npm run build`,
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium`
+  (2 passed), and a live check against the dev server: holding `W` for 800 ms
+  moved the player `+4.9` on Y and holding `D` moved it `+3.7` on X.
+- New decision: V2-ADR-043.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
@@ -977,7 +1001,7 @@
    (expect 2 passed). Both were last confirmed green on 2026-08-22.
 3. `V2-101` is implemented and verified but not accepted. Re-run
    `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 28 files,
-   571 tests) before touching code; earlier counts are superseded.
+   574 tests) before touching code; earlier counts are superseded.
 
 ## Known MVP-0 Limitations
 
