@@ -58,6 +58,17 @@ export class InputRecorder {
     this.#framesInUse = index + 1;
   }
 
+  /**
+   * Drops every recorded frame so the same recorder can serve the next run.
+   *
+   * Storage beyond `count` is never readable: `read` bounds-checks against the
+   * live count and `record` overwrites each index before it becomes readable,
+   * so clearing the count is a complete reset without touching the buffers.
+   */
+  public reset(): void {
+    this.#framesInUse = 0;
+  }
+
   public read(index: number, output: MutableInputFrame): void {
     if (!Number.isSafeInteger(index) || index < 0 || index >= this.#framesInUse) {
       throw new RangeError('input frame index is out of bounds');

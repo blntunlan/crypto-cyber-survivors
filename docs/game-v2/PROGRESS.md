@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | None — `V2-013` accepted; `V2-014` not started |
-| Status | `Paused by user` — first paused level-up is complete and independently approved |
+| Active task | `V2-014` — implementation and evidence complete; the independent review Task 15 mandates has not run |
+| Status | `Verification` — MVP-0 is playable end to end and every acceptance command passes |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -628,18 +628,139 @@
   all Game V2 tests at 18 files / 439 tests. Typecheck, focused ESLint,
   focused Prettier, and diff-check also pass; production source remains
   unchanged.
+- V2-014 composed the MVP-0 runtime and closed the walking skeleton. It adds
+  `GameV2Runtime` (the fixed tick order, lifecycle transitions, and render
+  handoff), `createMvp0Runtime` (the single production composition, headless
+  when no render target is supplied), `ReplayRunner`, the `RunRecording` and
+  `GameV2Debug` contracts, and a playable `/game-v2` surface with a HUD, a
+  level-up card, and a game-over restart.
+- The legal tick order is: sample intent, quantise it to Float32, record it,
+  spawn any due enemy, `DashSystem`, `MovementSystem`, `EnemySystem`,
+  `WeaponSystem` (targeting, projectile integration, fire), `CombatSystem`,
+  `ProgressionSystem`, then the terminal or level-up lifecycle transition. The
+  render snapshot is written and presented once per frame, after that frame’s
+  ticks.
+- The spawn cadence is new authority the Task 15 step list did not name
+  (V2-ADR-028). Without it the task’s own acceptance criteria are unreachable.
+  `MVP0_ENEMY_SPAWN_INTERVAL_TICKS = 60` is derived: a tier-one kill costs 90
+  ticks and a tier-two kill 60, so standing still loses ground until the first
+  upgrade buys it back. Both properties are pinned in
+  `tests/game-v2/config/Mvp0Config.test.ts`.
+- V2-014 TDD RED command:
+  `npx vitest run tests/game-v2/integration/Mvp0Runtime.test.ts tests/game-v2/replay/ReplayRunner.test.ts --pool=forks --maxWorkers=1`
+  reported `Test Files 2 failed` with both failures in module resolution, the
+  first being an unresolvable `@/game-v2/contracts/RunRecording`.
+- The first GREEN attempt exposed a real determinism defect. `InputRecorder`
+  stores movement as Float32 while the sampled intent is Float64, so a replay
+  diverged from the run it replayed by about one ULP per tick and compounded
+  into a different state hash; the reset comparison differed in `x`, `y`,
+  `previousX`, `previousY`, `velocityX`, and `velocityY` while the RNG state and
+  tick count matched exactly. The runtime now quantises the intent with
+  `Math.fround` before recording it and before any system reads it
+  (V2-ADR-030). A recording could not previously reproduce its own run.
+- The scripted acceptance run is a real 789-tick game, not a two-tick stub: the
+  player warms up movement, dashes into a closing enemy at tick 416, collects a
+  drop into the level-up that issues the single recorded upgrade command at
+  tick 421, then charges enemies until it dies at tick 789. Initial state hash
+  `284ae166`, final `09fc36e7`.
+- Cross-FPS replay of that recording returns `09fc36e7` at tick 789 with one
+  command applied at 30, 60, and 120 render FPS, matching the hash the live run
+  produced. `IntentSource.sample` returning `false` is what ends a replay on
+  exactly the recorded tick at any frame rate (V2-ADR-031).
+- The dash proof is an A/B on one recording rather than a single-tick
+  observation: replaying the identical input with every dash press cleared
+  leaves the player with strictly less health one contact cooldown after the
+  dash tick. The first attempt asserted a single tick and proved nothing,
+  because the enemy that had just hit the player was still on its contact
+  cooldown.
+- V2-014 GREEN verification commands, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (23 files, 488
+  tests, up from the 18 files and 439 tests of the accepted V2-013 checkpoint),
+  `npm run typecheck`, `npm run check:architecture` (89 baseline singleton
+  files), `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt),
+  `npm run check:ui-contract`, `npm run check:event-contract`, `npm run lint`
+  (0 errors, 0 warnings), `npx prettier --check` on every changed path, and
+  `npm run build`.
+- `npm run test` reports 358 files and 3654 tests with one failure,
+  `tests/components/landing/LandingPriceFeed.test.tsx`. That failure is
+  pre-existing and unrelated: it reproduces identically with the whole V2-014
+  working tree stashed. It belongs to the legacy landing surface and was left
+  alone rather than fixed inside a Game V2 commit.
+- Browser smoke:
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  passed 2 tests in 39.7 s. The seeded run opens
+  `/game-v2?no-sw=true&seed=12345`, proves WebGL sized the real canvas backing
+  store, walks with `KeyD`, produces a per-tick displacement no walk speed can
+  reach plus invulnerability from `Space`, reaches the level-up card, proves
+  the tick counter does not move while the card is open, takes the upgrade, and
+  resumes at level 2 with tier-two damage. The second test proves `/` still
+  renders the legacy landing and publishes no Game V2 debug surface.
+- A fifteen-mutant deliberate pass ran against the complete Game V2 suite.
+  Killed: dropping the Float32 intent quantization (2 failures), shifting the
+  spawn cadence off tick 1 (1), removing the clock pause on level-up (1),
+  removing the not-playing tick guard (1), ignoring an exhausted intent source
+  (1), skipping the recorder reset (1), skipping the replay initial-hash check
+  (1), skipping replay frame contiguity (1), ignoring the URL seed (2), never
+  restoring the RNG on reset (1), presenting a frame before stepping it (1),
+  dropping the camera follow (2), and skipping the progression reset (26).
+- Four of those mutants survived the first pass and the tests were strengthened
+  until they died: the level-up pause test now advances in half steps so a
+  sweeping interpolation alpha is visible, the reset test now replays a
+  completed run before resetting so the RNG restore is load-bearing, a new test
+  drives past input exhaustion, a new test presents one and a half steps so a
+  frame rendered before its own ticks is detectable, and every `ReplayRunner`
+  rejection now asserts its own message instead of `RangeError`.
+- Two mutants survive by construction and are recorded rather than hidden. The
+  live-enemy cap and the world-capacity precondition in `spawnDueEnemy` cannot
+  be reached at MVP-0 balance: a fleeing player peaks at six live enemies and a
+  standing player dies first, so no gameplay test can drive either bound. The
+  cap and the render snapshot enemy capacity are the same constant, pinned
+  together by the config test; V2-108’s composition budget is what will make
+  them binding. A third mutant, letting a level-up outrank terminal death, is
+  semantically equivalent because `ProgressionSystem` already clears its output
+  on a lethal tick (V2-ADR-027).
+- Reset is a new session by contract, not a bit-identical rerun (V2-ADR-029).
+  `snapshotHash()` covers `lifecycle.sessionEpoch`, and `World.reset()` retires
+  the generation of every slot that was alive. The reset test replays the same
+  recording after a completed run and matches the reference checkpoint on every
+  field except those two.
+- `MVP0_SPAWN_FREE_SLOT_RESERVE` was removed during the mutation pass. It was
+  an invented policy constant that no test could reach and whose failure mode
+  world exhaustion already owns; the spawner now checks exactly the documented
+  precondition of `EnemySystem.spawnEnemy`.
+- New decisions: V2-ADR-028 through V2-ADR-032.
 
 ## Verification Required
 
-1. No V2-013 verification remains open. Its fix-round-2 review approved the
-   discrete hit events, exact per-tier damage, and independent 3-to-2 counts
-   with no new Critical or Important finding.
+1. `V2-014` needs the independent review Task 15 mandates for Tasks 1, 5, 7,
+   and 15 — architecture, determinism, lifecycle cleanup, and accidental legacy
+   imports. It has not run. Until it does MVP-0 is `Verification`, not `Done`,
+   and the `MASTER_PLAN.md` rows stay open.
+2. Re-run the last GREEN commands before touching code:
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 23 files,
+   488 tests) and
+   `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+   (expect 2 passed).
+
+## Known MVP-0 Limitations
+
+- XP pickups have no lifetime and no magnet, so they accumulate for the whole
+  run. `MVP0_WORLD_CAPACITY = 512` is the only bound, and a run long enough to
+  fill it throws from `ProgressionSystem`. Pickup lifetime belongs to MVP-1.
+- The live-enemy cap and the spawner capacity precondition are unreachable at
+  MVP-0 balance and are therefore unproved by any gameplay test.
+- One runtime is one run identity, so the game-over restart replays the same
+  seed. A different run needs a reload, which is correct for a `?seed=` session
+  and a wart for an unseeded one.
+- The `/game-v2` surface stays behind the V2 entry boundary. No production
+  cutover was made and the legacy demo remains authoritative.
 
 ## Exact Next Action
 
-Remain stopped. When the user resumes, start `V2-014` from accepted commit
-`d3a5cbad`; compose the deterministic runtime and MVP-0 evidence gate. Do not
-deploy, cut over production, or replace the legacy demo.
+Review the V2-014 checkpoint against the Task 15 acceptance criteria. If it is
+accepted, record V2-000 through V2-014 as closed, close MVP-0, and generate the
+`V2-100` task brief (four-slot ability loadout). Do not deploy, cut over
+production, or replace the legacy demo.
 
 ## Known Pre-existing Working-tree Changes
 

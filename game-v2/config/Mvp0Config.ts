@@ -50,3 +50,31 @@ export const LEVEL_2_XP_THRESHOLD = 5;
 export const STARTER_WEAPON_DAMAGE_TIER_2 = 15;
 export const PLAYER_STARTING_LEVEL = 1;
 export const MVP0_MAX_PLAYER_LEVEL = 2;
+
+/**
+ * MVP-0 runtime composition (V2-014).
+ *
+ * `MVP0_ENEMY_SPAWN_INTERVAL_TICKS` is derived, not chosen. A tier-1 kill costs
+ * `WEAPON_COOLDOWN_TICKS * ceil(ENEMY_HEALTH / PROJECTILE_DAMAGE)` = 90 ticks and
+ * a tier-2 kill costs 60, so an interval of 60 sits exactly between them: a
+ * player who never upgrades loses ground and eventually dies, and the first
+ * upgrade is what buys back the ability to hold the line. The properties are
+ * pinned in `tests/game-v2/config/Mvp0Config.test.ts`.
+ */
+export const MVP0_ENEMY_SPAWN_INTERVAL_TICKS = 60;
+
+/**
+ * The spawn ring sits inside `WEAPON_RANGE` so auto-fire acquires a new enemy on
+ * its spawn tick, and inside the camera's half-height so a spawn is visible at
+ * every supported aspect ratio.
+ */
+export const MVP0_ENEMY_SPAWN_RING_RADIUS = 8;
+export const MVP0_MAX_LIVE_ENEMIES = 32;
+
+/**
+ * At most `ceil(PROJECTILE_LIFETIME_TICKS / WEAPON_COOLDOWN_TICKS)` projectiles
+ * are in flight when the next one is fired.
+ */
+export const MVP0_MAX_LIVE_PROJECTILES = 16;
+
+export const MVP0_WORLD_CAPACITY = 512;

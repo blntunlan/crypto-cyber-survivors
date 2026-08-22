@@ -64,6 +64,16 @@ export class CommandRecorder {
     this.#commandsInUse += 1;
   }
 
+  /**
+   * Drops every recorded command so the same recorder can serve the next run.
+   *
+   * As in `InputRecorder`, storage beyond `count` is unreachable through `read`
+   * and is overwritten by the next `record`, so clearing the count is complete.
+   */
+  public reset(): void {
+    this.#commandsInUse = 0;
+  }
+
   public read(index: number): RunCommand {
     if (!Number.isSafeInteger(index) || index < 0 || index >= this.#commandsInUse) {
       throw new RangeError('command index is out of bounds');
