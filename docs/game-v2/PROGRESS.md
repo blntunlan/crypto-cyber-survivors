@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-013` (review fix round 2 complete; scoped re-review pending) |
-| Status | `Re-review pending` — upgraded projectile hit count is now proven by discrete damage events |
+| Active task | None — `V2-013` accepted; `V2-014` not started |
+| Status | `Paused by user` — first paused level-up is complete and independently approved |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -631,15 +631,15 @@
 
 ## Verification Required
 
-1. Re-review the V2-013 test-only fix commit against the one accepted finding:
-   positive health-drop events must independently prove per-hit tier damage and
-   exact 3-to-2 hit counts, including the lethal event.
+1. No V2-013 verification remains open. Its fix-round-2 review approved the
+   discrete hit events, exact per-tier damage, and independent 3-to-2 counts
+   with no new Critical or Important finding.
 
 ## Exact Next Action
 
-Generate the scoped V2-013 fix-round-2 review package from `7e44965f` through
-the test-only fix commit and dispatch a fresh independent re-reviewer. Do not
-start V2-014 until V2-013 is accepted.
+Remain stopped. When the user resumes, start `V2-014` from accepted commit
+`d3a5cbad`; compose the deterministic runtime and MVP-0 evidence gate. Do not
+deploy, cut over production, or replace the legacy demo.
 
 ## Known Pre-existing Working-tree Changes
 
@@ -648,6 +648,8 @@ not stage, edit, revert, or include them in a Game V2 commit:
 
 - `skills-lock.json` — modified.
 - `docs/design/CORE_REDESIGN_V1.md` — untracked.
+- `public/sitemap.xml` — build-generated modification.
+- `public/docs/**` — build-generated/untracked documentation copies.
 
 ## Resume Protocol
 
