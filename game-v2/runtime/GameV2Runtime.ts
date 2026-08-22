@@ -3,6 +3,8 @@ import {
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
   MVP0_MAX_LIVE_ENEMIES,
+  MVP0_PLAYER_SPAWN_X,
+  MVP0_PLAYER_SPAWN_Y,
   SIMULATION_HZ,
 } from '@/game-v2/config/Mvp0Config';
 import {
@@ -93,6 +95,15 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
  */
 export type IntentSource = {
   sample(tick: number, out: PlayerIntent): boolean;
+  /**
+   * Drops anything the source buffered for a run that has ended.
+   *
+   * The runtime cannot see inside its input adapter, and a source is not
+   * sampled at all once the run is over, so an edge captured on the
+   * game-over screen would otherwise fire on the first tick of the next
+   * run (V2-ADR-034).
+   */
+  reset?(): void;
 };
 
 export type RuntimePresentation = {
@@ -155,6 +166,14 @@ export class GameV2Runtime {
     moveX: 0,
     moveY: 0,
     dashPressed: false,
+  };
+
+  /** Reused so a cadence tick allocates nothing inside the step loop. */
+  private readonly spawnRequest = {
+    type: 'ring' as const,
+    centerX: 0,
+    centerY: 0,
+    radius: MVP0_ENEMY_SPAWN_RING_RADIUS,
   };
 
   private playerEntity: EntityId = NO_ENTITY;
@@ -310,6 +329,7 @@ export class GameV2Runtime {
     this.world.reset();
     this.clock.reset();
     this.rng.restore(this.initialRngSnapshot);
+    this.intentSource.reset?.();
     this.inputRecorder.reset();
     this.commandRecorder.reset();
     this.playerEntity = NO_ENTITY;
@@ -514,22 +534,20 @@ export class GameV2Runtime {
 
     const playerSlot = this.world.slotOf(this.playerEntity);
 
-    this.enemySystem.spawnEnemy(this.world, this.rng, {
-      type: 'ring',
-      centerX: this.world.x[playerSlot] ?? 0,
-      centerY: this.world.y[playerSlot] ?? 0,
-      radius: MVP0_ENEMY_SPAWN_RING_RADIUS,
-    });
+    this.spawnRequest.centerX = this.world.x[playerSlot] ?? 0;
+    this.spawnRequest.centerY = this.world.y[playerSlot] ?? 0;
+
+    this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest);
   }
 
   private createPlayer(): EntityId {
     const player = this.world.createEntity(PLAYER_ENTITY_MASK);
     const slot = this.world.slotOf(player);
 
-    this.world.x[slot] = 0;
-    this.world.y[slot] = 0;
-    this.world.previousX[slot] = 0;
-    this.world.previousY[slot] = 0;
+    this.world.x[slot] = MVP0_PLAYER_SPAWN_X;
+    this.world.y[slot] = MVP0_PLAYER_SPAWN_Y;
+    this.world.previousX[slot] = MVP0_PLAYER_SPAWN_X;
+    this.world.previousY[slot] = MVP0_PLAYER_SPAWN_Y;
 
     this.dashSystem.resetPlayer(this.world, player);
     this.weaponSystem.resetPlayer(this.world, player);

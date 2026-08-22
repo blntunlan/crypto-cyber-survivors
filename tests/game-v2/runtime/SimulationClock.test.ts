@@ -9,7 +9,7 @@ const simulate = (fps: number): number => {
     clock.advance(1000 / fps, () => undefined);
   }
 
-  return clock.tick;
+  return clock.stepsAttempted;
 };
 
 describe('SimulationClock', () => {
@@ -33,7 +33,7 @@ describe('SimulationClock', () => {
       steps += 1;
     });
 
-    expect(clock.tick).toBe(1);
+    expect(clock.stepsAttempted).toBe(1);
     expect(steps).toBe(1);
     expect(pausedResult.steps).toBe(0);
 
@@ -42,8 +42,25 @@ describe('SimulationClock', () => {
       steps += 1;
     });
 
-    expect(clock.tick).toBe(2);
+    expect(clock.stepsAttempted).toBe(2);
     expect(steps).toBe(2);
+  });
+
+  it('stops driving steps as soon as a step pauses the clock', () => {
+    const clock = new SimulationClock();
+    let steps = 0;
+
+    // Two and a half steps' worth of time, paused from inside the first step.
+    // Draining the rest would spend time on steps that can no longer do
+    // anything, and would inflate the attempted-step count with them.
+    const result = clock.advance(SIMULATION_STEP_MS * 2.5, () => {
+      steps += 1;
+      clock.pause();
+    });
+
+    expect(steps).toBe(1);
+    expect(result.steps).toBe(1);
+    expect(clock.stepsAttempted).toBe(1);
   });
 
   it('keeps interpolation state frozen while paused', () => {
@@ -65,10 +82,10 @@ describe('SimulationClock', () => {
     clock.advance(1000, () => undefined);
     clock.reset();
 
-    expect(clock.tick).toBe(0);
+    expect(clock.stepsAttempted).toBe(0);
     expect(clock.advance(1000 / 60 - 1, () => undefined).steps).toBe(0);
     expect(clock.advance(1, () => undefined).steps).toBe(1);
-    expect(clock.tick).toBe(1);
+    expect(clock.stepsAttempted).toBe(1);
   });
 
   it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
@@ -92,7 +109,7 @@ describe('SimulationClock', () => {
     expect(steps).toBe(8);
     expect(result.droppedMilliseconds).toBeCloseTo(250 - 8 * SIMULATION_STEP_MS, 8);
     expect(result.interpolationAlpha).toBe(0);
-    expect(clock.tick).toBe(8);
+    expect(clock.stepsAttempted).toBe(8);
   });
 
   it('drops excess catch-up time after at most eight fixed steps', () => {

@@ -22,6 +22,32 @@ import {
   type FakeRenderer,
 } from '../support/scriptedRun';
 
+/**
+ * A replay must always terminate. Without a budget a runtime that stops
+ * accepting ticks turns a failing assertion into a hung suite, which is how the
+ * first mutation pass on `reset()` presented itself.
+ */
+const advanceWithBudget = (
+  runtime: GameV2Runtime,
+  frameBudget: number,
+  shouldContinue: () => boolean,
+  onFrame: () => void
+): void => {
+  let frames = 0;
+
+  while (shouldContinue()) {
+    frames += 1;
+
+    if (frames > frameBudget) {
+      throw new Error(
+        `replay made no progress within ${frameBudget} frames at tick ${runtime.tick}`
+      );
+    }
+
+    onFrame();
+  }
+};
+
 /** Replays a recording, with presentation attached, up to its first pause. */
 const replayToLevelUp = (
   recording: RunRecording
@@ -55,9 +81,14 @@ const replayToLevelUp = (
 
   runtime.start();
 
-  while (runtime.phase === 'playing' && runtime.tick < recording.frames.length) {
-    runtime.advanceFrame(SIMULATION_STEP_MS);
-  }
+  advanceWithBudget(
+    runtime,
+    recording.frames.length * 2,
+    () => runtime.phase === 'playing' && runtime.tick < recording.frames.length,
+    () => {
+      runtime.advanceFrame(SIMULATION_STEP_MS);
+    }
+  );
 
   return { runtime, renderer };
 };
@@ -86,6 +117,9 @@ const replayFramesUntilTick = (
       nextFrameIndex += 1;
       return true;
     },
+    reset: () => {
+      nextFrameIndex = 0;
+    },
   };
 
   const runtime = createMvp0Runtime({
@@ -95,14 +129,19 @@ const replayFramesUntilTick = (
 
   runtime.start();
 
-  while (runtime.tick < lastTick && runtime.phase !== 'game-over') {
-    if (runtime.phase === 'level-up') {
-      runtime.chooseUpgrade('starter-damage-2');
-      continue;
-    }
+  advanceWithBudget(
+    runtime,
+    lastTick * 2,
+    () => runtime.tick < lastTick && runtime.phase !== 'game-over',
+    () => {
+      if (runtime.phase === 'level-up') {
+        runtime.chooseUpgrade('starter-damage-2');
+        return;
+      }
 
-    runtime.advanceFrame(SIMULATION_STEP_MS);
-  }
+      runtime.advanceFrame(SIMULATION_STEP_MS);
+    }
+  );
 
   return { runtime, playerHealth: runtime.readout().playerHealth };
 };
@@ -126,6 +165,9 @@ const replayAfterReset = (
       nextFrameIndex += 1;
       return true;
     },
+    reset: () => {
+      nextFrameIndex = 0;
+    },
   };
 
   const runtime = createMvp0Runtime({
@@ -134,14 +176,19 @@ const replayAfterReset = (
   });
 
   const replay = (): void => {
-    while (runtime.tick < recording.frames.length && runtime.phase !== 'game-over') {
-      if (runtime.phase === 'level-up') {
-        runtime.chooseUpgrade('starter-damage-2');
-        continue;
-      }
+    advanceWithBudget(
+      runtime,
+      recording.frames.length * 2,
+      () => runtime.tick < recording.frames.length && runtime.phase !== 'game-over',
+      () => {
+        if (runtime.phase === 'level-up') {
+          runtime.chooseUpgrade('starter-damage-2');
+          return;
+        }
 
-      runtime.advanceFrame(SIMULATION_STEP_MS);
-    }
+        runtime.advanceFrame(SIMULATION_STEP_MS);
+      }
+    );
   };
 
   // The first pass is what makes the reset meaningful: it burns RNG draws,
@@ -149,7 +196,6 @@ const replayAfterReset = (
   runtime.start();
   replay();
   runtime.reset();
-  nextFrameIndex = 0;
   runtime.start();
   replay();
 
@@ -233,6 +279,24 @@ describe('MVP-0 runtime composition', () => {
     expect(reference.lifecycle.sessionEpoch).toBe(0);
     expect(replayed.checkpoint.lifecycle.sessionEpoch).toBe(1);
     expect(replayed.checkpoint.tick).toBe(reference.tick);
+
+    // Substituting the generations below would hide a generation bug, so pin
+    // them exactly first. The replayed runtime ran the same recording twice on
+    // one world with a reset between, so a slot recycled `b` times per run ends
+    // at `2b`, plus one more if `World.reset()` retired it while it was alive.
+    let retiredWhileAlive = 0;
+    for (let slot = 0; slot < reference.world.generations.length; slot += 1) {
+      const perRun = reference.world.generations[slot] ?? 0;
+      const aliveAtReset = (reference.world.masks[slot] ?? 0) === 0 ? 0 : 1;
+
+      expect(replayed.checkpoint.world.generations[slot]).toBe(
+        perRun * 2 + aliveAtReset
+      );
+      retiredWhileAlive += aliveAtReset;
+    }
+
+    expect(retiredWhileAlive).toBeGreaterThan(0);
+
     expect(
       hashRuntimeCheckpoint({
         ...replayed.checkpoint,
@@ -321,6 +385,46 @@ describe('MVP-0 runtime composition', () => {
 
     runtime.advanceFrame(SIMULATION_STEP_MS);
     expect(runtime.readout().tick).toBe(MVP0_ENEMY_SPAWN_INTERVAL_TICKS + 1);
+
+    runtime.dispose();
+  });
+
+  it('hands reset down to the input source so no edge outlives a run', () => {
+    let resets = 0;
+    let bufferedDash = true;
+    const source: IntentSource = {
+      sample: (_tick, out) => {
+        out.moveX = 0;
+        out.moveY = 0;
+        out.dashPressed = bufferedDash;
+        bufferedDash = false;
+        return true;
+      },
+      reset: () => {
+        resets += 1;
+        bufferedDash = false;
+      },
+    };
+
+    const runtime = createMvp0Runtime({
+      runIdentity: createRunIdentity('source-reset', SCENARIO_SEED),
+      intentSource: source,
+    });
+
+    runtime.start();
+    runtime.advanceFrame(SIMULATION_STEP_MS);
+    expect(resets).toBe(0);
+
+    bufferedDash = true;
+    runtime.reset();
+
+    expect(resets).toBe(1);
+
+    runtime.start();
+    runtime.advanceFrame(SIMULATION_STEP_MS);
+
+    const [firstFrame] = runtime.exportRecording().frames;
+    expect(firstFrame?.dashPressed).toBe(false);
 
     runtime.dispose();
   });

@@ -116,7 +116,7 @@ describe('ReplayRunner', () => {
 
     expect(() =>
       replayRunner.run({ ...recording, commands: [firstCommand!, firstCommand!] }, 60)
-    ).toThrow(RangeError);
+    ).toThrow(/repeats a command/);
   });
 
   it('rejects a recording missing the upgrade command its pause requires', () => {
@@ -128,7 +128,7 @@ describe('ReplayRunner', () => {
     );
   });
 
-  it('rejects a command that does not land on a paused tick', () => {
+  it('rejects a command whose tick lands beside the pause', () => {
     const { recording } = buildScenarioRecording();
     const firstCommand = recording.commands[0];
 
@@ -144,7 +144,25 @@ describe('ReplayRunner', () => {
         },
         60
       )
-    ).toThrow(RangeError);
+    ).toThrow(/missing the upgrade command for paused tick/);
+  });
+
+  it('rejects a recording holding a command that never lands on a pause', () => {
+    const { recording } = buildScenarioRecording();
+    const firstCommand = recording.commands[0];
+
+    expect(firstCommand).toBeDefined();
+
+    // The run pauses exactly once, so a second well-formed command on a later
+    // tick can never be consumed. This is the only case that reaches the
+    // unconsumed-command guard rather than the missing-command-at-pause guard.
+    const orphan = { ...firstCommand!, tick: firstCommand!.tick + 100 };
+    const replayRunner = new ReplayRunner();
+
+    expect(orphan.tick).toBeLessThanOrEqual(recording.frames.length);
+    expect(() =>
+      replayRunner.run({ ...recording, commands: [firstCommand!, orphan] }, 60)
+    ).toThrow(/never landed on a paused tick/);
   });
 
   it.each([0, -60, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(

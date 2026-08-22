@@ -176,6 +176,14 @@ export class ReplayRunner {
             );
           }
 
+          // Last-resort budget: a command found more than once means the pause
+          // did not clear, and this branch does not consume a frame.
+          if (commandsApplied >= recording.commands.length) {
+            throw new RangeError(
+              'replay paused more times than the recording has commands'
+            );
+          }
+
           runtime.chooseUpgrade(command.choiceId);
           commandsApplied += 1;
           continue;

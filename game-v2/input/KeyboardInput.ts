@@ -125,6 +125,16 @@ export class KeyboardInput {
     this.pendingDash = false;
   }
 
+  /**
+   * Drops held keys and any buffered dash edge.
+   *
+   * A dash pressed while the run was over is never sampled, so without this
+   * the buffered edge would fire on the first tick of the next run.
+   */
+  public clear(): void {
+    this.clearState();
+  }
+
   public dispose(): void {
     if (this.disposed) {
       return;

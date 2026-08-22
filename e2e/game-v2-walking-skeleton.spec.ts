@@ -1,3 +1,5 @@
+import { STARTER_WEAPON_DAMAGE_TIER_2 } from '@/game-v2/config/Mvp0Config';
+
 import { expect, test, type Page } from './test';
 
 /** Mirrors `GameV2DebugSnapshot`; the spec runs outside the app's type graph. */
@@ -227,7 +229,7 @@ test.describe('Game V2 walking skeleton', () => {
     const resumed = await readSnapshot(page);
     expect(resumed.phase).toBe('playing');
     expect(resumed.playerLevel).toBe(2);
-    expect(resumed.weaponDamage).toBe(15);
+    expect(resumed.weaponDamage).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
 
     await expect
       .poll(async () => (await readSnapshot(page)).tick, { timeout: 10_000 })

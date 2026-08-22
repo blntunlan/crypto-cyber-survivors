@@ -135,6 +135,12 @@ export class ThreeScene {
     this.projectileMesh.material.dispose();
     this.xpPickupMesh.geometry.dispose();
     this.xpPickupMesh.material.dispose();
+
+    // The instance matrix buffers belong to the mesh, not to its geometry or
+    // material, so disposing those two leaves them allocated.
+    this.enemyMesh.dispose();
+    this.projectileMesh.dispose();
+    this.xpPickupMesh.dispose();
     this.renderer.dispose();
     this.scene.clear();
   }

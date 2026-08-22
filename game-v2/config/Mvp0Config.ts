@@ -73,8 +73,11 @@ export const MVP0_MAX_LIVE_ENEMIES = 32;
 
 /**
  * At most `ceil(PROJECTILE_LIFETIME_TICKS / WEAPON_COOLDOWN_TICKS)` projectiles
- * are in flight when the next one is fired.
+ * are already in flight when the next one is fired, so the concurrent bound is
+ * that quotient plus the one being fired.
  */
 export const MVP0_MAX_LIVE_PROJECTILES = 16;
 
 export const MVP0_WORLD_CAPACITY = 512;
+export const MVP0_PLAYER_SPAWN_X = 0;
+export const MVP0_PLAYER_SPAWN_Y = 0;

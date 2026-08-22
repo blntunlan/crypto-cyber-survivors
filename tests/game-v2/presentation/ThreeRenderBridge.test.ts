@@ -561,13 +561,21 @@ describe('ThreeRenderBridge', () => {
       scene.projectileMesh.material,
       scene.xpPickupMesh.material,
     ];
+    // The instance matrix buffers belong to the mesh itself, so disposing its
+    // geometry and material does not release them.
+    const instancedMeshes = [scene.enemyMesh, scene.projectileMesh, scene.xpPickupMesh];
     const geometryDisposals = geometries.map(geometry => vi.spyOn(geometry, 'dispose'));
     const materialDisposals = materials.map(material => vi.spyOn(material, 'dispose'));
+    const meshDisposals = instancedMeshes.map(mesh => vi.spyOn(mesh, 'dispose'));
 
     bridge.dispose();
     bridge.dispose();
 
-    for (const dispose of [...geometryDisposals, ...materialDisposals]) {
+    for (const dispose of [
+      ...geometryDisposals,
+      ...materialDisposals,
+      ...meshDisposals,
+    ]) {
       expect(dispose).toHaveBeenCalledTimes(1);
     }
     expect(renderer.dispose).toHaveBeenCalledTimes(1);

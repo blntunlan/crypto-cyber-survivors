@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-014` — implementation and evidence complete; the independent review Task 15 mandates has not run |
-| Status | `Verification` — MVP-0 is playable end to end and every acceptance command passes |
+| Active task | `V2-014` — reviewed independently; every Critical and Important finding is closed |
+| Status | `Verification` — review round 1 is applied and re-verified; awaiting acceptance |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -710,6 +710,8 @@
   drives past input exhaustion, a new test presents one and a half steps so a
   frame rendered before its own ticks is detectable, and every `ReplayRunner`
   rejection now asserts its own message instead of `RangeError`.
+- That last claim was itself wrong when first written: two rejections still
+  asserted the bare type. Review round 1 caught it and it is now true.
 - Two mutants survive by construction and are recorded rather than hidden. The
   live-enemy cap and the world-capacity precondition in `spawnDueEnemy` cannot
   be reached at MVP-0 balance: a fleeing player peaks at six live enemies and a
@@ -730,15 +732,84 @@
   precondition of `EnemySystem.spawnEnemy`.
 - New decisions: V2-ADR-028 through V2-ADR-032.
 
+### Review round 1
+
+- An independent reviewer examined `a42f2dfd..0326855d` against the Task 15
+  acceptance criteria and its four mandated focus areas. It returned no
+  Critical finding, five Important, and ten Minor, with the verdict "with
+  fixes". It reproduced every claimed verification number itself, verified
+  the accumulator arithmetic at 30/60/120 FPS in exact doubles, independently
+  swept for the Float32/Float64 defect class and confirmed the intent was the
+  only instance, and enumerated every import under `game-v2/**` rather than
+  trusting the boundary guard.
+- I1 was a real shipped bug, not a contract nit. `reset()` restored everything
+  the runtime owns but nothing the injected `IntentSource` owns, and a source
+  is not sampled at all while the run is over. A `Space` pressed on the
+  game-over screen therefore sat in `KeyboardInput.pendingDash` and fired a
+  dash on tick 1 of the restarted run — which also broke the reproducibility a
+  `?seed=` session promises, because the restart reuses the identity.
+  `IntentSource.reset?()` and `KeyboardInput.clear()` close it (V2-ADR-034),
+  and every replay harness lost its undocumented obligation to reset its own
+  cursor by hand.
+- I2 overturned this checkpoint’s own reasoning, correctly. The claim that the
+  live-enemy cap and the world-capacity precondition were unreachable was true
+  only of gameplay tests: `GameV2Runtime` takes `world` injected, so both
+  bounds are reachable by composing the runtime directly.
+  `tests/game-v2/runtime/GameV2RuntimeBounds.test.ts` now drives them with a
+  two-slot world and with a world pre-populated to the cap. The enemy cap is
+  load-bearing rather than decorative: exceeding it makes
+  `RenderSnapshotWriter` throw inside the frame.
+- I3: the animation frame loop scheduled the next frame before running its
+  body, so a throw repeated at 60 Hz forever instead of stopping. The loop now
+  cancels itself and surfaces the message (V2-ADR-035).
+- I4: `SimulationClock.tick` had become a second tick authority with no
+  production reader, counting steps a refusing runtime discarded. It is now
+  `stepsAttempted`, and the clock stops driving steps once a step pauses it
+  (V2-ADR-033).
+- I5: the unmount test only covered a single mount while the shipped entry is
+  `StrictMode`-wrapped. The double mount is now tested and passes with two
+  renderers created, the first disposed, and one live debug surface. Minor 8
+  came with it: `ThreeScene.dispose()` released each mesh’s geometry and
+  material but never the `InstancedMesh` itself, leaving its instance matrix
+  buffers allocated — reachable precisely because of the remount.
+- Minor findings 1, 2, 3, 5, 8 and the config/e2e items of 10 are applied. The
+  reset test no longer substitutes `world.generations` wholesale, which would
+  have hidden a generation bug; it now pins the exact arithmetic, `2b + alive`
+  per slot after two runs and one reset. The first attempt at that assertion
+  was wrong and the test caught it.
+- The mutation runner had a defect of its own and it cost a stalled session.
+  It captured vitest through a pipe with no timeout and restored the mutant
+  outside a `finally`, so a hung run left a mutant applied in the working tree.
+  It now restores in a `finally`, writes to a file, and times out per mutant.
+- That hang was itself a finding. Removing the `reset()` delegation made the
+  replay harness loop forever instead of failing, because a runtime that stops
+  accepting ticks never satisfies a `while (tick < frames.length)` condition.
+  Every replay helper now runs under a frame budget and fails loudly.
+- Review-round mutation pass: eight mutants, all killed. Not resetting the
+  input source (2 failures), a no-op `KeyboardInput.clear` (1), a clock that
+  keeps draining after a step pauses it (1), an uncontained frame throw (1),
+  undisposed instanced meshes (1), dropping the unconsumed-command guard (1),
+  ignoring the world capacity precondition (1), and ignoring the live-enemy
+  cap (2). The instanced-mesh mutant survived the first attempt and the
+  existing dispose test was extended until it died.
+- Review-round verification, each command run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (24 files, 498
+  tests), `npm run typecheck`, `npm run lint` (0 errors, 0 warnings),
+  `npx prettier --check` on every changed path, `npm run check:architecture`,
+  `npm run check:reset-coverage`, `npm run check:ui-contract`,
+  `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed). `npm run test` reports 359 files and 3664 tests with the same
+  single pre-existing `LandingPriceFeed` failure.
+- New decisions: V2-ADR-033 through V2-ADR-035.
+
 ## Verification Required
 
-1. `V2-014` needs the independent review Task 15 mandates for Tasks 1, 5, 7,
-   and 15 — architecture, determinism, lifecycle cleanup, and accidental legacy
-   imports. It has not run. Until it does MVP-0 is `Verification`, not `Done`,
-   and the `MASTER_PLAN.md` rows stay open.
+1. Nothing from review round 1 remains open. Every Critical and Important
+   finding is fixed, mutation-proved, and re-verified.
 2. Re-run the last GREEN commands before touching code:
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 23 files,
-   488 tests) and
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 24 files,
+   498 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
    (expect 2 passed).
 
@@ -746,22 +817,36 @@
 
 - XP pickups have no lifetime and no magnet, so they accumulate for the whole
   run. `MVP0_WORLD_CAPACITY = 512` is the only bound, and a run long enough to
-  fill it throws from `ProgressionSystem`. Pickup lifetime belongs to MVP-1.
-- The live-enemy cap and the spawner capacity precondition are unreachable at
-  MVP-0 balance and are therefore unproved by any gameplay test.
+  fill it now stops the loop with a surfaced error rather than spinning.
+  Pickup lifetime belongs to MVP-1.
 - One runtime is one run identity, so the game-over restart replays the same
   seed. A different run needs a reload, which is correct for a `?seed=` session
   and a wart for an unseeded one.
 - The `/game-v2` surface stays behind the V2 entry boundary. No production
   cutover was made and the legacy demo remains authoritative.
 
+## Deferred Review Findings
+
+Accepted as real, deliberately out of V2-014 scope, and carried forward:
+
+- `RunRecording` carries no `finalHash`, so `ReplayRunner` is advisory rather
+  than self-verifying: a recording with tampered frames replays "successfully"
+  and only a caller holding the expected hash catches it. This matters when
+  the artifact becomes the anti-cheat replay path, not before.
+- `tests/game-v2/architecture/GameV2Boundary.test.ts` is a denylist of eight
+  module paths, not a boundary. `game-v2/**` is currently clean by the much
+  stronger standard of importing only `@/game-v2/**`, `react`, and `three`;
+  inverting the guard to an allowlist would enforce the property it protects.
+- Replay determinism holds within one engine but not provably across engines:
+  `Math.hypot`, `Math.cos`, and `Math.sin` are implementation-approximated in
+  ECMA-262. V2-407 wants a Node-versus-browser comparison, and `Math.hypot` is
+  replaceable with an exactly-specified `Math.sqrt` form.
+
 ## Exact Next Action
 
-Review the V2-014 checkpoint against the Task 15 acceptance criteria. If it is
-accepted, record V2-000 through V2-014 as closed, close MVP-0, and generate the
-`V2-100` task brief (four-slot ability loadout). Do not deploy, cut over
-production, or replace the legacy demo.
-
+Accept the V2-014 checkpoint. On acceptance, record V2-000 through V2-014 as
+closed, close MVP-0, and generate the `V2-100` task brief (four-slot ability
+loadout). Do not deploy, cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do

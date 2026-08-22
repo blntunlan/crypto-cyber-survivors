@@ -89,3 +89,12 @@
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
+
+.game-v2 .game-v2-failure-detail {
+  max-width: 40ch;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: #fca5a5;
+  text-align: center;
+}

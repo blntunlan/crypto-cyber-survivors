@@ -58,6 +58,7 @@ export const GameV2App = ({
 
   const [phase, setPhase] = useState<GameV2Phase>('idle');
   const [damageBefore, setDamageBefore] = useState(PROJECTILE_DAMAGE);
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -72,6 +73,11 @@ export const GameV2App = ({
       sample: (_tick, out) => {
         keyboard.sample(out);
         return true;
+      },
+      // The keyboard buffers a dash edge that is never sampled while the run
+      // is over, so a restart has to drop it.
+      reset: () => {
+        keyboard.clear();
       },
     };
     const runtime = createMvp0Runtime({
@@ -115,32 +121,45 @@ export const GameV2App = ({
     let hudFrames = 0;
     let frameHandle = 0;
 
+    /**
+     * A throw here must stop the loop, not repeat at 60 Hz forever.
+     *
+     * The runtime has real, documented failure modes — world capacity
+     * exhaustion above all — and the next frame is already scheduled by the
+     * time the body runs, so an uncaught throw would spin.
+     */
     const frame = (timestamp: number): void => {
       frameHandle = window.requestAnimationFrame(frame);
 
-      const deltaMs = previousTimestamp === null ? 0 : timestamp - previousTimestamp;
-      previousTimestamp = timestamp;
+      try {
+        const deltaMs = previousTimestamp === null ? 0 : timestamp - previousTimestamp;
+        previousTimestamp = timestamp;
 
-      runtime.advanceFrame(Math.max(0, deltaMs));
+        runtime.advanceFrame(Math.max(0, deltaMs));
 
-      if (runtime.phase !== lastPhase) {
-        lastPhase = runtime.phase;
+        if (runtime.phase !== lastPhase) {
+          lastPhase = runtime.phase;
 
-        if (runtime.phase === 'level-up') {
-          setDamageBefore(runtime.readout().weaponDamage);
+          if (runtime.phase === 'level-up') {
+            setDamageBefore(runtime.readout().weaponDamage);
+          }
+
+          setPhase(runtime.phase);
+          syncHud();
+          hudFrames = 0;
+          return;
         }
 
-        setPhase(runtime.phase);
-        syncHud();
-        hudFrames = 0;
-        return;
-      }
+        hudFrames += 1;
 
-      hudFrames += 1;
-
-      if (hudFrames >= HUD_FRAME_INTERVAL) {
-        hudFrames = 0;
-        syncHud();
+        if (hudFrames >= HUD_FRAME_INTERVAL) {
+          hudFrames = 0;
+          syncHud();
+        }
+      } catch (error) {
+        window.cancelAnimationFrame(frameHandle);
+        console.error('Game V2 runtime stopped', error);
+        setFailure(error instanceof Error ? error.message : String(error));
       }
     };
 
@@ -210,10 +229,25 @@ export const GameV2App = ({
             ref={tickRef}
           />
         </div>
-        {phase === 'level-up' ? (
+        {failure === null && phase === 'level-up' ? (
           <LevelUpOverlay damageBefore={damageBefore} onChoose={handleChoose} />
         ) : null}
-        {phase === 'game-over' ? (
+        {failure !== null ? (
+          <div className="level-up-overlay" data-testid="game-v2-failure-overlay">
+            <div
+              aria-labelledby="game-v2-failure-title"
+              aria-modal="true"
+              className="level-up-dialog"
+              role="dialog"
+            >
+              <h2 className="level-up-title" id="game-v2-failure-title">
+                Runtime stopped
+              </h2>
+              <p className="game-v2-failure-detail">{failure}</p>
+            </div>
+          </div>
+        ) : null}
+        {failure === null && phase === 'game-over' ? (
           <div className="level-up-overlay" data-testid="game-over-overlay">
             <div
               aria-labelledby="game-v2-game-over-title"

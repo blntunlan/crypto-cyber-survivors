@@ -17,7 +17,7 @@ export type ClockAdvanceResult = {
 export class SimulationClock {
   private accumulatorMs = 0;
 
-  private currentTick = 0;
+  private attemptedSteps = 0;
 
   private isPaused = false;
 
@@ -27,8 +27,16 @@ export class SimulationClock {
     droppedMilliseconds: 0,
   };
 
-  public get tick(): number {
-    return this.currentTick;
+  /**
+   * Fixed steps this clock has driven, which is not the simulation tick.
+   *
+   * A step callback may refuse the step — the run is over, an upgrade card is
+   * open, or a recording is exhausted — and the clock cannot see that. The
+   * simulation tick has exactly one owner, `GameV2Runtime.tick`, and this
+   * counter must never be substituted for it (V2-ADR-033).
+   */
+  public get stepsAttempted(): number {
+    return this.attemptedSteps;
   }
 
   public pause(): void {
@@ -41,11 +49,20 @@ export class SimulationClock {
 
   public reset(): void {
     this.accumulatorMs = 0;
-    this.currentTick = 0;
+    this.attemptedSteps = 0;
     this.isPaused = false;
     this.advanceResult.steps = 0;
     this.advanceResult.interpolationAlpha = 0;
     this.advanceResult.droppedMilliseconds = 0;
+  }
+
+  /**
+   * Reads the pause flag through a call so control-flow narrowing cannot treat
+   * it as still false after the guard at the top of `advance`. The step
+   * callback runs between those two reads and is allowed to pause the clock.
+   */
+  private pausedNow(): boolean {
+    return this.isPaused;
   }
 
   public advance(renderDeltaMs: number, step: ClockStep): ClockAdvanceResult {
@@ -75,9 +92,16 @@ export class SimulationClock {
         this.accumulatorMs = 0;
       }
 
-      this.currentTick += 1;
+      this.attemptedSteps += 1;
       this.advanceResult.steps += 1;
       step();
+
+      // A step may pause the clock from inside the callback. Continuing to
+      // drain the accumulator for steps that can no longer do anything would
+      // discard the interpolation alpha the paused frame must hold.
+      if (this.pausedNow()) {
+        break;
+      }
     }
 
     if (this.accumulatorMs + ACCUMULATOR_EPSILON_MS >= SIMULATION_STEP_MS) {

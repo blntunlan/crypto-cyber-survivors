@@ -185,4 +185,29 @@ describe('KeyboardInput', () => {
 
     expect(intent).toEqual({ moveX: 0, moveY: 0, dashPressed: false });
   });
+
+  it('drops a buffered dash edge on clear', () => {
+    const target = new EventTarget();
+    const input = new KeyboardInput(target);
+    const intent = createIntent();
+
+    dispatchKey(target, 'keydown', 'KeyD');
+    dispatchKey(target, 'keydown', 'Space');
+    input.clear();
+    input.sample(intent);
+
+    expect(intent).toEqual({ moveX: 0, moveY: 0, dashPressed: false });
+  });
+
+  it('keeps sampling after clear', () => {
+    const target = new EventTarget();
+    const input = new KeyboardInput(target);
+    const intent = createIntent();
+
+    input.clear();
+    dispatchKey(target, 'keydown', 'KeyD');
+    input.sample(intent);
+
+    expect(intent.moveX).toBe(1);
+  });
 });

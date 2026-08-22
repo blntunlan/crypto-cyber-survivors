@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 
 import GameV2App from '@/game-v2/GameV2App';
@@ -12,7 +13,7 @@ type RendererProbe = {
   rendered: number;
 };
 
-const createRendererProbe = (): RendererProbe => {
+const createRendererProbe = (throwOnRenderCall = 0): RendererProbe => {
   const probe: RendererProbe = {
     created: 0,
     disposed: 0,
@@ -23,6 +24,10 @@ const createRendererProbe = (): RendererProbe => {
       return {
         render: () => {
           probe.rendered += 1;
+
+          if (throwOnRenderCall > 0 && probe.rendered >= throwOnRenderCall) {
+            throw new RangeError('renderer exploded');
+          }
         },
         setSize: () => {},
         dispose: () => {
@@ -82,5 +87,61 @@ describe('GameV2App', () => {
     });
 
     expect(probe.rendered).toBe(rendersAtUnmount);
+  });
+
+  it('survives the StrictMode double mount with one live runtime', async () => {
+    const probe = createRendererProbe();
+    const view = render(
+      <React.StrictMode>
+        <GameV2App createRenderer={probe.factory} />
+      </React.StrictMode>
+    );
+
+    // React 19 dev mounts, tears down, and mounts again. The first runtime
+    // must be fully disposed and exactly one debug surface must survive.
+    expect(probe.created).toBe(2);
+    expect(probe.disposed).toBe(1);
+    expect(window.gameV2Debug).toBeDefined();
+
+    await waitFor(() => {
+      expect(window.gameV2Debug?.getSnapshot().tick ?? 0).toBeGreaterThan(0);
+    });
+
+    view.unmount();
+
+    expect(probe.disposed).toBe(2);
+    expect(window.gameV2Debug).toBeUndefined();
+
+    const rendersAtUnmount = probe.rendered;
+    await new Promise(resolve => {
+      setTimeout(resolve, 80);
+    });
+
+    expect(probe.rendered).toBe(rendersAtUnmount);
+  });
+
+  it('stops the loop and reports the failure when a frame throws', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const probe = createRendererProbe(3);
+
+    try {
+      render(<GameV2App createRenderer={probe.factory} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-v2-failure-overlay')).toBeInTheDocument();
+      });
+
+      const rendersAtFailure = probe.rendered;
+      await new Promise(resolve => {
+        setTimeout(resolve, 120);
+      });
+
+      // The next frame was already scheduled when the throw happened, so a
+      // missing cancel would keep it running forever.
+      expect(probe.rendered).toBe(rendersAtFailure);
+      expect(consoleError).toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
