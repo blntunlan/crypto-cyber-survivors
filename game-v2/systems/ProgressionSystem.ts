@@ -104,6 +104,21 @@ export class ProgressionSystem {
       throw new RangeError('progression requires lifecycle phase playing');
     }
 
+    if (typeof combatResult.playerDied !== 'boolean') {
+      throw new TypeError('combat playerDied must be a boolean');
+    }
+
+    // Terminal death owns this tick (V2-ADR-027). The runtime consumes the
+    // cleared scratch output and performs `endRun`; progression must not turn a
+    // simultaneous kill into a pickup or level-up first.
+    if (combatResult.playerDied) {
+      this.result.pickupsSpawned = 0;
+      this.result.xpCollected = 0;
+      this.result.leveledUp = false;
+      this.result.offerPending = false;
+      return this.result;
+    }
+
     const { killCount, killX, killY, killXp } = combatResult;
 
     if (

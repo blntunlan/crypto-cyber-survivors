@@ -180,6 +180,131 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     expect(res2.leveledUp).toBe(false);
     expect(res2.offerPending).toBe(false);
   });
+
+  it('lets terminal death dominate a simultaneous kill and clears reused result output', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    const priorResult = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(0)
+    );
+    expect(priorResult).toEqual({
+      pickupsSpawned: 1,
+      xpCollected: LEVEL_2_XP_THRESHOLD,
+      leveledUp: true,
+      offerPending: true,
+    });
+    progression.resolveUpgrade(world, player, {
+      tick: 0,
+      type: 'choose-upgrade',
+      choiceId: 'starter-damage-2',
+    });
+    progression.resetPlayer(world, player);
+    weaponSystem.resetPlayer(world, player);
+
+    const freeSlotsBeforeDeath = world.freeSlotCount;
+    const activeCountBeforeDeath = world.activeCount;
+    const simultaneousKillAndDeath = createCombatResultWithKills([
+      { x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD },
+    ]);
+    simultaneousKillAndDeath.playerDied = true;
+
+    const terminalResult = progression.step(
+      world,
+      player,
+      simultaneousKillAndDeath,
+      createContext(1)
+    );
+
+    expect(terminalResult).toBe(priorResult);
+    expect(terminalResult).toEqual({
+      pickupsSpawned: 0,
+      xpCollected: 0,
+      leveledUp: false,
+      offerPending: false,
+    });
+    expect(world.freeSlotCount).toBe(freeSlotsBeforeDeath);
+    expect(world.activeCount).toBe(activeCountBeforeDeath);
+    expect(world.xp[playerSlot]).toBe(0);
+    expect(world.level[playerSlot]).toBe(PLAYER_STARTING_LEVEL);
+    expect(lifecycle.phase).toBe('playing');
+
+    lifecycle.endRun();
+    expect(lifecycle.phase).toBe('game-over');
+  });
+
+  it('returns terminal output before validating the ignored kill payload', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const progression = new ProgressionSystem(
+      lifecycle,
+      new CommandRecorder(),
+      new WeaponSystem()
+    );
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+    const terminalWithMalformedKills = createEmptyCombatResult();
+    terminalWithMalformedKills.playerDied = true;
+    terminalWithMalformedKills.killCount = Number.MAX_SAFE_INTEGER;
+
+    expect(
+      progression.step(world, player, terminalWithMalformedKills, createContext(0))
+    ).toEqual({
+      pickupsSpawned: 0,
+      xpCollected: 0,
+      leveledUp: false,
+      offerPending: false,
+    });
+    expect(world.activeCount).toBe(1);
+    expect(lifecycle.phase).toBe('playing');
+  });
+
+  it('rejects a forged non-boolean death signal without mutating progression', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const progression = new ProgressionSystem(
+      lifecycle,
+      new CommandRecorder(),
+      new WeaponSystem()
+    );
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+    const forged = createCombatResultWithKills([
+      { x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD },
+    ]) as unknown as { playerDied: unknown };
+    forged.playerDied = 'yes';
+    const freeSlotsBefore = world.freeSlotCount;
+
+    expect(() =>
+      progression.step(
+        world,
+        player,
+        forged as unknown as CombatStepResult,
+        createContext(0)
+      )
+    ).toThrow(TypeError);
+    expect(world.freeSlotCount).toBe(freeSlotsBefore);
+    expect(world.xp[playerSlot]).toBe(0);
+    expect(world.level[playerSlot]).toBe(PLAYER_STARTING_LEVEL);
+    expect(lifecycle.phase).toBe('playing');
+  });
 });
 
 describe('Player progression initialization (resetPlayer)', () => {
@@ -621,7 +746,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     expect(world.freeSlotCount).toBe(15);
   });
 
-  it('advances level to 2, retains surplus XP, sets paused tick, and calls pauseForLevelUp', () => {
+  it('advances level to 2, retains surplus XP, and pauses for level-up', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
     const playerSlot = world.slotOf(player);
@@ -955,6 +1080,9 @@ describe('End-to-end real production path integration test', () => {
       { type: 'point', x: 3, y: 0 }
     );
     expect(world.isAlive(enemy1)).toBe(true);
+    const enemy1Slot = world.slotOf(enemy1);
+    let enemy1HealthBeforeTick = world.health[enemy1Slot] ?? 0;
+    let enemy1ProjectileHits = 0;
 
     // Run tick loop until enemy 1 dies
     // Weapon cooldown is 30 ticks. Enemy has 30 HP, tier 1 weapon does 10 damage -> 3 hits.
@@ -966,6 +1094,10 @@ describe('End-to-end real production path integration test', () => {
       const ctx = createContext(tick);
       weaponSystem.step(world, player, ctx);
       const combatRes = combatSystem.step(world, player, ctx);
+      const enemy1HealthAfterCombat = world.health[enemy1Slot] ?? 0;
+      enemy1ProjectileHits +=
+        (enemy1HealthBeforeTick - enemy1HealthAfterCombat) / PROJECTILE_DAMAGE;
+      enemy1HealthBeforeTick = enemy1HealthAfterCombat;
       const progRes = progressionSystem.step(world, player, combatRes, ctx);
 
       if (combatRes.killCount === 1) {
@@ -977,6 +1109,7 @@ describe('End-to-end real production path integration test', () => {
     }
 
     expect(enemy1Died).toBe(true);
+    expect(enemy1ProjectileHits).toBe(3);
     expect(world.isAlive(enemy1)).toBe(false);
 
     // 1. Assert exactly one pickup exists at death position (x=3, y=0) carrying ENEMY_XP_VALUE
@@ -1040,6 +1173,9 @@ describe('End-to-end real production path integration test', () => {
       { type: 'point', x: 3, y: 0 }
     );
     expect(world.isAlive(enemy2)).toBe(true);
+    const enemy2Slot = world.slotOf(enemy2);
+    let enemy2HealthBeforeTick = world.health[enemy2Slot] ?? 0;
+    let enemy2ProjectileHits = 0;
 
     let enemy2Died = false;
     const startEnemy2Tick = levelUpTick + 1;
@@ -1048,6 +1184,11 @@ describe('End-to-end real production path integration test', () => {
       const ctx = createContext(tick);
       weaponSystem.step(world, player, ctx);
       const combatRes = combatSystem.step(world, player, ctx);
+      const enemy2HealthAfterCombat = world.health[enemy2Slot] ?? 0;
+      enemy2ProjectileHits +=
+        (enemy2HealthBeforeTick - enemy2HealthAfterCombat) /
+        STARTER_WEAPON_DAMAGE_TIER_2;
+      enemy2HealthBeforeTick = enemy2HealthAfterCombat;
       progressionSystem.step(world, player, combatRes, ctx);
 
       if (combatRes.killCount === 1) {
@@ -1057,6 +1198,7 @@ describe('End-to-end real production path integration test', () => {
     }
 
     expect(enemy2Died).toBe(true);
+    expect(enemy2ProjectileHits).toBe(2);
     expect(world.isAlive(enemy2)).toBe(false);
   });
 });

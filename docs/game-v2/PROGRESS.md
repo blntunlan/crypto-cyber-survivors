@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` |
 | Phase | MVP-0 runtime foundation |
-| Active task | `V2-013` (implementation complete; independent review pending) |
-| Status | `Review pending` — XP pickup and the first paused level-up are implemented and locally verified |
+| Active task | `V2-013` (review fix round 1 complete; scoped re-review pending) |
+| Status | `Re-review pending` — terminal death now dominates same-tick progression and the fix is locally verified |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
 | Last verified implementation-plan commit | `c6228dff` |
@@ -584,19 +584,46 @@
   normal process permissions because its `git cat-file` child process is denied
   by the workspace sandbox; outside that sandbox the configured baseline is
   reachable and the gate reports `UI contract: passed`.
+- V2-013 review fix round 1 added V2-ADR-027: a terminal player-death signal
+  dominates progression in the same tick. `ProgressionSystem.step` validates
+  that `playerDied` is a runtime boolean, clears every field in its reusable
+  result, and returns before kill, player, pickup, XP, capacity, or level-up
+  validation and mutation. It deliberately leaves lifecycle phase `playing` so
+  the owning runtime can immediately perform the single `endRun()` transition.
+- The terminal regression first primes all four reusable result fields with a
+  level-up event, resumes and resets the player, then supplies a simultaneous
+  valid kill and player death. It proves zero pickup/XP/level/offer mutation,
+  unchanged world capacity/count, a cleared same result object, lifecycle still
+  `playing`, and the subsequent transition to `game-over`. Separate tests prove
+  terminal death ignores malformed kill storage and a forged non-boolean death
+  signal rejects atomically.
+- The real production-path integration now counts health loss from actual
+  projectile collisions before progression can reuse the destroyed enemy slot.
+  The lethal health-to-zero transition counts as a hit; the test locks tier 1
+  to exactly 3 projectile hits and tier 2 to exactly 2, rather than inferring
+  the upgrade only from elapsed ticks.
+- Review-fix RED passed 35 and failed the three new death tests for the expected
+  reasons: same-tick level-up publication, premature malformed-kill validation,
+  and missing boolean rejection. Focused GREEN passes all 38 progression tests.
+  Three deliberate mutants were killed and restored: removing the terminal
+  early return failed 2 tests, removing the boolean guard failed 1, and omitting
+  one scratch-field clear failed 1.
+- Review-fix verification passes focused 1 file / 38 tests and the full Game V2
+  suite at 18 files / 439 tests. Typecheck, the 89-file singleton architecture
+  baseline, focused ESLint, focused Prettier, and the escalated UI contract gate
+  all pass before commit.
 
 ## Verification Required
 
-1. Independently review the V2-013 commit against the Task 14 resume brief,
-   especially state-free checkpoint behavior, pre-mutation batch validation,
-   `WeaponSystem` one-writer ownership, command ordering, the one-choice overlay,
-   and `.game-v2` CSS scoping.
+1. Re-review the V2-013 fix commit against the accepted findings: runtime
+   boolean validation, death-before-progression ordering and result clearing,
+   runtime-owned `endRun()`, exact 3-to-2 production hit counts, and V2-ADR-027.
 
 ## Exact Next Action
 
-Generate the V2-013 review package from base `43f2f441` to the implementation
-commit and dispatch a fresh independent reviewer. Do not start V2-014 until
-V2-013 is accepted or its review findings are fixed and re-reviewed.
+Generate the scoped V2-013 fix review package from implementation commit
+`ae1e5002` through the fix commit and dispatch a fresh independent re-reviewer.
+Do not start V2-014 until V2-013 is accepted.
 
 ## Known Pre-existing Working-tree Changes
 
