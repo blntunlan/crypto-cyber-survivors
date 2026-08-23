@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 3 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 4 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-106` (three starting weapons): implementation and tests complete, Step 4/5 gates green, **not yet committed** — awaiting explicit instruction to commit |
-| Status | `V2-106` implemented on top of `V2-105` (`841160a2`); `V2-105` itself remains accepted and closed |
-| Closed | `V2-105` accepted at `841160a2`; `V2-104` accepted at `7116c729` |
+| Active task | None in progress; `V2-106` is accepted and closed. No task brief exists yet for the next MVP-1 task |
+| Status | `V2-106` accepted at `ecd2f13f`; MVP-1's next task is `Not Started` |
+| Closed | `V2-106` accepted at `ecd2f13f`; `V2-105` accepted at `841160a2` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1602,13 +1602,30 @@
     by-id lookup makes 4 of the new `WeaponSystem.test.ts` tests fail with
     `player holds no starter weapon`, confirming they are not vacuous;
     restoring the fix returns the suite to green.
-  - Not yet committed. Working tree currently holds exactly the files listed
-    under "Files" in the task brief, scoped cleanly (verified via
-    `git status --short game-v2/ tests/game-v2/`) — no unrelated files were
-    touched. `docs/game-v2/tasks/V2-106-three-starting-weapons.md` keeps its
+  - Implementation and tests are committed at `ecd2f13f` (16 files: every
+    `game-v2/**` and `tests/game-v2/**` path this task touched, plus the task
+    brief and this checkpoint/decision-log/master-plan documentation). Staged
+    content was verified file-by-file before committing; no unrelated
+    pre-existing working-tree change was included. Pre-commit hooks
+    (`eslint --fix`, `prettier --write`, `vitest related`, `check:ui-contract`)
+    passed. `docs/game-v2/tasks/V2-106-three-starting-weapons.md` keeps its
     steps unchecked per this project's convention of leaving task briefs as
     the static plan record (see `V2-105`'s brief, which is also still
     unchecked despite being closed).
+  - All five acceptance criteria in the task brief are met with evidence
+    above: (1) `MVP1_ABILITY_REGISTRY` holds exactly three `startEligible:
+    true` identities, pairwise distinct by code and by `AbilityTierEffect`
+    shape, each with three authored tiers — proved by
+    `AbilityRegistry.test.ts`; (2) each new identity's three-tier progression
+    is provable end-to-end through `AbilityLoadoutSystem` exactly like
+    `starter-projectile` — proved by the new production-registry describe
+    block in `AbilityLoadoutSystem.test.ts`; (3) `WeaponSystem` fires
+    correctly from any of the three identities in slot 0, not only the
+    starter — proved by `WeaponSystem.test.ts`'s new describe block and the
+    manual mutation spot-check; (4) no regression to existing
+    starter-projectile/`resetPlayer`/MVP-0 e2e behavior — proved by the full
+    green suite and e2e run; (5) every Step 4 gate passes with no mutation
+    survivor among the brief's named mutants. `V2-106` is accepted.
 
 ## Verification Required
 
@@ -1662,17 +1679,13 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-105` remains accepted and closed at `841160a2` (current local `HEAD`, not
-yet pushed). `V2-106` (three starting weapons) is implemented and fully
-verified on top of that commit per its task brief, but **not yet committed**
-— commit only on explicit instruction (per the git safety rules governing
-this session), ideally as its own commit(s) separate from any unrelated
-working-tree changes. Once committed, update this file's `Current State`
-table and this section to record the real commit hash, matching the pattern
-`V2-100`..`V2-105` already established, then decide whether to scope
-`V2-107` (initial ability set, depends on `V2-102`, dependency already
-satisfied) next. Do not deploy, cut over production, or replace the legacy
-demo. Do not push the branch without explicit instruction.
+`V2-106` is accepted and closed at `ecd2f13f` (current local `HEAD`, not yet
+pushed). No task brief exists yet for the next MVP-1 task; per
+`MASTER_PLAN.md`'s table, `V2-107` (initial ability set, depends on
+`V2-102`) is the next candidate by ID and has its dependency already
+satisfied. Confirm scope, generate its task brief, then start Step 1. Do not
+deploy, cut over production, or replace the legacy demo. Do not push the
+branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 
