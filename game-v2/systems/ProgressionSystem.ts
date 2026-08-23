@@ -10,12 +10,13 @@ import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type ProgressionStepResult } from '@/game-v2/contracts/ProgressionStepResult';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
-import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
 import { type CommandRecorder } from '@/game-v2/replay/CommandRecorder';
+import { DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { type GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
+import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { assertStepContext } from '@/game-v2/systems/StepContextValidator';
 import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
-import { type WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
 
@@ -53,20 +54,26 @@ const overlaps = (
 export class ProgressionSystem {
   private readonly lifecycle: GameV2Lifecycle;
   private readonly commandRecorder: CommandRecorder;
-  private readonly weaponSystem: WeaponSystem;
+  private readonly abilityLoadout: AbilityLoadoutSystem;
   private readonly passiveLoadout: PassiveLoadoutSystem;
+  private readonly offerSystem: LevelUpOfferSystem;
   private readonly result: ProgressionStepResult;
 
   public constructor(
     lifecycle: GameV2Lifecycle,
     commandRecorder: CommandRecorder,
-    weaponSystem: WeaponSystem,
-    passiveLoadout: PassiveLoadoutSystem = new PassiveLoadoutSystem()
+    abilityLoadout: AbilityLoadoutSystem = new AbilityLoadoutSystem(),
+    passiveLoadout: PassiveLoadoutSystem = new PassiveLoadoutSystem(),
+    offerSystem: LevelUpOfferSystem = new LevelUpOfferSystem(
+      abilityLoadout,
+      passiveLoadout
+    )
   ) {
     this.lifecycle = lifecycle;
     this.commandRecorder = commandRecorder;
-    this.weaponSystem = weaponSystem;
+    this.abilityLoadout = abilityLoadout;
     this.passiveLoadout = passiveLoadout;
+    this.offerSystem = offerSystem;
     this.result = {
       pickupsSpawned: 0,
       xpCollected: 0,
@@ -101,7 +108,8 @@ export class ProgressionSystem {
     world: World,
     playerEntity: EntityId,
     combatResult: Readonly<CombatStepResult>,
-    context: StepContext
+    context: StepContext,
+    rng: DeterministicRng = new DeterministicRng(1)
   ): ProgressionStepResult {
     assertStepContext(context);
 
@@ -302,6 +310,11 @@ export class ProgressionSystem {
 
     let leveledUp = false;
     if (playerLevel === PLAYER_STARTING_LEVEL && nextPlayerXp >= LEVEL_2_XP_THRESHOLD) {
+      // Generate before mutating level/xp: if nothing is offerable and this
+      // throws, the player must remain at its pre-level-up level/xp rather
+      // than being left in a half-transitioned state with no open offer and
+      // no way to retrigger the level-up branch.
+      this.offerSystem.generateOffer(world, rng, playerEntity);
       world.level[playerSlot] = playerLevel + 1;
       world.xp[playerSlot] = nextPlayerXp - LEVEL_2_XP_THRESHOLD;
       this.lifecycle.pauseForLevelUp();
@@ -318,6 +331,16 @@ export class ProgressionSystem {
     return this.result;
   }
 
+  /**
+   * Resolves the open offer at `command.choiceIndex` and resumes the run.
+   *
+   * The index is validated against the *current offer* before the command is
+   * recorded (V2-ADR-050): an index the offer cannot answer must never reach
+   * the recorder, or a replay would carry a command the runtime it replays
+   * against cannot apply. Recording still happens before the world mutates,
+   * so a recorder failure cannot leave the world upgraded by an unrecorded
+   * command.
+   */
   public resolveUpgrade(
     world: World,
     playerEntity: EntityId,
@@ -329,16 +352,21 @@ export class ProgressionSystem {
       );
     }
 
-    // The command is recorded before it is applied, so a recorder failure can
-    // never leave the world upgraded by a command no replay carries.
+    const candidate = this.offerSystem.resolveIndex(
+      world,
+      playerEntity,
+      command.choiceIndex
+    );
+
     this.commandRecorder.record(command);
 
-    if (command.choiceId === 'starter-damage-2') {
-      this.weaponSystem.advanceStarterTier(world, playerEntity);
+    if (candidate.kind === 'ability') {
+      this.abilityLoadout.addOrAdvanceTier(world, playerEntity, candidate.identity);
     } else {
-      this.passiveLoadout.addOrLevelUp(world, playerEntity, MOVE_SPEED_PASSIVE.id);
+      this.passiveLoadout.addOrLevelUp(world, playerEntity, candidate.identity);
     }
 
+    this.offerSystem.clearOwner(world, playerEntity);
     this.lifecycle.resumeFromLevelUp();
   }
 

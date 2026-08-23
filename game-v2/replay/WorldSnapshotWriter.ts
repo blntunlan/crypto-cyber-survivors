@@ -136,6 +136,9 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   abilitySlotTier: world.abilitySlotTier.slice(),
   passiveSlotIdentity: world.passiveSlotIdentity.slice(),
   passiveSlotLevel: world.passiveSlotLevel.slice(),
+  offerCandidateKind: world.offerCandidateKind.slice(),
+  offerCandidateCode: world.offerCandidateCode.slice(),
+  offerDefaultIndex: world.offerDefaultIndex.slice(),
 });
 
 export const writeCheckpoint = (input: RuntimeCheckpointInput): RuntimeCheckpoint => {

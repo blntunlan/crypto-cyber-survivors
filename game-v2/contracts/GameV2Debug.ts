@@ -4,6 +4,10 @@ import {
   type AbilityTier,
 } from '@/game-v2/contracts/AbilitySlot';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
+import {
+  type OfferCandidate,
+  type OfferCandidateIndex,
+} from '@/game-v2/contracts/LevelUpOffer';
 
 /**
  * One occupied ability slot's display-relevant state (design §5.1,
@@ -14,6 +18,16 @@ export type AbilitySlotReadout = Readonly<{
   index: AbilitySlotIndex;
   activation: AbilityActivation;
   tier: AbilityTier;
+}>;
+
+/**
+ * The current level-up offer (design §5.4, V2-ADR-049). `null` unless the
+ * lifecycle is `level-up`.
+ */
+export type LevelUpOfferReadout = Readonly<{
+  /** Length `OFFER_CANDIDATE_COUNT`; `null` at an empty candidate index. */
+  candidates: readonly (OfferCandidate | null)[];
+  defaultIndex: OfferCandidateIndex;
 }>;
 
 /**
@@ -46,6 +60,7 @@ export type GameV2RuntimeReadout = Readonly<{
   nearestXpPickupY: number | null;
   /** Length `ABILITY_SLOT_COUNT`; `null` at an empty slot index. */
   abilitySlots: readonly (AbilitySlotReadout | null)[];
+  levelUpOffer: LevelUpOfferReadout | null;
 }>;
 
 /**

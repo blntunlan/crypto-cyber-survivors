@@ -54,13 +54,15 @@ describe('ReplayRunner', () => {
   });
 
   it('replays a recorded passive choice to the same state at every frame rate', () => {
-    const run = driveScriptedRun(SCENARIO_SEED, 'passive-move-speed');
+    const run = driveScriptedRun(SCENARIO_SEED, 'passive');
     const recording = run.runtime.exportRecording();
     const liveHash = run.runtime.snapshotHash();
     run.runtime.dispose();
 
     expect(run.upgradeApplied).toBe(true);
-    expect(recording.commands[0]?.choiceId).toBe('passive-move-speed');
+    expect(recording.commands[0]?.type).toBe('choose-upgrade');
+    expect(recording.commands[0]?.choiceIndex).toBeGreaterThanOrEqual(0);
+    expect(recording.commands[0]?.choiceIndex).toBeLessThanOrEqual(2);
 
     const replayRunner = new ReplayRunner();
     const at30 = replayRunner.run(recording, 30);

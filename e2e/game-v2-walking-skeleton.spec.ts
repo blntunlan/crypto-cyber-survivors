@@ -230,13 +230,16 @@ test.describe('Game V2 walking skeleton', () => {
     await page.waitForTimeout(300);
     expect((await readSnapshot(page)).tick).toBe(pausedTick);
 
-    // Both fixed choices are offered; V2-104 replaces this card with the real
-    // three-card flow.
+    // The real offer: MVP-1 has exactly one ability and one passive identity,
+    // so the seeded offer fills both slots (design §5.4, V2-ADR-049/-050).
     await expect(
-      page.getByRole('button', { name: /increase move speed/i })
+      page.getByRole('button', { name: /ability: starter-projectile/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /passive: move-speed/i })
     ).toBeVisible();
 
-    await page.getByRole('button', { name: /increase damage/i }).click();
+    await page.getByRole('button', { name: /ability: starter-projectile/i }).click();
     await expect(page.getByTestId('level-up-overlay')).toBeHidden();
 
     const resumed = await readSnapshot(page);

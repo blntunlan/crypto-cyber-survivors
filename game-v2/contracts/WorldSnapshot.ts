@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 3 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 4 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -43,4 +43,8 @@ export type WorldSnapshot = Readonly<{
   /** `PASSIVE_SLOT_COUNT` entries per world slot (V2-ADR-040). */
   passiveSlotIdentity: Uint8Array;
   passiveSlotLevel: Uint8Array;
+  /** `OFFER_CANDIDATE_COUNT` entries per world slot (V2-ADR-049). */
+  offerCandidateKind: Uint8Array;
+  offerCandidateCode: Uint8Array;
+  offerDefaultIndex: Uint8Array;
 }>;

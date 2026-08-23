@@ -98,6 +98,35 @@
   outline-offset: 2px;
 }
 
+.game-v2 .level-up-choice-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.game-v2 .level-up-countdown {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+}
+
+/* The reveal-only entrance animation; reduced-motion mode never applies this
+   class, but the 13-second deadline is identical either way (V2-ADR-054). */
+.game-v2 .level-up-dialog--revealing {
+  animation: game-v2-level-up-reveal 0.4s ease-out;
+}
+
+@keyframes game-v2-level-up-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .game-v2 .game-v2-failure-detail {
   max-width: 40ch;
   margin: 0;

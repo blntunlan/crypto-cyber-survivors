@@ -7,6 +7,10 @@ import {
 } from '@/game-v2/config/Mvp0Config';
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
+import {
+  OFFER_KIND_ABILITY,
+  OFFER_KIND_PASSIVE,
+} from '@/game-v2/contracts/LevelUpOffer';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
@@ -28,7 +32,8 @@ const ALL_FIXTURE_COMPONENTS =
   ComponentMask.Projectile |
   ComponentMask.XpPickup |
   ComponentMask.AbilityLoadout |
-  ComponentMask.PassiveLoadout;
+  ComponentMask.PassiveLoadout |
+  ComponentMask.LevelUpOffer;
 
 type RuntimeInput = Parameters<typeof writeCheckpoint>[0];
 
@@ -70,9 +75,19 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 5;
   world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 4)] = 9;
   world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 4)] = 1;
+  world.offerCandidateKind[world.offerSlotIndexOf(slot, 0)] = OFFER_KIND_ABILITY;
+  world.offerCandidateCode[world.offerSlotIndexOf(slot, 0)] = 5;
+  world.offerCandidateKind[world.offerSlotIndexOf(slot, 2)] = OFFER_KIND_PASSIVE;
+  world.offerCandidateCode[world.offerSlotIndexOf(slot, 2)] = 9;
+  world.offerDefaultIndex[slot] = 0;
 };
 
 const writeComponentFixtureReverse = (world: World, slot: number): void => {
+  world.offerDefaultIndex[slot] = 0;
+  world.offerCandidateCode[world.offerSlotIndexOf(slot, 2)] = 9;
+  world.offerCandidateKind[world.offerSlotIndexOf(slot, 2)] = OFFER_KIND_PASSIVE;
+  world.offerCandidateCode[world.offerSlotIndexOf(slot, 0)] = 5;
+  world.offerCandidateKind[world.offerSlotIndexOf(slot, 0)] = OFFER_KIND_ABILITY;
   world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 4)] = 1;
   world.passiveSlotIdentity[world.passiveSlotIndexOf(slot, 4)] = 9;
   world.passiveSlotLevel[world.passiveSlotIndexOf(slot, 0)] = 5;
@@ -164,7 +179,7 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    expect(hashA).toBe('756a894e');
+    expect(hashA).toBe('e8776b68');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -297,6 +312,18 @@ describe('canonical runtime checkpoint', () => {
         },
       ],
       ['XP pickup', (world, slot) => (world.xpPickupValue[slot] = 7)],
+      [
+        'offer kind',
+        (world, slot) =>
+          (world.offerCandidateKind[world.offerSlotIndexOf(slot, 0)] =
+            OFFER_KIND_PASSIVE),
+      ],
+      [
+        'offer code',
+        (world, slot) =>
+          (world.offerCandidateCode[world.offerSlotIndexOf(slot, 0)] = 6),
+      ],
+      ['offer default index', (world, slot) => (world.offerDefaultIndex[slot] = 2)],
     ];
 
     for (const [name, mutate] of cases) {
@@ -569,6 +596,69 @@ describe('canonical runtime checkpoint', () => {
     }
   });
 
+  it('rejects level-up offer state that breaks its structural invariants', () => {
+    const cases: ReadonlyArray<readonly [string, RegExp, (world: World) => void]> = [
+      [
+        'unsupported kind',
+        /offer candidate kind is unsupported/i,
+        world => {
+          world.offerCandidateKind[world.offerSlotIndexOf(0, 1)] = 99;
+          world.offerCandidateCode[world.offerSlotIndexOf(0, 1)] = 1;
+        },
+      ],
+      [
+        'kind without a code',
+        /offer candidate must pair a kind with a code/i,
+        world => {
+          world.offerCandidateCode[world.offerSlotIndexOf(0, 0)] = 0;
+        },
+      ],
+      [
+        'code without a kind',
+        /offer candidate must pair a kind with a code/i,
+        world => {
+          world.offerCandidateKind[world.offerSlotIndexOf(0, 1)] = 0;
+          world.offerCandidateCode[world.offerSlotIndexOf(0, 1)] = 3;
+        },
+      ],
+      [
+        'offer on an entity without the component',
+        /requires the LevelUpOffer component/i,
+        world => {
+          world.masks[0] = ALL_FIXTURE_COMPONENTS ^ ComponentMask.LevelUpOffer;
+        },
+      ],
+      [
+        'offer on an empty world slot',
+        /requires the LevelUpOffer component/i,
+        world => {
+          world.offerCandidateKind[world.offerSlotIndexOf(1, 0)] = OFFER_KIND_ABILITY;
+          world.offerCandidateCode[world.offerSlotIndexOf(1, 0)] = 4;
+        },
+      ],
+      [
+        'default index outside the offer',
+        /offer default index is outside the offer/i,
+        world => {
+          world.offerDefaultIndex[0] = 3;
+        },
+      ],
+      [
+        'default index pointing at an empty candidate',
+        /offer default index must select an occupied candidate/i,
+        world => {
+          world.offerDefaultIndex[0] = 1;
+        },
+      ],
+    ];
+
+    for (const [name, message, mutate] of cases) {
+      const input = createRuntimeInput();
+      mutate(input.world);
+      expect(() => writeCheckpoint(input), name).toThrow(message);
+    }
+  });
+
   it('rejects a passive store that is not one entry per passive slot', () => {
     const input = createRuntimeInput();
     Object.defineProperty(input.world, 'passiveSlotLevel', {
@@ -818,12 +908,12 @@ describe('CommandRecorder', () => {
     const first = {
       tick: 0,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     } as const;
     const second = {
       tick: 42,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     } as const;
 
     recorder.record(first);
@@ -843,7 +933,7 @@ describe('CommandRecorder', () => {
     const callerOwned = {
       tick: 7,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     } as const;
 
     recorder.record(callerOwned);
@@ -853,7 +943,7 @@ describe('CommandRecorder', () => {
     expect(recorder.read(0)).toEqual({
       tick: 7,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     });
     expect(Object.isFrozen(recorder.read(0))).toBe(true);
   });
@@ -865,16 +955,10 @@ describe('CommandRecorder', () => {
   });
 
   it.each([
-    [
-      'negative tick',
-      { tick: -1, type: 'choose-upgrade', choiceId: 'starter-damage-2' },
-    ],
-    [
-      'fractional tick',
-      { tick: 1.5, type: 'choose-upgrade', choiceId: 'starter-damage-2' },
-    ],
-    ['wrong command', { tick: 1, type: 'reroll', choiceId: 'starter-damage-2' }],
-    ['wrong choice', { tick: 1, type: 'choose-upgrade', choiceId: 'other' }],
+    ['negative tick', { tick: -1, type: 'choose-upgrade', choiceIndex: 0 }],
+    ['fractional tick', { tick: 1.5, type: 'choose-upgrade', choiceIndex: 0 }],
+    ['wrong command', { tick: 1, type: 'reroll', choiceIndex: 0 }],
+    ['wrong choice', { tick: 1, type: 'choose-upgrade', choiceIndex: 3 }],
   ] as const)('rejects %s atomically', (_name, command) => {
     const recorder = new CommandRecorder();
     expect(() => recorder.record(command as never)).toThrow();
@@ -887,7 +971,7 @@ describe('CommandRecorder', () => {
     recorder.record({
       tick: 9,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     });
 
     for (const tick of [9, 8]) {
@@ -895,7 +979,7 @@ describe('CommandRecorder', () => {
         recorder.record({
           tick,
           type: 'choose-upgrade',
-          choiceId: 'starter-damage-2',
+          choiceIndex: 0,
         })
       ).toThrow(/tick/i);
       expect(recorder.count).toBe(1);
@@ -909,7 +993,7 @@ describe('CommandRecorder', () => {
       recorder.record({
         tick,
         type: 'choose-upgrade',
-        choiceId: 'starter-damage-2',
+        choiceIndex: 0,
       });
     }
 
@@ -917,7 +1001,7 @@ describe('CommandRecorder', () => {
       recorder.record({
         tick: COMMAND_RECORDING_CAPACITY,
         type: 'choose-upgrade',
-        choiceId: 'starter-damage-2',
+        choiceIndex: 0,
       })
     ).toThrow(/capacity|overflow/i);
     expect(recorder.count).toBe(COMMAND_RECORDING_CAPACITY);

@@ -4,6 +4,10 @@ import {
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import {
+  OFFER_CANDIDATE_COUNT,
+  offerStoreIndex,
+} from '@/game-v2/contracts/LevelUpOffer';
 import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { ALL_COMPONENT_MASK } from '@/game-v2/world/ComponentMask';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
@@ -81,6 +85,15 @@ export class World {
    */
   public readonly passiveSlotIdentity: Uint8Array;
   public readonly passiveSlotLevel: Uint8Array;
+  /**
+   * The current level-up offer, `OFFER_CANDIDATE_COUNT` entries per world
+   * slot (V2-ADR-049). Address them only through `offerSlotIndexOf`; an
+   * empty candidate stores kind `0` and code `0`.
+   */
+  public readonly offerCandidateKind: Uint8Array;
+  public readonly offerCandidateCode: Uint8Array;
+  /** The RNG-seeded default candidate index, one byte per world slot. */
+  public readonly offerDefaultIndex: Uint8Array;
 
   private readonly capacity: number;
   private freeSlotsInUse: number;
@@ -125,6 +138,9 @@ export class World {
     this.abilitySlotTier = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
     this.passiveSlotIdentity = new Uint8Array(capacity * PASSIVE_SLOT_COUNT);
     this.passiveSlotLevel = new Uint8Array(capacity * PASSIVE_SLOT_COUNT);
+    this.offerCandidateKind = new Uint8Array(capacity * OFFER_CANDIDATE_COUNT);
+    this.offerCandidateCode = new Uint8Array(capacity * OFFER_CANDIDATE_COUNT);
+    this.offerDefaultIndex = new Uint8Array(capacity);
     this.freeSlotsInUse = capacity;
 
     for (let slot = 0; slot < capacity; slot += 1) {
@@ -255,6 +271,26 @@ export class World {
     }
 
     return passiveStoreIndex(slot, passiveIndex);
+  }
+
+  /**
+   * Encodes one offer candidate slot of one world slot into its store index,
+   * mirroring `abilitySlotIndexOf`/`passiveSlotIndexOf` (V2-ADR-049).
+   */
+  public offerSlotIndexOf(slot: number, candidateIndex: number): number {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= this.capacity) {
+      throw new RangeError('slot must be an integer inside the world capacity');
+    }
+
+    if (
+      !Number.isInteger(candidateIndex) ||
+      candidateIndex < 0 ||
+      candidateIndex >= OFFER_CANDIDATE_COUNT
+    ) {
+      throw new RangeError('offer candidate index must be an integer inside the offer');
+    }
+
+    return offerStoreIndex(slot, candidateIndex);
   }
 
   public destroyEntity(entity: EntityId): void {
@@ -401,5 +437,12 @@ export class World {
       this.passiveSlotIdentity[passiveBase + index] = 0;
       this.passiveSlotLevel[passiveBase + index] = 0;
     }
+
+    const offerBase = offerStoreIndex(slot, 0);
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      this.offerCandidateKind[offerBase + index] = 0;
+      this.offerCandidateCode[offerBase + index] = 0;
+    }
+    this.offerDefaultIndex[slot] = 0;
   }
 }

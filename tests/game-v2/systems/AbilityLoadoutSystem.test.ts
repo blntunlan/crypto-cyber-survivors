@@ -236,6 +236,75 @@ describe('AbilityLoadoutSystem', () => {
     expect(() => system.advanceTier(world, owner, 1)).toThrow('ability slot is empty');
   });
 
+  describe('addOrAdvanceTier', () => {
+    it('adds a new identity at tier 1 in the lowest free slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.addOrAdvanceTier(world, owner, id('alpha'))).toBe(1);
+      expect(system.identityAt(world, owner, 0)).toBe('alpha');
+      expect(system.tierAt(world, owner, 0)).toBe(1);
+    });
+
+    it('advances a held identity instead of consuming a second slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.addOrAdvanceTier(world, owner, id('alpha'))).toBe(2);
+
+      expect(system.occupiedCount(world, owner)).toBe(1);
+      expect(system.tierAt(world, owner, 0)).toBe(2);
+    });
+
+    it('throws at the authored tier ceiling exactly like advanceTier', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      expect(() => system.addOrAdvanceTier(world, owner, id('beta'))).toThrow(
+        'ability has no authored tier above 1'
+      );
+    });
+  });
+
+  describe('isOfferable', () => {
+    it('is offerable when a slot is free', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(true);
+    });
+
+    it('is offerable while a held identity is below its tier ceiling', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      expect(system.isOfferable(world, owner, id('beta'))).toBe(false);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(true);
+      system.advanceTier(world, owner, 1);
+      system.advanceTier(world, owner, 1);
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(false);
+    });
+
+    it('is not offerable as a new identity once every slot is full', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      fill(system, world, owner);
+      expect(system.isOfferable(world, owner, id('epsilon'))).toBe(false);
+    });
+  });
+
   it('clears every slot of one owner without touching another owner', () => {
     const world = new World(CAPACITY);
     const system = createSystem();

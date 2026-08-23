@@ -10,6 +10,7 @@ export const ComponentMask = {
   XpPickup: 1 << 8,
   AbilityLoadout: 1 << 9,
   PassiveLoadout: 1 << 10,
+  LevelUpOffer: 1 << 11,
 } as const;
 
 export const ALL_COMPONENT_MASK =
@@ -23,4 +24,5 @@ export const ALL_COMPONENT_MASK =
   ComponentMask.Projectile |
   ComponentMask.XpPickup |
   ComponentMask.AbilityLoadout |
-  ComponentMask.PassiveLoadout;
+  ComponentMask.PassiveLoadout |
+  ComponentMask.LevelUpOffer;

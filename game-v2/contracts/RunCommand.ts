@@ -1,22 +1,16 @@
+import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
+
 /**
- * The upgrade choices a paused level-up can resolve.
+ * The upgrade choice a paused level-up can resolve.
  *
- * The list stays small and explicit until V2-104 replaces the fixed card with
- * the generated three-card offer; `CommandRecorder` validates against it so a
- * replay cannot carry a choice the runtime cannot apply.
+ * `choiceIndex` names a slot in the *current* offer (V2-ADR-051) rather than
+ * a fixed identity string: the offer itself is RNG-shuffled per run
+ * (V2-ADR-050), and the recorded command already captures the resolved
+ * choice, so replay never needs to re-derive which candidate the index
+ * pointed at — only that the same index was chosen.
  */
-export const RUN_UPGRADE_CHOICE_IDS = [
-  'starter-damage-2',
-  'passive-move-speed',
-] as const;
-
-export type RunUpgradeChoiceId = (typeof RUN_UPGRADE_CHOICE_IDS)[number];
-
-export const isRunUpgradeChoiceId = (value: unknown): value is RunUpgradeChoiceId =>
-  RUN_UPGRADE_CHOICE_IDS.includes(value as RunUpgradeChoiceId);
-
 export type RunCommand = Readonly<{
   tick: number;
   type: 'choose-upgrade';
-  choiceId: RunUpgradeChoiceId;
+  choiceIndex: OfferCandidateIndex;
 }>;

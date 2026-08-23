@@ -24,6 +24,8 @@ import {
  */
 export type AbilityRegistry = Readonly<{
   size: number;
+  /** Every registered identity, insertion order, frozen (V2-ADR-052). */
+  ids: readonly AbilityIdentityId[];
   /** Throws `RangeError` for an identity the registry does not define. */
   byId: (id: AbilityIdentityId) => AbilityDefinition;
   /** Returns `null` for the reserved empty code and throws for an unknown one. */
@@ -91,6 +93,7 @@ export const createAbilityRegistry = (
 
   return Object.freeze({
     size: byId.size,
+    ids: Object.freeze([...byId.keys()]),
     byId: (id: AbilityIdentityId): AbilityDefinition => {
       const definition = byId.get(id);
       if (definition === undefined) {

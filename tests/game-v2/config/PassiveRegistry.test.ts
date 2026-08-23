@@ -35,6 +35,17 @@ describe('PassiveRegistry', () => {
     expect(MVP1_PASSIVE_REGISTRY.size).toBe(1);
   });
 
+  it('exposes every registered identity through ids, in insertion order', () => {
+    expect(MVP1_PASSIVE_REGISTRY.ids).toEqual(['move-speed']);
+    expect(Object.isFrozen(MVP1_PASSIVE_REGISTRY.ids)).toBe(true);
+
+    const registry = createPassiveRegistry([
+      definition({ id: 'a', code: 1 }),
+      definition({ id: 'b', code: 2 }),
+    ]);
+    expect(registry.ids).toEqual(['a', 'b']);
+  });
+
   it('reserves code zero for the empty slot', () => {
     expect(EMPTY_PASSIVE_CODE).toBe(0);
     expect(MVP1_PASSIVE_REGISTRY.byCode(EMPTY_PASSIVE_CODE)).toBeNull();

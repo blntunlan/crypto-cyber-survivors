@@ -1,5 +1,6 @@
 import { COMMAND_RECORDING_CAPACITY } from '@/game-v2/config/Mvp0Config';
-import { isRunUpgradeChoiceId, type RunCommand } from '@/game-v2/contracts/RunCommand';
+import { isOfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
+import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 
 function assertCommand(command: unknown): asserts command is RunCommand {
   if (command === null || typeof command !== 'object') {
@@ -9,7 +10,7 @@ function assertCommand(command: unknown): asserts command is RunCommand {
   const candidate = command as {
     tick?: unknown;
     type?: unknown;
-    choiceId?: unknown;
+    choiceIndex?: unknown;
   };
   if (
     typeof candidate.tick !== 'number' ||
@@ -23,7 +24,10 @@ function assertCommand(command: unknown): asserts command is RunCommand {
     throw new TypeError('unsupported run command');
   }
 
-  if (!isRunUpgradeChoiceId(candidate.choiceId)) {
+  if (
+    typeof candidate.choiceIndex !== 'number' ||
+    !isOfferCandidateIndex(candidate.choiceIndex)
+  ) {
     throw new TypeError('unsupported upgrade choice');
   }
 }
@@ -59,7 +63,7 @@ export class CommandRecorder {
     this.#commands[this.#commandsInUse] = Object.freeze({
       tick: command.tick,
       type: command.type,
-      choiceId: command.choiceId,
+      choiceIndex: command.choiceIndex,
     });
     this.#commandsInUse += 1;
   }

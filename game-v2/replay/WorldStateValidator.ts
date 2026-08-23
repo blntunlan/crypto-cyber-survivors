@@ -6,6 +6,12 @@ import {
 } from '@/game-v2/contracts/AbilitySlot';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
 import {
+  OFFER_CANDIDATE_COUNT,
+  OFFER_KIND_ABILITY,
+  OFFER_KIND_PASSIVE,
+  offerStoreIndex,
+} from '@/game-v2/contracts/LevelUpOffer';
+import {
   PASSIVE_MAX_LEVEL,
   PASSIVE_SLOT_COUNT,
   passiveStoreIndex,
@@ -53,6 +59,7 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
   uint8: Object.freeze([
     'dashCharges',
     'movementOverride',
+    'offerDefaultIndex',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint16: Object.freeze([
     'invulnerabilityTicksRemaining',
@@ -72,6 +79,11 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'passiveSlotIdentity',
     'passiveSlotLevel',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per offer candidate slot per world slot. */
+  offerStridedUint8: Object.freeze([
+    'offerCandidateKind',
+    'offerCandidateCode',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
 });
 
 type ListedStoreName =
@@ -81,7 +93,8 @@ type ListedStoreName =
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number]
-  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8)[number];
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.offerStridedUint8)[number];
 type AssertNever<T extends never> = T;
 export type AuthoritativeWorldStoreSchemaCoverage = AssertNever<
   Exclude<AuthoritativeStoreName, ListedStoreName>
@@ -148,6 +161,9 @@ const validateStores = (state: AuthoritativeWorldState, capacity: number): void 
   for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8) {
     assertStore(state[name], Uint8Array, capacity * PASSIVE_SLOT_COUNT, name);
   }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.offerStridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * OFFER_CANDIDATE_COUNT, name);
+  }
 };
 
 /**
@@ -207,6 +223,55 @@ const validatePassiveLoadout = (
 
       if (identity !== 0 && !ownsLoadout) {
         throw new RangeError('passive loadout requires the PassiveLoadout component');
+      }
+    }
+  }
+};
+
+/**
+ * The level-up offer equivalent of `validateAbilityLoadout`/
+ * `validatePassiveLoadout`, registry-free for the same reason (V2-ADR-049).
+ */
+const validateLevelUpOffer = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    let hasCandidate = false;
+
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      const storeIndex = offerStoreIndex(slot, index);
+      const kind = state.offerCandidateKind[storeIndex] ?? 0;
+      const code = state.offerCandidateCode[storeIndex] ?? 0;
+
+      if (kind !== 0 && kind !== OFFER_KIND_ABILITY && kind !== OFFER_KIND_PASSIVE) {
+        throw new RangeError('offer candidate kind is unsupported');
+      }
+
+      if ((kind === 0) !== (code === 0)) {
+        throw new RangeError('offer candidate must pair a kind with a code');
+      }
+
+      if (kind !== 0 && !ownsOffer) {
+        throw new RangeError('offer candidate requires the LevelUpOffer component');
+      }
+
+      if (kind !== 0) {
+        hasCandidate = true;
+      }
+    }
+
+    const defaultIndex = state.offerDefaultIndex[slot] ?? 0;
+    if (defaultIndex >= OFFER_CANDIDATE_COUNT) {
+      throw new RangeError('offer default index is outside the offer');
+    }
+
+    if (hasCandidate) {
+      const defaultStoreIndex = offerStoreIndex(slot, defaultIndex);
+      if ((state.offerCandidateKind[defaultStoreIndex] ?? 0) === 0) {
+        throw new RangeError('offer default index must select an occupied candidate');
       }
     }
   }
@@ -291,4 +356,5 @@ export const validateAuthoritativeWorldState = (
 
   validateAbilityLoadout(state, capacity);
   validatePassiveLoadout(state, capacity);
+  validateLevelUpOffer(state, capacity);
 };

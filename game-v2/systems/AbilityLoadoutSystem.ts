@@ -131,6 +131,60 @@ export class AbilityLoadoutSystem {
     return next;
   }
 
+  /**
+   * Adds a new identity or advances a held one, mirroring
+   * `PassiveLoadoutSystem.addOrLevelUp` (V2-ADR-052).
+   *
+   * The offer resolution path (`ProgressionSystem.resolveUpgrade`) does not
+   * know in advance whether an offered identity is already held, so it needs
+   * one call that answers either case rather than branching itself.
+   */
+  public addOrAdvanceTier(
+    world: World,
+    owner: EntityId,
+    identity: AbilityIdentityId
+  ): AbilityTier {
+    const held = this.indexOf(world, owner, identity);
+
+    if (held === null) {
+      this.add(world, owner, identity);
+      return 1;
+    }
+
+    return this.advanceTier(world, owner, held);
+  }
+
+  /**
+   * Whether an offer of this identity could be taken right now, mirroring
+   * `PassiveLoadoutSystem.isOfferable` (V2-ADR-052).
+   *
+   * A held identity is offerable while it is below its authored tier
+   * ceiling; a new identity only while a slot is free.
+   */
+  public isOfferable(
+    world: World,
+    owner: EntityId,
+    identity: AbilityIdentityId
+  ): boolean {
+    const base = this.baseIndex(world, owner);
+    const definition = this.registry.byId(identity);
+    let free = false;
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const code = world.abilitySlotIdentity[base + index] ?? 0;
+
+      if (code === definition.code) {
+        return (world.abilitySlotTier[base + index] ?? 0) < definition.authoredTiers;
+      }
+
+      if (code === 0) {
+        free = true;
+      }
+    }
+
+    return free;
+  }
+
   public resetOwner(world: World, owner: EntityId): void {
     const base = this.baseIndex(world, owner);
 

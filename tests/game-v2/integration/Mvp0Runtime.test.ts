@@ -24,6 +24,22 @@ import {
 } from '../support/scriptedRun';
 
 /**
+ * Chooses the ability candidate of the currently open offer, matching
+ * `driveScriptedRun`'s default kind so a replay of its recording sees the
+ * same offer (same seed) and can resolve it the same way.
+ */
+const chooseAbilityUpgrade = (runtime: GameV2Runtime): void => {
+  const candidates = runtime.readout().levelUpOffer?.candidates ?? [];
+  const index = candidates.findIndex(candidate => candidate?.kind === 'ability');
+
+  if (index < 0) {
+    throw new Error('no ability candidate in the current offer');
+  }
+
+  runtime.chooseUpgrade(index as 0 | 1 | 2);
+};
+
+/**
  * A replay must always terminate. Without a budget a runtime that stops
  * accepting ticks turns a failing assertion into a hung suite, which is how the
  * first mutation pass on `reset()` presented itself.
@@ -136,7 +152,7 @@ const replayFramesUntilTick = (
     () => runtime.tick < lastTick && runtime.phase !== 'game-over',
     () => {
       if (runtime.phase === 'level-up') {
-        runtime.chooseUpgrade('starter-damage-2');
+        chooseAbilityUpgrade(runtime);
         return;
       }
 
@@ -183,7 +199,7 @@ const replayAfterReset = (
       () => runtime.tick < recording.frames.length && runtime.phase !== 'game-over',
       () => {
         if (runtime.phase === 'level-up') {
-          runtime.chooseUpgrade('starter-damage-2');
+          chooseAbilityUpgrade(runtime);
           return;
         }
 
@@ -552,7 +568,7 @@ describe('MVP-0 runtime composition', () => {
       tier: 1,
     });
 
-    runtime.chooseUpgrade('starter-damage-2');
+    chooseAbilityUpgrade(runtime);
     const { abilitySlots } = runtime.readout();
 
     expect(abilitySlots[0]).toEqual({ index: 0, activation: 'auto', tier: 2 });

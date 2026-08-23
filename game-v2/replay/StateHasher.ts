@@ -7,6 +7,10 @@ import {
   type WorldSnapshot,
 } from '@/game-v2/contracts/WorldSnapshot';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import {
+  OFFER_CANDIDATE_COUNT,
+  offerStoreIndex,
+} from '@/game-v2/contracts/LevelUpOffer';
 import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { RUN_IDENTITY_SCHEMA_VERSION } from '@/game-v2/contracts/RunIdentity';
 import { RNG_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/runtime/DeterministicRng';
@@ -196,6 +200,13 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
       hash.u8(world.passiveSlotIdentity[passiveIndex] ?? 0);
       hash.u8(world.passiveSlotLevel[passiveIndex] ?? 0);
     }
+
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      const offerIndex = offerStoreIndex(slot, index);
+      hash.u8(world.offerCandidateKind[offerIndex] ?? 0);
+      hash.u8(world.offerCandidateCode[offerIndex] ?? 0);
+    }
+    hash.u8(world.offerDefaultIndex[slot] ?? 0);
   }
 };
 

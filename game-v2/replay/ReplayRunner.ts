@@ -184,7 +184,7 @@ export class ReplayRunner {
             );
           }
 
-          runtime.chooseUpgrade(command.choiceId);
+          runtime.chooseUpgrade(command.choiceIndex);
           commandsApplied += 1;
           continue;
         }

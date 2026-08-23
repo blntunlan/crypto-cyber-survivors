@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-103` — dynamic ability HUD; implemented, mutation-proved, and verified |
-| Status | `Verification` — awaiting acceptance; brief and outcome in `docs/game-v2/tasks/V2-103-dynamic-ability-hud.md` |
-| Closed | `V2-102` accepted at `22a00d14` |
+| Active task | `V2-104` — thirteen-second card flow |
+| Status | Implemented, mutation-proved, independently reviewed with findings fixed, fully re-verified; uncommitted and not yet accepted |
+| Closed | `V2-103` accepted at `357ef443` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1181,18 +1181,202 @@
   real, the shared instance as the simpler and still-correct choice.
 - New decisions: V2-ADR-047 and V2-ADR-048.
 
+### V2-104 — thirteen-second card flow (2026-08-23)
+
+- V2-104 replaces the fixed two-hardcoded-choice level-up card with a real,
+  RNG-selected offer of up to three candidates (ability tier-ups and passive
+  level-ups), a real 13-second wall-clock card (4 s non-interactive reveal,
+  8 s interactive choosing, last 5 s a visible countdown), and a real-time
+  timeout that resolves through the same runtime path as a manual choice.
+- `LevelUpOffer.ts` is new: `OFFER_CANDIDATE_COUNT = 3`, `OfferCandidateIndex`,
+  and the `OfferCandidate` discriminated union. The offer is authoritative
+  `World` state (V2-ADR-049) — two strided `Uint8Array` stores
+  (`offerCandidateKind`, `offerCandidateCode`) plus one `offerDefaultIndex`,
+  gated by a new `ComponentMask.LevelUpOffer` bit — so it survives a
+  checkpoint restore and hashes identically between a live run and its replay.
+- `LevelUpOfferSystem` is new and holds no per-run state (V2-ADR-025):
+  `generateOffer` enumerates every offerable ability/passive identity via the
+  registries' new `ids` getter and `AbilityLoadoutSystem.isOfferable` /
+  `PassiveLoadoutSystem.isOfferable`, Fisher-Yates shuffles the pool with the
+  run's `DeterministicRng`, and draws the RNG-seeded default index in the same
+  call (V2-ADR-050) — resolution (`resolveIndex`, by click or by timeout)
+  never consumes RNG again. `candidatesAt`, `defaultIndexOf`, and `clearOwner`
+  round out the read/clear surface.
+- `RunCommand.choiceId: RunUpgradeChoiceId` became
+  `choiceIndex: 0 | 1 | 2` (V2-ADR-051); `CommandRecorder` validates only that
+  it is one of those three integers via `isOfferCandidateIndex`.
+- `ProgressionSystem.resolveUpgrade` validates the index against the current
+  offer (`offerSystem.resolveIndex`, throws for empty/invalid) before
+  recording the command, so an invalid choice can never reach the recorder or
+  mutate the world. It applies an ability candidate through
+  `AbilityLoadoutSystem.addOrAdvanceTier` or a passive candidate through
+  `PassiveLoadoutSystem.addOrLevelUp`, then clears the offer and resumes the
+  lifecycle. `ProgressionSystem` no longer depends on `WeaponSystem`
+  (V2-ADR-053); its only prior use (`advanceStarterTier`) is now the generic
+  `AbilityLoadoutSystem.addOrAdvanceTier` call.
+- `GameV2Runtime.chooseUpgrade(choiceIndex)` threads the run's `rng` into
+  `progressionSystem.step` for offer generation and exposes
+  `readout().levelUpOffer`; `ReplayRunner` replays the recorded
+  `choose-upgrade` command unchanged. `createMvp0Runtime.ts` wires the new
+  `LevelUpOfferSystem` dependency.
+- `LevelUpOverlay.tsx` was rewritten: a real interval (independent of the
+  simulation clock, V2-ADR-054) drives reveal → choosing → countdown →
+  timeout; click and `1`/`2`/`3` keys resolve through the same `onChoose`
+  path a timeout uses; a manual choice cancels the pending timeout via a
+  `resolvedRef` latch. `LevelUpOfferLabel.ts` renders a generic
+  "kind: identity" label (V2-ADR-055) — `formatOfferCandidateLabel` — rather
+  than per-ability effect copy.
+- GREEN verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (32 files, 654
+  tests, up from 31 files and 624 tests at the V2-103 checkpoint), `npm run
+  typecheck`, `npm run check:architecture` (89 baseline singleton files),
+  `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt), `npm
+  run check:ui-contract`, `npm run build`, and focused ESLint/Prettier on
+  every changed and new file (full `npm run lint` is still blocked by the
+  same unrelated untracked `.delegate/runs/**` orchestrator artifacts
+  documented at the V2-102/V2-103 checkpoints).
+- The committed e2e spec (`e2e/game-v2-walking-skeleton.spec.ts`) still
+  asserted the retired hardcoded "increase move speed" / "increase damage"
+  button labels and failed on first run against the rewritten card. It was
+  updated to assert the real offer's two MVP-1 candidates by their generic
+  label (`/ability: starter-projectile/i`, `/passive: move-speed/i`) and to
+  resolve by clicking the ability candidate, keeping the existing
+  post-resolution assertions (`playerLevel === 2`,
+  `weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2`) meaningful. Re-run after
+  the fix: `npx playwright test e2e/game-v2-walking-skeleton.spec.ts
+  --project=chromium --workers=1 --reporter=list` (2 passed).
+- A six-mutant deliberate pass ran against exactly the mutants the task
+  brief's Step 6 named, each applied, run against its focused test file, and
+  restored to its exact prior source afterward. Five died: `resolveUpgrade`
+  recording before validating the index (1 focused failure, and with a less
+  specific error message than the real validation path produces);
+  `CommandRecorder` accepting an out-of-range `choiceIndex` (1, caught by
+  `WorldSnapshot.test.ts`'s `'rejects wrong choice atomically'` row); the
+  reveal window accepting keyboard input (1, the click path is separately
+  blocked by the native `disabled` attribute so only the keydown assertion
+  reaches the mutated branch); the countdown never becoming visible (1); and
+  the real-time timeout both never firing (1) and firing more than once (1,
+  a second mutant on the same guard, also caught).
+- The sixth named mutant — offer generation consuming RNG at timeout instead
+  of at generation time — survives by construction, not by an unreached
+  branch: `GameV2Runtime.chooseUpgrade`, `ProgressionSystem.resolveUpgrade`,
+  and `LevelUpOfferSystem.resolveIndex` take no `rng` parameter anywhere on
+  the resolution path, so the mutation cannot be expressed without first
+  changing a method signature. This is the structural guarantee V2-ADR-050
+  describes, not an untested behavior.
+- New decisions: V2-ADR-049 through V2-ADR-055 (recorded in `DECISIONS.md`).
+
+### V2-104 review round 1
+
+- An independent reviewer examined the uncommitted diff against HEAD
+  (`357ef443`, the accepted `V2-103`) and the task brief's invariants. It
+  returned "important findings" (high confidence): the core determinism
+  mechanism (single RNG draw at generation, offer-as-`World`-state, dirty-slot
+  reuse) was sound, but one real ordering bug and one real test-coverage gap
+  existed, plus several Minor items.
+- **Important, fixed:** `ProgressionSystem.step`'s level-up branch wrote
+  `world.level`/`world.xp` *before* calling `this.offerSystem.generateOffer`,
+  which throws when nothing is offerable. A throw there would have left the
+  player's level and XP already advanced with no open offer, the lifecycle
+  never paused, and `leveledUp` still `false` — a half-transitioned state the
+  level-up branch could never retrigger, since the level check that guards it
+  had already been satisfied and consumed. Unreachable at MVP-1 balance (only
+  two identities, neither near its ceiling) but a live regression waiting for
+  `V2-106`/`V2-107`/`V2-401`. Fixed by generating the offer first: `game-v2/systems/ProgressionSystem.ts`'s
+  level-up branch now calls `generateOffer` before touching `world.level` or
+  `world.xp`, so a throw leaves both fields at their pre-level-up values. A
+  new regression test, `'leaves level and xp unchanged when nothing is
+  offerable and the level-up throws'`, exhausts the real MVP-1 ability (to its
+  tier ceiling) and passive (to its level ceiling) through `createHarness`'s
+  actual loadout systems, then proves the thrown `step` leaves `level`, `xp`,
+  and the lifecycle phase untouched.
+- **Important, fixed:** the task brief's own Step 1 required proving "the
+  validator rejects a kind/code mismatch and an out-of-range kind; the hash
+  changes when any offer byte changes," but no such test existed — the
+  offer-touching change in `WorldSnapshot.test.ts` was only the updated golden
+  hash constant and the `CommandRecorder.choiceIndex` cases. The underlying
+  `WorldStateValidator.validateLevelUpOffer` and `StateHasher.hashWorld` code
+  was independently confirmed correct on inspection, but unguarded by
+  regression tests, so a later silent removal of either check would not have
+  been caught. `ALL_FIXTURE_COMPONENTS` gained `ComponentMask.LevelUpOffer`
+  and both `writeComponentFixtureForward`/`Reverse` gained matching offer
+  candidates (mirroring the existing ability/passive fixture fields); the
+  hard-coded FNV-1a golden moved from `ac6979b1` to `e8776b68` as a direct,
+  expected consequence (order-independence between the forward/reverse
+  fixtures still holds — both produce the new value). New cases: `'offer
+  kind'`, `'offer code'`, and `'offer default index'` in the "changes for
+  generation, mask, cooldown, and every component-store family" hash test,
+  and a new `'rejects level-up offer state that breaks its structural
+  invariants'` test covering an unsupported kind, a kind without a code, a
+  code without a kind, an offer candidate on an entity missing the
+  `LevelUpOffer` component, and an offer on an empty world slot.
+- **Minor, fixed defensively (not currently reachable):** `validateLevelUpOffer`
+  and `LevelUpOfferSystem.defaultIndexOf` both checked only that
+  `offerDefaultIndex` was inside `[0, OFFER_CANDIDATE_COUNT)`, never that the
+  candidate at that specific index was occupied — a corrupted or hand-edited
+  state with, say, only index 0 filled and `offerDefaultIndex = 2` would have
+  passed validation and then thrown uncaught from `resolveIndex` at
+  resolution time instead of failing at the validation boundary. No current
+  code path can produce this divergence (`generateOffer` always writes a
+  default inside its own occupied range; `clearOwner`/`clearSlot` reset both
+  together), so this closes the gap defensively ahead of any future
+  checkpoint-restore feature. `WorldStateValidator.validateLevelUpOffer` now
+  tracks whether any candidate is occupied per slot and, if so, requires the
+  stored default to point at an occupied one; `LevelUpOfferSystem.defaultIndexOf`
+  gained the identical check. New tests: the two structural-invariant cases
+  above (`'default index outside the offer'`, `'default index pointing at an
+  empty candidate'`) and `LevelUpOfferSystem.test.ts`'s `'throws when the
+  stored default index points at an empty candidate'`.
+- **Minor, fixed:** `DECISIONS.md`'s V2-ADR-055 row stated the card shows
+  "kind + identity + next tier/level," but the shipped
+  `formatOfferCandidateLabel` only ever renders "kind: identity" —
+  `OfferCandidate` carries no tier/level field, and `PROGRESS.md`'s own
+  narrative and the `LevelUpOverlay.test.tsx` assertions already only checked
+  kind+identity. Only the decision-log wording was wrong; corrected to match
+  what shipped.
+- **Minor, deliberately deferred:** `ProgressionSystem.step`'s `rng` parameter
+  defaults to a disconnected fixed-seed `DeterministicRng(1)` rather than
+  being required. The only production call site (`GameV2Runtime.ts`) always
+  threads the real run RNG, so this isn't live, but a future second call site
+  that forgot to pass `rng` would silently draw offers from the wrong stream
+  instead of failing loudly. Not fixed this round: making it required would
+  touch roughly 34 existing call sites in `ProgressionSystem.test.ts` for a
+  defect with no current trigger; left as a follow-up rather than churn.
+- **Minor, deliberately deferred:** `LevelUpOverlay`'s keydown-listener
+  `useEffect` has no dependency array, so it tears down and re-registers on
+  every render, including every 100 ms countdown tick while the card is open.
+  Not a correctness issue — the closure is always fresh — just avoidable
+  churn; left alone rather than restructuring the component's state around a
+  ref for a non-functional nit.
+- Review-fix verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (32 files, 657
+  tests, up from 654 by the three new regression tests), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files), `npm run
+  check:reset-coverage` (89 singletons: 29 wired, 60 exempt), `npm run
+  check:ui-contract`, `npm run build`, focused ESLint/Prettier on every
+  touched file, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed).
+- V2-104 is implemented, mutation-proved, independently reviewed with its
+  findings fixed and re-verified, but still uncommitted and not yet accepted
+  by the user.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
    is fixed, mutation-proved, and re-verified, and the three deferred findings
    are assigned to later blocks.
-2. `V2-100`, `V2-101`, and `V2-102` are accepted and closed. `V2-103` is
-   implemented, mutation-proved, and verified but not accepted. Re-run the
-   last GREEN command before touching code:
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 31 files,
-   624 tests) and
+2. `V2-100`, `V2-101`, `V2-102`, and `V2-103` are accepted and closed
+   (`V2-103` at `357ef443`, current HEAD). `V2-104` is implemented,
+   mutation-proved, independently reviewed with its findings fixed, and fully
+   re-verified on top of that HEAD — but not yet committed or accepted. Re-run
+   the last GREEN command before touching code:
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 32 files,
+   657 tests),
+   `npm run typecheck`, `npm run check:architecture`, `npm run check:reset-coverage`,
+   `npm run check:ui-contract`, `npm run build`, and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
-   (expect 2 passed). Both were last confirmed green on 2026-08-23.
+   (expect 2 passed). All were last confirmed green on 2026-08-23.
 
 ## Known MVP-0 Limitations
 
@@ -1231,19 +1415,35 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the `V2-103` checkpoint. On acceptance, generate the `V2-104` task brief
-(thirteen-second card flow — reveal, countdown, input, timeout choice, pause,
-and resume are deterministic), per `MASTER_PLAN.md`. Do not deploy, cut over
-production, or replace the legacy demo.
+Accept the `V2-104` checkpoint (implemented, mutation-proved, independently
+reviewed with findings fixed, and re-verified — but not yet committed).
+`V2-103` is already accepted and committed at `357ef443` (current HEAD); only
+`V2-104`'s diff on top of it needs a commit. On acceptance, generate the
+`V2-105` task brief (reroll and banish), per `MASTER_PLAN.md`. Do not deploy,
+cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do
 not stage, edit, revert, or include them in a Game V2 commit:
 
 - `skills-lock.json` — modified.
-- `docs/design/CORE_REDESIGN_V1.md` — untracked.
+- `docs/design/CORE_REDESIGN_V1.md`, `docs/design/AGENT_ORCHESTRATION_ROADMAP.md`,
+  `docs/design/AGENT_ORCHESTRATION_V1.md` — untracked.
 - `public/sitemap.xml` — build-generated modification.
-- `public/docs/**` — build-generated/untracked documentation copies.
+- `public/docs/**` — build-generated/untracked documentation copies (this
+  mirror regenerates from whatever is in `docs/**` on every `npm run build`,
+  including this file and `DECISIONS.md` — expect it to show as modified
+  after any verification run and leave it alone regardless).
+- `e2e/storage-state.json` — regenerates a timestamp field on every Playwright
+  run; not meaningful content.
+- `package.json`, `.gitignore` — unrelated `delegate:*` script/ignore entries
+  from a separate orchestrator tooling effort.
+- `.delegate/`, `scripts/delegate/`, `tests/delegate/` — untracked, that same
+  separate orchestrator tooling effort.
+- `tests/services/combat/BulletTrailBuffer.test.ts`,
+  `tests/services/director/SeededRng.test.ts`,
+  `tests/services/patterns/decorators/buffs/` — untracked, unrelated to
+  Game V2.
 
 ## Resume Protocol
 

@@ -53,6 +53,17 @@ describe('AbilityRegistry', () => {
     expect(MVP1_ABILITY_REGISTRY.size).toBe(1);
   });
 
+  it('exposes every registered identity through ids, in insertion order', () => {
+    expect(MVP1_ABILITY_REGISTRY.ids).toEqual(['starter-projectile']);
+    expect(Object.isFrozen(MVP1_ABILITY_REGISTRY.ids)).toBe(true);
+
+    const registry = createAbilityRegistry([
+      definition({ id: 'a', code: 1 }),
+      definition({ id: 'b', code: 2 }),
+    ]);
+    expect(registry.ids).toEqual(['a', 'b']);
+  });
+
   it('reserves code zero for the empty slot', () => {
     expect(EMPTY_ABILITY_CODE).toBe(0);
     expect(MVP1_ABILITY_REGISTRY.byCode(EMPTY_ABILITY_CODE)).toBeNull();

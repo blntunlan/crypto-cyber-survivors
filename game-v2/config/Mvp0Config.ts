@@ -72,6 +72,18 @@ export const STARTER_PROJECTILE_RADIUS_TIER_3 = 0.3;
  */
 export const STARTER_WEAPON_COOLDOWN_TICKS_TIER_3 = 20;
 
+/**
+ * The level-up card's real-time deadline (design §5.4). The first
+ * `LEVEL_UP_OFFER_REVEAL_SECONDS` are non-interactive; the last
+ * `LEVEL_UP_OFFER_COUNTDOWN_SECONDS` of the total show a visible countdown.
+ * No input during either sub-window is a presentation-only rule
+ * (V2-ADR-054): the runtime accepts a resolution at any point once the
+ * lifecycle is `level-up`.
+ */
+export const LEVEL_UP_OFFER_TOTAL_SECONDS = 13;
+export const LEVEL_UP_OFFER_REVEAL_SECONDS = 4;
+export const LEVEL_UP_OFFER_COUNTDOWN_SECONDS = 5;
+
 export const PLAYER_STARTING_LEVEL = 1;
 export const MVP0_MAX_PLAYER_LEVEL = 2;
 

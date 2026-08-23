@@ -17,17 +17,27 @@ import {
 } from '@/game-v2/config/Mvp0Config';
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
+import {
+  type OfferCandidateIndex,
+  type OfferCandidate,
+} from '@/game-v2/contracts/LevelUpOffer';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
 import { CommandRecorder } from '@/game-v2/replay/CommandRecorder';
+import { DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
+import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
+import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
 import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
-import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
+import {
+  PASSIVE_MAX_LEVEL,
+  PASSIVE_MOVE_SPEED_BY_LEVEL,
+} from '@/game-v2/contracts/PassiveSlot';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { WeaponSystem } from '@/game-v2/systems/WeaponSystem';
@@ -41,7 +51,8 @@ const PLAYER_MASK =
   ComponentMask.Health |
   ComponentMask.Player |
   ComponentMask.AbilityLoadout |
-  ComponentMask.PassiveLoadout;
+  ComponentMask.PassiveLoadout |
+  ComponentMask.LevelUpOffer;
 
 const XP_PICKUP_MASK =
   ComponentMask.Transform | ComponentMask.Body | ComponentMask.XpPickup;
@@ -96,6 +107,52 @@ const createRawPlayer = (world: World, x = 0, y = 0): EntityId => {
   return player;
 };
 
+/**
+ * Builds a `ProgressionSystem` whose ability/passive/offer systems the test
+ * keeps a reference to, so it can inspect the offer a real level-up
+ * generates (its candidate order is RNG-shuffled, so no test may hardcode an
+ * index without first checking what it holds).
+ */
+const createHarness = (
+  lifecycle: GameV2Lifecycle,
+  commandRecorder: CommandRecorder
+): {
+  progression: ProgressionSystem;
+  abilityLoadout: AbilityLoadoutSystem;
+  passiveLoadout: PassiveLoadoutSystem;
+  offerSystem: LevelUpOfferSystem;
+} => {
+  const abilityLoadout = new AbilityLoadoutSystem();
+  const passiveLoadout = new PassiveLoadoutSystem();
+  const offerSystem = new LevelUpOfferSystem(abilityLoadout, passiveLoadout);
+  const progression = new ProgressionSystem(
+    lifecycle,
+    commandRecorder,
+    abilityLoadout,
+    passiveLoadout,
+    offerSystem
+  );
+  return { progression, abilityLoadout, passiveLoadout, offerSystem };
+};
+
+/** Finds the offer index of the first candidate of the given kind. */
+const findOfferIndex = (
+  offerSystem: LevelUpOfferSystem,
+  world: World,
+  player: EntityId,
+  kind: OfferCandidate['kind']
+): OfferCandidateIndex => {
+  const candidates = offerSystem.candidatesAt(world, player);
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    if (candidates[index]?.kind === kind) {
+      return index as OfferCandidateIndex;
+    }
+  }
+
+  throw new Error(`no ${kind} candidate in the current offer`);
+};
+
 describe('Progression config invariants', () => {
   it('P1: forces LEVEL_2_XP_THRESHOLD to equal ENEMY_XP_VALUE for one-kill level up in MVP-0', () => {
     expect(LEVEL_2_XP_THRESHOLD).toBe(ENEMY_XP_VALUE);
@@ -134,8 +191,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -161,8 +217,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -196,7 +251,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -215,7 +270,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     progression.resolveUpgrade(world, player, {
       tick: 0,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     });
     progression.resetPlayer(world, player);
     weaponSystem.resetPlayer(world, player);
@@ -256,11 +311,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const terminalWithMalformedKills = createEmptyCombatResult();
@@ -285,11 +336,7 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     const playerSlot = world.slotOf(player);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const forged = createCombatResultWithKills([
@@ -324,8 +371,7 @@ describe('Player progression initialization (resetPlayer)', () => {
 
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
 
     progression.resetPlayer(world, player);
 
@@ -342,8 +388,7 @@ describe('Player progression initialization (resetPlayer)', () => {
 
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
 
     expect(() => progression.resetPlayer(world, invalidPlayer)).toThrow(RangeError);
     expect(world.xp[slot]).toBe(0);
@@ -358,8 +403,7 @@ describe('Player progression initialization (resetPlayer)', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
 
     expect(() =>
       progression.step(world, player, createEmptyCombatResult(), createContext(0))
@@ -374,8 +418,7 @@ describe('XP Pickup spawning', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -408,8 +451,7 @@ describe('XP Pickup spawning', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -442,11 +484,7 @@ describe('XP Pickup spawning', () => {
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const freeSlotsBefore = world.freeSlotCount;
@@ -473,11 +511,7 @@ describe('XP Pickup spawning', () => {
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const freeSlotsBefore = world.freeSlotCount;
@@ -495,11 +529,7 @@ describe('XP Pickup spawning', () => {
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const freeSlotsBefore = world.freeSlotCount;
@@ -523,8 +553,7 @@ describe('XP Pickup collection and overlap', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -575,8 +604,7 @@ describe('XP Pickup collection and overlap', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -600,8 +628,7 @@ describe('XP Pickup collection and overlap', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -620,8 +647,7 @@ describe('XP Pickup collection and overlap', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -641,8 +667,7 @@ describe('XP Pickup collection and overlap', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -660,11 +685,7 @@ describe('XP Pickup collection and overlap', () => {
     const playerSlot = world.slotOf(player);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -698,11 +719,7 @@ describe('XP Pickup collection and overlap', () => {
     const playerSlot = world.slotOf(player);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
     const maximumFiniteFloat32 = 3.4028234663852886e38;
@@ -733,11 +750,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
-    const progression = new ProgressionSystem(
-      lifecycle,
-      new CommandRecorder(),
-      new WeaponSystem()
-    );
+    const progression = new ProgressionSystem(lifecycle, new CommandRecorder());
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -759,8 +772,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -785,7 +797,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -801,7 +813,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const command: RunCommand = {
       tick: 10,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     };
     progression.resolveUpgrade(world, player, command);
     expect(lifecycle.phase).toBe('playing');
@@ -820,14 +832,53 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     expect(lifecycle.phase).toBe('playing');
   });
 
+  it('leaves level and xp unchanged when nothing is offerable and the level-up throws', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const { progression, abilityLoadout, passiveLoadout } = createHarness(
+      lifecycle,
+      commandRecorder
+    );
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    // Exhaust the entire MVP-1 offerable pool: the starter ability to its
+    // tier ceiling, the move-speed passive to its level ceiling. Once nothing
+    // is offerable, `generateOffer` throws before `resolveUpgrade` can ever
+    // run, so this proves the level-up branch does not commit `level`/`xp`
+    // ahead of that throw.
+    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
+    for (let i = 0; i < PASSIVE_MAX_LEVEL; i += 1) {
+      passiveLoadout.addOrLevelUp(world, player, MOVE_SPEED_PASSIVE.id);
+    }
+
+    expect(() =>
+      progression.step(
+        world,
+        player,
+        createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+        createContext(10)
+      )
+    ).toThrow('no offerable candidates exist');
+
+    expect(world.level[playerSlot]).toBe(PLAYER_STARTING_LEVEL);
+    expect(world.xp[playerSlot]).toBe(0);
+    expect(lifecycle.phase).toBe('playing');
+  });
+
   it('throws RangeError if step is called while an upgrade offer is pending', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
     const lifecycle = new GameV2Lifecycle();
     lifecycle.start();
     const commandRecorder = new CommandRecorder();
-    const weaponSystem = new WeaponSystem();
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -851,7 +902,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -861,16 +912,13 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
       createContext(10)
     );
+    const abilityIndex = findOfferIndex(offerSystem, world, player, 'ability');
 
-    const restoredSystem = new ProgressionSystem(
-      lifecycle,
-      commandRecorder,
-      weaponSystem
-    );
+    const { progression: restoredSystem } = createHarness(lifecycle, commandRecorder);
     const restoredPausedTickCommand: RunCommand = {
       tick: 500,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: abilityIndex,
     };
 
     restoredSystem.resolveUpgrade(world, player, restoredPausedTickCommand);
@@ -892,7 +940,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -908,7 +956,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const command: RunCommand = {
       tick: 15,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'ability'),
     };
 
     progression.resolveUpgrade(world, player, command);
@@ -933,13 +981,13 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
 
     const command: RunCommand = {
       tick: 0,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: 0,
     };
 
     expect(() => progression.resolveUpgrade(world, player, command)).toThrow(
@@ -955,7 +1003,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -969,7 +1017,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const restoredPausedTickCommand: RunCommand = {
       tick: 24,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'ability'),
     };
 
     progression.resolveUpgrade(world, player, restoredPausedTickCommand);
@@ -989,7 +1037,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const progression = new ProgressionSystem(lifecycle, commandRecorder, weaponSystem);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
@@ -1003,7 +1051,7 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const badCommand = {
       tick: 10,
       type: 'invalid-type' as unknown as 'choose-upgrade',
-      choiceId: 'starter-damage-2' as const,
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'ability'),
     };
 
     expect(() =>
@@ -1021,23 +1069,24 @@ describe('Passive upgrade resolution', () => {
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
-    const passiveLoadout = new PassiveLoadoutSystem();
-    const movement = new MovementSystem(passiveLoadout);
-    const progression = new ProgressionSystem(
+    const { progression, passiveLoadout, offerSystem } = createHarness(
       lifecycle,
-      commandRecorder,
-      weaponSystem,
-      passiveLoadout
+      commandRecorder
     );
+    const movement = new MovementSystem(passiveLoadout);
     weaponSystem.resetPlayer(world, player);
     progression.resetPlayer(world, player);
     lifecycle.start();
+    // A real offer requires a real level-up trigger, which the offer-index
+    // tests below drive through `step`; this test only needs an open offer
+    // to resolve against, so it seeds one directly.
+    offerSystem.generateOffer(world, new DeterministicRng(1), player);
     lifecycle.pauseForLevelUp();
 
     const command: RunCommand = {
       tick: 12,
       type: 'choose-upgrade',
-      choiceId: 'passive-move-speed',
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'passive'),
     };
 
     progression.resolveUpgrade(world, player, command);
@@ -1055,22 +1104,20 @@ describe('Passive upgrade resolution', () => {
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
-    const passiveLoadout = new PassiveLoadoutSystem();
-    const progression = new ProgressionSystem(
+    const { progression, passiveLoadout, offerSystem } = createHarness(
       lifecycle,
-      commandRecorder,
-      weaponSystem,
-      passiveLoadout
+      commandRecorder
     );
     weaponSystem.resetPlayer(world, player);
     progression.resetPlayer(world, player);
     lifecycle.start();
+    offerSystem.generateOffer(world, new DeterministicRng(1), player);
     lifecycle.pauseForLevelUp();
 
     progression.resolveUpgrade(world, player, {
       tick: 3,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'ability'),
     });
 
     expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBeNull();
@@ -1085,25 +1132,23 @@ describe('Passive upgrade resolution', () => {
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
-    const passiveLoadout = new PassiveLoadoutSystem();
-    const progression = new ProgressionSystem(
+    const { progression, passiveLoadout, offerSystem } = createHarness(
       lifecycle,
-      commandRecorder,
-      weaponSystem,
-      passiveLoadout
+      commandRecorder
     );
     weaponSystem.resetPlayer(world, player);
     progression.resetPlayer(world, player);
     lifecycle.start();
+    offerSystem.generateOffer(world, new DeterministicRng(1), player);
     lifecycle.pauseForLevelUp();
 
     expect(() =>
       progression.resolveUpgrade(world, player, {
         tick: 4,
         type: 'choose-upgrade',
-        choiceId: 'passive-unknown',
+        choiceIndex: 3,
       } as unknown as RunCommand)
-    ).toThrow('unsupported upgrade choice');
+    ).toThrow('offer candidate index must be an integer inside the offer');
 
     expect(commandRecorder.count).toBe(0);
     expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBeNull();
@@ -1167,10 +1212,9 @@ describe('End-to-end real production path integration test', () => {
     const weaponSystem = new WeaponSystem();
     const movementSystem = new MovementSystem();
     const enemySystem = new EnemySystem();
-    const progressionSystem = new ProgressionSystem(
+    const { progression: progressionSystem, offerSystem } = createHarness(
       lifecycle,
-      commandRecorder,
-      weaponSystem
+      commandRecorder
     );
 
     // Initial production reset
@@ -1271,7 +1315,7 @@ describe('End-to-end real production path integration test', () => {
     const upgradeCommand: RunCommand = {
       tick: levelUpTick,
       type: 'choose-upgrade',
-      choiceId: 'starter-damage-2',
+      choiceIndex: findOfferIndex(offerSystem, world, player, 'ability'),
     };
     progressionSystem.resolveUpgrade(world, player, upgradeCommand);
 

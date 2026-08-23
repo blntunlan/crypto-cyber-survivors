@@ -4,6 +4,7 @@ import {
   type EntityId,
 } from '@/game-v2/contracts/EntityId';
 import { ABILITY_SLOT_COUNT, abilityStoreIndex } from '@/game-v2/contracts/AbilitySlot';
+import { OFFER_CANDIDATE_COUNT } from '@/game-v2/contracts/LevelUpOffer';
 import { PASSIVE_SLOT_COUNT, passiveStoreIndex } from '@/game-v2/contracts/PassiveSlot';
 import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
 import { World } from '@/game-v2/world/World';
@@ -88,6 +89,7 @@ describe('World', () => {
       ComponentMask.XpPickup,
       ComponentMask.AbilityLoadout,
       ComponentMask.PassiveLoadout,
+      ComponentMask.LevelUpOffer,
     ];
     let combinedMask = 0;
 
@@ -98,7 +100,7 @@ describe('World', () => {
       combinedMask |= bit ?? 0;
     }
 
-    expect(new Set(bits).size).toBe(11);
+    expect(new Set(bits).size).toBe(12);
     expect(combinedMask).toBe(ALL_COMPONENT_MASK);
   });
 
@@ -213,6 +215,57 @@ describe('World', () => {
     expect(world.abilitySlotTier.every(value => value === 0)).toBe(true);
   });
 
+  it('rejects an offer store index outside the world or the offer', () => {
+    const world = new World(8);
+
+    for (const slot of [-1, 8, 1.5, Number.NaN]) {
+      expect(() => world.offerSlotIndexOf(slot, 0)).toThrow(
+        'slot must be an integer inside the world capacity'
+      );
+    }
+
+    for (const index of [-1, OFFER_CANDIDATE_COUNT, 1.5, Number.NaN]) {
+      expect(() => world.offerSlotIndexOf(0, index)).toThrow(
+        'offer candidate index must be an integer inside the offer'
+      );
+    }
+  });
+
+  it('clears level-up offer entries when a slot is destroyed or the world resets', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.LevelUpOffer);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.LevelUpOffer);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      world.offerCandidateKind[world.offerSlotIndexOf(slot, index)] = 1;
+      world.offerCandidateCode[world.offerSlotIndexOf(slot, index)] = index + 1;
+      world.offerCandidateKind[world.offerSlotIndexOf(neighbourSlot, index)] = 2;
+      world.offerCandidateCode[world.offerSlotIndexOf(neighbourSlot, index)] = 9;
+    }
+    world.offerDefaultIndex[slot] = 2;
+    world.offerDefaultIndex[neighbourSlot] = 1;
+
+    world.destroyEntity(entity);
+
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      expect(world.offerCandidateKind[world.offerSlotIndexOf(slot, index)]).toBe(0);
+      expect(world.offerCandidateCode[world.offerSlotIndexOf(slot, index)]).toBe(0);
+      expect(
+        world.offerCandidateKind[world.offerSlotIndexOf(neighbourSlot, index)]
+      ).toBe(2);
+    }
+    expect(world.offerDefaultIndex[slot]).toBe(0);
+    expect(world.offerDefaultIndex[neighbourSlot]).toBe(1);
+
+    world.reset();
+
+    expect(world.offerCandidateKind.every(value => value === 0)).toBe(true);
+    expect(world.offerCandidateCode.every(value => value === 0)).toBe(true);
+    expect(world.offerDefaultIndex.every(value => value === 0)).toBe(true);
+  });
+
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4097])(
     'rejects invalid capacity %s before a world exists',
     capacity => {
@@ -289,7 +342,7 @@ describe('World', () => {
     expect(world.freeSlotCount).toBe(0);
   });
 
-  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 11, 0x1_0000_0000])(
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 1 << 12, 0x1_0000_0000])(
     'rejects invalid component mask %s without consuming a slot',
     mask => {
       const world = new World(1);

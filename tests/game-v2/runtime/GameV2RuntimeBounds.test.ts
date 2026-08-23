@@ -21,7 +21,9 @@ import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
+import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
+import { PassiveLoadoutSystem } from '@/game-v2/systems/PassiveLoadoutSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import { TargetingSystem } from '@/game-v2/systems/TargetingSystem';
 import { WeaponSystem } from '@/game-v2/systems/WeaponSystem';
@@ -43,6 +45,11 @@ const composeRuntime = (world: World): GameV2Runtime => {
   const lifecycle = new GameV2Lifecycle();
   const commandRecorder = new CommandRecorder();
   const abilityLoadoutSystem = new AbilityLoadoutSystem();
+  const passiveLoadoutSystem = new PassiveLoadoutSystem();
+  const offerSystem = new LevelUpOfferSystem(
+    abilityLoadoutSystem,
+    passiveLoadoutSystem
+  );
   const weaponSystem = new WeaponSystem(new TargetingSystem(), abilityLoadoutSystem);
   const idleIntent: IntentSource = {
     sample: (_tick, out: PlayerIntent) => {
@@ -69,8 +76,15 @@ const composeRuntime = (world: World): GameV2Runtime => {
     enemySystem: new EnemySystem(),
     weaponSystem,
     combatSystem: new CombatSystem(),
-    progressionSystem: new ProgressionSystem(lifecycle, commandRecorder, weaponSystem),
+    progressionSystem: new ProgressionSystem(
+      lifecycle,
+      commandRecorder,
+      abilityLoadoutSystem,
+      passiveLoadoutSystem,
+      offerSystem
+    ),
     abilityLoadoutSystem,
+    offerSystem,
     presentation: null,
   });
 };

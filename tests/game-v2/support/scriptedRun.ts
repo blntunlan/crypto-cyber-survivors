@@ -9,9 +9,9 @@ import {
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
 import { type GameV2RuntimeReadout } from '@/game-v2/contracts/GameV2Debug';
+import { type OfferCandidate } from '@/game-v2/contracts/LevelUpOffer';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
 import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
-import { type RunUpgradeChoiceId } from '@/game-v2/contracts/RunCommand';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import { createMvp0Runtime } from '@/game-v2/runtime/createMvp0Runtime';
@@ -134,7 +134,7 @@ export type ScriptedRun = {
  */
 export const driveScriptedRun = (
   seed: number,
-  choiceId: RunUpgradeChoiceId = 'starter-damage-2'
+  desiredKind: OfferCandidate['kind'] = 'ability'
 ): ScriptedRun => {
   const renderer = createFakeRenderer();
   const { source, intent } = createManualIntentSource();
@@ -179,10 +179,17 @@ export const driveScriptedRun = (
 
     if (readout.phase === 'level-up') {
       levelUpReached = true;
-      runtime.chooseUpgrade(choiceId);
+      const candidates = readout.levelUpOffer?.candidates ?? [];
+      const chosenIndex = candidates.findIndex(
+        candidate => candidate?.kind === desiredKind
+      );
+      if (chosenIndex < 0) {
+        throw new Error(`no ${desiredKind} candidate in the current offer`);
+      }
+      runtime.chooseUpgrade(chosenIndex as 0 | 1 | 2);
       const afterUpgrade = runtime.readout();
       const effectApplied =
-        choiceId === 'starter-damage-2'
+        desiredKind === 'ability'
           ? afterUpgrade.weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2
           : afterUpgrade.moveSpeedLevel === 1 &&
             afterUpgrade.moveSpeed === PASSIVE_MOVE_SPEED_BY_LEVEL[1];

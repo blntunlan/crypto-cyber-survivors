@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WebGLRenderer } from 'three';
 
-import { PROJECTILE_DAMAGE } from '@/game-v2/config/Mvp0Config';
 import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
-import { type RunCommand } from '@/game-v2/contracts/RunCommand';
+import { type LevelUpOfferReadout } from '@/game-v2/contracts/GameV2Debug';
+import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
 import { KeyboardInput } from '@/game-v2/input/KeyboardInput';
 import { type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import {
@@ -14,24 +14,8 @@ import {
 import { type GameV2Runtime, type IntentSource } from '@/game-v2/runtime/GameV2Runtime';
 import { formatAbilitySlotBinding } from '@/game-v2/ui/AbilitySlotLabel';
 import { LevelUpOverlay } from '@/game-v2/ui/LevelUpOverlay';
-import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
 
 const ABILITY_SLOT_INDICES = Array.from({ length: ABILITY_SLOT_COUNT }, (_, i) => i);
-
-type LevelUpOffer = {
-  damageBefore: number;
-  moveSpeedBefore: number;
-  moveSpeedLevel: number;
-  moveSpeedUpgradable: boolean;
-};
-
-/** What the card shows before a run has produced a readout. */
-const INITIAL_LEVEL_UP_OFFER: LevelUpOffer = {
-  damageBefore: PROJECTILE_DAMAGE,
-  moveSpeedBefore: PASSIVE_MOVE_SPEED_BY_LEVEL[0] ?? 0,
-  moveSpeedLevel: 0,
-  moveSpeedUpgradable: true,
-};
 
 import './game-v2.css';
 
@@ -78,7 +62,7 @@ export const GameV2App = ({
   const runtimeRef = useRef<GameV2Runtime | null>(null);
 
   const [phase, setPhase] = useState<GameV2Phase>('idle');
-  const [offer, setOffer] = useState<LevelUpOffer>(INITIAL_LEVEL_UP_OFFER);
+  const [offer, setOffer] = useState<LevelUpOfferReadout | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
@@ -181,13 +165,7 @@ export const GameV2App = ({
           lastPhase = runtime.phase;
 
           if (runtime.phase === 'level-up') {
-            const readout = runtime.readout();
-            setOffer({
-              damageBefore: readout.weaponDamage,
-              moveSpeedBefore: readout.moveSpeed,
-              moveSpeedLevel: readout.moveSpeedLevel,
-              moveSpeedUpgradable: readout.moveSpeedUpgradable,
-            });
+            setOffer(runtime.readout().levelUpOffer);
           }
 
           setPhase(runtime.phase);
@@ -226,14 +204,14 @@ export const GameV2App = ({
     };
   }, [createRenderer]);
 
-  const handleChoose = useCallback((choiceId: RunCommand['choiceId']): void => {
+  const handleChoose = useCallback((choiceIndex: OfferCandidateIndex): void => {
     const runtime = runtimeRef.current;
 
     if (runtime?.phase !== 'level-up') {
       return;
     }
 
-    runtime.chooseUpgrade(choiceId);
+    runtime.chooseUpgrade(choiceIndex);
     setPhase(runtime.phase);
   }, []);
 
@@ -246,7 +224,7 @@ export const GameV2App = ({
 
     runtime.reset();
     runtime.start();
-    setOffer(INITIAL_LEVEL_UP_OFFER);
+    setOffer(null);
     setPhase(runtime.phase);
   }, []);
 
@@ -286,14 +264,8 @@ export const GameV2App = ({
             />
           ))}
         </div>
-        {failure === null && phase === 'level-up' ? (
-          <LevelUpOverlay
-            damageBefore={offer.damageBefore}
-            moveSpeedBefore={offer.moveSpeedBefore}
-            moveSpeedLevel={offer.moveSpeedLevel}
-            moveSpeedUpgradable={offer.moveSpeedUpgradable}
-            onChoose={handleChoose}
-          />
+        {failure === null && phase === 'level-up' && offer !== null ? (
+          <LevelUpOverlay offer={offer} onChoose={handleChoose} />
         ) : null}
         {failure !== null ? (
           <div className="level-up-overlay" data-testid="game-v2-failure-overlay">

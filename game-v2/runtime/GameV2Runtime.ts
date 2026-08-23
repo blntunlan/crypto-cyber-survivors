@@ -15,9 +15,11 @@ import {
   type AbilitySlotReadout,
   type GameV2DebugSnapshot,
   type GameV2RuntimeReadout,
+  type LevelUpOfferReadout,
 } from '@/game-v2/contracts/GameV2Debug';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
+import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
 import { type RenderSnapshot } from '@/game-v2/contracts/RenderSnapshot';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
@@ -48,6 +50,7 @@ import { type DashSystem } from '@/game-v2/systems/DashSystem';
 import { type EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { type MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { type AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
+import { type LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { type ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import { type WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
@@ -67,7 +70,8 @@ const PLAYER_ENTITY_MASK =
   ComponentMask.Health |
   ComponentMask.Player |
   ComponentMask.AbilityLoadout |
-  ComponentMask.PassiveLoadout;
+  ComponentMask.PassiveLoadout |
+  ComponentMask.LevelUpOffer;
 
 const ENEMY_MASK = ComponentMask.Transform | ComponentMask.Enemy;
 const PROJECTILE_MASK = ComponentMask.Transform | ComponentMask.Projectile;
@@ -99,6 +103,7 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   nearestXpPickupX: null,
   nearestXpPickupY: null,
   abilitySlots: EMPTY_ABILITY_SLOTS,
+  levelUpOffer: null,
 });
 
 /**
@@ -147,6 +152,8 @@ export type GameV2RuntimeDependencies = {
   progressionSystem: ProgressionSystem;
   /** Read-only from the runtime's perspective: fills `readout().abilitySlots`. */
   abilityLoadoutSystem: AbilityLoadoutSystem;
+  /** Read-only from the runtime's perspective: fills `readout().levelUpOffer`. */
+  offerSystem: LevelUpOfferSystem;
   presentation: RuntimePresentation | null;
 };
 
@@ -175,6 +182,7 @@ export class GameV2Runtime {
   private readonly combatSystem: CombatSystem;
   private readonly progressionSystem: ProgressionSystem;
   private readonly abilityLoadoutSystem: AbilityLoadoutSystem;
+  private readonly offerSystem: LevelUpOfferSystem;
   private readonly presentation: RuntimePresentation | null;
 
   private readonly initialRngSnapshot: RngSnapshot;
@@ -218,6 +226,7 @@ export class GameV2Runtime {
     this.combatSystem = dependencies.combatSystem;
     this.progressionSystem = dependencies.progressionSystem;
     this.abilityLoadoutSystem = dependencies.abilityLoadoutSystem;
+    this.offerSystem = dependencies.offerSystem;
     this.presentation = dependencies.presentation;
     this.initialRngSnapshot = this.rng.snapshot();
     this.stepContext = {
@@ -264,8 +273,8 @@ export class GameV2Runtime {
     this.presentation?.present(this.renderSnapshot, advance.interpolationAlpha);
   }
 
-  /** Resolves the open level-up offer and resumes the simulation. */
-  public chooseUpgrade(choiceId: RunCommand['choiceId']): void {
+  /** Resolves the open level-up offer at `choiceIndex` and resumes the simulation. */
+  public chooseUpgrade(choiceIndex: OfferCandidateIndex): void {
     this.assertUsable();
 
     if (this.lifecycle.phase !== 'level-up') {
@@ -275,7 +284,7 @@ export class GameV2Runtime {
     this.progressionSystem.resolveUpgrade(this.world, this.playerEntity, {
       tick: this.simulationTick,
       type: 'choose-upgrade',
-      choiceId,
+      choiceIndex,
     });
     this.clock.resume();
   }
@@ -454,6 +463,25 @@ export class GameV2Runtime {
       nearestXpPickupY:
         nearestPickupSlot < 0 ? null : (this.world.y[nearestPickupSlot] ?? 0),
       abilitySlots: this.readAbilitySlots(),
+      levelUpOffer: this.readLevelUpOffer(),
+    };
+  }
+
+  /** `null` unless the lifecycle currently holds an open offer. */
+  private readLevelUpOffer(): LevelUpOfferReadout | null {
+    if (this.lifecycle.phase !== 'level-up') {
+      return null;
+    }
+
+    const defaultIndex = this.offerSystem.defaultIndexOf(this.world, this.playerEntity);
+
+    if (defaultIndex === null) {
+      return null;
+    }
+
+    return {
+      candidates: this.offerSystem.candidatesAt(this.world, this.playerEntity),
+      defaultIndex,
     };
   }
 
@@ -542,7 +570,8 @@ export class GameV2Runtime {
       this.world,
       player,
       combat,
-      this.stepContext
+      this.stepContext,
+      this.rng
     );
 
     // Terminal death dominates the tick; progression already cleared its output
