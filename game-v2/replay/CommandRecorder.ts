@@ -20,16 +20,28 @@ function assertCommand(command: unknown): asserts command is RunCommand {
     throw new RangeError('command tick must be a non-negative safe integer');
   }
 
-  if (candidate.type !== 'choose-upgrade') {
-    throw new TypeError('unsupported run command');
+  if (candidate.type === 'choose-upgrade' || candidate.type === 'banish-offer') {
+    if (
+      typeof candidate.choiceIndex !== 'number' ||
+      !isOfferCandidateIndex(candidate.choiceIndex)
+    ) {
+      throw new TypeError(
+        candidate.type === 'choose-upgrade'
+          ? 'unsupported upgrade choice'
+          : 'unsupported banish choice'
+      );
+    }
+    return;
   }
 
-  if (
-    typeof candidate.choiceIndex !== 'number' ||
-    !isOfferCandidateIndex(candidate.choiceIndex)
-  ) {
-    throw new TypeError('unsupported upgrade choice');
+  if (candidate.type === 'reroll-offer') {
+    if (candidate.choiceIndex !== undefined) {
+      throw new TypeError('reroll-offer command must not carry a choiceIndex');
+    }
+    return;
   }
+
+  throw new TypeError('unsupported run command');
 }
 
 export class CommandRecorder {
@@ -56,15 +68,26 @@ export class CommandRecorder {
 
     const previous =
       this.#commandsInUse === 0 ? undefined : this.#commands[this.#commandsInUse - 1];
-    if (previous !== undefined && command.tick <= previous.tick) {
-      throw new RangeError('command ticks must be strictly increasing');
+
+    if (previous !== undefined) {
+      if (command.tick < previous.tick) {
+        throw new RangeError('command ticks must be non-decreasing');
+      }
+      if (command.tick === previous.tick && command.type === previous.type) {
+        throw new RangeError(`command repeats a command on tick ${command.tick}`);
+      }
     }
 
-    this.#commands[this.#commandsInUse] = Object.freeze({
-      tick: command.tick,
-      type: command.type,
-      choiceIndex: command.choiceIndex,
-    });
+    const stored: RunCommand =
+      command.type === 'reroll-offer'
+        ? Object.freeze({ tick: command.tick, type: command.type })
+        : Object.freeze({
+            tick: command.tick,
+            type: command.type,
+            choiceIndex: command.choiceIndex,
+          });
+
+    this.#commands[this.#commandsInUse] = stored;
     this.#commandsInUse += 1;
   }
 

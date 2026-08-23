@@ -104,6 +104,8 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   nearestXpPickupY: null,
   abilitySlots: EMPTY_ABILITY_SLOTS,
   levelUpOffer: null,
+  rerollCharges: 0,
+  banishCharges: 0,
 });
 
 /**
@@ -289,6 +291,46 @@ export class GameV2Runtime {
     this.clock.resume();
   }
 
+  /**
+   * Spends the reroll charge and regenerates the whole open offer (V2-105).
+   * Does not resume the simulation: the level-up remains paused so the
+   * player can still choose from the new offer.
+   */
+  public rerollOffer(): void {
+    this.assertUsable();
+
+    if (this.lifecycle.phase !== 'level-up') {
+      throw new RangeError('no upgrade offer is open');
+    }
+
+    this.progressionSystem.rerollOffer(
+      this.world,
+      this.playerEntity,
+      { tick: this.simulationTick, type: 'reroll-offer' },
+      this.rng
+    );
+  }
+
+  /**
+   * Spends the banish charge, bans the candidate at `choiceIndex` for the
+   * rest of the run, and replaces only that slot (V2-105). Does not resume
+   * the simulation.
+   */
+  public banishOffer(choiceIndex: OfferCandidateIndex): void {
+    this.assertUsable();
+
+    if (this.lifecycle.phase !== 'level-up') {
+      throw new RangeError('no upgrade offer is open');
+    }
+
+    this.progressionSystem.banishOffer(
+      this.world,
+      this.playerEntity,
+      { tick: this.simulationTick, type: 'banish-offer', choiceIndex },
+      this.rng
+    );
+  }
+
   public resize(viewportWidth: number, viewportHeight: number): void {
     this.assertUsable();
     this.presentation?.resize(viewportWidth, viewportHeight);
@@ -464,6 +506,8 @@ export class GameV2Runtime {
         nearestPickupSlot < 0 ? null : (this.world.y[nearestPickupSlot] ?? 0),
       abilitySlots: this.readAbilitySlots(),
       levelUpOffer: this.readLevelUpOffer(),
+      rerollCharges: this.offerSystem.rerollChargesOf(this.world, this.playerEntity),
+      banishCharges: this.offerSystem.banishChargesOf(this.world, this.playerEntity),
     };
   }
 

@@ -61,6 +61,9 @@ export type GameV2RuntimeReadout = Readonly<{
   /** Length `ABILITY_SLOT_COUNT`; `null` at an empty slot index. */
   abilitySlots: readonly (AbilitySlotReadout | null)[];
   levelUpOffer: LevelUpOfferReadout | null;
+  /** `1` while the run's single reroll/banish charge is unspent (V2-105). */
+  rerollCharges: 0 | 1;
+  banishCharges: 0 | 1;
 }>;
 
 /**

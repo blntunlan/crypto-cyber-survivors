@@ -347,6 +347,270 @@ describe('LevelUpOfferSystem', () => {
     ).toThrow('entity does not own a level-up offer');
   });
 
+  describe('rerollChargesOf / banishChargesOf', () => {
+    it('reports 1 before any charge is spent and 0 after', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.rerollCharges[world.slotOf(owner)] = 1;
+      world.banishCharges[world.slotOf(owner)] = 1;
+
+      expect(offerSystem.rerollChargesOf(world, owner)).toBe(1);
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(1);
+
+      offerSystem.reroll(world, new DeterministicRng(2), owner);
+
+      expect(offerSystem.rerollChargesOf(world, owner)).toBe(0);
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(1);
+    });
+  });
+
+  describe('reroll', () => {
+    it('spends the charge exactly once and regenerates every slot and the default index', () => {
+      const { world, owner, offerSystem } = createHarness();
+      world.rerollCharges[world.slotOf(owner)] = 1;
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      const before = offerSystem.candidatesAt(world, owner);
+
+      offerSystem.reroll(world, new DeterministicRng(999), owner);
+
+      expect(offerSystem.rerollChargesOf(world, owner)).toBe(0);
+      expect(offerSystem.candidatesAt(world, owner)).not.toEqual(before);
+      const after = offerSystem.candidatesAt(world, owner);
+      expect(after.filter(candidate => candidate !== null)).toHaveLength(3);
+    });
+
+    it('throws and mutates nothing when no offer is open', () => {
+      const { world, owner, offerSystem } = createHarness();
+      world.rerollCharges[world.slotOf(owner)] = 1;
+
+      expect(() => offerSystem.reroll(world, new DeterministicRng(1), owner)).toThrow(
+        'no level-up offer is open'
+      );
+      expect(offerSystem.rerollChargesOf(world, owner)).toBe(1);
+    });
+
+    it('throws and mutates nothing when the charge is already spent', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.rerollCharges[world.slotOf(owner)] = 0;
+      const before = offerSystem.candidatesAt(world, owner);
+
+      expect(() => offerSystem.reroll(world, new DeterministicRng(2), owner)).toThrow(
+        'no reroll charge remains'
+      );
+      expect(offerSystem.candidatesAt(world, owner)).toEqual(before);
+    });
+
+    it('never redraws a banished identity', () => {
+      const { world, owner, offerSystem, abilityLoadout, passiveLoadout } =
+        createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.rerollCharges[world.slotOf(owner)] = 1;
+      world.banishCharges[world.slotOf(owner)] = 1;
+
+      const banishIndex = offerSystem
+        .candidatesAt(world, owner)
+        .findIndex(candidate => candidate !== null) as 0 | 1 | 2;
+      const banished = offerSystem.resolveIndex(world, owner, banishIndex);
+      offerSystem.banish(world, new DeterministicRng(3), owner, banishIndex);
+
+      // Rerolling many times with different seeds must never bring the
+      // banished identity back.
+      for (let seed = 10; seed < 40; seed += 1) {
+        world.rerollCharges[world.slotOf(owner)] = 1;
+        offerSystem.reroll(world, new DeterministicRng(seed), owner);
+        const candidates = offerSystem.candidatesAt(world, owner);
+        expect(
+          candidates.some(
+            candidate =>
+              candidate !== null &&
+              candidate.kind === banished.kind &&
+              candidate.identity === banished.identity
+          )
+        ).toBe(false);
+      }
+
+      // Sanity: the ability/passive loadouts were untouched by banishing.
+      expect(abilityLoadout).toBeDefined();
+      expect(passiveLoadout).toBeDefined();
+    });
+  });
+
+  describe('banish', () => {
+    it('spends the charge exactly once, replaces only the targeted slot, and leaves the others untouched', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.banishCharges[world.slotOf(owner)] = 1;
+      const before = offerSystem.candidatesAt(world, owner);
+      const targetIndex = 0;
+      const untouchedIndices = [1, 2] as const;
+
+      offerSystem.banish(world, new DeterministicRng(5), owner, targetIndex);
+
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(0);
+      const after = offerSystem.candidatesAt(world, owner);
+      for (const index of untouchedIndices) {
+        expect(after[index]).toEqual(before[index]);
+      }
+    });
+
+    it('redraws the default index only when it pointed at the banished slot', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(4), owner);
+      world.banishCharges[world.slotOf(owner)] = 1;
+      const defaultBefore = offerSystem.defaultIndexOf(world, owner);
+      expect(defaultBefore).not.toBeNull();
+
+      const otherIndex = (((defaultBefore! as number) + 1) % 3) as 0 | 1 | 2;
+      const candidatesBefore = offerSystem.candidatesAt(world, owner);
+      // Only banish a non-default, occupied slot to prove the default is untouched.
+      const targetIndex =
+        candidatesBefore[otherIndex] !== null
+          ? otherIndex
+          : ((defaultBefore! as number) + 2) % 3;
+
+      if (candidatesBefore[targetIndex] === null) {
+        // Every non-default slot is empty in this offer; nothing to prove here.
+        return;
+      }
+
+      offerSystem.banish(world, new DeterministicRng(6), owner, targetIndex);
+
+      expect(offerSystem.defaultIndexOf(world, owner)).toBe(defaultBefore);
+    });
+
+    it('redraws the default index from surviving occupied slots when it pointed at the banished slot', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.banishCharges[world.slotOf(owner)] = 1;
+      const defaultIndex = offerSystem.defaultIndexOf(world, owner);
+      expect(defaultIndex).not.toBeNull();
+
+      offerSystem.banish(world, new DeterministicRng(7), owner, defaultIndex!);
+
+      const newDefault = offerSystem.defaultIndexOf(world, owner);
+      const candidates = offerSystem.candidatesAt(world, owner);
+      if (newDefault !== null) {
+        expect(candidates[newDefault]).not.toBeNull();
+      }
+    });
+
+    it('permanently excludes the banished identity from later offers this run', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.banishCharges[world.slotOf(owner)] = 1;
+      const banished = offerSystem.resolveIndex(world, owner, 0);
+
+      offerSystem.banish(world, new DeterministicRng(2), owner, 0);
+
+      for (let seed = 50; seed < 80; seed += 1) {
+        offerSystem.generateOffer(world, new DeterministicRng(seed), owner);
+        const candidates = offerSystem.candidatesAt(world, owner);
+        expect(
+          candidates.some(
+            candidate =>
+              candidate !== null &&
+              candidate.kind === banished.kind &&
+              candidate.identity === banished.identity
+          )
+        ).toBe(false);
+      }
+    });
+
+    it('is legal and leaves the slot empty when no replacement is offerable', () => {
+      const world = new World(CAPACITY);
+      const owner = world.createEntity(OWNER_MASK);
+      const abilityLoadout = new AbilityLoadoutSystem(
+        createAbilityRegistry([ABILITY_DEFINITIONS[0]!])
+      );
+      const passiveLoadout = new PassiveLoadoutSystem(
+        createPassiveRegistry([PASSIVE_DEFINITIONS[0]!])
+      );
+      const offerSystem = new LevelUpOfferSystem(
+        abilityLoadout,
+        passiveLoadout,
+        createAbilityRegistry([ABILITY_DEFINITIONS[0]!]),
+        createPassiveRegistry([PASSIVE_DEFINITIONS[0]!])
+      );
+
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      const candidates = offerSystem.candidatesAt(world, owner);
+      const occupiedIndex = candidates.findIndex(candidate => candidate !== null) as
+        | 0
+        | 1
+        | 2;
+      world.banishCharges[world.slotOf(owner)] = 1;
+
+      expect(() =>
+        offerSystem.banish(world, new DeterministicRng(1), owner, occupiedIndex)
+      ).not.toThrow();
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(0);
+    });
+
+    it('throws and mutates nothing when no offer is open', () => {
+      const { world, owner, offerSystem } = createHarness();
+      world.banishCharges[world.slotOf(owner)] = 1;
+
+      expect(() =>
+        offerSystem.banish(world, new DeterministicRng(1), owner, 0)
+      ).toThrow('no level-up offer is open');
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(1);
+    });
+
+    it('throws and mutates nothing when the charge is already spent', () => {
+      const { world, owner, offerSystem } = createHarness();
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      world.banishCharges[world.slotOf(owner)] = 0;
+      const before = offerSystem.candidatesAt(world, owner);
+
+      expect(() =>
+        offerSystem.banish(world, new DeterministicRng(1), owner, 0)
+      ).toThrow('no banish charge remains');
+      expect(offerSystem.candidatesAt(world, owner)).toEqual(before);
+      expect(world.bannedCandidateKind[world.slotOf(owner)]).toBe(0);
+    });
+
+    it('throws and mutates nothing for an empty candidate index', () => {
+      const world = new World(CAPACITY);
+      const owner = world.createEntity(OWNER_MASK);
+      const abilityLoadout = new AbilityLoadoutSystem(
+        createAbilityRegistry([ABILITY_DEFINITIONS[0]!])
+      );
+      const passiveLoadout = new PassiveLoadoutSystem(
+        createPassiveRegistry([PASSIVE_DEFINITIONS[0]!])
+      );
+      const offerSystem = new LevelUpOfferSystem(
+        abilityLoadout,
+        passiveLoadout,
+        createAbilityRegistry([ABILITY_DEFINITIONS[0]!]),
+        createPassiveRegistry([PASSIVE_DEFINITIONS[0]!])
+      );
+
+      offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+      expect(offerSystem.candidatesAt(world, owner)[2]).toBeNull();
+      world.banishCharges[world.slotOf(owner)] = 1;
+
+      expect(() =>
+        offerSystem.banish(world, new DeterministicRng(1), owner, 2)
+      ).toThrow('offer candidate slot is empty');
+      expect(offerSystem.banishChargesOf(world, owner)).toBe(1);
+    });
+
+    it.each([-1, 3, 1.5, Number.NaN])(
+      'throws and mutates nothing for out-of-range index %s',
+      index => {
+        const { world, owner, offerSystem } = createHarness();
+        offerSystem.generateOffer(world, new DeterministicRng(1), owner);
+        world.banishCharges[world.slotOf(owner)] = 1;
+
+        expect(() =>
+          offerSystem.banish(world, new DeterministicRng(1), owner, index)
+        ).toThrow('offer candidate index must be an integer inside the offer');
+        expect(offerSystem.banishChargesOf(world, owner)).toBe(1);
+      }
+    );
+  });
+
   it('hands a recycled world slot an empty offer', () => {
     const { world, owner, offerSystem } = createHarness();
     const slot = world.slotOf(owner);

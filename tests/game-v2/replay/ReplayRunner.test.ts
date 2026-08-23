@@ -53,6 +53,31 @@ describe('ReplayRunner', () => {
     expect(result.commandsApplied).toBe(recording.commands.length);
   });
 
+  it('replays a recorded reroll and banish to the same offer, choice, and RNG state at every frame rate', () => {
+    const run = driveScriptedRun(SCENARIO_SEED, 'ability', true);
+    const recording = run.runtime.exportRecording();
+    const liveHash = run.runtime.snapshotHash();
+    run.runtime.dispose();
+
+    expect(run.upgradeApplied).toBe(true);
+    const types = recording.commands.map(command => command.type);
+    expect(types).toEqual(['reroll-offer', 'banish-offer', 'choose-upgrade']);
+    // All three share one tick: no simulation tick advances while paused.
+    const ticks = new Set(recording.commands.map(command => command.tick));
+    expect(ticks.size).toBe(1);
+
+    const replayRunner = new ReplayRunner();
+    const at30 = replayRunner.run(recording, 30);
+    const at60 = replayRunner.run(recording, 60);
+    const at120 = replayRunner.run(recording, 120);
+
+    expect(at60.finalHash).toBe(liveHash);
+    expect(at30.finalHash).toBe(at60.finalHash);
+    expect(at120.finalHash).toBe(at60.finalHash);
+    expect(at60.commandsApplied).toBe(recording.commands.length);
+    expect(at60.commandsApplied).toBe(3);
+  });
+
   it('replays a recorded passive choice to the same state at every frame rate', () => {
     const run = driveScriptedRun(SCENARIO_SEED, 'passive');
     const recording = run.runtime.exportRecording();
@@ -60,9 +85,12 @@ describe('ReplayRunner', () => {
     run.runtime.dispose();
 
     expect(run.upgradeApplied).toBe(true);
-    expect(recording.commands[0]?.type).toBe('choose-upgrade');
-    expect(recording.commands[0]?.choiceIndex).toBeGreaterThanOrEqual(0);
-    expect(recording.commands[0]?.choiceIndex).toBeLessThanOrEqual(2);
+    const firstCommand = recording.commands[0];
+    if (firstCommand?.type !== 'choose-upgrade') {
+      throw new Error('expected a choose-upgrade command');
+    }
+    expect(firstCommand.choiceIndex).toBeGreaterThanOrEqual(0);
+    expect(firstCommand.choiceIndex).toBeLessThanOrEqual(2);
 
     const replayRunner = new ReplayRunner();
     const at30 = replayRunner.run(recording, 30);

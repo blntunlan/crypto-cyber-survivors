@@ -92,6 +92,10 @@ export class ProgressionSystem {
 
     world.xp[slot] = 0;
     world.level[slot] = PLAYER_STARTING_LEVEL;
+    world.rerollCharges[slot] = 1;
+    world.banishCharges[slot] = 1;
+    world.bannedCandidateKind[slot] = 0;
+    world.bannedCandidateCode[slot] = 0;
   }
 
   /**
@@ -344,7 +348,7 @@ export class ProgressionSystem {
   public resolveUpgrade(
     world: World,
     playerEntity: EntityId,
-    command: RunCommand
+    command: RunCommand & { type: 'choose-upgrade' }
   ): void {
     if (this.lifecycle.phase !== 'level-up') {
       throw new RangeError(
@@ -368,6 +372,69 @@ export class ProgressionSystem {
 
     this.offerSystem.clearOwner(world, playerEntity);
     this.lifecycle.resumeFromLevelUp();
+  }
+
+  /**
+   * Spends the reroll charge and regenerates the whole offer.
+   *
+   * The brief's interface omits an `rng` parameter, but `LevelUpOfferSystem`
+   * has none of its own — `resolveUpgrade` needs none because resolving an
+   * index consumes no randomness, while regenerating an offer does. This
+   * mirrors `step`'s existing external-`rng` parameter (V2-105 deviation,
+   * recorded rather than assumed silently).
+   *
+   * Validates lifecycle phase and charge availability, then records the
+   * command, then mutates — mirroring `resolveUpgrade`'s validate-before-
+   * record-before-mutate order so a rejected reroll leaves nothing recorded
+   * or changed.
+   */
+  public rerollOffer(
+    world: World,
+    playerEntity: EntityId,
+    command: RunCommand & { type: 'reroll-offer' },
+    rng: DeterministicRng = new DeterministicRng(1)
+  ): void {
+    if (this.lifecycle.phase !== 'level-up') {
+      throw new RangeError(
+        'cannot reroll offer when lifecycle is not in level-up phase'
+      );
+    }
+
+    if (this.offerSystem.rerollChargesOf(world, playerEntity) === 0) {
+      throw new RangeError('no reroll charge remains');
+    }
+
+    this.commandRecorder.record(command);
+    this.offerSystem.reroll(world, rng, playerEntity);
+  }
+
+  /**
+   * Spends the banish charge, permanently bans the candidate at
+   * `command.choiceIndex`, and replaces only that slot. See `rerollOffer`
+   * for the `rng` parameter note and the validate-before-record-before-mutate
+   * order this mirrors.
+   */
+  public banishOffer(
+    world: World,
+    playerEntity: EntityId,
+    command: RunCommand & { type: 'banish-offer' },
+    rng: DeterministicRng = new DeterministicRng(1)
+  ): void {
+    if (this.lifecycle.phase !== 'level-up') {
+      throw new RangeError(
+        'cannot banish offer when lifecycle is not in level-up phase'
+      );
+    }
+
+    if (this.offerSystem.banishChargesOf(world, playerEntity) === 0) {
+      throw new RangeError('no banish charge remains');
+    }
+
+    // Validates the index without mutating anything.
+    this.offerSystem.resolveIndex(world, playerEntity, command.choiceIndex);
+
+    this.commandRecorder.record(command);
+    this.offerSystem.banish(world, rng, playerEntity, command.choiceIndex);
   }
 
   private hasOpenOffer(): boolean {

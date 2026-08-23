@@ -94,6 +94,21 @@ export class World {
   public readonly offerCandidateCode: Uint8Array;
   /** The RNG-seeded default candidate index, one byte per world slot. */
   public readonly offerDefaultIndex: Uint8Array;
+  /**
+   * Per-run reroll/banish charges, one byte per world slot, `0` or `1`
+   * (V2-ADR-056). Gated by the existing `LevelUpOffer` component bit rather
+   * than a new one; a spent charge stays spent for the rest of the run even
+   * after the offer that consumed it resolves and clears.
+   */
+  public readonly rerollCharges: Uint8Array;
+  public readonly banishCharges: Uint8Array;
+  /**
+   * The single banished identity for this run, if any (V2-ADR-058). One slot
+   * per world slot is enough because only one banish is ever possible per
+   * run. `kind` is `0` (empty) until a banish is spent.
+   */
+  public readonly bannedCandidateKind: Uint8Array;
+  public readonly bannedCandidateCode: Uint8Array;
 
   private readonly capacity: number;
   private freeSlotsInUse: number;
@@ -141,6 +156,10 @@ export class World {
     this.offerCandidateKind = new Uint8Array(capacity * OFFER_CANDIDATE_COUNT);
     this.offerCandidateCode = new Uint8Array(capacity * OFFER_CANDIDATE_COUNT);
     this.offerDefaultIndex = new Uint8Array(capacity);
+    this.rerollCharges = new Uint8Array(capacity);
+    this.banishCharges = new Uint8Array(capacity);
+    this.bannedCandidateKind = new Uint8Array(capacity);
+    this.bannedCandidateCode = new Uint8Array(capacity);
     this.freeSlotsInUse = capacity;
 
     for (let slot = 0; slot < capacity; slot += 1) {
@@ -444,5 +463,9 @@ export class World {
       this.offerCandidateCode[offerBase + index] = 0;
     }
     this.offerDefaultIndex[slot] = 0;
+    this.rerollCharges[slot] = 0;
+    this.banishCharges[slot] = 0;
+    this.bannedCandidateKind[slot] = 0;
+    this.bannedCandidateCode[slot] = 0;
   }
 }

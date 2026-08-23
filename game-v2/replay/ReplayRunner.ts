@@ -54,7 +54,7 @@ const assertRenderFps = (renderFps: number): void => {
  * this build; whether the recording reproduces its own initial state is checked
  * against the started runtime, because only the runtime can answer that.
  */
-const assertRecording = (recording: RunRecording): Map<number, RunCommand> => {
+const assertRecording = (recording: RunRecording): void => {
   assertSchemaVersion(
     recording.schemaVersion,
     RUN_RECORDING_SCHEMA_VERSION,
@@ -85,16 +85,29 @@ const assertRecording = (recording: RunRecording): Map<number, RunCommand> => {
     }
   }
 
-  const commandsByTick = new Map<number, RunCommand>();
+  // Multiple commands can legally share one tick: no simulation tick advances
+  // while the lifecycle is paused for a level-up (V2-ADR-059), so a reroll
+  // and/or a banish can land on the same paused tick as the eventual
+  // choose-upgrade that resumes it. What must never repeat is the same
+  // command *type* at the same tick — that would mean applying an
+  // already-spent action twice without an intervening tick.
   let previousTick = 0;
+  let tickCursor = -1;
+  let typesSeenAtTick = new Set<RunCommand['type']>();
 
   for (const command of recording.commands) {
-    if (commandsByTick.has(command.tick)) {
-      throw new RangeError(`run recording repeats a command on tick ${command.tick}`);
+    if (command.tick !== tickCursor) {
+      tickCursor = command.tick;
+      typesSeenAtTick = new Set();
     }
 
-    if (command.tick <= previousTick) {
-      throw new RangeError('run recording command ticks must strictly increase');
+    if (typesSeenAtTick.has(command.type)) {
+      throw new RangeError(`run recording repeats a command on tick ${command.tick}`);
+    }
+    typesSeenAtTick.add(command.type);
+
+    if (command.tick < previousTick) {
+      throw new RangeError('run recording command ticks must not decrease');
     }
 
     if (command.tick > recording.frames.length) {
@@ -102,10 +115,7 @@ const assertRecording = (recording: RunRecording): Map<number, RunCommand> => {
     }
 
     previousTick = command.tick;
-    commandsByTick.set(command.tick, command);
   }
-
-  return commandsByTick;
 };
 
 /**
@@ -124,7 +134,7 @@ export class ReplayRunner {
 
   public run(recording: RunRecording, renderFps: number): ReplayResult {
     assertRenderFps(renderFps);
-    const commandsByTick = assertRecording(recording);
+    assertRecording(recording);
 
     let nextFrameIndex = 0;
     const intentSource: IntentSource = {
@@ -164,28 +174,29 @@ export class ReplayRunner {
       const framesPerTick = Math.max(1, Math.ceil(renderFps / SIMULATION_HZ));
       const maxFrames = (recording.frames.length + 1) * framesPerTick + MAX_RENDER_FPS;
       let commandsApplied = 0;
+      let nextCommandIndex = 0;
       let framesAdvanced = 0;
 
       while (runtime.phase !== 'game-over') {
         if (runtime.phase === 'level-up') {
-          const command = commandsByTick.get(runtime.tick);
+          const command = recording.commands[nextCommandIndex];
 
-          if (command === undefined) {
+          if (command?.tick !== runtime.tick) {
             throw new RangeError(
               `run recording is missing the upgrade command for paused tick ${runtime.tick}`
             );
           }
 
-          // Last-resort budget: a command found more than once means the pause
-          // did not clear, and this branch does not consume a frame.
-          if (commandsApplied >= recording.commands.length) {
-            throw new RangeError(
-              'replay paused more times than the recording has commands'
-            );
-          }
-
-          runtime.chooseUpgrade(command.choiceIndex);
+          nextCommandIndex += 1;
           commandsApplied += 1;
+
+          if (command.type === 'reroll-offer') {
+            runtime.rerollOffer();
+          } else if (command.type === 'banish-offer') {
+            runtime.banishOffer(command.choiceIndex);
+          } else {
+            runtime.chooseUpgrade(command.choiceIndex);
+          }
           continue;
         }
 

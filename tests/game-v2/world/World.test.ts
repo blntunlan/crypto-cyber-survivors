@@ -266,6 +266,41 @@ describe('World', () => {
     expect(world.offerDefaultIndex.every(value => value === 0)).toBe(true);
   });
 
+  it('clears reroll/banish charges and the ban when a slot is destroyed or the world resets', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.LevelUpOffer);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.LevelUpOffer);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    world.rerollCharges[slot] = 1;
+    world.banishCharges[slot] = 1;
+    world.bannedCandidateKind[slot] = 1;
+    world.bannedCandidateCode[slot] = 7;
+    world.rerollCharges[neighbourSlot] = 1;
+    world.banishCharges[neighbourSlot] = 1;
+    world.bannedCandidateKind[neighbourSlot] = 2;
+    world.bannedCandidateCode[neighbourSlot] = 9;
+
+    world.destroyEntity(entity);
+
+    expect(world.rerollCharges[slot]).toBe(0);
+    expect(world.banishCharges[slot]).toBe(0);
+    expect(world.bannedCandidateKind[slot]).toBe(0);
+    expect(world.bannedCandidateCode[slot]).toBe(0);
+    expect(world.rerollCharges[neighbourSlot]).toBe(1);
+    expect(world.banishCharges[neighbourSlot]).toBe(1);
+    expect(world.bannedCandidateKind[neighbourSlot]).toBe(2);
+    expect(world.bannedCandidateCode[neighbourSlot]).toBe(9);
+
+    world.reset();
+
+    expect(world.rerollCharges.every(value => value === 0)).toBe(true);
+    expect(world.banishCharges.every(value => value === 0)).toBe(true);
+    expect(world.bannedCandidateKind.every(value => value === 0)).toBe(true);
+    expect(world.bannedCandidateCode.every(value => value === 0)).toBe(true);
+  });
+
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4097])(
     'rejects invalid capacity %s before a world exists',
     capacity => {

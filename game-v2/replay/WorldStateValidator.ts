@@ -60,6 +60,10 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'dashCharges',
     'movementOverride',
     'offerDefaultIndex',
+    'rerollCharges',
+    'banishCharges',
+    'bannedCandidateKind',
+    'bannedCandidateCode',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint16: Object.freeze([
     'invulnerabilityTicksRemaining',
@@ -277,6 +281,59 @@ const validateLevelUpOffer = (
   }
 };
 
+/**
+ * Validates the reroll/banish charges (V2-105, V2-ADR-056): each is `0` or
+ * `1`, and a nonzero charge requires the `LevelUpOffer` component, mirroring
+ * `validateLevelUpOffer`'s ownership check.
+ */
+const validateOfferCharges = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    const reroll = state.rerollCharges[slot] ?? 0;
+    const banish = state.banishCharges[slot] ?? 0;
+
+    if (reroll > 1) {
+      throw new RangeError('reroll charges must be 0 or 1');
+    }
+    if (banish > 1) {
+      throw new RangeError('banish charges must be 0 or 1');
+    }
+    if ((reroll !== 0 || banish !== 0) && !ownsOffer) {
+      throw new RangeError('offer charges require the LevelUpOffer component');
+    }
+  }
+};
+
+/**
+ * Validates the single banished-identity slot (V2-105, V2-ADR-058), mirroring
+ * `validateLevelUpOffer`'s kind/code pairing and ownership rules.
+ */
+const validateBanishState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    const kind = state.bannedCandidateKind[slot] ?? 0;
+    const code = state.bannedCandidateCode[slot] ?? 0;
+
+    if (kind !== 0 && kind !== OFFER_KIND_ABILITY && kind !== OFFER_KIND_PASSIVE) {
+      throw new RangeError('banned candidate kind is unsupported');
+    }
+    if ((kind === 0) !== (code === 0)) {
+      throw new RangeError('banned candidate must pair a kind with a code');
+    }
+    if (kind !== 0 && !ownsOffer) {
+      throw new RangeError('banned candidate requires the LevelUpOffer component');
+    }
+  }
+};
+
 export const validateAuthoritativeWorldState = (
   state: AuthoritativeWorldState,
   candidateCapacity: number
@@ -357,4 +414,6 @@ export const validateAuthoritativeWorldState = (
   validateAbilityLoadout(state, capacity);
   validatePassiveLoadout(state, capacity);
   validateLevelUpOffer(state, capacity);
+  validateOfferCharges(state, capacity);
+  validateBanishState(state, capacity);
 };

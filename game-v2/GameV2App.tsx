@@ -63,6 +63,8 @@ export const GameV2App = ({
 
   const [phase, setPhase] = useState<GameV2Phase>('idle');
   const [offer, setOffer] = useState<LevelUpOfferReadout | null>(null);
+  const [rerollCharges, setRerollCharges] = useState<0 | 1>(0);
+  const [banishCharges, setBanishCharges] = useState<0 | 1>(0);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
@@ -165,7 +167,10 @@ export const GameV2App = ({
           lastPhase = runtime.phase;
 
           if (runtime.phase === 'level-up') {
-            setOffer(runtime.readout().levelUpOffer);
+            const levelUpReadout = runtime.readout();
+            setOffer(levelUpReadout.levelUpOffer);
+            setRerollCharges(levelUpReadout.rerollCharges);
+            setBanishCharges(levelUpReadout.banishCharges);
           }
 
           setPhase(runtime.phase);
@@ -215,6 +220,32 @@ export const GameV2App = ({
     setPhase(runtime.phase);
   }, []);
 
+  const handleReroll = useCallback((): void => {
+    const runtime = runtimeRef.current;
+
+    if (runtime?.phase !== 'level-up') {
+      return;
+    }
+
+    runtime.rerollOffer();
+    const readout = runtime.readout();
+    setOffer(readout.levelUpOffer);
+    setRerollCharges(readout.rerollCharges);
+  }, []);
+
+  const handleBanish = useCallback((choiceIndex: OfferCandidateIndex): void => {
+    const runtime = runtimeRef.current;
+
+    if (runtime?.phase !== 'level-up') {
+      return;
+    }
+
+    runtime.banishOffer(choiceIndex);
+    const readout = runtime.readout();
+    setOffer(readout.levelUpOffer);
+    setBanishCharges(readout.banishCharges);
+  }, []);
+
   const handleRestart = useCallback((): void => {
     const runtime = runtimeRef.current;
 
@@ -225,6 +256,8 @@ export const GameV2App = ({
     runtime.reset();
     runtime.start();
     setOffer(null);
+    setRerollCharges(0);
+    setBanishCharges(0);
     setPhase(runtime.phase);
   }, []);
 
@@ -265,7 +298,14 @@ export const GameV2App = ({
           ))}
         </div>
         {failure === null && phase === 'level-up' && offer !== null ? (
-          <LevelUpOverlay offer={offer} onChoose={handleChoose} />
+          <LevelUpOverlay
+            offer={offer}
+            onChoose={handleChoose}
+            rerollCharges={rerollCharges}
+            banishCharges={banishCharges}
+            onReroll={handleReroll}
+            onBanish={handleBanish}
+          />
         ) : null}
         {failure !== null ? (
           <div className="level-up-overlay" data-testid="game-v2-failure-overlay">

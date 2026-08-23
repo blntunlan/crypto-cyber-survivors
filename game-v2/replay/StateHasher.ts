@@ -207,6 +207,10 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
       hash.u8(world.offerCandidateCode[offerIndex] ?? 0);
     }
     hash.u8(world.offerDefaultIndex[slot] ?? 0);
+    hash.u8(world.rerollCharges[slot] ?? 0);
+    hash.u8(world.banishCharges[slot] ?? 0);
+    hash.u8(world.bannedCandidateKind[slot] ?? 0);
+    hash.u8(world.bannedCandidateCode[slot] ?? 0);
   }
 };
 

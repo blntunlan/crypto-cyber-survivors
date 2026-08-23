@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 4 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 5 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -47,4 +47,9 @@ export type WorldSnapshot = Readonly<{
   offerCandidateKind: Uint8Array;
   offerCandidateCode: Uint8Array;
   offerDefaultIndex: Uint8Array;
+  /** Per-run reroll/banish charges and the single banished identity (V2-105). */
+  rerollCharges: Uint8Array;
+  banishCharges: Uint8Array;
+  bannedCandidateKind: Uint8Array;
+  bannedCandidateCode: Uint8Array;
 }>;

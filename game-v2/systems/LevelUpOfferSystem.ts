@@ -66,25 +66,7 @@ export class LevelUpOfferSystem {
    */
   public generateOffer(world: World, rng: DeterministicRng, owner: EntityId): void {
     const base = this.baseIndex(world, owner);
-    const pool: PoolEntry[] = [];
-
-    for (const identity of this.abilityRegistry.ids) {
-      if (this.abilityLoadout.isOfferable(world, owner, identity)) {
-        pool.push({
-          kind: OFFER_KIND_ABILITY,
-          code: this.abilityRegistry.byId(identity).code,
-        });
-      }
-    }
-
-    for (const identity of this.passiveRegistry.ids) {
-      if (this.passiveLoadout.isOfferable(world, owner, identity)) {
-        pool.push({
-          kind: OFFER_KIND_PASSIVE,
-          code: this.passiveRegistry.byId(identity).code,
-        });
-      }
-    }
+    const pool = this.offerablePool(world, owner);
 
     if (pool.length === 0) {
       throw new RangeError('no offerable candidates exist');
@@ -170,6 +152,142 @@ export class LevelUpOfferSystem {
       world.offerCandidateCode[base + index] = 0;
     }
     world.offerDefaultIndex[world.slotOf(owner)] = 0;
+  }
+
+  /** `1` if `owner`'s single per-run reroll charge is unspent, else `0`. */
+  public rerollChargesOf(world: World, owner: EntityId): 0 | 1 {
+    const slot = world.slotOf(owner);
+    return (world.rerollCharges[slot] ?? 0) === 0 ? 0 : 1;
+  }
+
+  /** `1` if `owner`'s single per-run banish charge is unspent, else `0`. */
+  public banishChargesOf(world: World, owner: EntityId): 0 | 1 {
+    const slot = world.slotOf(owner);
+    return (world.banishCharges[slot] ?? 0) === 0 ? 0 : 1;
+  }
+
+  /**
+   * Spends the reroll charge and regenerates the complete offer — all three
+   * candidate slots and the default index — from a fresh RNG draw
+   * (V2-ADR-057). The currently-shown candidates are not excluded from the
+   * redraw; a candidate reappearing by chance is accepted, not deduplicated.
+   *
+   * Throws before any mutation if no offer is open or the charge is already
+   * spent.
+   */
+  public reroll(world: World, rng: DeterministicRng, owner: EntityId): void {
+    if (this.defaultIndexOf(world, owner) === null) {
+      throw new RangeError('no level-up offer is open');
+    }
+
+    const slot = world.slotOf(owner);
+    if ((world.rerollCharges[slot] ?? 0) === 0) {
+      throw new RangeError('no reroll charge remains');
+    }
+
+    world.rerollCharges[slot] = 0;
+    this.generateOffer(world, rng, owner);
+  }
+
+  /**
+   * Spends the banish charge, permanently excludes `index`'s identity from
+   * ever being offered again this run (V2-ADR-058), and replaces only that
+   * slot with a fresh draw from the remaining offerable pool. The other two
+   * candidates are untouched; the default index is redrawn from the
+   * surviving occupied slots only if it pointed at the banished slot.
+   *
+   * A banish that empties its slot — nothing left to redraw — is legal, not
+   * an error (V2-ADR-061).
+   *
+   * Throws before any mutation if no offer is open, the charge is already
+   * spent, or `index` is out of range or already empty.
+   */
+  public banish(
+    world: World,
+    rng: DeterministicRng,
+    owner: EntityId,
+    index: number
+  ): void {
+    if (this.defaultIndexOf(world, owner) === null) {
+      throw new RangeError('no level-up offer is open');
+    }
+
+    const slot = world.slotOf(owner);
+    if ((world.banishCharges[slot] ?? 0) === 0) {
+      throw new RangeError('no banish charge remains');
+    }
+
+    // Validates range and non-emptiness without mutating anything.
+    const banished = this.resolveIndex(world, owner, index);
+    const targetIndex = index as OfferCandidateIndex;
+    const bannedKind =
+      banished.kind === 'ability' ? OFFER_KIND_ABILITY : OFFER_KIND_PASSIVE;
+    const bannedCode =
+      banished.kind === 'ability'
+        ? this.abilityRegistry.byId(banished.identity).code
+        : this.passiveRegistry.byId(banished.identity).code;
+
+    world.banishCharges[slot] = 0;
+    world.bannedCandidateKind[slot] = bannedKind;
+    world.bannedCandidateCode[slot] = bannedCode;
+
+    const base = this.baseIndex(world, owner);
+    const wasDefault = (world.offerDefaultIndex[slot] ?? 0) === targetIndex;
+    const pool = this.offerablePool(world, owner);
+
+    if (pool.length === 0) {
+      world.offerCandidateKind[base + targetIndex] = 0;
+      world.offerCandidateCode[base + targetIndex] = 0;
+    } else {
+      const drawn = pool[rng.nextInt(pool.length)];
+      if (drawn === undefined) {
+        throw new Error('offer candidate pool is corrupt');
+      }
+      world.offerCandidateKind[base + targetIndex] = drawn.kind;
+      world.offerCandidateCode[base + targetIndex] = drawn.code;
+    }
+
+    if (wasDefault) {
+      const occupied: OfferCandidateIndex[] = [];
+      for (let i = 0; i < OFFER_CANDIDATE_COUNT; i += 1) {
+        if ((world.offerCandidateKind[base + i] ?? 0) !== 0) {
+          occupied.push(i as OfferCandidateIndex);
+        }
+      }
+
+      world.offerDefaultIndex[slot] =
+        occupied.length === 0 ? 0 : (occupied[rng.nextInt(occupied.length)] ?? 0);
+    }
+  }
+
+  /** The offerable pool honoring `owner`'s single per-run ban (V2-ADR-058). */
+  private offerablePool(world: World, owner: EntityId): PoolEntry[] {
+    const slot = world.slotOf(owner);
+    const bannedKind = world.bannedCandidateKind[slot] ?? 0;
+    const bannedCode = world.bannedCandidateCode[slot] ?? 0;
+    const pool: PoolEntry[] = [];
+
+    for (const identity of this.abilityRegistry.ids) {
+      if (this.abilityLoadout.isOfferable(world, owner, identity)) {
+        const code = this.abilityRegistry.byId(identity).code;
+        if (bannedKind === OFFER_KIND_ABILITY && bannedCode === code) {
+          continue;
+        }
+        pool.push({ kind: OFFER_KIND_ABILITY, code });
+      }
+    }
+
+    for (const identity of this.passiveRegistry.ids) {
+      if (this.passiveLoadout.isOfferable(world, owner, identity)) {
+        const code = this.passiveRegistry.byId(identity).code;
+        if (bannedKind === OFFER_KIND_PASSIVE && bannedCode === code) {
+          continue;
+        }
+        pool.push({ kind: OFFER_KIND_PASSIVE, code });
+      }
+    }
+
+    return pool;
   }
 
   private readCandidate(world: World, storeIndex: number): OfferCandidate | null {

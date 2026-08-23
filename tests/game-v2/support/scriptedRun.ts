@@ -134,7 +134,17 @@ export type ScriptedRun = {
  */
 export const driveScriptedRun = (
   seed: number,
-  desiredKind: OfferCandidate['kind'] = 'ability'
+  desiredKind: OfferCandidate['kind'] = 'ability',
+  /**
+   * When true, the run rerolls and banishes once before choosing (V2-105),
+   * so a recording exercises both new command types for replay-determinism
+   * tests. MVP-1's registries offer exactly one ability and one passive
+   * identity, so after a reroll both are always present and it is always
+   * safe to banish the slot NOT holding `desiredKind` — banishing
+   * `desiredKind` itself would make it permanently unofferable and break
+   * the very choice this run is scripted to make.
+   */
+  useRerollAndBanish = false
 ): ScriptedRun => {
   const renderer = createFakeRenderer();
   const { source, intent } = createManualIntentSource();
@@ -159,6 +169,7 @@ export const driveScriptedRun = (
   let gameOverTransitions = 0;
   let previousHealth = PLAYER_MAX_HEALTH;
   let previousPhase: GameV2RuntimeReadout['phase'] = 'idle';
+  let rerollAndBanishDone = false;
   let readout = runtime.readout();
 
   for (let frame = 0; frame < MAX_FRAMES; frame += 1) {
@@ -179,6 +190,22 @@ export const driveScriptedRun = (
 
     if (readout.phase === 'level-up') {
       levelUpReached = true;
+
+      if (useRerollAndBanish && !rerollAndBanishDone) {
+        rerollAndBanishDone = true;
+        runtime.rerollOffer();
+        const afterReroll = runtime.readout();
+        const rerolledCandidates = afterReroll.levelUpOffer?.candidates ?? [];
+        const banishIndex = rerolledCandidates.findIndex(
+          candidate => candidate !== null && candidate.kind !== desiredKind
+        );
+        if (banishIndex < 0) {
+          throw new Error(`no non-${desiredKind} candidate to banish`);
+        }
+        runtime.banishOffer(banishIndex as 0 | 1 | 2);
+        readout = runtime.readout();
+      }
+
       const candidates = readout.levelUpOffer?.candidates ?? [];
       const chosenIndex = candidates.findIndex(
         candidate => candidate?.kind === desiredKind

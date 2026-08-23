@@ -8,6 +8,7 @@ import {
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
 import {
+  OFFER_CANDIDATE_COUNT,
   OFFER_KIND_ABILITY,
   OFFER_KIND_PASSIVE,
 } from '@/game-v2/contracts/LevelUpOffer';
@@ -80,9 +81,17 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.offerCandidateKind[world.offerSlotIndexOf(slot, 2)] = OFFER_KIND_PASSIVE;
   world.offerCandidateCode[world.offerSlotIndexOf(slot, 2)] = 9;
   world.offerDefaultIndex[slot] = 0;
+  world.rerollCharges[slot] = 1;
+  world.banishCharges[slot] = 0;
+  world.bannedCandidateKind[slot] = OFFER_KIND_ABILITY;
+  world.bannedCandidateCode[slot] = 3;
 };
 
 const writeComponentFixtureReverse = (world: World, slot: number): void => {
+  world.bannedCandidateCode[slot] = 3;
+  world.bannedCandidateKind[slot] = OFFER_KIND_ABILITY;
+  world.banishCharges[slot] = 0;
+  world.rerollCharges[slot] = 1;
   world.offerDefaultIndex[slot] = 0;
   world.offerCandidateCode[world.offerSlotIndexOf(slot, 2)] = 9;
   world.offerCandidateKind[world.offerSlotIndexOf(slot, 2)] = OFFER_KIND_PASSIVE;
@@ -179,7 +188,10 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    expect(hashA).toBe('e8776b68');
+    // V2-105: the golden shifted because `hashWorld` now hashes four new
+    // per-slot bytes (rerollCharges, banishCharges, bannedCandidateKind,
+    // bannedCandidateCode); recomputed and pinned to the new schema.
+    expect(hashA).toBe('ccf580c0');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -324,6 +336,13 @@ describe('canonical runtime checkpoint', () => {
           (world.offerCandidateCode[world.offerSlotIndexOf(slot, 0)] = 6),
       ],
       ['offer default index', (world, slot) => (world.offerDefaultIndex[slot] = 2)],
+      ['reroll charges', (world, slot) => (world.rerollCharges[slot] = 0)],
+      ['banish charges', (world, slot) => (world.banishCharges[slot] = 1)],
+      [
+        'banned candidate kind',
+        (world, slot) => (world.bannedCandidateKind[slot] = OFFER_KIND_PASSIVE),
+      ],
+      ['banned candidate code', (world, slot) => (world.bannedCandidateCode[slot] = 4)],
     ];
 
     for (const [name, mutate] of cases) {
@@ -648,6 +667,100 @@ describe('canonical runtime checkpoint', () => {
         /offer default index must select an occupied candidate/i,
         world => {
           world.offerDefaultIndex[0] = 1;
+        },
+      ],
+    ];
+
+    for (const [name, message, mutate] of cases) {
+      const input = createRuntimeInput();
+      mutate(input.world);
+      expect(() => writeCheckpoint(input), name).toThrow(message);
+    }
+  });
+
+  it('rejects reroll/banish charge and banned-candidate state that breaks its structural invariants', () => {
+    const cases: ReadonlyArray<readonly [string, RegExp, (world: World) => void]> = [
+      [
+        'reroll charge above 1',
+        /reroll charges must be 0 or 1/i,
+        world => {
+          world.rerollCharges[0] = 2;
+        },
+      ],
+      [
+        'banish charge above 1',
+        /banish charges must be 0 or 1/i,
+        world => {
+          world.banishCharges[0] = 2;
+        },
+      ],
+      [
+        'reroll charge on an entity without the component',
+        /offer charges require the LevelUpOffer component/i,
+        world => {
+          // Clears the fixture's own offer candidates first so this case
+          // isolates the charge-ownership check rather than tripping the
+          // earlier offer-candidate ownership check for the same reason.
+          world.masks[0] = ALL_FIXTURE_COMPONENTS ^ ComponentMask.LevelUpOffer;
+          for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+            world.offerCandidateKind[world.offerSlotIndexOf(0, index)] = 0;
+            world.offerCandidateCode[world.offerSlotIndexOf(0, index)] = 0;
+          }
+          world.offerDefaultIndex[0] = 0;
+        },
+      ],
+      [
+        'banish charge on an empty world slot',
+        /offer charges require the LevelUpOffer component/i,
+        world => {
+          world.banishCharges[1] = 1;
+        },
+      ],
+      [
+        'unsupported banned kind',
+        /banned candidate kind is unsupported/i,
+        world => {
+          world.bannedCandidateKind[0] = 99;
+          world.bannedCandidateCode[0] = 1;
+        },
+      ],
+      [
+        'banned kind without a code',
+        /banned candidate must pair a kind with a code/i,
+        world => {
+          world.bannedCandidateCode[0] = 0;
+        },
+      ],
+      [
+        'banned code without a kind',
+        /banned candidate must pair a kind with a code/i,
+        world => {
+          world.bannedCandidateKind[0] = 0;
+          world.bannedCandidateCode[0] = 5;
+        },
+      ],
+      [
+        'banned candidate on an entity without the component',
+        /banned candidate requires the LevelUpOffer component/i,
+        world => {
+          // Clears the fixture's own offer candidates and charges first so
+          // this case isolates the banned-candidate ownership check.
+          world.masks[0] = ALL_FIXTURE_COMPONENTS ^ ComponentMask.LevelUpOffer;
+          for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+            world.offerCandidateKind[world.offerSlotIndexOf(0, index)] = 0;
+            world.offerCandidateCode[world.offerSlotIndexOf(0, index)] = 0;
+          }
+          world.offerDefaultIndex[0] = 0;
+          world.rerollCharges[0] = 0;
+          world.banishCharges[0] = 0;
+        },
+      ],
+      [
+        'banned candidate on an empty world slot',
+        /banned candidate requires the LevelUpOffer component/i,
+        world => {
+          world.bannedCandidateKind[1] = OFFER_KIND_ABILITY;
+          world.bannedCandidateCode[1] = 2;
         },
       ],
     ];

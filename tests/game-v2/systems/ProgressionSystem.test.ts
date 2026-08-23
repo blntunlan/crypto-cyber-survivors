@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   ENEMY_HEALTH,
@@ -1055,7 +1055,11 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     };
 
     expect(() =>
-      progression.resolveUpgrade(world, player, badCommand as unknown as RunCommand)
+      progression.resolveUpgrade(
+        world,
+        player,
+        badCommand as unknown as RunCommand & { type: 'choose-upgrade' }
+      )
     ).toThrow();
     expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
     expect(lifecycle.phase).toBe('level-up');
@@ -1147,13 +1151,268 @@ describe('Passive upgrade resolution', () => {
         tick: 4,
         type: 'choose-upgrade',
         choiceIndex: 3,
-      } as unknown as RunCommand)
+      } as unknown as RunCommand & { type: 'choose-upgrade' })
     ).toThrow('offer candidate index must be an integer inside the offer');
 
     expect(commandRecorder.count).toBe(0);
     expect(passiveLoadout.levelOf(world, player, MOVE_SPEED_PASSIVE.id)).toBeNull();
     expect(weaponSystem.starterDamageOf(world, player)).toBe(PROJECTILE_DAMAGE);
     expect(lifecycle.phase).toBe('level-up');
+  });
+});
+
+describe('resetPlayer initializes reroll/banish charges', () => {
+  it('sets both charges to 1 and clears any prior ban', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    const commandRecorder = new CommandRecorder();
+    const { progression } = createHarness(lifecycle, commandRecorder);
+
+    const slot = world.slotOf(player);
+    world.bannedCandidateKind[slot] = 1;
+    world.bannedCandidateCode[slot] = 9;
+
+    progression.resetPlayer(world, player);
+
+    expect(world.rerollCharges[slot]).toBe(1);
+    expect(world.banishCharges[slot]).toBe(1);
+    expect(world.bannedCandidateKind[slot]).toBe(0);
+    expect(world.bannedCandidateCode[slot]).toBe(0);
+  });
+});
+
+describe('Reroll (rerollOffer)', () => {
+  it('spends the charge, regenerates the offer, records the command, and keeps the lifecycle paused', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(15)
+    );
+    expect(lifecycle.phase).toBe('level-up');
+    // MVP-1's default registries offer exactly one ability and one passive
+    // identity (per the master plan), so a fresh offer can coincidentally
+    // reproduce the same candidate order as the one it replaces. A spy on
+    // the real regeneration call is what actually proves reroll ran, rather
+    // than an equality check that a 2-item shuffle can pass by chance.
+    const generateOfferSpy = vi.spyOn(offerSystem, 'generateOffer');
+
+    const command: RunCommand = { tick: 15, type: 'reroll-offer' };
+    progression.rerollOffer(world, player, command, new DeterministicRng(999));
+
+    expect(commandRecorder.count).toBe(1);
+    expect(commandRecorder.read(0)).toEqual(command);
+    expect(offerSystem.rerollChargesOf(world, player)).toBe(0);
+    expect(generateOfferSpy).toHaveBeenCalledTimes(1);
+    expect(generateOfferSpy).toHaveBeenCalledWith(world, expect.anything(), player);
+    const after = offerSystem.candidatesAt(world, player);
+    expect(after.filter(candidate => candidate !== null)).toHaveLength(2);
+    expect(lifecycle.phase).toBe('level-up');
+  });
+
+  it('rejects reroll when lifecycle is not in level-up phase and mutates nothing', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const { progression } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+
+    expect(() =>
+      progression.rerollOffer(world, player, { tick: 0, type: 'reroll-offer' })
+    ).toThrow('cannot reroll offer when lifecycle is not in level-up phase');
+    expect(commandRecorder.count).toBe(0);
+  });
+
+  it('rejects a second reroll once the charge is spent, without recording a second command', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(15)
+    );
+    progression.rerollOffer(
+      world,
+      player,
+      { tick: 15, type: 'reroll-offer' },
+      new DeterministicRng(1)
+    );
+    const after = offerSystem.candidatesAt(world, player);
+
+    expect(() =>
+      progression.rerollOffer(
+        world,
+        player,
+        { tick: 15, type: 'reroll-offer' },
+        new DeterministicRng(2)
+      )
+    ).toThrow('no reroll charge remains');
+    expect(commandRecorder.count).toBe(1);
+    expect(offerSystem.candidatesAt(world, player)).toEqual(after);
+  });
+});
+
+describe('Banish (banishOffer)', () => {
+  it('spends the charge, bans the identity, records the command, and keeps the lifecycle paused', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(15)
+    );
+    expect(lifecycle.phase).toBe('level-up');
+    const targetIndex = findOfferIndex(offerSystem, world, player, 'ability');
+    const banished = offerSystem.resolveIndex(world, player, targetIndex);
+
+    const command: RunCommand = {
+      tick: 15,
+      type: 'banish-offer',
+      choiceIndex: targetIndex,
+    };
+    progression.banishOffer(world, player, command, new DeterministicRng(3));
+
+    expect(commandRecorder.count).toBe(1);
+    expect(commandRecorder.read(0)).toEqual(command);
+    expect(offerSystem.banishChargesOf(world, player)).toBe(0);
+    expect(lifecycle.phase).toBe('level-up');
+
+    // The banished identity never reappears, even from a fresh offer.
+    for (let seed = 20; seed < 40; seed += 1) {
+      offerSystem.generateOffer(world, new DeterministicRng(seed), player);
+      const candidates = offerSystem.candidatesAt(world, player);
+      expect(
+        candidates.some(
+          candidate =>
+            candidate !== null &&
+            candidate.kind === banished.kind &&
+            candidate.identity === banished.identity
+        )
+      ).toBe(false);
+    }
+  });
+
+  it('rejects banish when lifecycle is not in level-up phase and mutates nothing', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const { progression } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+
+    expect(() =>
+      progression.banishOffer(world, player, {
+        tick: 0,
+        type: 'banish-offer',
+        choiceIndex: 0,
+      })
+    ).toThrow('cannot banish offer when lifecycle is not in level-up phase');
+    expect(commandRecorder.count).toBe(0);
+  });
+
+  it('rejects an out-of-range or empty choiceIndex before recording or mutating', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(15)
+    );
+    const emptyIndex = offerSystem
+      .candidatesAt(world, player)
+      .findIndex(candidate => candidate === null) as OfferCandidateIndex;
+
+    expect(() =>
+      progression.banishOffer(world, player, {
+        tick: 15,
+        type: 'banish-offer',
+        choiceIndex: emptyIndex,
+      })
+    ).toThrow('offer candidate slot is empty');
+    expect(commandRecorder.count).toBe(0);
+    expect(offerSystem.banishChargesOf(world, player)).toBe(1);
+  });
+
+  it('rejects a second banish once the charge is spent, without recording a second command', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
+      createContext(15)
+    );
+    const firstIndex = findOfferIndex(offerSystem, world, player, 'ability');
+    progression.banishOffer(
+      world,
+      player,
+      { tick: 15, type: 'banish-offer', choiceIndex: firstIndex },
+      new DeterministicRng(1)
+    );
+
+    expect(() =>
+      progression.banishOffer(
+        world,
+        player,
+        { tick: 15, type: 'banish-offer', choiceIndex: 0 },
+        new DeterministicRng(2)
+      )
+    ).toThrow('no banish charge remains');
+    expect(commandRecorder.count).toBe(1);
   });
 });
 

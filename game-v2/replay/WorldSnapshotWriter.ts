@@ -139,6 +139,10 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   offerCandidateKind: world.offerCandidateKind.slice(),
   offerCandidateCode: world.offerCandidateCode.slice(),
   offerDefaultIndex: world.offerDefaultIndex.slice(),
+  rerollCharges: world.rerollCharges.slice(),
+  banishCharges: world.banishCharges.slice(),
+  bannedCandidateKind: world.bannedCandidateKind.slice(),
+  bannedCandidateCode: world.bannedCandidateCode.slice(),
 });
 
 export const writeCheckpoint = (input: RuntimeCheckpointInput): RuntimeCheckpoint => {

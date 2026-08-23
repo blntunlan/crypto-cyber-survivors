@@ -33,20 +33,32 @@ const prefersReducedMotion = (): boolean => {
 export type LevelUpOverlayProps = {
   offer: LevelUpOfferReadout;
   onChoose: (index: OfferCandidateIndex) => void;
+  /** `1` while the run's single reroll/banish charge is unspent (V2-105). */
+  rerollCharges: 0 | 1;
+  banishCharges: 0 | 1;
+  onReroll: () => void;
+  onBanish: (index: OfferCandidateIndex) => void;
 };
 
 /**
- * The real 13-second card flow (design §5.4, V2-ADR-054).
+ * The real 13-second card flow (design §5.4, V2-ADR-054), plus the one-use
+ * reroll and per-card banish controls (V2-105).
  *
  * The countdown is a real-time interval independent of the simulation clock;
  * the runtime accepts a resolution at any point once the lifecycle is
  * `level-up`, so this component owns the reveal/choosing/countdown/timeout
- * presentation entirely and is never exercised by replay. Reroll and banish
- * are `V2-105`.
+ * presentation entirely and is never exercised by replay. Reroll/banish share
+ * the same `revealing` gate as the choice cards (V2-ADR-060) and never touch
+ * `elapsedMs`/`TOTAL_MS`, so neither action moves the 13-second deadline. A
+ * spent charge hides its control rather than merely disabling it.
  */
 export const LevelUpOverlay = ({
   offer,
   onChoose,
+  rerollCharges,
+  banishCharges,
+  onReroll,
+  onBanish,
 }: LevelUpOverlayProps): React.ReactElement => {
   const [elapsedMs, setElapsedMs] = useState(0);
   const resolvedRef = useRef(false);
@@ -73,6 +85,20 @@ export const LevelUpOverlay = ({
     }
     resolvedRef.current = true;
     onChoose(index);
+  };
+
+  const handleReroll = (): void => {
+    if (resolvedRef.current || revealing || rerollCharges === 0) {
+      return;
+    }
+    onReroll();
+  };
+
+  const handleBanish = (index: OfferCandidateIndex): void => {
+    if (resolvedRef.current || revealing || banishCharges === 0) {
+      return;
+    }
+    onBanish(index);
   };
 
   useEffect(() => {
@@ -121,23 +147,49 @@ export const LevelUpOverlay = ({
             if (candidate === null) {
               return null;
             }
+            const candidateIndex = index as OfferCandidateIndex;
 
             return (
-              <button
-                key={index}
-                type="button"
-                className="level-up-choice-button"
-                data-testid={`level-up-card-${index}`}
-                disabled={revealing}
-                onClick={() => {
-                  resolve(index as OfferCandidateIndex);
-                }}
-              >
-                {formatOfferCandidateLabel(candidate)}
-              </button>
+              <div key={index} className="level-up-card">
+                <button
+                  type="button"
+                  className="level-up-choice-button"
+                  data-testid={`level-up-card-${index}`}
+                  disabled={revealing}
+                  onClick={() => {
+                    resolve(candidateIndex);
+                  }}
+                >
+                  {formatOfferCandidateLabel(candidate)}
+                </button>
+                {banishCharges > 0 ? (
+                  <button
+                    type="button"
+                    className="level-up-banish-button"
+                    data-testid={`level-up-banish-${index}`}
+                    disabled={revealing}
+                    onClick={() => {
+                      handleBanish(candidateIndex);
+                    }}
+                  >
+                    Banish
+                  </button>
+                ) : null}
+              </div>
             );
           })}
         </div>
+        {rerollCharges > 0 ? (
+          <button
+            type="button"
+            className="level-up-reroll-button"
+            data-testid="level-up-reroll"
+            disabled={revealing}
+            onClick={handleReroll}
+          >
+            Reroll
+          </button>
+        ) : null}
       </div>
     </div>
   );
