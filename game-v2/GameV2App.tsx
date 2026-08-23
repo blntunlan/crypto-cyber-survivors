@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WebGLRenderer } from 'three';
 
 import { PROJECTILE_DAMAGE } from '@/game-v2/config/Mvp0Config';
+import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { KeyboardInput } from '@/game-v2/input/KeyboardInput';
@@ -11,8 +12,11 @@ import {
   resolveRunIdentity,
 } from '@/game-v2/runtime/createMvp0Runtime';
 import { type GameV2Runtime, type IntentSource } from '@/game-v2/runtime/GameV2Runtime';
+import { formatAbilitySlotBinding } from '@/game-v2/ui/AbilitySlotLabel';
 import { LevelUpOverlay } from '@/game-v2/ui/LevelUpOverlay';
 import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
+
+const ABILITY_SLOT_INDICES = Array.from({ length: ABILITY_SLOT_COUNT }, (_, i) => i);
 
 type LevelUpOffer = {
   damageBefore: number;
@@ -70,6 +74,7 @@ export const GameV2App = ({
   const levelRef = useRef<HTMLSpanElement>(null);
   const healthRef = useRef<HTMLSpanElement>(null);
   const tickRef = useRef<HTMLSpanElement>(null);
+  const abilitySlotRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const runtimeRef = useRef<GameV2Runtime | null>(null);
 
   const [phase, setPhase] = useState<GameV2Phase>('idle');
@@ -124,6 +129,25 @@ export const GameV2App = ({
       }
       if (tickRef.current !== null) {
         tickRef.current.textContent = `T ${readout.tick}`;
+      }
+
+      // Only occupied slots display (design §5.1): an empty slot's element is
+      // hidden rather than left with stale or empty text.
+      for (const index of ABILITY_SLOT_INDICES) {
+        const el = abilitySlotRefs.current[index];
+        if (el === null || el === undefined) {
+          continue;
+        }
+
+        const slot = readout.abilitySlots[index];
+
+        if (slot === null || slot === undefined) {
+          el.hidden = true;
+          continue;
+        }
+
+        el.hidden = false;
+        el.textContent = `${formatAbilitySlotBinding(slot)} Lv${slot.tier}`;
       }
     };
 
@@ -250,6 +274,17 @@ export const GameV2App = ({
             data-testid="game-v2-hud-tick"
             ref={tickRef}
           />
+          {ABILITY_SLOT_INDICES.map(index => (
+            <span
+              key={index}
+              className="game-v2-hud-field game-v2-hud-ability-slot"
+              data-testid={`game-v2-hud-ability-${index}`}
+              hidden
+              ref={el => {
+                abilitySlotRefs.current[index] = el;
+              }}
+            />
+          ))}
         </div>
         {failure === null && phase === 'level-up' ? (
           <LevelUpOverlay

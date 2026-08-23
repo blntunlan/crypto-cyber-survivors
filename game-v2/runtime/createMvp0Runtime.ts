@@ -119,6 +119,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
       weaponSystem,
       passiveLoadout
     ),
+    abilityLoadoutSystem: abilityLoadout,
     presentation:
       options.renderTarget === undefined || options.renderTarget === null
         ? null

@@ -1,4 +1,20 @@
+import {
+  type AbilityActivation,
+  type AbilitySlotIndex,
+  type AbilityTier,
+} from '@/game-v2/contracts/AbilitySlot';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
+
+/**
+ * One occupied ability slot's display-relevant state (design §5.1,
+ * V2-ADR-047). The HUD derives its binding label from `index`/`activation`
+ * rather than reading a precomputed string (V2-ADR-048).
+ */
+export type AbilitySlotReadout = Readonly<{
+  index: AbilitySlotIndex;
+  activation: AbilityActivation;
+  tier: AbilityTier;
+}>;
 
 /**
  * Cheap, allocation-light read of the authoritative simulation.
@@ -28,6 +44,8 @@ export type GameV2RuntimeReadout = Readonly<{
   nearestEnemyY: number | null;
   nearestXpPickupX: number | null;
   nearestXpPickupY: number | null;
+  /** Length `ABILITY_SLOT_COUNT`; `null` at an empty slot index. */
+  abilitySlots: readonly (AbilitySlotReadout | null)[];
 }>;
 
 /**

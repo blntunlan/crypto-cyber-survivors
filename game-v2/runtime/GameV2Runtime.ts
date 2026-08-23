@@ -8,6 +8,11 @@ import {
   SIMULATION_HZ,
 } from '@/game-v2/config/Mvp0Config';
 import {
+  ABILITY_SLOT_COUNT,
+  type AbilitySlotIndex,
+} from '@/game-v2/contracts/AbilitySlot';
+import {
+  type AbilitySlotReadout,
   type GameV2DebugSnapshot,
   type GameV2RuntimeReadout,
 } from '@/game-v2/contracts/GameV2Debug';
@@ -42,6 +47,7 @@ import { type CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { type DashSystem } from '@/game-v2/systems/DashSystem';
 import { type EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { type MovementSystem } from '@/game-v2/systems/MovementSystem';
+import { type AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { type ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import { type WeaponSystem } from '@/game-v2/systems/WeaponSystem';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
@@ -67,6 +73,10 @@ const ENEMY_MASK = ComponentMask.Transform | ComponentMask.Enemy;
 const PROJECTILE_MASK = ComponentMask.Transform | ComponentMask.Projectile;
 const XP_PICKUP_MASK = ComponentMask.Transform | ComponentMask.XpPickup;
 
+const EMPTY_ABILITY_SLOTS: readonly (AbilitySlotReadout | null)[] = Object.freeze(
+  new Array(ABILITY_SLOT_COUNT).fill(null)
+);
+
 const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   tick: 0,
   phase: 'idle',
@@ -88,6 +98,7 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   nearestEnemyY: null,
   nearestXpPickupX: null,
   nearestXpPickupY: null,
+  abilitySlots: EMPTY_ABILITY_SLOTS,
 });
 
 /**
@@ -134,6 +145,8 @@ export type GameV2RuntimeDependencies = {
   weaponSystem: WeaponSystem;
   combatSystem: CombatSystem;
   progressionSystem: ProgressionSystem;
+  /** Read-only from the runtime's perspective: fills `readout().abilitySlots`. */
+  abilityLoadoutSystem: AbilityLoadoutSystem;
   presentation: RuntimePresentation | null;
 };
 
@@ -161,6 +174,7 @@ export class GameV2Runtime {
   private readonly weaponSystem: WeaponSystem;
   private readonly combatSystem: CombatSystem;
   private readonly progressionSystem: ProgressionSystem;
+  private readonly abilityLoadoutSystem: AbilityLoadoutSystem;
   private readonly presentation: RuntimePresentation | null;
 
   private readonly initialRngSnapshot: RngSnapshot;
@@ -203,6 +217,7 @@ export class GameV2Runtime {
     this.weaponSystem = dependencies.weaponSystem;
     this.combatSystem = dependencies.combatSystem;
     this.progressionSystem = dependencies.progressionSystem;
+    this.abilityLoadoutSystem = dependencies.abilityLoadoutSystem;
     this.presentation = dependencies.presentation;
     this.initialRngSnapshot = this.rng.snapshot();
     this.stepContext = {
@@ -438,7 +453,34 @@ export class GameV2Runtime {
         nearestPickupSlot < 0 ? null : (this.world.x[nearestPickupSlot] ?? 0),
       nearestXpPickupY:
         nearestPickupSlot < 0 ? null : (this.world.y[nearestPickupSlot] ?? 0),
+      abilitySlots: this.readAbilitySlots(),
     };
+  }
+
+  /** Builds the HUD's view of the four ability slots (V2-ADR-047). */
+  private readAbilitySlots(): readonly (AbilitySlotReadout | null)[] {
+    const slots: (AbilitySlotReadout | null)[] = new Array(ABILITY_SLOT_COUNT);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const slotIndex = index as AbilitySlotIndex;
+      const activation = this.abilityLoadoutSystem.activationAt(
+        this.world,
+        this.playerEntity,
+        slotIndex
+      );
+      const tier = this.abilityLoadoutSystem.tierAt(
+        this.world,
+        this.playerEntity,
+        slotIndex
+      );
+
+      slots[index] =
+        activation === null || tier === null
+          ? null
+          : { index: slotIndex, activation, tier };
+    }
+
+    return slots;
   }
 
   public debugSnapshot(): GameV2DebugSnapshot {

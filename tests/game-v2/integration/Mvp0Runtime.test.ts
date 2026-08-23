@@ -7,6 +7,7 @@ import {
   PROJECTILE_DAMAGE,
   SIMULATION_STEP_MS,
 } from '@/game-v2/config/Mvp0Config';
+import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { type RunRecording } from '@/game-v2/contracts/RunRecording';
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
@@ -517,6 +518,68 @@ describe('MVP-0 runtime composition', () => {
     expect(readout.playerY).toBe(0);
 
     runtime.dispose();
+  });
+
+  it('reports the starter weapon as an occupied AUTO slot and every other slot empty', () => {
+    const { source } = createManualIntentSource();
+    const runtime = createMvp0Runtime({
+      runIdentity: createRunIdentity('ability-hud-fresh', 1),
+      intentSource: source,
+    });
+
+    runtime.start();
+    const { abilitySlots } = runtime.readout();
+
+    expect(abilitySlots).toHaveLength(ABILITY_SLOT_COUNT);
+    expect(abilitySlots[0]).toEqual({ index: 0, activation: 'auto', tier: 1 });
+    for (let index = 1; index < ABILITY_SLOT_COUNT; index += 1) {
+      expect(abilitySlots[index]).toBeNull();
+    }
+
+    runtime.dispose();
+  });
+
+  it('advances only the starter slot in the HUD readout when its tier upgrades', () => {
+    const scripted = driveScriptedRun(SCENARIO_SEED);
+    const recording = scripted.runtime.exportRecording();
+    scripted.runtime.dispose();
+
+    const { runtime } = replayToLevelUp(recording);
+    expect(runtime.phase).toBe('level-up');
+    expect(runtime.readout().abilitySlots[0]).toEqual({
+      index: 0,
+      activation: 'auto',
+      tier: 1,
+    });
+
+    runtime.chooseUpgrade('starter-damage-2');
+    const { abilitySlots } = runtime.readout();
+
+    expect(abilitySlots[0]).toEqual({ index: 0, activation: 'auto', tier: 2 });
+    for (let index = 1; index < ABILITY_SLOT_COUNT; index += 1) {
+      expect(abilitySlots[index]).toBeNull();
+    }
+
+    runtime.dispose();
+  });
+
+  it('leaves abilitySlots empty before start and after dispose', () => {
+    const { source } = createManualIntentSource();
+    const runtime = createMvp0Runtime({
+      runIdentity: createRunIdentity('ability-hud-idle', 1),
+      intentSource: source,
+    });
+
+    const beforeStart = runtime.readout().abilitySlots;
+    expect(beforeStart).toHaveLength(ABILITY_SLOT_COUNT);
+    expect(beforeStart.every(slot => slot === null)).toBe(true);
+
+    runtime.start();
+    runtime.dispose();
+
+    const afterDispose = runtime.readout().abilitySlots;
+    expect(afterDispose).toHaveLength(ABILITY_SLOT_COUNT);
+    expect(afterDispose.every(slot => slot === null)).toBe(true);
   });
 
   it('rejects advancing or restarting a disposed runtime', () => {

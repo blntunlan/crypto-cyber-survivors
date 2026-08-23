@@ -179,6 +179,13 @@ test.describe('Game V2 walking skeleton', () => {
       .evaluate(element => (element as HTMLCanvasElement).width);
     expect(canvasWidth).toBeGreaterThan(300);
 
+    // Only the occupied starter slot displays, labelled AUTO (design §5.1).
+    await expect(page.getByTestId('game-v2-hud-ability-0')).toBeVisible();
+    await expect(page.getByTestId('game-v2-hud-ability-0')).toHaveText('AUTO Lv1');
+    await expect(page.getByTestId('game-v2-hud-ability-1')).toBeHidden();
+    await expect(page.getByTestId('game-v2-hud-ability-2')).toBeHidden();
+    await expect(page.getByTestId('game-v2-hud-ability-3')).toBeHidden();
+
     // Movement
     const beforeWalk = await readSnapshot(page);
     await page.keyboard.down('KeyD');

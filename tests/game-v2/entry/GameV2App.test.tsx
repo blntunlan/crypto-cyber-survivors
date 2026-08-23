@@ -57,6 +57,14 @@ describe('GameV2App', () => {
       `HP ${PLAYER_MAX_HEALTH}/${PLAYER_MAX_HEALTH}`
     );
 
+    await waitFor(() => {
+      expect(screen.getByTestId('game-v2-hud-ability-0')).toBeVisible();
+    });
+    expect(screen.getByTestId('game-v2-hud-ability-0').textContent).toBe('AUTO Lv1');
+    expect(screen.getByTestId('game-v2-hud-ability-1')).not.toBeVisible();
+    expect(screen.getByTestId('game-v2-hud-ability-2')).not.toBeVisible();
+    expect(screen.getByTestId('game-v2-hud-ability-3')).not.toBeVisible();
+
     const debugSurface = window.gameV2Debug;
     expect(debugSurface).toBeDefined();
     expect(debugSurface?.getSnapshot().phase).toBe('playing');

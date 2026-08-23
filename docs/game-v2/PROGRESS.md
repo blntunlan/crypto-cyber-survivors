@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-102` — three-tier ability schema; implemented, mutation-proved, and verified |
-| Status | `Verification` — awaiting acceptance; brief and outcome in `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` |
-| Closed | `V2-101` accepted at `b7a5c07a` |
+| Active task | `V2-103` — dynamic ability HUD; implemented, mutation-proved, and verified |
+| Status | `Verification` — awaiting acceptance; brief and outcome in `docs/game-v2/tasks/V2-103-dynamic-ability-hud.md` |
+| Closed | `V2-102` accepted at `22a00d14` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1096,16 +1096,101 @@
   and kill-period tests). No test needed strengthening.
 - New decisions: V2-ADR-044 through V2-ADR-046.
 
+### V2-102 acceptance (2026-08-23)
+
+- The user accepted `V2-102`; it is closed at `22a00d14`.
+- The `V2-103` task brief (dynamic ability HUD) was generated at
+  `docs/game-v2/tasks/V2-103-dynamic-ability-hud.md` per `MASTER_PLAN.md`. It
+  scopes exposing the four ability slots through `GameV2RuntimeReadout` and
+  rendering them on the `/game-v2` HUD (occupied slots only, `1`–`4` binding
+  or `AUTO`), explicitly through the existing imperative-DOM-ref HUD pattern
+  rather than a second React-state-driven HUD subsystem, and excludes any
+  change to loadout logic itself, the real card offer flow, and passive-slot
+  display. It proposes V2-ADR-047 and V2-ADR-048, recorded in `DECISIONS.md`
+  when the task starts rather than now. Implementation has not started.
+
+### V2-103 — dynamic ability HUD (2026-08-23)
+
+- V2-ADR-047 and V2-ADR-048 were recorded in `DECISIONS.md` as the task
+  started.
+- `GameV2RuntimeReadout` gains `abilitySlots: readonly (AbilitySlotReadout |
+  null)[]` (`GameV2Debug.ts`), length `ABILITY_SLOT_COUNT`, `null` at an empty
+  index. `GameV2Runtime` takes an `abilityLoadoutSystem` dependency and fills
+  the array in `readout()` from `activationAt`/`tierAt`; `EMPTY_READOUT` gets a
+  frozen all-`null` array. `createMvp0Runtime.ts` passes the exact
+  `AbilityLoadoutSystem` instance already given to `WeaponSystem` (V2-ADR-047)
+  — not a second one.
+- `game-v2/ui/AbilitySlotLabel.ts` is new: `formatAbilitySlotBinding` derives
+  `AUTO` or the `1`-based slot position from `activation`/`index` alone
+  (V2-ADR-048), so the binding can never disagree with
+  `AbilityLoadoutSystem`'s own slot order.
+- `GameV2App.tsx` renders four fixed ability-slot `<span>`s (`hidden` by
+  default in JSX) inside the existing `.game-v2-hud`, refreshed by the same
+  `syncHud()` imperative-DOM-ref pass that already drives level/health/tick —
+  no second, React-state-driven HUD subsystem. `syncHud()` sets `el.hidden`
+  and `textContent` from `readout.abilitySlots[index]` each call.
+- `tests/game-v2/runtime/GameV2RuntimeBounds.test.ts`'s hand-composed runtime
+  needed an explicit `AbilityLoadoutSystem`, shared with its `WeaponSystem`,
+  to satisfy the new required dependency — it previously relied on
+  `WeaponSystem`'s private default instance, which the HUD reads have no path
+  to.
+- V2-103 RED command:
+  `npx vitest run tests/game-v2/ui/AbilitySlotLabel.test.ts --pool=forks --maxWorkers=1`
+  failed during module resolution before `AbilitySlotLabel.ts` existed; the
+  three new readout tests in `Mvp0Runtime.test.ts` and the HUD assertions
+  added to `GameV2App.test.tsx` were written and implementation landed
+  together, mirroring V2-102's reasoning that this task's pieces (contract
+  field, runtime dependency, composition wiring, pure formatter, HUD spans)
+  are small enough to co-locate without an intermediate stub state.
+- V2-103 GREEN verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (31 files, 624
+  tests, up from 30 files and 619 tests at the V2-102 checkpoint), `npm run
+  typecheck`, focused ESLint and focused Prettier on every changed file (full
+  `npm run lint` is still blocked by the unrelated untracked
+  `.delegate/runs/**` orchestrator artifacts), `npm run check:architecture`
+  (89 baseline singleton files), `npm run check:reset-coverage` (89
+  singletons: 29 wired, 60 exempt), `npm run check:ui-contract`, `npm run
+  build`, `npm run test` (373 files, 3895 tests, the same pre-existing
+  unrelated `LandingPriceFeed` flake documented at the MVP-0 gate), and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed) — the e2e spec now also asserts the starter weapon's `AUTO` label
+  is visible and the other three slots hidden in a real browser session.
+- A five-mutant deliberate pass ran against the task brief's Step 6 list, each
+  applied, run against its focused test file, and restored; sha256 confirmed
+  byte-identical restoration of all four touched production files afterward.
+  Three died outright: `readAbilitySlots` always reporting a slot empty (3
+  focused failures), an `active` binding computed from a constant instead of
+  its own index (1), and an `auto` slot showing its index instead of `AUTO`
+  (2, across the unit test and `GameV2App.test.tsx`).
+- Two mutants survive by construction, recorded rather than hidden, matching
+  the class of survivor V2-014 documented for the live-enemy cap. Neither
+  `AbilityLoadoutSystem.remove` nor any other production path ever empties an
+  occupied ability slot in MVP-1 — `V2-101`'s own finding that "nothing in
+  §5.3 removes a passive" is equally true of §5.1's abilities today — so a
+  slot the HUD is asked to hide is always already hidden by its JSX default,
+  and removing the imperative `el.hidden = true` re-hide is unobservable by
+  any reachable state. The fifth mutant, constructing a second
+  `AbilityLoadoutSystem` in `createMvp0Runtime.ts` instead of sharing the one
+  given to `WeaponSystem`, is semantically equivalent rather than merely
+  unreached: the system holds no per-run state (V2-ADR-025) and both
+  constructions use the same default registry, so two instances read the same
+  `World` identically by construction — the brief's V2-ADR-047 rationale
+  overstated this as a possible behavioral divergence when it is actually a
+  single-authority style preference. Both stay in place: the re-hide as
+  correct defense once `V2-310` (boss slot replacement) makes occupancy loss
+  real, the shared instance as the simpler and still-correct choice.
+- New decisions: V2-ADR-047 and V2-ADR-048.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
    is fixed, mutation-proved, and re-verified, and the three deferred findings
    are assigned to later blocks.
-2. `V2-100` and `V2-101` are accepted and closed. `V2-102` is implemented,
-   mutation-proved, and verified but not accepted. Re-run the last GREEN
-   command before touching code:
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 30 files,
-   619 tests) and
+2. `V2-100`, `V2-101`, and `V2-102` are accepted and closed. `V2-103` is
+   implemented, mutation-proved, and verified but not accepted. Re-run the
+   last GREEN command before touching code:
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 31 files,
+   624 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
    (expect 2 passed). Both were last confirmed green on 2026-08-23.
 
@@ -1146,10 +1231,10 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the `V2-102` checkpoint. On acceptance, generate the `V2-103` task brief
-(dynamic ability HUD — only occupied slots display; active keys and AUTO labels
-are correct), per `MASTER_PLAN.md`. Do not deploy, cut over production, or
-replace the legacy demo.
+Accept the `V2-103` checkpoint. On acceptance, generate the `V2-104` task brief
+(thirteen-second card flow — reveal, countdown, input, timeout choice, pause,
+and resume are deterministic), per `MASTER_PLAN.md`. Do not deploy, cut over
+production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do

@@ -17,6 +17,7 @@ import { MVP0_RENDER_CAPACITIES } from '@/game-v2/runtime/createMvp0Runtime';
 import { GameV2Runtime, type IntentSource } from '@/game-v2/runtime/GameV2Runtime';
 import { GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
@@ -41,7 +42,8 @@ import { World } from '@/game-v2/world/World';
 const composeRuntime = (world: World): GameV2Runtime => {
   const lifecycle = new GameV2Lifecycle();
   const commandRecorder = new CommandRecorder();
-  const weaponSystem = new WeaponSystem(new TargetingSystem());
+  const abilityLoadoutSystem = new AbilityLoadoutSystem();
+  const weaponSystem = new WeaponSystem(new TargetingSystem(), abilityLoadoutSystem);
   const idleIntent: IntentSource = {
     sample: (_tick, out: PlayerIntent) => {
       out.moveX = 0;
@@ -68,6 +70,7 @@ const composeRuntime = (world: World): GameV2Runtime => {
     weaponSystem,
     combatSystem: new CombatSystem(),
     progressionSystem: new ProgressionSystem(lifecycle, commandRecorder, weaponSystem),
+    abilityLoadoutSystem,
     presentation: null,
   });
 };

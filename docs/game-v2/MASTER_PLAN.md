@@ -62,9 +62,10 @@ Goal: prove that constrained builds create meaningful play before market
 complexity is introduced.
 
 Status: `In Progress`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
-is accepted and closed at `b7a5c07a`; briefs and outcomes are in
-`docs/game-v2/tasks/`. `V2-102` is implemented, mutation-proved, and verified,
-awaiting acceptance. `V2-103` is next.
+is accepted and closed at `b7a5c07a`. `V2-102` is accepted and closed at
+`22a00d14`; briefs and outcomes are in `docs/game-v2/tasks/`. `V2-103` is
+implemented, mutation-proved, and verified, awaiting acceptance. `V2-104` is
+next.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
