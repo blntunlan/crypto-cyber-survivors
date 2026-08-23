@@ -117,3 +117,53 @@ export const MVP0_MAX_LIVE_PROJECTILES = 16;
 export const MVP0_WORLD_CAPACITY = 512;
 export const MVP0_PLAYER_SPAWN_X = 0;
 export const MVP0_PLAYER_SPAWN_Y = 0;
+
+/**
+ * `heavy-projectile` (V2-106, V2-ADR-063): a start-eligible weapon that trades
+ * cadence for burst. Its Tier 1 damage and cooldown are exact multiples of
+ * `starter-projectile`'s own Tier 1 numbers, so both open at the identical
+ * damage-per-tick baseline (`Mvp0Config.test.ts` pins this) and differ only in
+ * burst/cadence shape, not raw power.
+ */
+export const HEAVY_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 2;
+export const HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 2;
+export const HEAVY_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 1.5;
+
+/**
+ * Tier 2 raises damage by the same 1.5x multiplier design already applies to
+ * `starter-projectile`'s own Tier 1 -> Tier 2 step; radius and cooldown hold.
+ */
+export const HEAVY_PROJECTILE_DAMAGE_TIER_2 = HEAVY_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+
+/**
+ * Tier 3 (V2-ADR-045 precedent): radius (coverage) and cooldown (cadence)
+ * improve; damage holds at its Tier 2 value rather than raising again.
+ */
+export const HEAVY_PROJECTILE_RADIUS_TIER_3 = HEAVY_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * `rapid-projectile` (V2-106, V2-ADR-063): a start-eligible weapon that trades
+ * burst for cadence. Its Tier 1 damage and cooldown are exact fractions of
+ * `starter-projectile`'s own Tier 1 numbers, so it too opens at the identical
+ * damage-per-tick baseline (`Mvp0Config.test.ts` pins this) and differs only
+ * in burst/cadence shape, not raw power.
+ */
+export const RAPID_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 2;
+export const RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 2;
+export const RAPID_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 0.75;
+
+/**
+ * Tier 2 raises damage by the same 1.5x multiplier design already applies to
+ * `starter-projectile`'s own Tier 1 -> Tier 2 step; radius and cooldown hold.
+ */
+export const RAPID_PROJECTILE_DAMAGE_TIER_2 = RAPID_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+
+/**
+ * Tier 3 (V2-ADR-045 precedent): radius (coverage) and cooldown (cadence)
+ * improve; damage holds at its Tier 2 value rather than raising again.
+ */
+export const RAPID_PROJECTILE_RADIUS_TIER_3 = RAPID_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;

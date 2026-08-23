@@ -1,16 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
+import {
+  HEAVY_PROJECTILE,
+  RAPID_PROJECTILE,
+  STARTER_PROJECTILE,
+} from '@/game-v2/config/AbilityRegistry';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import {
   ENEMY_FACTION,
   ENEMY_HEALTH,
   ENEMY_RADIUS,
+  HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  HEAVY_PROJECTILE_DAMAGE_TIER_1,
+  HEAVY_PROJECTILE_RADIUS_TIER_1,
   PROJECTILE_DAMAGE,
   PROJECTILE_LIFETIME_SECONDS,
   PROJECTILE_LIFETIME_TICKS,
   PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
+  RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  RAPID_PROJECTILE_DAMAGE_TIER_1,
+  RAPID_PROJECTILE_RADIUS_TIER_1,
   SIMULATION_HZ,
   STARTER_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
@@ -76,6 +86,9 @@ const createEnemy = (world: World, x: number, y: number): EntityId => {
   world.faction[slot] = ENEMY_FACTION;
   return enemy;
 };
+
+const loadoutIdentity = (world: World, player: EntityId): string | null =>
+  new AbilityLoadoutSystem().identityAt(world, player, 0);
 
 const projectileSlots = (world: World): number[] => {
   const slots: number[] = [];
@@ -623,5 +636,101 @@ describe('WeaponSystem', () => {
     const beforeStale = worldState(world);
     expect(() => weapon.step(world, 987654, context(0))).toThrow(RangeError);
     expect(worldState(world)).toEqual(beforeStale);
+  });
+});
+
+/**
+ * V2-106 Step 3: `WeaponSystem` fires whatever identity occupies ability slot
+ * 0, not only `starter-projectile` (V2-ADR-064). These worlds are
+ * constructed directly — `resetPlayer` still hardcodes the starter per
+ * V2-ADR-065 — placing a non-starter start-eligible identity into slot 0
+ * through the same production `AbilityLoadoutSystem.add` path
+ * `resetPlayer` itself uses.
+ */
+describe('WeaponSystem firing a non-starter start-eligible identity (V2-106)', () => {
+  it('fires heavy-projectile Tier 1 with its own damage, radius, and cooldown', () => {
+    const world = new World(8);
+    const player = createPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    createEnemy(world, 4, 0);
+    const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
+    loadout.resetOwner(world, player);
+    loadout.add(world, player, 'heavy-projectile');
+    world.weaponCooldownTicksRemaining[playerSlot] = 0;
+
+    weapon.step(world, player, context(0));
+    const slot = projectileSlots(world)[0] as number;
+
+    expect(world.projectileDamage[slot]).toBe(HEAVY_PROJECTILE_DAMAGE_TIER_1);
+    expect(world.radius[slot]).toBeCloseTo(HEAVY_PROJECTILE_RADIUS_TIER_1, 6);
+    expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1
+    );
+  });
+
+  it('fires rapid-projectile Tier 1 with its own damage, radius, and cooldown', () => {
+    const world = new World(8);
+    const player = createPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    createEnemy(world, 4, 0);
+    const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
+    loadout.resetOwner(world, player);
+    loadout.add(world, player, 'rapid-projectile');
+    world.weaponCooldownTicksRemaining[playerSlot] = 0;
+
+    weapon.step(world, player, context(0));
+    const slot = projectileSlots(world)[0] as number;
+
+    expect(world.projectileDamage[slot]).toBe(RAPID_PROJECTILE_DAMAGE_TIER_1);
+    expect(world.radius[slot]).toBeCloseTo(RAPID_PROJECTILE_RADIUS_TIER_1, 6);
+    expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1
+    );
+  });
+
+  it.each([HEAVY_PROJECTILE.id, RAPID_PROJECTILE.id] as const)(
+    'advances %s through all three tiers and fires each with the held tier effect',
+    identity => {
+      const world = new World(8);
+      const player = createPlayer(world, 0, 0);
+      const playerSlot = world.slotOf(player);
+      createEnemy(world, 4, 0);
+      const weapon = new WeaponSystem();
+      const loadout = new AbilityLoadoutSystem();
+      loadout.resetOwner(world, player);
+      loadout.add(world, player, identity);
+
+      expect(weapon.advanceStarterTier(world, player)).toBe(2);
+      expect(weapon.advanceStarterTier(world, player)).toBe(3);
+
+      const expectedTier3 = loadout.tierEffectAt(world, player, 0);
+      world.weaponCooldownTicksRemaining[playerSlot] = 0;
+
+      weapon.step(world, player, context(0));
+      const slot = projectileSlots(world)[0] as number;
+
+      expect(world.projectileDamage[slot]).toBe(expectedTier3?.damage);
+      expect(world.radius[slot]).toBeCloseTo(expectedTier3?.projectileRadius ?? -1, 6);
+      expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(
+        expectedTier3?.cooldownTicks
+      );
+    }
+  );
+
+  it('does not regress starter-projectile firing after generalizing the slot-0 lookup', () => {
+    const world = new World(8);
+    const player = createPlayer(world, 0, 0);
+    createEnemy(world, 4, 0);
+    const weapon = new WeaponSystem();
+    weapon.resetPlayer(world, player);
+
+    weapon.step(world, player, context(0));
+    const slot = projectileSlots(world)[0] as number;
+
+    expect(world.projectileDamage[slot]).toBe(PROJECTILE_DAMAGE);
+    expect(world.radius[slot]).toBeCloseTo(PROJECTILE_RADIUS, 6);
+    expect(loadoutIdentity(world, player)).toBe(STARTER_PROJECTILE.id);
   });
 });

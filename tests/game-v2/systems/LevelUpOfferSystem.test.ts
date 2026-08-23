@@ -43,6 +43,7 @@ const abilityDefinition = (id: string, code: number): AbilityDefinition => ({
   activation: 'active',
   authoredTiers: 3,
   tierEffects: [abilityEffect(), abilityEffect(), abilityEffect()],
+  startEligible: false,
 });
 
 const passiveDefinition = (id: string, code: number): PassiveDefinition => ({

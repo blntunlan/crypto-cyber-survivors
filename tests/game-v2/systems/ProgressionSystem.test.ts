@@ -18,6 +18,7 @@ import {
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import {
+  OFFER_CANDIDATE_COUNT,
   type OfferCandidateIndex,
   type OfferCandidate,
 } from '@/game-v2/contracts/LevelUpOffer';
@@ -32,7 +33,11 @@ import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
-import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
+import {
+  HEAVY_PROJECTILE,
+  RAPID_PROJECTILE,
+  STARTER_PROJECTILE,
+} from '@/game-v2/config/AbilityRegistry';
 import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
 import {
   PASSIVE_MAX_LEVEL,
@@ -140,17 +145,41 @@ const findOfferIndex = (
   offerSystem: LevelUpOfferSystem,
   world: World,
   player: EntityId,
-  kind: OfferCandidate['kind']
+  kind: OfferCandidate['kind'],
+  identity?: string
 ): OfferCandidateIndex => {
   const candidates = offerSystem.candidatesAt(world, player);
 
   for (let index = 0; index < candidates.length; index += 1) {
-    if (candidates[index]?.kind === kind) {
+    const candidate = candidates[index];
+    if (
+      candidate?.kind === kind &&
+      (identity === undefined || candidate.identity === identity)
+    ) {
       return index as OfferCandidateIndex;
     }
   }
 
   throw new Error(`no ${kind} candidate in the current offer`);
+};
+
+/**
+ * Maxes `heavy-projectile` and `rapid-projectile` so `starter-projectile` is
+ * the only offerable ability identity (V2-106 grew the pool to three).
+ * Tests that assert a specific offer resolution affects the starter weapon
+ * use this to make its inclusion in the next offer deterministic rather than
+ * RNG-dependent.
+ */
+const excludeNonStarterAbilitiesFromOffer = (
+  abilityLoadout: AbilityLoadoutSystem,
+  world: World,
+  player: EntityId
+): void => {
+  for (const identity of [HEAVY_PROJECTILE.id, RAPID_PROJECTILE.id]) {
+    abilityLoadout.addOrAdvanceTier(world, player, identity);
+    abilityLoadout.addOrAdvanceTier(world, player, identity);
+    abilityLoadout.addOrAdvanceTier(world, player, identity);
+  }
 };
 
 describe('Progression config invariants', () => {
@@ -846,14 +875,21 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
-    // Exhaust the entire MVP-1 offerable pool: the starter ability to its
-    // tier ceiling, the move-speed passive to its level ceiling. Once nothing
-    // is offerable, `generateOffer` throws before `resolveUpgrade` can ever
-    // run, so this proves the level-up branch does not commit `level`/`xp`
-    // ahead of that throw.
-    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, STARTER_PROJECTILE.id);
+    // Exhaust the entire MVP-1 offerable pool: all three registered abilities
+    // to their tier ceiling (V2-106 grew this pool from one to three), the
+    // move-speed passive to its level ceiling. Once nothing is offerable,
+    // `generateOffer` throws before `resolveUpgrade` can ever run, so this
+    // proves the level-up branch does not commit `level`/`xp` ahead of that
+    // throw.
+    for (const abilityId of [
+      STARTER_PROJECTILE.id,
+      HEAVY_PROJECTILE.id,
+      RAPID_PROJECTILE.id,
+    ]) {
+      abilityLoadout.addOrAdvanceTier(world, player, abilityId);
+      abilityLoadout.addOrAdvanceTier(world, player, abilityId);
+      abilityLoadout.addOrAdvanceTier(world, player, abilityId);
+    }
     for (let i = 0; i < PASSIVE_MAX_LEVEL; i += 1) {
       passiveLoadout.addOrLevelUp(world, player, MOVE_SPEED_PASSIVE.id);
     }
@@ -902,9 +938,13 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    const { progression, offerSystem, abilityLoadout } = createHarness(
+      lifecycle,
+      commandRecorder
+    );
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
 
     progression.step(
       world,
@@ -940,9 +980,13 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    const { progression, offerSystem, abilityLoadout } = createHarness(
+      lifecycle,
+      commandRecorder
+    );
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
 
     progression.step(
       world,
@@ -1003,9 +1047,13 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    const { progression, offerSystem, abilityLoadout } = createHarness(
+      lifecycle,
+      commandRecorder
+    );
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
 
     progression.step(
       world,
@@ -1108,13 +1156,14 @@ describe('Passive upgrade resolution', () => {
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
-    const { progression, passiveLoadout, offerSystem } = createHarness(
+    const { progression, passiveLoadout, offerSystem, abilityLoadout } = createHarness(
       lifecycle,
       commandRecorder
     );
     weaponSystem.resetPlayer(world, player);
     progression.resetPlayer(world, player);
     lifecycle.start();
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
     offerSystem.generateOffer(world, new DeterministicRng(1), player);
     lifecycle.pauseForLevelUp();
 
@@ -1202,11 +1251,11 @@ describe('Reroll (rerollOffer)', () => {
       createContext(15)
     );
     expect(lifecycle.phase).toBe('level-up');
-    // MVP-1's default registries offer exactly one ability and one passive
-    // identity (per the master plan), so a fresh offer can coincidentally
+    // MVP-1's default registries offer four identities (three abilities,
+    // V2-106, plus one passive), so a fresh offer can coincidentally
     // reproduce the same candidate order as the one it replaces. A spy on
     // the real regeneration call is what actually proves reroll ran, rather
-    // than an equality check that a 2-item shuffle can pass by chance.
+    // than an equality check that a shuffle can pass by chance.
     const generateOfferSpy = vi.spyOn(offerSystem, 'generateOffer');
 
     const command: RunCommand = { tick: 15, type: 'reroll-offer' };
@@ -1218,7 +1267,9 @@ describe('Reroll (rerollOffer)', () => {
     expect(generateOfferSpy).toHaveBeenCalledTimes(1);
     expect(generateOfferSpy).toHaveBeenCalledWith(world, expect.anything(), player);
     const after = offerSystem.candidatesAt(world, player);
-    expect(after.filter(candidate => candidate !== null)).toHaveLength(2);
+    expect(after.filter(candidate => candidate !== null)).toHaveLength(
+      OFFER_CANDIDATE_COUNT
+    );
     expect(lifecycle.phase).toBe('level-up');
   });
 
@@ -1353,9 +1404,25 @@ describe('Banish (banishOffer)', () => {
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
-    const { progression, offerSystem } = createHarness(lifecycle, commandRecorder);
+    const { progression, offerSystem, abilityLoadout, passiveLoadout } = createHarness(
+      lifecycle,
+      commandRecorder
+    );
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
+
+    // Leave only starter-projectile offerable, so the offer always has an
+    // empty slot: V2-106 grew the offerable ability pool to three, which by
+    // itself now fills every offer slot (`OFFER_CANDIDATE_COUNT`).
+    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
+    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
+    for (let i = 0; i < PASSIVE_MAX_LEVEL; i += 1) {
+      passiveLoadout.addOrLevelUp(world, player, MOVE_SPEED_PASSIVE.id);
+    }
 
     progression.step(
       world,
@@ -1366,6 +1433,7 @@ describe('Banish (banishOffer)', () => {
     const emptyIndex = offerSystem
       .candidatesAt(world, player)
       .findIndex(candidate => candidate === null) as OfferCandidateIndex;
+    expect(emptyIndex).toBeGreaterThanOrEqual(0);
 
     expect(() =>
       progression.banishOffer(world, player, {
@@ -1471,16 +1539,21 @@ describe('End-to-end real production path integration test', () => {
     const weaponSystem = new WeaponSystem();
     const movementSystem = new MovementSystem();
     const enemySystem = new EnemySystem();
-    const { progression: progressionSystem, offerSystem } = createHarness(
-      lifecycle,
-      commandRecorder
-    );
+    const {
+      progression: progressionSystem,
+      offerSystem,
+      abilityLoadout,
+    } = createHarness(lifecycle, commandRecorder);
 
     // Initial production reset
     combatSystem.resetPlayer(world, player);
     dashSystem.resetPlayer(world, player);
     weaponSystem.resetPlayer(world, player);
     progressionSystem.resetPlayer(world, player);
+    // V2-106 grew the offerable ability pool to three; keep starter-projectile
+    // the only offerable ability so this test's upgraded-kill assertion below
+    // stays deterministic rather than RNG-dependent on which ability offers.
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
     lifecycle.start();
 
     expect(world.health[playerSlot]).toBe(PLAYER_MAX_HEALTH);

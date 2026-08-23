@@ -32,6 +32,12 @@ const PROJECTILE_ENTITY_MASK =
 const DEFAULT_FIRE_DIRECTION_X = 1;
 const DEFAULT_FIRE_DIRECTION_Y = 0;
 
+/**
+ * MVP-1 holds exactly one autonomous firing slot (V2-ADR-064): `WeaponSystem`
+ * fires whatever identity occupies it, not a hardcoded starter-only lookup.
+ */
+const AUTONOMOUS_WEAPON_SLOT_INDEX: AbilitySlotIndex = 0;
+
 const isProjectile = (mask: number | undefined): boolean =>
   mask !== undefined && (mask & PROJECTILE_ENTITY_MASK) === PROJECTILE_ENTITY_MASK;
 
@@ -102,13 +108,17 @@ export class WeaponSystem {
   }
 
   private starterSlotIndex(world: World, playerEntity: EntityId): AbilitySlotIndex {
-    const index = this.loadout.indexOf(world, playerEntity, STARTER_PROJECTILE.id);
+    const identity = this.loadout.identityAt(
+      world,
+      playerEntity,
+      AUTONOMOUS_WEAPON_SLOT_INDEX
+    );
 
-    if (index === null) {
+    if (identity === null) {
       throw new RangeError('player holds no starter weapon');
     }
 
-    return index;
+    return AUTONOMOUS_WEAPON_SLOT_INDEX;
   }
 
   /**

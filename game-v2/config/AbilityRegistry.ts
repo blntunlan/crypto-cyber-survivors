@@ -7,8 +7,20 @@ import {
   type AbilityIdentityId,
 } from '@/game-v2/contracts/AbilitySlot';
 import {
+  HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  HEAVY_PROJECTILE_DAMAGE_TIER_1,
+  HEAVY_PROJECTILE_DAMAGE_TIER_2,
+  HEAVY_PROJECTILE_RADIUS_TIER_1,
+  HEAVY_PROJECTILE_RADIUS_TIER_3,
   PROJECTILE_DAMAGE,
   PROJECTILE_RADIUS,
+  RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  RAPID_PROJECTILE_DAMAGE_TIER_1,
+  RAPID_PROJECTILE_DAMAGE_TIER_2,
+  RAPID_PROJECTILE_RADIUS_TIER_1,
+  RAPID_PROJECTILE_RADIUS_TIER_3,
   STARTER_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
   STARTER_WEAPON_DAMAGE_TIER_2,
@@ -43,7 +55,8 @@ export const createAbilityRegistry = (
   const byCode = new Map<number, AbilityDefinition>();
 
   for (const candidate of definitions) {
-    const { id, code, activation, authoredTiers, tierEffects } = candidate;
+    const { id, code, activation, authoredTiers, tierEffects, startEligible } =
+      candidate;
 
     if (typeof id !== 'string' || id.trim().length === 0) {
       throw new TypeError('ability identity must be a non-empty string');
@@ -69,6 +82,9 @@ export const createAbilityRegistry = (
         'ability tierEffects length must equal its authoredTiers count'
       );
     }
+    if (typeof startEligible !== 'boolean') {
+      throw new TypeError('ability startEligible must be a boolean');
+    }
     if (byId.has(id)) {
       throw new RangeError('ability registry contains a duplicate identity');
     }
@@ -86,6 +102,7 @@ export const createAbilityRegistry = (
       activation,
       authoredTiers,
       tierEffects: validatedTierEffects,
+      startEligible,
     });
     byId.set(id, frozen);
     byCode.set(code, frozen);
@@ -126,6 +143,7 @@ export const STARTER_PROJECTILE: AbilityDefinition = Object.freeze({
   code: 1,
   activation: 'auto',
   authoredTiers: 3,
+  startEligible: true,
   tierEffects: Object.freeze([
     Object.freeze({
       ability: 'starter-projectile',
@@ -148,4 +166,76 @@ export const STARTER_PROJECTILE: AbilityDefinition = Object.freeze({
   ]),
 });
 
-export const MVP1_ABILITY_REGISTRY = createAbilityRegistry([STARTER_PROJECTILE]);
+/**
+ * A start-eligible weapon that trades cadence for burst (V2-106,
+ * V2-ADR-063): same single-target auto-fire pipeline as `starter-projectile`,
+ * opening at the identical Tier 1 damage-per-tick baseline but with double
+ * the damage and double the cooldown.
+ */
+export const HEAVY_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'heavy-projectile',
+  code: 2,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: true,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'heavy-projectile',
+      damage: HEAVY_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: HEAVY_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'heavy-projectile',
+      damage: HEAVY_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: HEAVY_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'heavy-projectile',
+      damage: HEAVY_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: HEAVY_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+/**
+ * A start-eligible weapon that trades burst for cadence (V2-106,
+ * V2-ADR-063): same single-target auto-fire pipeline as `starter-projectile`,
+ * opening at the identical Tier 1 damage-per-tick baseline but with half the
+ * damage and half the cooldown.
+ */
+export const RAPID_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'rapid-projectile',
+  code: 3,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: true,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'rapid-projectile',
+      damage: RAPID_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: RAPID_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'rapid-projectile',
+      damage: RAPID_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: RAPID_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'rapid-projectile',
+      damage: RAPID_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: RAPID_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+export const MVP1_ABILITY_REGISTRY = createAbilityRegistry([
+  STARTER_PROJECTILE,
+  HEAVY_PROJECTILE,
+  RAPID_PROJECTILE,
+]);

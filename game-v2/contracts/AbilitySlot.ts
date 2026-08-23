@@ -29,10 +29,13 @@ export type AbilityActivation = 'active' | 'auto';
 export type AbilityTier = 1 | 2 | 3;
 
 /**
- * The registered ability identities. V2-106 and V2-107 add the remaining seven
- * of the eight vertical-slice identities.
+ * The registered ability identities. V2-107 adds the remaining five of the
+ * eight vertical-slice identities.
  */
-export type AbilityIdentityId = 'starter-projectile';
+export type AbilityIdentityId =
+  | 'starter-projectile'
+  | 'heavy-projectile'
+  | 'rapid-projectile';
 
 export type AbilityDefinition = Readonly<{
   id: AbilityIdentityId;
@@ -50,6 +53,8 @@ export type AbilityDefinition = Readonly<{
    * registry-enforced in `createAbilityRegistry`).
    */
   tierEffects: readonly AbilityTierEffect[];
+  /** Whether this identity may be assigned to slot 0 before a run (V2-ADR-062). */
+  startEligible: boolean;
 }>;
 
 /**

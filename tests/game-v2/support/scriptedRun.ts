@@ -26,7 +26,15 @@ export const CONTACT_RANGE = PLAYER_RADIUS + ENEMY_RADIUS;
  */
 export const DASH_TRIGGER_MARGIN = 0.5;
 export const STEER_MAGNITUDE = 0.999;
-export const SCENARIO_SEED = 0x5eed;
+/**
+ * An arbitrary but fixed seed. Chosen (over other arbitrary values, e.g. the
+ * prior `0x5eed`) so the default `desiredKind: 'ability'` path's first-offer
+ * RNG draw includes `starter-projectile` — the only identity the player
+ * already holds at that point — without needing a reroll: V2-106 grew the
+ * offerable ability pool from one to three, so a random 3-of-N draw no longer
+ * always contains the held identity by construction.
+ */
+export const SCENARIO_SEED = 9;
 
 const MAX_FRAMES = 6000;
 

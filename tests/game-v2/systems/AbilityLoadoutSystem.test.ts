@@ -43,6 +43,7 @@ const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
     activation: 'auto',
     authoredTiers: 3,
     tierEffects: tierEffects(3),
+    startEligible: false,
   },
   {
     id: id('beta'),
@@ -50,6 +51,7 @@ const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
     activation: 'active',
     authoredTiers: 1,
     tierEffects: tierEffects(1),
+    startEligible: false,
   },
   {
     id: id('gamma'),
@@ -57,6 +59,7 @@ const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
     activation: 'active',
     authoredTiers: 2,
     tierEffects: tierEffects(2),
+    startEligible: false,
   },
   {
     id: id('delta'),
@@ -64,6 +67,7 @@ const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
     activation: 'auto',
     authoredTiers: 2,
     tierEffects: tierEffects(2),
+    startEligible: false,
   },
   {
     id: id('epsilon'),
@@ -71,6 +75,7 @@ const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
     activation: 'active',
     authoredTiers: 3,
     tierEffects: tierEffects(3),
+    startEligible: false,
   },
 ];
 
@@ -447,5 +452,79 @@ describe('AbilityLoadoutSystem', () => {
         'ability slot index must be an integer inside the loadout'
       );
     });
+  });
+});
+
+/**
+ * V2-106 Step 2: proves `heavy-projectile` and `rapid-projectile` reach every
+ * loadout behavior exactly as `starter-projectile` already does, through the
+ * production `MVP1_ABILITY_REGISTRY` rather than the local test registry
+ * above.
+ */
+describe('AbilityLoadoutSystem with the production registry (V2-106)', () => {
+  it.each(['heavy-projectile', 'rapid-projectile'] as const)(
+    'adds, advances through all three tiers, and reads back %s exactly like starter-projectile',
+    identity => {
+      const world = new World(CAPACITY);
+      const system = new AbilityLoadoutSystem();
+      const owner = createOwner(world);
+
+      expect(system.add(world, owner, identity)).toBe(0);
+      expect(system.identityAt(world, owner, 0)).toBe(identity);
+      expect(system.activationAt(world, owner, 0)).toBe('auto');
+      expect(system.tierAt(world, owner, 0)).toBe(1);
+      expect(system.occupiedCount(world, owner)).toBe(1);
+      expect(system.indexOf(world, owner, identity)).toBe(0);
+
+      const tier1Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier1Effect?.ability).toBe(identity);
+
+      expect(system.advanceTier(world, owner, 0)).toBe(2);
+      const tier2Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier2Effect?.ability).toBe(identity);
+      expect(tier2Effect).not.toEqual(tier1Effect);
+
+      expect(system.advanceTier(world, owner, 0)).toBe(3);
+      const tier3Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier3Effect?.ability).toBe(identity);
+      expect(tier3Effect).not.toEqual(tier2Effect);
+
+      expect(() => system.advanceTier(world, owner, 0)).toThrow(
+        'ability has no authored tier above 3'
+      );
+    }
+  );
+
+  it.each(['heavy-projectile', 'rapid-projectile'] as const)(
+    '%s is offerable exactly like starter-projectile: free-slot new, below-ceiling held',
+    identity => {
+      const world = new World(CAPACITY);
+      const system = new AbilityLoadoutSystem();
+      const owner = createOwner(world);
+
+      expect(system.isOfferable(world, owner, identity)).toBe(true);
+
+      system.add(world, owner, identity);
+      expect(system.isOfferable(world, owner, identity)).toBe(true);
+
+      system.advanceTier(world, owner, 0);
+      system.advanceTier(world, owner, 0);
+      expect(system.isOfferable(world, owner, identity)).toBe(false);
+    }
+  );
+
+  it('treats starter/heavy/rapid identically for occupiedCount and indexOf when all three are held', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+
+    expect(system.add(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.add(world, owner, 'heavy-projectile')).toBe(1);
+    expect(system.add(world, owner, 'rapid-projectile')).toBe(2);
+
+    expect(system.occupiedCount(world, owner)).toBe(3);
+    expect(system.indexOf(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.indexOf(world, owner, 'heavy-projectile')).toBe(1);
+    expect(system.indexOf(world, owner, 'rapid-projectile')).toBe(2);
   });
 });

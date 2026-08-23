@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 3 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-106` (three starting weapons) is next by ID and has its dependency (`V2-102`) satisfied, but no task brief exists yet |
-| Status | `V2-105` accepted at `841160a2`; MVP-1's next task is `Not Started` |
+| Active task | `V2-106` (three starting weapons): implementation and tests complete, Step 4/5 gates green, **not yet committed** — awaiting explicit instruction to commit |
+| Status | `V2-106` implemented on top of `V2-105` (`841160a2`); `V2-105` itself remains accepted and closed |
 | Closed | `V2-105` accepted at `841160a2`; `V2-104` accepted at `7116c729` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1538,6 +1538,77 @@
   files; (5) every Step 5 gate passes and the mutation pass has no
   survivor among the brief's named mutants — evidence above. `V2-105` is
   accepted.
+- `V2-106` (three starting weapons) implemented per its task brief
+  (`docs/game-v2/tasks/V2-106-three-starting-weapons.md`):
+  - `AbilityDefinition` gained `startEligible: boolean`, validated as a real
+    boolean by `createAbilityRegistry` (V2-ADR-062).
+  - Two new start-eligible AUTO identities, `heavy-projectile` (cadence
+    traded for burst: double `starter-projectile`'s Tier 1 damage and
+    cooldown) and `rapid-projectile` (burst traded for cadence: half Tier 1
+    damage and cooldown), each with three authored tiers and their own
+    `AbilityTierEffect` union member, reusing `WeaponSystem`'s existing
+    single-target auto-fire pipeline unchanged (V2-ADR-063). Both open at the
+    identical Tier 1 damage-per-tick baseline as the starter weapon by
+    construction, not by chance — pinned in `Mvp0Config.test.ts`.
+  - `WeaponSystem.starterSlotIndex` now resolves the fixed autonomous slot
+    (index 0) by occupancy rather than by a hardcoded
+    `STARTER_PROJECTILE.id` lookup, so it fires whatever identity a
+    production-constructed world holds there (V2-ADR-064). `resetPlayer`
+    still assigns `starter-projectile` unconditionally; no starting-weapon
+    selection screen exists (V2-ADR-065, out of scope, no task ID yet).
+  - `MVP1_ABILITY_REGISTRY` grew from one identity to three. Because
+    `LevelUpOfferSystem` already enumerates every registered identity
+    generically (V2-ADR-065's stated rationale, confirmed by reading
+    `LevelUpOfferSystem.ts`), both new identities became real mid-run offer
+    candidates with no offer-system code change — this had real knock-on
+    effects on tests, documented below.
+  - Test coverage added/extended: `AbilityRegistry.test.ts` (startEligible
+    validation, pairwise distinctness by code/tag/numeric tuning per tier),
+    `Mvp0Config.test.ts` (derived-constant proofs, shared Tier 1 DPS
+    baseline, tunnel-safety margins, decreasing kill-period sequences),
+    `AbilityLoadoutSystem.test.ts` (full three-tier reachability for both
+    new identities through the real `MVP1_ABILITY_REGISTRY`-backed system),
+    `WeaponSystem.test.ts` (firing each new identity from a directly
+    constructed world in slot 0, tier-by-tier, plus a starter-projectile
+    non-regression check).
+  - Knock-on test fixes required because the offerable ability pool grew
+    from one to three: `ProgressionSystem.test.ts` (the "nothing offerable"
+    exhaustion test now exhausts all three abilities, not just the starter;
+    the reroll-candidate-count test now expects a full `OFFER_CANDIDATE_COUNT`
+    instead of a stale hardcoded `2`; several tests that generically picked
+    "the ability offer" now use a `starterDamageOf`-dependent assertion, so
+    they exhaust `heavy-projectile`/`rapid-projectile` first via a new
+    `excludeNonStarterAbilitiesFromOffer` test helper so the offer
+    deterministically contains only the starter as an ability candidate) and
+    `tests/game-v2/support/scriptedRun.ts` (the shared `SCENARIO_SEED`
+    constant changed from `0x5eed` to `9` — still an arbitrary fixed seed,
+    chosen so the default scripted run's first level-up offer naturally
+    includes `starter-projectile`, the identity the player already holds, in
+    both the plain path and the reroll+banish path; the old seed's random
+    3-of-4 draw happened to exclude it, which broke `Mvp0Runtime.test.ts`
+    and `ReplayRunner.test.ts` assertions that assume an "ability" offer
+    upgrades the starter weapon specifically).
+  - Verification: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+    (34 files, 742 tests, all green), full root `npx vitest run` (376 files,
+    4013 tests, all green), `npm run typecheck`, `npm run check:architecture`,
+    `npm run check:reset-coverage`, `npm run check:ui-contract`,
+    `npm run check:event-contract`, `npm run check:director-manifest`,
+    `npm run lint` (clean on every file this task touched; pre-existing
+    `.delegate/` parsing errors are unrelated and untouched), `npm run
+    format` (no changes needed), `npm run build`, and
+    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+    (2 passed).
+  - Manual mutation spot-check: reverting `starterSlotIndex` to the old
+    by-id lookup makes 4 of the new `WeaponSystem.test.ts` tests fail with
+    `player holds no starter weapon`, confirming they are not vacuous;
+    restoring the fix returns the suite to green.
+  - Not yet committed. Working tree currently holds exactly the files listed
+    under "Files" in the task brief, scoped cleanly (verified via
+    `git status --short game-v2/ tests/game-v2/`) — no unrelated files were
+    touched. `docs/game-v2/tasks/V2-106-three-starting-weapons.md` keeps its
+    steps unchecked per this project's convention of leaving task briefs as
+    the static plan record (see `V2-105`'s brief, which is also still
+    unchecked despite being closed).
 
 ## Verification Required
 
@@ -1591,14 +1662,17 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-105` is accepted and closed at `841160a2` (current local `HEAD`, not yet
-pushed). No task brief exists yet for the next MVP-1 task; per
-`MASTER_PLAN.md`'s table, `V2-106` (three starting weapons, depends on
-`V2-102`) and `V2-107` (initial ability set, depends on `V2-102`) both have
-their dependency already satisfied and are the next candidates by ID. Confirm
-which one to scope next, generate its task brief, then start Step 1. Do not
-deploy, cut over production, or replace the legacy demo. Do not push the
-branch without explicit instruction.
+`V2-105` remains accepted and closed at `841160a2` (current local `HEAD`, not
+yet pushed). `V2-106` (three starting weapons) is implemented and fully
+verified on top of that commit per its task brief, but **not yet committed**
+— commit only on explicit instruction (per the git safety rules governing
+this session), ideally as its own commit(s) separate from any unrelated
+working-tree changes. Once committed, update this file's `Current State`
+table and this section to record the real commit hash, matching the pattern
+`V2-100`..`V2-105` already established, then decide whether to scope
+`V2-107` (initial ability set, depends on `V2-102`, dependency already
+satisfied) next. Do not deploy, cut over production, or replace the legacy
+demo. Do not push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

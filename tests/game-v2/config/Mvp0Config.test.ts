@@ -3,6 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   ENEMY_HEALTH,
   ENEMY_RADIUS,
+  HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  HEAVY_PROJECTILE_DAMAGE_TIER_1,
+  HEAVY_PROJECTILE_DAMAGE_TIER_2,
+  HEAVY_PROJECTILE_RADIUS_TIER_1,
+  HEAVY_PROJECTILE_RADIUS_TIER_3,
   MAX_WORLD_CAPACITY,
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
@@ -12,7 +18,14 @@ import {
   PLAYER_RADIUS,
   PROJECTILE_DAMAGE,
   PROJECTILE_LIFETIME_TICKS,
+  PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
+  RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  RAPID_PROJECTILE_DAMAGE_TIER_1,
+  RAPID_PROJECTILE_DAMAGE_TIER_2,
+  RAPID_PROJECTILE_RADIUS_TIER_1,
+  RAPID_PROJECTILE_RADIUS_TIER_3,
   SIMULATION_HZ,
   STARTER_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
@@ -98,5 +111,79 @@ describe('starter-projectile Tier 3 (V2-ADR-045)', () => {
     expect(tierOneKillTicks).toBe(90);
     expect(tierTwoKillTicks).toBe(60);
     expect(tierThreeKillTicks).toBe(40);
+  });
+});
+
+describe('heavy-projectile and rapid-projectile (V2-106, V2-ADR-063)', () => {
+  it('derive Tier 1 as exact multiples/fractions of starter-projectile Tier 1, not a chosen number', () => {
+    expect(HEAVY_PROJECTILE_DAMAGE_TIER_1).toBe(PROJECTILE_DAMAGE * 2);
+    expect(HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1).toBe(WEAPON_COOLDOWN_TICKS * 2);
+    expect(HEAVY_PROJECTILE_RADIUS_TIER_1).toBe(PROJECTILE_RADIUS * 1.5);
+
+    expect(RAPID_PROJECTILE_DAMAGE_TIER_1).toBe(PROJECTILE_DAMAGE / 2);
+    expect(RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1).toBe(WEAPON_COOLDOWN_TICKS / 2);
+    expect(RAPID_PROJECTILE_RADIUS_TIER_1).toBe(PROJECTILE_RADIUS * 0.75);
+  });
+
+  it('open at the identical Tier 1 damage-per-tick baseline as starter-projectile', () => {
+    const starterDps = PROJECTILE_DAMAGE / WEAPON_COOLDOWN_TICKS;
+    const heavyDps =
+      HEAVY_PROJECTILE_DAMAGE_TIER_1 / HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1;
+    const rapidDps =
+      RAPID_PROJECTILE_DAMAGE_TIER_1 / RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1;
+
+    expect(heavyDps).toBeCloseTo(starterDps, 10);
+    expect(rapidDps).toBeCloseTo(starterDps, 10);
+  });
+
+  it('keep every Tier 3 hitbox inside the tunnel-safety margin', () => {
+    expect(PROJECTILE_SPEED * FIXED_DELTA_SECONDS).toBeLessThan(
+      2 * (HEAVY_PROJECTILE_RADIUS_TIER_3 + ENEMY_RADIUS)
+    );
+    expect(PROJECTILE_SPEED * FIXED_DELTA_SECONDS).toBeLessThan(
+      2 * (RAPID_PROJECTILE_RADIUS_TIER_3 + ENEMY_RADIUS)
+    );
+  });
+
+  it('shorten the heavy-projectile kill period at each successive tier without raising damage past Tier 2', () => {
+    const tierOne =
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 *
+      Math.ceil(ENEMY_HEALTH / HEAVY_PROJECTILE_DAMAGE_TIER_1);
+    const tierTwo =
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 *
+      Math.ceil(ENEMY_HEALTH / HEAVY_PROJECTILE_DAMAGE_TIER_2);
+    const tierThree =
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3 *
+      Math.ceil(ENEMY_HEALTH / HEAVY_PROJECTILE_DAMAGE_TIER_2);
+
+    expect(tierThree).toBeLessThan(tierTwo);
+    expect(tierTwo).toBeLessThan(tierOne);
+  });
+
+  it('shorten the rapid-projectile kill period at each successive tier without raising damage past Tier 2', () => {
+    const tierOne =
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 *
+      Math.ceil(ENEMY_HEALTH / RAPID_PROJECTILE_DAMAGE_TIER_1);
+    const tierTwo =
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 *
+      Math.ceil(ENEMY_HEALTH / RAPID_PROJECTILE_DAMAGE_TIER_2);
+    const tierThree =
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3 *
+      Math.ceil(ENEMY_HEALTH / RAPID_PROJECTILE_DAMAGE_TIER_2);
+
+    expect(tierThree).toBeLessThan(tierTwo);
+    expect(tierTwo).toBeLessThan(tierOne);
+  });
+
+  it('keeps every heavy/rapid cooldown tick count a positive integer', () => {
+    for (const cooldownTicks of [
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+      HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+      RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    ]) {
+      expect(Number.isInteger(cooldownTicks)).toBe(true);
+      expect(cooldownTicks).toBeGreaterThan(0);
+    }
   });
 });

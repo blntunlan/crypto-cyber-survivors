@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  HEAVY_PROJECTILE,
   MVP1_ABILITY_REGISTRY,
+  RAPID_PROJECTILE,
   STARTER_PROJECTILE,
   createAbilityRegistry,
 } from '@/game-v2/config/AbilityRegistry';
@@ -28,6 +30,7 @@ const definition = (overrides: {
   activation?: string;
   authoredTiers?: number;
   tierEffects?: readonly AbilityTierEffect[];
+  startEligible?: unknown;
 }): AbilityDefinition => {
   const authoredTiers = overrides.authoredTiers ?? 2;
 
@@ -39,6 +42,7 @@ const definition = (overrides: {
     tierEffects:
       overrides.tierEffects ??
       Array.from({ length: authoredTiers }, () => starterEffect()),
+    startEligible: 'startEligible' in overrides ? overrides.startEligible : false,
   } as AbilityDefinition;
 };
 
@@ -50,11 +54,15 @@ describe('AbilityRegistry', () => {
     expect(MVP1_ABILITY_REGISTRY.byCode(STARTER_PROJECTILE.code)).toEqual(
       STARTER_PROJECTILE
     );
-    expect(MVP1_ABILITY_REGISTRY.size).toBe(1);
+    expect(MVP1_ABILITY_REGISTRY.size).toBe(3);
   });
 
   it('exposes every registered identity through ids, in insertion order', () => {
-    expect(MVP1_ABILITY_REGISTRY.ids).toEqual(['starter-projectile']);
+    expect(MVP1_ABILITY_REGISTRY.ids).toEqual([
+      'starter-projectile',
+      'heavy-projectile',
+      'rapid-projectile',
+    ]);
     expect(Object.isFrozen(MVP1_ABILITY_REGISTRY.ids)).toBe(true);
 
     const registry = createAbilityRegistry([
@@ -219,5 +227,96 @@ describe('AbilityRegistry', () => {
         }),
       ])
     ).toThrow('integer cooldownTicks');
+  });
+
+  it('rejects a non-boolean startEligible', () => {
+    for (const startEligible of [undefined, 'true', 1, null]) {
+      expect(() =>
+        createAbilityRegistry([definition({ id: 'a', code: 1, startEligible })])
+      ).toThrow('ability startEligible must be a boolean');
+    }
+  });
+});
+
+describe('AbilityRegistry V2-106 start-eligible weapons', () => {
+  it('registers heavy-projectile and rapid-projectile as start-eligible AUTO weapons', () => {
+    for (const weapon of [STARTER_PROJECTILE, HEAVY_PROJECTILE, RAPID_PROJECTILE]) {
+      expect(weapon.startEligible).toBe(true);
+      expect(weapon.activation).toBe('auto');
+      expect(weapon.authoredTiers).toBe(3);
+      expect(weapon.tierEffects).toHaveLength(3);
+      expect(weapon.code).toBeGreaterThanOrEqual(1);
+      expect(weapon.code).toBeLessThanOrEqual(MAX_ABILITY_CODE);
+    }
+  });
+
+  it('gives every tier effect a distinct ability tag matching its own identity', () => {
+    for (const weapon of [STARTER_PROJECTILE, HEAVY_PROJECTILE, RAPID_PROJECTILE]) {
+      for (const effect of weapon.tierEffects) {
+        expect(effect.ability).toBe(weapon.id);
+      }
+    }
+  });
+
+  it('keeps the three start-eligible weapons pairwise distinct by code and by shape', () => {
+    const weapons = [STARTER_PROJECTILE, HEAVY_PROJECTILE, RAPID_PROJECTILE];
+
+    for (let i = 0; i < weapons.length; i += 1) {
+      for (let j = i + 1; j < weapons.length; j += 1) {
+        const a = weapons[i] as AbilityDefinition;
+        const b = weapons[j] as AbilityDefinition;
+
+        expect(a.code).not.toBe(b.code);
+        expect(a.tierEffects[0]?.ability).not.toBe(b.tierEffects[0]?.ability);
+      }
+    }
+  });
+
+  it('keeps the three start-eligible weapons distinct by at least one numeric value per tier', () => {
+    const weapons = [STARTER_PROJECTILE, HEAVY_PROJECTILE, RAPID_PROJECTILE];
+
+    for (let tier = 0; tier < 3; tier += 1) {
+      for (let i = 0; i < weapons.length; i += 1) {
+        for (let j = i + 1; j < weapons.length; j += 1) {
+          const a = weapons[i]?.tierEffects[tier] as AbilityTierEffect;
+          const b = weapons[j]?.tierEffects[tier] as AbilityTierEffect;
+
+          const differsOnAtLeastOneField =
+            a.damage !== b.damage ||
+            a.projectileRadius !== b.projectileRadius ||
+            a.cooldownTicks !== b.cooldownTicks;
+
+          expect(differsOnAtLeastOneField).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('raises heavy-projectile damage at Tier 2 and holds it at Tier 3', () => {
+    const [tier1, tier2, tier3] = HEAVY_PROJECTILE.tierEffects as [
+      AbilityTierEffect,
+      AbilityTierEffect,
+      AbilityTierEffect,
+    ];
+
+    expect(tier1.damage).toBeLessThan(tier2.damage);
+    expect(tier3.damage).toBe(tier2.damage);
+    expect(tier1.projectileRadius).toBe(tier2.projectileRadius);
+    expect(tier3.projectileRadius).toBeGreaterThan(tier2.projectileRadius);
+    expect(tier3.cooldownTicks).toBeLessThan(tier2.cooldownTicks);
+  });
+
+  it('raises rapid-projectile damage at Tier 2 and holds it at Tier 3', () => {
+    const [tier1, tier2, tier3] = RAPID_PROJECTILE.tierEffects as [
+      AbilityTierEffect,
+      AbilityTierEffect,
+      AbilityTierEffect,
+    ];
+
+    expect(tier1.damage).toBeLessThan(tier2.damage);
+    expect(tier3.damage).toBe(tier2.damage);
+    expect(tier1.projectileRadius).toBe(tier2.projectileRadius);
+    expect(tier3.projectileRadius).toBeGreaterThan(tier2.projectileRadius);
+    expect(tier3.cooldownTicks).toBeLessThan(tier2.cooldownTicks);
   });
 });

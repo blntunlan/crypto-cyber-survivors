@@ -15,10 +15,62 @@ export type StarterProjectileTierEffect = Readonly<{
   cooldownTicks: number;
 }>;
 
-export type AbilityTierEffect = StarterProjectileTierEffect;
+/**
+ * A slower-cadence, higher-burst start-eligible weapon (V2-ADR-063): it
+ * reuses `WeaponSystem`'s single-target auto-fire pipeline unchanged, trading
+ * cadence for burst relative to `starter-projectile`.
+ */
+export type HeavyProjectileTierEffect = Readonly<{
+  ability: 'heavy-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+/**
+ * A faster-cadence, lower-burst start-eligible weapon (V2-ADR-063): it reuses
+ * `WeaponSystem`'s single-target auto-fire pipeline unchanged, trading burst
+ * for cadence relative to `starter-projectile`.
+ */
+export type RapidProjectileTierEffect = Readonly<{
+  ability: 'rapid-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+export type AbilityTierEffect =
+  | StarterProjectileTierEffect
+  | HeavyProjectileTierEffect
+  | RapidProjectileTierEffect;
 
 const isFinitePositive = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+/**
+ * The three single-target projectile identities (starter/heavy/rapid) share
+ * this exact validation rule; only the `ability` tag differs (V2-ADR-063).
+ */
+const assertProjectileTierEffectFields = (
+  ability: 'starter-projectile' | 'heavy-projectile' | 'rapid-projectile',
+  candidate: Partial<{
+    damage: number;
+    projectileRadius: number;
+    cooldownTicks: number;
+  }>
+): void => {
+  if (
+    !isFinitePositive(candidate.damage) ||
+    !isFinitePositive(candidate.projectileRadius) ||
+    !isFinitePositive(candidate.cooldownTicks) ||
+    !Number.isInteger(candidate.cooldownTicks)
+  ) {
+    throw new RangeError(
+      `${ability} tier effect requires finite positive damage, ` +
+        'projectileRadius, and an integer cooldownTicks'
+    );
+  }
+};
 
 /**
  * Validates one tier effect against its own shape.
@@ -37,24 +89,35 @@ export const assertAbilityTierEffect = (value: unknown): AbilityTierEffect => {
   switch (candidate.ability) {
     case 'starter-projectile': {
       const effect = candidate as Partial<StarterProjectileTierEffect>;
-
-      if (
-        !isFinitePositive(effect.damage) ||
-        !isFinitePositive(effect.projectileRadius) ||
-        !isFinitePositive(effect.cooldownTicks) ||
-        !Number.isInteger(effect.cooldownTicks)
-      ) {
-        throw new RangeError(
-          'starter-projectile tier effect requires finite positive damage, ' +
-            'projectileRadius, and an integer cooldownTicks'
-        );
-      }
+      assertProjectileTierEffectFields('starter-projectile', effect);
 
       return {
         ability: 'starter-projectile',
-        damage: effect.damage,
-        projectileRadius: effect.projectileRadius,
-        cooldownTicks: effect.cooldownTicks,
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'heavy-projectile': {
+      const effect = candidate as Partial<HeavyProjectileTierEffect>;
+      assertProjectileTierEffectFields('heavy-projectile', effect);
+
+      return {
+        ability: 'heavy-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'rapid-projectile': {
+      const effect = candidate as Partial<RapidProjectileTierEffect>;
+      assertProjectileTierEffectFields('rapid-projectile', effect);
+
+      return {
+        ability: 'rapid-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
       };
     }
     default:
