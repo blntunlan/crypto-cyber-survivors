@@ -64,10 +64,9 @@ complexity is introduced.
 Status: `In Progress`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
 is accepted and closed at `b7a5c07a`. `V2-102` is accepted and closed at
 `22a00d14`. `V2-103` is accepted and closed at `357ef443`. `V2-104` is
-accepted and closed at `7116c729`; briefs and outcomes are in
-`docs/game-v2/tasks/`. `V2-105` is scoped
-(`docs/game-v2/tasks/V2-105-reroll-and-banish.md`); implementation has not
-started.
+accepted and closed at `7116c729`. `V2-105` is accepted and closed at
+`841160a2`; briefs and outcomes are in `docs/game-v2/tasks/`. No task brief
+exists yet for the next MVP-1 task.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

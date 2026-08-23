@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 3 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-105` — reroll and banish |
-| Status | `Scoping` — task brief generated; implementation not started |
-| Closed | `V2-104` accepted at `7116c729` |
+| Active task | None in progress; `V2-106` (three starting weapons) is next by ID and has its dependency (`V2-102`) satisfied, but no task brief exists yet |
+| Status | `V2-105` accepted at `841160a2`; MVP-1's next task is `Not Started` |
+| Closed | `V2-105` accepted at `841160a2`; `V2-104` accepted at `7116c729` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1389,6 +1389,156 @@
   than one charge, and the remaining ability/passive identities
   (`V2-106`/`V2-107`/`V2-401`). Implementation has not started.
 
+### V2-105 — reroll and banish (2026-08-24)
+
+- V2-105 implemented all six proposed decisions from the task brief as
+  written (V2-ADR-056 through V2-ADR-061, none revised during
+  implementation): `World` gains four new per-run stores —
+  `rerollCharges`, `banishCharges` (`Uint8Array`, `0`/`1`, gated by the
+  existing `ComponentMask.LevelUpOffer` bit, no new bit added) and
+  `bannedCandidateKind`/`bannedCandidateCode` (the single per-run ban,
+  since only one banish is ever possible) — cleared by `clearSlot` on both
+  the `destroyEntity` and `reset` paths. `WorldSnapshot`'s schema version
+  moved 4 → 5; `WorldSnapshotWriter`, `WorldStateValidator` (two new
+  validators, `validateOfferCharges` and `validateBanishState`, mirroring
+  `validateLevelUpOffer`'s ownership-and-pairing shape), and `StateHasher`
+  (four new per-slot hashed bytes, in the same fixed field order
+  documented in `hashWorld`) were all extended to cover them.
+- `RunCommand` became a three-member discriminated union:
+  `choose-upgrade` (unchanged), `reroll-offer` (no `choiceIndex` field —
+  a reroll replaces the whole offer, not one slot), and `banish-offer`
+  (`choiceIndex` required). `ProgressionSystem.resolveUpgrade`'s parameter
+  type was narrowed to `RunCommand & { type: 'choose-upgrade' }` so the
+  union compiles without a runtime type guard at that call site.
+- `CommandRecorder` previously rejected any two commands sharing a tick.
+  That invariant had to relax: reroll, banish, and the eventual
+  `choose-upgrade` can all legally land on the *same* tick, because no
+  simulation tick advances while the lifecycle is paused for a level-up
+  (V2-ADR-059). The new rule is narrower, not weaker: ticks must be
+  non-decreasing across the whole recording, and the same command *type*
+  may never repeat at the same tick (a second `choose-upgrade` at an
+  already-resolved tick is exactly as invalid as before). `assertCommand`
+  now validates `reroll-offer`'s absent `choiceIndex` and `banish-offer`'s
+  present, range-checked one.
+- `LevelUpOfferSystem` gained `rerollChargesOf`/`banishChargesOf` (read),
+  and `reroll`/`banish` (validate-then-mutate, mirroring V2-104's
+  `resolveUpgrade` order). Both share one extracted `offerablePool` helper
+  that filters the run's single ban out of the same
+  ability/passive-registry enumeration `generateOffer` already used, so
+  a banned identity is excluded from every future `generateOffer` and
+  `reroll` call, not just the offer open at ban time. `banish` replaces
+  only the targeted slot from that filtered pool, tolerates an empty
+  replacement pool (V2-ADR-061 — MVP-1's real content is exactly one
+  ability and one passive identity, so banishing either can legally empty
+  a slot), and redraws the default index only when it pointed at the
+  banished slot.
+- `ProgressionSystem.resetPlayer` now initializes both charges to `1` and
+  clears any stale ban. New `rerollOffer`/`banishOffer` methods validate
+  lifecycle phase and charge availability, record the command, then mutate
+  — the same validate-record-mutate order `resolveUpgrade` already uses,
+  so a rejected reroll/banish leaves nothing recorded or changed. One
+  deviation from the brief's own interface stub, recorded rather than
+  silently assumed: both methods take an explicit `rng: DeterministicRng`
+  parameter (defaulted like `step`'s), because regenerating/redrawing an
+  offer consumes RNG and `ProgressionSystem` owns no RNG instance of its
+  own — the brief's interface listing omitted it.
+- `GameV2Runtime` gained `rerollOffer()`/`banishOffer(choiceIndex)` (both
+  phase-guarded, neither resumes the clock — the level-up stays paused so
+  the player can still choose from the changed offer) and two new
+  `readout()` fields, `rerollCharges`/`banishCharges`. `ReplayRunner`'s
+  command-application loop changed from a `Map<tick, command>` (one
+  command per tick) to a sequential cursor over `recording.commands`
+  applying every command whose tick matches the current paused tick,
+  dispatching on `type`, until a `choose-upgrade` resumes the run — this
+  is what makes multiple same-tick commands replayable at all. The
+  existing `'run recording is missing the upgrade command for paused
+  tick'` and `'...never landed on a paused tick'` error messages and their
+  tests were preserved unchanged.
+- `LevelUpOverlay.tsx` gained a single "Reroll" control and one "Banish"
+  control per occupied card, both reading the existing `revealing` boolean
+  (V2-ADR-060 — no second timing rule) and hidden entirely (not merely
+  disabled) once their charge reaches `0`. Neither handler touches
+  `elapsedMs`/`TOTAL_MS`; `GameV2App.tsx` wires `rerollCharges`/
+  `banishCharges` state and `onReroll`/`onBanish` callbacks that call the
+  runtime and re-sync from `readout()`, mirroring the existing
+  `handleChoose` pattern.
+- `tests/game-v2/support/scriptedRun.ts` gained an optional
+  `useRerollAndBanish` flag: when set, the scripted run rerolls, then
+  banishes the offer slot that does *not* hold the kind it intends to
+  choose (banishing the intended kind would make it permanently
+  unofferable and break the very choice the script makes) before
+  resolving — this is what let `ReplayRunner.test.ts` prove real
+  cross-FPS determinism for both new command types together rather than
+  asserting it from unit-level pieces alone.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (34 files,
+  719 tests, up from the 32 files and 657 tests of the accepted V2-104
+  checkpoint — two new files, `CommandRecorder.test.ts` and
+  `GameV2RuntimeOffer.test.ts`), `npm run typecheck`, `npm run
+  check:architecture` (89 baseline singleton files), `npm run
+  check:reset-coverage` (89 singletons: 29 wired, 60 exempt), `npm run
+  check:ui-contract`, focused ESLint (0 errors; one
+  `prefer-optional-chain` warning in `ReplayRunner.ts` autofixed) and
+  Prettier on every changed/new file, `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed — the pre-existing MVP-0 flow is unaffected since it never
+  rerolls or banishes).
+- The `WorldSnapshot.test.ts` hard-coded FNV-1a golden moved from
+  `e8776b68` to `ccf580c0`, a direct, expected consequence of `hashWorld`
+  now hashing four new per-slot bytes and the fixture gaining matching
+  reroll/banish/ban fixture values; forward/reverse write-order
+  independence still holds (both orders produce the new value).
+- A deliberate mutation pass ran against every mutant the task brief's
+  Step 6 named, each introduced, confirmed to fail its target test(s),
+  then restored to its exact prior source and re-verified green (`git
+  diff` confirmed zero residual production diff after the pass; a grep
+  for the pass's own inline markers found none left behind). Kills:
+  spending the reroll charge before validating offer-open (4 focused
+  failures in `LevelUpOfferSystem.test.ts`); spending the banish charge
+  before validating the index (5); `ProgressionSystem.rerollOffer`
+  recording before validating lifecycle phase (2) and `banishOffer`
+  recording before validating the index (1); disabling the ban filter in
+  `offerablePool` so a banished identity reappears (3, across
+  `LevelUpOfferSystem.test.ts` and `ProgressionSystem.test.ts`); the
+  reveal window accepting a reroll click (2) and a banish click (2), each
+  mutated at both the JSX `disabled` attribute and the handler's own
+  guard simultaneously, since either alone left the other as a redundant
+  defense that would have hidden the mutant; and `CommandRecorder`
+  accepting an out-of-range `banish-offer` index or a `reroll-offer`
+  carrying a stray `choiceIndex` (5).
+- One mutant class needed a stronger test than first written. A reroll
+  click that calls `setElapsedMs(0)` self-corrects within one
+  `TICK_INTERVAL_MS` (100 ms), because `LevelUpOverlay`'s interval
+  unconditionally recomputes `elapsedMs` from `Date.now() - startedAt`
+  every tick — so an assertion that advances fake timers by a full
+  interval before checking (the first version written) cannot observe a
+  one-off reset at all; it passed whether or not the mutation was present.
+  Replaced with a synchronous check of the rendered countdown text
+  immediately after `fireEvent.click` (no further `advance()` call, so no
+  interval tick has run yet) for both reroll and banish, which does kill
+  the mutant. This is recorded as a real methodology defect this
+  checkpoint found in its own first draft, not a defect in the shipped
+  component.
+- Implementation and tests are committed at `841160a2` (24 files: every
+  `game-v2/**` and `tests/game-v2/**` path this task touched). The
+  pre-existing unrelated working-tree changes listed under "Known
+  Pre-existing Working-tree Changes" below were left untouched and remain
+  uncommitted. The branch is not pushed past this commit.
+- All five acceptance criteria in the task brief are met with evidence
+  above: (1) one reroll and one banish per run, a further attempt at
+  either throws and mutates nothing — proved by the charge-spent tests in
+  `LevelUpOfferSystem.test.ts`/`ProgressionSystem.test.ts`/
+  `GameV2RuntimeOffer.test.ts`; (2) cross-FPS replay determinism for both
+  new command types together — proved by `ReplayRunner.test.ts`'s new
+  scripted-reroll-and-banish scenario at 30/60/120 FPS; (3) neither
+  control usable during reveal, neither changes the 13-second deadline —
+  proved by `LevelUpOverlay.test.tsx`, including the synchronous
+  countdown check; (4) a banished identity never reoffered, including by
+  a later reroll — proved by the ban-filter tests in both system test
+  files; (5) every Step 5 gate passes and the mutation pass has no
+  survivor among the brief's named mutants — evidence above. `V2-105` is
+  accepted.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
@@ -1441,14 +1591,15 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-The `V2-105` task brief (reroll and banish) is generated at
-`docs/game-v2/tasks/V2-105-reroll-and-banish.md`; its six proposed ADRs
-(V2-ADR-056 through V2-ADR-061) are the interpretation of a single design-spec
-line and are worth a second look before implementation starts, since they
-decide real player-facing behavior the spec does not itself specify. Start
-Step 1 (World/replay layer, RED then implement) once that review is done.
-`V2-104` is accepted and closed at `7116c729` (current HEAD). Do not deploy,
-cut over production, or replace the legacy demo.
+`V2-105` is accepted and closed at `841160a2` (current local `HEAD`, not yet
+pushed). No task brief exists yet for the next MVP-1 task; per
+`MASTER_PLAN.md`'s table, `V2-106` (three starting weapons, depends on
+`V2-102`) and `V2-107` (initial ability set, depends on `V2-102`) both have
+their dependency already satisfied and are the next candidates by ID. Confirm
+which one to scope next, generate its task brief, then start Step 1. Do not
+deploy, cut over production, or replace the legacy demo. Do not push the
+branch without explicit instruction.
+
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do
