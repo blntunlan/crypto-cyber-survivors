@@ -50,16 +50,28 @@ export const LEVEL_2_XP_THRESHOLD = 5;
 export const STARTER_WEAPON_DAMAGE_TIER_2 = 15;
 
 /**
- * Authored starter-projectile damage per tier, indexed by `tier - 1`.
+ * Starter-projectile Tier 3 (V2-ADR-045): design §5.2 assigns Tier 3 "a
+ * stronger area/coverage behavior plus a modest cadence improvement", not a
+ * second damage increase, so damage stays at `STARTER_WEAPON_DAMAGE_TIER_2`
+ * and only radius (coverage) and cooldown (cadence) change.
  *
- * Only two tiers are authored: tier 3 effects belong to V2-102, and
- * `STARTER_PROJECTILE.authoredTiers` is what keeps the loadout from reaching a
- * tier this table cannot answer (V2-ADR-038).
+ * `STARTER_PROJECTILE_RADIUS_TIER_3` is half of `ENEMY_RADIUS = 0.6`. The
+ * combined collision radius stays `0.3 + 0.6 = 0.9`, still well above the
+ * `PROJECTILE_SPEED / SIMULATION_HZ ≈ 0.2333` units of per-tick travel the
+ * existing tunnel-safety proof already pins for Tier 1/2, so discrete
+ * collision remains sound (`Mvp0Config.test.ts` locks this inequality).
  */
-export const STARTER_PROJECTILE_DAMAGE_BY_TIER: readonly number[] = Object.freeze([
-  PROJECTILE_DAMAGE,
-  STARTER_WEAPON_DAMAGE_TIER_2,
-]);
+export const STARTER_PROJECTILE_RADIUS_TIER_3 = 0.3;
+
+/**
+ * Two thirds of the base `WEAPON_COOLDOWN_TICKS = 30`. Worked kill-period
+ * comparison at unchanged Tier 2 damage (`ceil(ENEMY_HEALTH / 15) = 2` hits):
+ * Tier 1 is `30 * 3 = 90` ticks, Tier 2 is `30 * 2 = 60` ticks, Tier 3 is
+ * `20 * 2 = 40` ticks — a real, measurable improvement in the same units the
+ * spawn-cadence derivation above already uses.
+ */
+export const STARTER_WEAPON_COOLDOWN_TICKS_TIER_3 = 20;
+
 export const PLAYER_STARTING_LEVEL = 1;
 export const MVP0_MAX_PLAYER_LEVEL = 2;
 

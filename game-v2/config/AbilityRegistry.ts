@@ -1,3 +1,4 @@
+import { assertAbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
   MAX_ABILITY_CODE,
   isAbilityActivation,
@@ -5,6 +6,14 @@ import {
   type AbilityDefinition,
   type AbilityIdentityId,
 } from '@/game-v2/contracts/AbilitySlot';
+import {
+  PROJECTILE_DAMAGE,
+  PROJECTILE_RADIUS,
+  STARTER_PROJECTILE_RADIUS_TIER_3,
+  STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
+  STARTER_WEAPON_DAMAGE_TIER_2,
+  WEAPON_COOLDOWN_TICKS,
+} from '@/game-v2/config/Mvp0Config';
 
 /**
  * A validated set of ability definitions.
@@ -32,7 +41,7 @@ export const createAbilityRegistry = (
   const byCode = new Map<number, AbilityDefinition>();
 
   for (const candidate of definitions) {
-    const { id, code, activation, authoredTiers } = candidate;
+    const { id, code, activation, authoredTiers, tierEffects } = candidate;
 
     if (typeof id !== 'string' || id.trim().length === 0) {
       throw new TypeError('ability identity must be a non-empty string');
@@ -53,6 +62,11 @@ export const createAbilityRegistry = (
     if (!isAbilityTier(authoredTiers)) {
       throw new RangeError('authored tier count must be 1, 2, or 3');
     }
+    if (!Array.isArray(tierEffects) || tierEffects.length !== authoredTiers) {
+      throw new RangeError(
+        'ability tierEffects length must equal its authoredTiers count'
+      );
+    }
     if (byId.has(id)) {
       throw new RangeError('ability registry contains a duplicate identity');
     }
@@ -60,7 +74,17 @@ export const createAbilityRegistry = (
       throw new RangeError('ability registry contains a duplicate code');
     }
 
-    const frozen = Object.freeze({ id, code, activation, authoredTiers });
+    const validatedTierEffects = Object.freeze(
+      tierEffects.map(effect => assertAbilityTierEffect(effect))
+    );
+
+    const frozen = Object.freeze({
+      id,
+      code,
+      activation,
+      authoredTiers,
+      tierEffects: validatedTierEffects,
+    });
     byId.set(id, frozen);
     byCode.set(code, frozen);
   }
@@ -89,14 +113,36 @@ export const createAbilityRegistry = (
 
 /**
  * The starter weapon carried over from MVP-0. It is autonomous, so it displays
- * `AUTO`, and only its first two tiers have authored damage: tier 3 belongs to
- * V2-102 and must not be reachable before then (V2-ADR-038).
+ * `AUTO`. All three tiers are authored (V2-102, V2-ADR-045): Tier 2 raises
+ * damage, Tier 3 raises projectile radius (coverage) and shortens cooldown
+ * (cadence) without raising damage again, matching design §5.2's Tier 2/Tier 3
+ * split.
  */
 export const STARTER_PROJECTILE: AbilityDefinition = Object.freeze({
   id: 'starter-projectile',
   code: 1,
   activation: 'auto',
-  authoredTiers: 2,
+  authoredTiers: 3,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'starter-projectile',
+      damage: PROJECTILE_DAMAGE,
+      projectileRadius: PROJECTILE_RADIUS,
+      cooldownTicks: WEAPON_COOLDOWN_TICKS,
+    }),
+    Object.freeze({
+      ability: 'starter-projectile',
+      damage: STARTER_WEAPON_DAMAGE_TIER_2,
+      projectileRadius: PROJECTILE_RADIUS,
+      cooldownTicks: WEAPON_COOLDOWN_TICKS,
+    }),
+    Object.freeze({
+      ability: 'starter-projectile',
+      damage: STARTER_WEAPON_DAMAGE_TIER_2,
+      projectileRadius: STARTER_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
 });
 
 export const MVP1_ABILITY_REGISTRY = createAbilityRegistry([STARTER_PROJECTILE]);

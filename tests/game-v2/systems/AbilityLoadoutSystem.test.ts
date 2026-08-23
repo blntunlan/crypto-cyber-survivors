@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createAbilityRegistry } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
   ABILITY_SLOT_COUNT,
   type AbilityDefinition,
@@ -17,12 +18,60 @@ const CAPACITY = 16;
 
 const id = (value: string): AbilityIdentityId => value as AbilityIdentityId;
 
+/**
+ * These fixtures use local test identities, not real production ones, so
+ * their tier effects are opaque per-tier markers rather than meaningful
+ * gameplay data (V2-ADR-044: the registry does not cross-check an effect's
+ * `ability` tag against the identity that owns it).
+ */
+const tierEffects = (count: number): readonly AbilityTierEffect[] =>
+  Array.from(
+    { length: count },
+    (_, index) =>
+      ({
+        ability: 'starter-projectile',
+        damage: index + 1,
+        projectileRadius: 0.1,
+        cooldownTicks: index + 1,
+      }) as AbilityTierEffect
+  );
+
 const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
-  { id: id('alpha'), code: 11, activation: 'auto', authoredTiers: 3 },
-  { id: id('beta'), code: 12, activation: 'active', authoredTiers: 1 },
-  { id: id('gamma'), code: 13, activation: 'active', authoredTiers: 2 },
-  { id: id('delta'), code: 14, activation: 'auto', authoredTiers: 2 },
-  { id: id('epsilon'), code: 15, activation: 'active', authoredTiers: 3 },
+  {
+    id: id('alpha'),
+    code: 11,
+    activation: 'auto',
+    authoredTiers: 3,
+    tierEffects: tierEffects(3),
+  },
+  {
+    id: id('beta'),
+    code: 12,
+    activation: 'active',
+    authoredTiers: 1,
+    tierEffects: tierEffects(1),
+  },
+  {
+    id: id('gamma'),
+    code: 13,
+    activation: 'active',
+    authoredTiers: 2,
+    tierEffects: tierEffects(2),
+  },
+  {
+    id: id('delta'),
+    code: 14,
+    activation: 'auto',
+    authoredTiers: 2,
+    tierEffects: tierEffects(2),
+  },
+  {
+    id: id('epsilon'),
+    code: 15,
+    activation: 'active',
+    authoredTiers: 3,
+    tierEffects: tierEffects(3),
+  },
 ];
 
 const createSystem = (): AbilityLoadoutSystem =>
@@ -280,5 +329,54 @@ describe('AbilityLoadoutSystem', () => {
       expect(world.abilitySlotIdentity[index]).toBe(0);
       expect(world.abilitySlotTier[index]).toBe(0);
     }
+  });
+
+  describe('tierEffectAt', () => {
+    it('returns null for an empty slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.tierEffectAt(world, owner, 0)).toBeNull();
+    });
+
+    it('resolves the effect matching the currently held tier', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[0]);
+
+      system.advanceTier(world, owner, 0);
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[1]);
+
+      system.advanceTier(world, owner, 0);
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[2]);
+    });
+
+    it('throws for a tier byte beyond what the identity authored', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      const storeIndex = world.abilitySlotIndexOf(world.slotOf(owner), 0);
+      world.abilitySlotTier[storeIndex] = 4;
+
+      expect(() => system.tierEffectAt(world, owner, 0)).toThrow(
+        'ability slot tier has no authored effect'
+      );
+    });
+
+    it('rejects a slot index outside the loadout', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(() => system.tierEffectAt(world, owner, -1 as AbilitySlotIndex)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+    });
   });
 });

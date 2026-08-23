@@ -1131,12 +1131,13 @@ describe('WeaponSystem.advanceStarterTier', () => {
     );
   });
 
-  it('rejects a second upgrade application with RangeError', () => {
+  it('rejects an upgrade application past the authored tier ceiling', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
     const weaponSystem = new WeaponSystem();
     weaponSystem.resetPlayer(world, player);
 
+    weaponSystem.advanceStarterTier(world, player);
     weaponSystem.advanceStarterTier(world, player);
 
     expect(() => weaponSystem.advanceStarterTier(world, player)).toThrow(RangeError);

@@ -5,6 +5,7 @@ import {
   STARTER_PROJECTILE,
   createAbilityRegistry,
 } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
   EMPTY_ABILITY_CODE,
   MAX_ABILITY_CODE,
@@ -12,18 +13,34 @@ import {
   type AbilityIdentityId,
 } from '@/game-v2/contracts/AbilitySlot';
 
+const starterEffect = (overrides: Partial<AbilityTierEffect> = {}): AbilityTierEffect =>
+  ({
+    ability: 'starter-projectile',
+    damage: 1,
+    projectileRadius: 0.1,
+    cooldownTicks: 1,
+    ...overrides,
+  }) as AbilityTierEffect;
+
 const definition = (overrides: {
   id: string;
   code: number;
   activation?: string;
   authoredTiers?: number;
-}): AbilityDefinition =>
-  ({
+  tierEffects?: readonly AbilityTierEffect[];
+}): AbilityDefinition => {
+  const authoredTiers = overrides.authoredTiers ?? 2;
+
+  return {
     activation: overrides.activation ?? 'auto',
-    authoredTiers: overrides.authoredTiers ?? 2,
+    authoredTiers,
     code: overrides.code,
     id: overrides.id as AbilityIdentityId,
-  }) as AbilityDefinition;
+    tierEffects:
+      overrides.tierEffects ??
+      Array.from({ length: authoredTiers }, () => starterEffect()),
+  } as AbilityDefinition;
+};
 
 describe('AbilityRegistry', () => {
   it('resolves the starter projectile by id and by code', () => {
@@ -41,11 +58,35 @@ describe('AbilityRegistry', () => {
     expect(MVP1_ABILITY_REGISTRY.byCode(EMPTY_ABILITY_CODE)).toBeNull();
   });
 
-  it('keeps the starter projectile an AUTO ability with two authored tiers', () => {
+  it('keeps the starter projectile an AUTO ability with all three tiers authored', () => {
     expect(STARTER_PROJECTILE.activation).toBe('auto');
-    expect(STARTER_PROJECTILE.authoredTiers).toBe(2);
+    expect(STARTER_PROJECTILE.authoredTiers).toBe(3);
     expect(STARTER_PROJECTILE.code).toBeGreaterThanOrEqual(1);
     expect(STARTER_PROJECTILE.code).toBeLessThanOrEqual(MAX_ABILITY_CODE);
+    expect(STARTER_PROJECTILE.tierEffects).toHaveLength(3);
+  });
+
+  it('raises starter-projectile damage at Tier 2 and holds it at Tier 3', () => {
+    const [tier1, tier2, tier3] = STARTER_PROJECTILE.tierEffects as [
+      AbilityTierEffect,
+      AbilityTierEffect,
+      AbilityTierEffect,
+    ];
+
+    expect(tier1.damage).toBeLessThan(tier2.damage);
+    expect(tier3.damage).toBe(tier2.damage);
+  });
+
+  it('raises starter-projectile coverage and cadence only at Tier 3', () => {
+    const [tier1, tier2, tier3] = STARTER_PROJECTILE.tierEffects as [
+      AbilityTierEffect,
+      AbilityTierEffect,
+      AbilityTierEffect,
+    ];
+
+    expect(tier1.projectileRadius).toBe(tier2.projectileRadius);
+    expect(tier3.projectileRadius).toBeGreaterThan(tier2.projectileRadius);
+    expect(tier3.cooldownTicks).toBeLessThan(tier2.cooldownTicks);
   });
 
   it('rejects an unknown identity and an unknown code', () => {
@@ -100,5 +141,72 @@ describe('AbilityRegistry', () => {
   it('freezes the definitions it returns', () => {
     const registry = createAbilityRegistry([definition({ id: 'a', code: 7 })]);
     expect(Object.isFrozen(registry.byCode(7))).toBe(true);
+    expect(Object.isFrozen(registry.byCode(7)?.tierEffects)).toBe(true);
+  });
+
+  it('rejects a tierEffects length that does not match authoredTiers', () => {
+    expect(() =>
+      createAbilityRegistry([
+        definition({
+          id: 'a',
+          code: 1,
+          authoredTiers: 3,
+          tierEffects: [starterEffect()],
+        }),
+      ])
+    ).toThrow('ability tierEffects length must equal its authoredTiers count');
+
+    expect(() =>
+      createAbilityRegistry([
+        definition({
+          id: 'a',
+          code: 1,
+          authoredTiers: 1,
+          tierEffects: [starterEffect(), starterEffect()],
+        }),
+      ])
+    ).toThrow('ability tierEffects length must equal its authoredTiers count');
+  });
+
+  it('rejects a tierEffects entry with an unrecognized shape', () => {
+    expect(() =>
+      createAbilityRegistry([
+        definition({
+          id: 'a',
+          code: 1,
+          authoredTiers: 1,
+          tierEffects: [{ ability: 'unknown-shape' } as unknown as AbilityTierEffect],
+        }),
+      ])
+    ).toThrow('unknown ability tier effect shape');
+  });
+
+  it('rejects a non-finite, negative, or fractional tier-cooldown effect field', () => {
+    for (const damage of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() =>
+        createAbilityRegistry([
+          definition({
+            id: 'a',
+            code: 1,
+            authoredTiers: 1,
+            tierEffects: [starterEffect({ damage })],
+          }),
+        ])
+      ).toThrow(
+        'starter-projectile tier effect requires finite positive damage, ' +
+          'projectileRadius, and an integer cooldownTicks'
+      );
+    }
+
+    expect(() =>
+      createAbilityRegistry([
+        definition({
+          id: 'a',
+          code: 1,
+          authoredTiers: 1,
+          tierEffects: [starterEffect({ cooldownTicks: 1.5 })],
+        }),
+      ])
+    ).toThrow('integer cooldownTicks');
   });
 });

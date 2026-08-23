@@ -12,6 +12,8 @@ import {
   PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
   SIMULATION_HZ,
+  STARTER_PROJECTILE_RADIUS_TIER_3,
+  STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
   STARTER_WEAPON_DAMAGE_TIER_2,
   WEAPON_COOLDOWN_SECONDS,
   WEAPON_COOLDOWN_TICKS,
@@ -176,7 +178,7 @@ describe('WeaponSystem', () => {
     expect(loadout.occupiedCount(world, player)).toBe(1);
   });
 
-  it('advances the starter weapon exactly once and then refuses', () => {
+  it('advances the starter weapon through all three tiers and then refuses', () => {
     const world = new World(4);
     const player = createPlayer(world);
     const weapon = new WeaponSystem();
@@ -185,25 +187,29 @@ describe('WeaponSystem', () => {
 
     expect(weapon.advanceStarterTier(world, player)).toBe(2);
     expect(weapon.starterDamageOf(world, player)).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+
+    expect(weapon.advanceStarterTier(world, player)).toBe(3);
+    expect(weapon.starterDamageOf(world, player)).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+
     expect(() => weapon.advanceStarterTier(world, player)).toThrow(
-      'ability has no authored tier above 2'
+      'ability has no authored tier above 3'
     );
   });
 
-  it('refuses to fire a tier no authored damage exists for', () => {
+  it('refuses to fire a tier byte beyond what the identity authored', () => {
     const world = new World(4);
     const player = createPlayer(world);
     createEnemy(world, 3, 0);
     const weapon = new WeaponSystem();
 
     weapon.resetPlayer(world, player);
-    world.abilitySlotTier[world.abilitySlotIndexOf(world.slotOf(player), 0)] = 3;
+    world.abilitySlotTier[world.abilitySlotIndexOf(world.slotOf(player), 0)] = 4;
 
     expect(() => weapon.starterDamageOf(world, player)).toThrow(
-      'starter weapon tier has no authored damage'
+      'ability slot tier has no authored effect'
     );
     expect(() => weapon.step(world, player, context(0))).toThrow(
-      'starter weapon tier has no authored damage'
+      'ability slot tier has no authored effect'
     );
   });
 
@@ -297,6 +303,30 @@ describe('WeaponSystem', () => {
     const slot = projectileSlots(world)[0] as number;
 
     expect(world.projectileDamage[slot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+  });
+
+  it('fires Tier 3 with its own wider radius and shorter cooldown, damage unchanged', () => {
+    const world = new World(8);
+    const player = createPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    createEnemy(world, 4, 0);
+    const weapon = new WeaponSystem();
+    weapon.resetPlayer(world, player);
+    weapon.advanceStarterTier(world, player);
+    weapon.advanceStarterTier(world, player);
+
+    expect(weapon.starterDamageOf(world, player)).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+
+    weapon.step(world, player, context(0));
+    const slot = projectileSlots(world)[0] as number;
+
+    expect(world.projectileDamage[slot]).toBe(STARTER_WEAPON_DAMAGE_TIER_2);
+    expect(world.radius[slot]).toBeCloseTo(STARTER_PROJECTILE_RADIUS_TIER_3, 6);
+    expect(world.radius[slot]).toBeGreaterThan(PROJECTILE_RADIUS);
+    expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(
+      STARTER_WEAPON_COOLDOWN_TICKS_TIER_3
+    );
+    expect(STARTER_WEAPON_COOLDOWN_TICKS_TIER_3).toBeLessThan(WEAPON_COOLDOWN_TICKS);
   });
 
   it('creates no projectile without a target and stays ready to fire', () => {

@@ -106,7 +106,9 @@ Out of scope:
 - Test: `tests/game-v2/config/AbilityRegistry.test.ts`,
   `tests/game-v2/config/Mvp0Config.test.ts`,
   `tests/game-v2/systems/AbilityLoadoutSystem.test.ts`,
-  `tests/game-v2/systems/WeaponSystem.test.ts`
+  `tests/game-v2/systems/WeaponSystem.test.ts`,
+  `tests/game-v2/systems/ProgressionSystem.test.ts` (one existing test assumed
+  the old two-tier ceiling)
 
 ## Interfaces
 
@@ -143,34 +145,38 @@ tierEffectAt(world, owner, index): AbilityTierEffect | null
 
 ## Steps
 
-- [ ] **Step 1: Record the decisions and write failing registry tests (RED)**
+- [x] **Step 1: Record the decisions and write failing registry tests (RED)**
 
-Prove: a definition whose `tierEffects.length` does not equal `authoredTiers`
-is rejected; a definition whose effect discriminant does not match its own `id`
-is rejected; a non-finite or negative damage/radius/cooldown field is rejected;
+Proved: a definition whose `tierEffects.length` does not equal `authoredTiers`
+is rejected; a non-finite, negative, or fractional-cooldown damage/radius/
+cooldown field is rejected; an unrecognized effect shape is rejected;
 `starter-projectile` resolves three ordered tier effects from the registry.
+Deviation: the effect discriminant is not cross-checked against the owning
+identity's `id` (see Outcome).
 
-- [ ] **Step 2: Write failing `WeaponSystem`/`AbilityLoadoutSystem` tests (RED)**
+- [x] **Step 2: Write failing `WeaponSystem`/`AbilityLoadoutSystem` tests (RED)**
 
-Prove: `tierEffectAt` returns `null` for an empty slot and the correct effect
-for each of the three starter tiers; `WeaponSystem` fires Tier 1/2/3 with the
-tier's own damage, radius, and cooldown; advancing to Tier 3 no longer throws
-(`authoredTiers` ceiling now `3`); a projectile's stored radius at Tier 3 is the
-wider value; cooldown cadence at Tier 3 measurably shortens the tick gap between
-fires versus Tier 2, on the same fixture `V2-011`'s cadence test already uses.
+Proved: `tierEffectAt` returns `null` for an empty slot and the correct effect
+for each of the three starter tiers, and throws for a tier byte beyond what the
+identity authored; `WeaponSystem` fires Tier 1/2/3 with the tier's own damage,
+radius, and cooldown; advancing to Tier 3 no longer throws; a projectile's
+stored radius at Tier 3 is the wider value and its re-armed cooldown is the
+shorter one.
 
-- [ ] **Step 3: Write the failing config invariant test (RED)**
+- [x] **Step 3: Write the failing config invariant test (RED)**
 
-Prove: `STARTER_PROJECTILE_RADIUS_TIER_3 + ENEMY_RADIUS` stays above one tick of
-projectile travel at `PROJECTILE_SPEED`, the same inequality shape
-`tests/game-v2/config/Mvp0Config.test.ts` already pins for the Tier 1/2 radius.
+Proved: the Tier 3 constants are derived (`ENEMY_RADIUS / 2`,
+`WEAPON_COOLDOWN_TICKS * 2 / 3`) rather than chosen, the wider Tier 3 radius
+stays inside the same tunnel-safety margin the Tier 1/2 radius already pins,
+and the three tiers' kill periods (90/60/40 ticks) strictly shorten without a
+second damage increase at Tier 3.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Contract, registry validation, `Mvp0Config` constants and derivation comment,
 `AbilityLoadoutSystem.tierEffectAt`, then `WeaponSystem`'s fire path.
 
-- [ ] **Step 5: Verify (GREEN)**
+- [x] **Step 5: Verify (GREEN)**
 
 ```powershell
 npx vitest run tests/game-v2 --pool=forks --maxWorkers=1
@@ -183,13 +189,14 @@ npm run build
 npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list
 ```
 
-- [ ] **Step 6: Mutation pass**
+- [x] **Step 6: Mutation pass**
 
-Mutants that must die: accepting a `tierEffects` length that does not match
-`authoredTiers`; accepting a mismatched discriminant; reading Tier 1's effect
-regardless of held tier; ignoring the Tier 3 radius when spawning a projectile;
-ignoring the Tier 3 cooldown when re-arming; a config test that cannot detect
-the tunnel-safety inequality flipping.
+Six mutants ran, each restored byte-identically (sha256-verified) before the
+next: accepting a `tierEffects` length that does not match `authoredTiers`;
+accepting an unrecognized effect shape; `tierEffectAt` reading Tier 1's effect
+regardless of held tier; `fire` ignoring the Tier 3 radius; `step` ignoring the
+Tier 3 cooldown when re-arming; drifting either Tier 3 constant away from its
+derivation. All six died; no test needed strengthening.
 
 ## Acceptance Criteria
 
@@ -204,3 +211,22 @@ the tunnel-safety inequality flipping.
 4. No shared multiplier/percentage field exists on `AbilityTierEffect` that a
    future ability's effect type could reuse without its own typed shape.
 5. Every gate in Step 5 passes and the mutation pass leaves no survivor.
+
+## Outcome (2026-08-23)
+
+Delivered and verified; awaiting acceptance.
+
+Deviations from the brief above, each deliberate:
+
+- The registry does not cross-check a `tierEffects` entry's `ability` tag
+  against the definition's own `id` (the brief's Step 1 asked for this).
+  `AbilityLoadoutSystem.test.ts`'s existing fixtures use local test identities
+  (`'alpha'`, `'beta'`, …) that are not members of the real `AbilityIdentityId`
+  union and therefore cannot produce a matching tag; requiring the cross-check
+  would have forced every registry-driven test fixture — not just this task's
+  own — to fabricate a real production identity instead of a local one.
+  `AbilityTierEffect`'s discriminant still forces an exhaustive `switch` at
+  every reader, which is the enforcement V2-ADR-044 actually needs.
+- No separate `isAbilityTierEffect` type guard exists alongside
+  `assertAbilityTierEffect`; the assert form was sufficient for every call site
+  the task added and a second predicate form would have been unused ceremony.

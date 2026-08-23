@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-102` — three-tier ability schema; task brief generated, implementation not started |
-| Status | `Brief generated` — see `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` |
+| Active task | `V2-102` — three-tier ability schema; implemented, mutation-proved, and verified |
+| Status | `Verification` — awaiting acceptance; brief and outcome in `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` |
 | Closed | `V2-101` accepted at `b7a5c07a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1015,19 +1015,99 @@
   V2-ADR-044 through V2-ADR-046, recorded in `DECISIONS.md` when the task
   starts rather than now. Implementation has not started.
 
+### V2-102 — three-tier ability schema (2026-08-23)
+
+- V2-ADR-044 through V2-ADR-046 were recorded in `DECISIONS.md` as the task
+  started. V2-ADR-044 was tightened while writing tests: the registry validates
+  a `tierEffects` entry's own shape but does not cross-check its `ability` tag
+  against the owning identity's id, because several existing test fixtures
+  (`AbilityLoadoutSystem.test.ts`) hold local test identities that are not
+  members of the real `AbilityIdentityId` union and would have no way to
+  produce a matching tag.
+- `game-v2/contracts/AbilityTierEffect.ts` is new: `AbilityTierEffect` is a
+  discriminated union (today one member, `StarterProjectileTierEffect`) and
+  `assertAbilityTierEffect` validates one entry through an exhaustive `switch`
+  on its own `ability` tag. `AbilityDefinition.tierEffects` (`AbilitySlot.ts`)
+  is `readonly AbilityTierEffect[]`, index `tier - 1`.
+- `createAbilityRegistry` (`AbilityRegistry.ts`) now rejects a `tierEffects`
+  array whose length does not equal `authoredTiers`, then validates and
+  deep-freezes every entry through `assertAbilityTierEffect`.
+  `STARTER_PROJECTILE.authoredTiers` moved from `2` to `3`; all three tiers are
+  authored from `Mvp0Config.ts` constants (V2-ADR-045): Tier 2 raises damage to
+  `STARTER_WEAPON_DAMAGE_TIER_2 = 15`, Tier 3 holds that damage and instead
+  raises `projectileRadius` to `STARTER_PROJECTILE_RADIUS_TIER_3 = 0.3` (half
+  of `ENEMY_RADIUS`) and lowers `cooldownTicks` to
+  `STARTER_WEAPON_COOLDOWN_TICKS_TIER_3 = 20` (two thirds of
+  `WEAPON_COOLDOWN_TICKS`). Worked kill periods are pinned at 90/60/40 ticks
+  across the three tiers.
+- `AbilityLoadoutSystem.tierEffectAt(world, owner, index)` is the new single
+  lookup path from a held slot to its tier effect (V2-ADR-046): `null` for an
+  empty slot, the matching `tierEffects` entry for a held one, and a thrown
+  `'ability slot tier has no authored effect'` for a tier byte beyond what the
+  identity authored — reachable only from a corrupted or hand-written
+  checkpoint, since `advanceTier` never writes past `authoredTiers`.
+- `WeaponSystem` no longer imports `PROJECTILE_RADIUS`, `WEAPON_COOLDOWN_TICKS`,
+  or the deleted `STARTER_PROJECTILE_DAMAGE_BY_TIER` array. `step` and `fire`
+  read damage, projectile radius, and cooldown from one
+  `starterTierEffect(world, playerEntity)` call per tick, so the three values
+  can never independently drift. The old `starter weapon tier has no authored
+  damage` message is gone; the generic `AbilityLoadoutSystem` message replaces
+  it, and the test that forged an out-of-range tier now forges `4` instead of
+  `3`, since `3` is a legitimate tier today.
+- Two existing tests assumed the old two-tier ceiling and needed updating for
+  reality, not for V2-102's contract: `WeaponSystem.test.ts`'s
+  `'advances the starter weapon exactly once and then refuses'` now advances
+  twice before the expected throw, and
+  `ProgressionSystem.test.ts`'s `'rejects a second upgrade application with
+  RangeError'` (renamed `'rejects an upgrade application past the authored
+  tier ceiling'`) now calls `advanceStarterTier` twice before the throw.
+- V2-102 RED command:
+  `npx vitest run tests/game-v2/config/AbilityRegistry.test.ts tests/game-v2/config/Mvp0Config.test.ts tests/game-v2/systems/AbilityLoadoutSystem.test.ts tests/game-v2/systems/WeaponSystem.test.ts --pool=forks --maxWorkers=1`
+  failed on the two tier-ceiling tests above before the config/registry/system
+  changes landed together (this task's contract and its production change were
+  written as one pass rather than contract-then-implementation, since the
+  registry validator, the new lookup method, and `WeaponSystem`'s read path are
+  small enough to co-locate without an intermediate stub state).
+- V2-102 GREEN verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (30 files, 619
+  tests, up from 30 files and 606 tests at the V2-101 checkpoint — 13 net new
+  tests after two existing tests were fixed for the new tier ceiling),
+  `npm run typecheck`, focused ESLint and focused Prettier on every changed
+  file (full `npm run lint` is blocked by unrelated parsing errors in the
+  untracked `.delegate/runs/**` orchestrator artifacts, not part of this
+  branch's Game V2 work), `npm run check:architecture` (89 baseline singleton
+  files), `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt),
+  `npm run check:ui-contract`, `npm run build`, `npm run test` (372 files, 3890
+  tests, one pre-existing unrelated `LandingPriceFeed` flake — the same failure
+  documented at the MVP-0 gate), and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed).
+- A six-mutant deliberate pass ran against exactly the mutants the task brief's
+  Step 6 named, each applied, run against its focused test file, and restored;
+  sha256 confirmed byte-identical restoration of all five touched production
+  files afterward. All six died: a weakened `tierEffects.length` check (1
+  focused failure), an unrecognized tier-effect shape accepted instead of
+  rejected (1), `tierEffectAt` always reading Tier 1 regardless of the held
+  tier (6, across both `AbilityLoadoutSystem.test.ts` and
+  `WeaponSystem.test.ts`), `fire` ignoring the held tier's projectile radius
+  (1, caught by the new Tier 3 test), `step` ignoring the held tier's cooldown
+  when re-arming (1, same test), and drifting either Tier 3 constant away from
+  its derivation (1 each, caught by `Mvp0Config.test.ts`'s dedicated derivation
+  and kill-period tests). No test needed strengthening.
+- New decisions: V2-ADR-044 through V2-ADR-046.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
    is fixed, mutation-proved, and re-verified, and the three deferred findings
    are assigned to later blocks.
-2. `V2-100` and `V2-101` are accepted and closed. Re-run the last GREEN command
-   before touching code:
+2. `V2-100` and `V2-101` are accepted and closed. `V2-102` is implemented,
+   mutation-proved, and verified but not accepted. Re-run the last GREEN
+   command before touching code:
    `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 30 files,
-   606 tests) and
+   619 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
    (expect 2 passed). Both were last confirmed green on 2026-08-23.
-3. `V2-102` has a generated task brief and no implementation yet. Follow
-   `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` from Step 1.
 
 ## Known MVP-0 Limitations
 
@@ -1066,9 +1146,10 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Implement `V2-102` per `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md`,
-starting at Step 1 (record the proposed decisions and write failing tests). Do
-not deploy, cut over production, or replace the legacy demo.
+Accept the `V2-102` checkpoint. On acceptance, generate the `V2-103` task brief
+(dynamic ability HUD — only occupied slots display; active keys and AUTO labels
+are correct), per `MASTER_PLAN.md`. Do not deploy, cut over production, or
+replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do

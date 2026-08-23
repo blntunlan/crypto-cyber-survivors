@@ -2,6 +2,7 @@ import {
   MVP1_ABILITY_REGISTRY,
   type AbilityRegistry,
 } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
   ABILITY_SLOT_COUNT,
   isAbilitySlotIndex,
@@ -181,6 +182,44 @@ export class AbilityLoadoutSystem {
     }
 
     return tier as AbilityTier;
+  }
+
+  /**
+   * Resolves the tier effect a held slot currently fires with (V2-ADR-046).
+   *
+   * `WeaponSystem` calls this instead of reading the registry directly, so
+   * there is exactly one path from a held slot to the effect it produces.
+   * Returns `null` for an empty slot; throws if the stored tier byte exceeds
+   * what the identity's `tierEffects` table authored — reachable only from a
+   * corrupted or hand-written checkpoint, since `advanceTier` never writes a
+   * tier past `authoredTiers`.
+   */
+  public tierEffectAt(
+    world: World,
+    owner: EntityId,
+    index: AbilitySlotIndex
+  ): AbilityTierEffect | null {
+    const storeIndex = this.storeIndex(world, owner, index);
+    const code = world.abilitySlotIdentity[storeIndex] ?? 0;
+
+    if (code === 0) {
+      return null;
+    }
+
+    const definition = this.registry.byCode(code);
+
+    if (definition === null) {
+      throw new RangeError('ability slot holds the reserved empty code');
+    }
+
+    const tier = world.abilitySlotTier[storeIndex] ?? 0;
+    const effect = definition.tierEffects[tier - 1];
+
+    if (effect === undefined) {
+      throw new RangeError('ability slot tier has no authored effect');
+    }
+
+    return effect;
   }
 
   public indexOf(

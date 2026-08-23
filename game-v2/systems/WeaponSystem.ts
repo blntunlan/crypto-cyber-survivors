@@ -1,11 +1,9 @@
 import {
   PROJECTILE_LIFETIME_TICKS,
-  PROJECTILE_RADIUS,
   PROJECTILE_SPEED,
-  STARTER_PROJECTILE_DAMAGE_BY_TIER,
-  WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
 import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
   type AbilitySlotIndex,
   type AbilityTier,
@@ -89,7 +87,7 @@ export class WeaponSystem {
   public starterDamageOf(world: World, playerEntity: EntityId): number {
     this.assertPlayer(world, playerEntity);
 
-    return this.starterDamage(world, playerEntity);
+    return this.starterTierEffect(world, playerEntity).damage;
   }
 
   private assertPlayer(world: World, playerEntity: EntityId): number {
@@ -114,30 +112,23 @@ export class WeaponSystem {
   }
 
   /**
-   * Reads authored damage for the tier the loadout currently holds.
-   *
-   * A tier with no authored damage throws instead of silently firing tier-1
-   * damage: the loadout ceiling should make it unreachable, and a restored or
-   * hand-written checkpoint that breaks that invariant must fail loudly.
+   * Reads the authored effect for the tier the loadout currently holds
+   * (V2-ADR-046). `AbilityLoadoutSystem.tierEffectAt` is the single lookup
+   * path from a held slot to what it fires with, so damage, projectile
+   * radius, and cooldown can never independently drift.
    */
-  private starterDamage(world: World, playerEntity: EntityId): number {
-    const tier = this.loadout.tierAt(
+  private starterTierEffect(world: World, playerEntity: EntityId): AbilityTierEffect {
+    const effect = this.loadout.tierEffectAt(
       world,
       playerEntity,
       this.starterSlotIndex(world, playerEntity)
     );
 
-    if (tier === null) {
+    if (effect === null) {
       throw new RangeError('player holds no starter weapon');
     }
 
-    const damage = STARTER_PROJECTILE_DAMAGE_BY_TIER[tier - 1];
-
-    if (damage === undefined) {
-      throw new RangeError('starter weapon tier has no authored damage');
-    }
-
-    return damage;
+    return effect;
   }
 
   /**
@@ -163,7 +154,8 @@ export class WeaponSystem {
 
     const playerX = world.x[playerSlot];
     const playerY = world.y[playerSlot];
-    const weaponDamage = this.starterDamage(world, playerEntity);
+    const effect = this.starterTierEffect(world, playerEntity);
+    const { damage: weaponDamage, projectileRadius, cooldownTicks } = effect;
     const lastFacingX = world.lastFacingX[playerSlot];
     const lastFacingY = world.lastFacingY[playerSlot];
 
@@ -201,8 +193,16 @@ export class WeaponSystem {
     this.advanceProjectiles(world, context.deltaSeconds);
 
     if (target !== NO_ENTITY) {
-      this.fire(world, playerEntity, target, playerX, playerY, weaponDamage);
-      nextCooldown = WEAPON_COOLDOWN_TICKS;
+      this.fire(
+        world,
+        playerEntity,
+        target,
+        playerX,
+        playerY,
+        weaponDamage,
+        projectileRadius
+      );
+      nextCooldown = cooldownTicks;
     }
 
     world.weaponCooldownTicksRemaining[playerSlot] = nextCooldown;
@@ -268,7 +268,8 @@ export class WeaponSystem {
     target: EntityId,
     playerX: number,
     playerY: number,
-    weaponDamage: number
+    weaponDamage: number,
+    projectileRadius: number
   ): void {
     const playerSlot = world.slotOf(playerEntity);
     const targetSlot = world.slotOf(target);
@@ -310,7 +311,7 @@ export class WeaponSystem {
     world.previousY[slot] = playerY;
     world.velocityX[slot] = velocityX;
     world.velocityY[slot] = velocityY;
-    world.radius[slot] = PROJECTILE_RADIUS;
+    world.radius[slot] = projectileRadius;
     world.projectileDamage[slot] = weaponDamage;
     world.projectileLifetimeTicksRemaining[slot] = PROJECTILE_LIFETIME_TICKS;
   }

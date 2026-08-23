@@ -1,3 +1,5 @@
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
+
 /**
  * The four unified ability slots (design §5.1, V2-ADR-005).
  *
@@ -43,6 +45,11 @@ export type AbilityDefinition = Readonly<{
    * that authors its behavior exists (V2-ADR-038).
    */
   authoredTiers: AbilityTier;
+  /**
+   * Index `tier - 1`; length must equal `authoredTiers` (V2-ADR-044,
+   * registry-enforced in `createAbilityRegistry`).
+   */
+  tierEffects: readonly AbilityTierEffect[];
 }>;
 
 /**

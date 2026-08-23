@@ -63,9 +63,8 @@ complexity is introduced.
 
 Status: `In Progress`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
 is accepted and closed at `b7a5c07a`; briefs and outcomes are in
-`docs/game-v2/tasks/`. `V2-102`'s task brief is generated at
-`docs/game-v2/tasks/V2-102-three-tier-ability-schema.md`; implementation is
-next.
+`docs/game-v2/tasks/`. `V2-102` is implemented, mutation-proved, and verified,
+awaiting acceptance. `V2-103` is next.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
