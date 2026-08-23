@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` |
+| Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-101` — six-slot passive loadout; implemented, mutation-proved, and verified |
-| Status | `Verification` — awaiting acceptance; briefs and outcomes in `docs/game-v2/tasks/` |
-| Closed | `V2-100` accepted at `677e1d24` |
+| Active task | `V2-102` — three-tier ability schema; task brief generated, implementation not started |
+| Status | `Brief generated` — see `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` |
+| Closed | `V2-101` accepted at `b7a5c07a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -989,19 +989,45 @@
   moved the player `+4.9` on Y and holding `D` moved it `+3.7` on X.
 - New decision: V2-ADR-043.
 
+### V2-101 acceptance and branch push (2026-08-23)
+
+- This branch had never been pushed to `origin`. Before resuming, two test files
+  that the accepted V2-006/V2-008/V2-009 production code already imports —
+  `tests/game-v2/presentation/RenderSnapshotValidator.test.ts` and
+  `tests/game-v2/systems/StepContextValidator.test.ts` — were found untracked
+  and never committed. They were staged alone (nothing else in the dirty working
+  tree, including the unrelated delegate-orchestrator work and the known
+  pre-existing files below) and committed as `64931408`.
+- Re-verification: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+  passed 30 files and 606 tests, up from 28 files and 574 tests only by the two
+  restored files; no regression.
+- `codex/threejs-gameplay-v2` was pushed to `origin` for the first time and now
+  tracks `origin/codex/threejs-gameplay-v2`.
+- The user accepted `V2-101`; it is closed at `b7a5c07a`. The screen-orientation
+  fix at `346c28b6` (V2-ADR-043) is independent presentation-only work, already
+  closed, and not part of V2-101's scope.
+- The `V2-102` task brief (three-tier ability schema) was generated at
+  `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` per the `V2-101`
+  Exact Next Action. It scopes typed per-identity Tier 2/Tier 3 effects,
+  including the starter projectile's tier 3 that `authoredTiers` currently
+  withholds, and explicitly excludes a universal damage/radius multiplier
+  pipeline and the seven identities `V2-106`/`V2-107` still own. It proposes
+  V2-ADR-044 through V2-ADR-046, recorded in `DECISIONS.md` when the task
+  starts rather than now. Implementation has not started.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
    is fixed, mutation-proved, and re-verified, and the three deferred findings
    are assigned to later blocks.
-2. Re-run the last GREEN commands before touching code:
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 24 files,
-   498 tests) and
+2. `V2-100` and `V2-101` are accepted and closed. Re-run the last GREEN command
+   before touching code:
+   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 30 files,
+   606 tests) and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
-   (expect 2 passed). Both were last confirmed green on 2026-08-22.
-3. `V2-101` is implemented and verified but not accepted. Re-run
-   `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 28 files,
-   574 tests) before touching code; earlier counts are superseded.
+   (expect 2 passed). Both were last confirmed green on 2026-08-23.
+3. `V2-102` has a generated task brief and no implementation yet. Follow
+   `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md` from Step 1.
 
 ## Known MVP-0 Limitations
 
@@ -1040,12 +1066,9 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the `V2-101` checkpoint. On acceptance, generate the `V2-102` task brief
-(three-tier ability schema), which must give every registered ability typed
-acquisition, Tier 2, and Tier 3 effects — including the starter projectile's
-tier 3, which `authoredTiers` currently withholds — without introducing a
-universal damage/radius multiplier pipeline. Do not deploy, cut over production,
-or replace the legacy demo.
+Implement `V2-102` per `docs/game-v2/tasks/V2-102-three-tier-ability-schema.md`,
+starting at Step 1 (record the proposed decisions and write failing tests). Do
+not deploy, cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
 These changes predate the Game V2 documentation commit and are user-owned. Do
