@@ -63,10 +63,11 @@ complexity is introduced.
 
 Status: `In Progress`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
 is accepted and closed at `b7a5c07a`. `V2-102` is accepted and closed at
-`22a00d14`. `V2-103` is accepted and closed at `357ef443`; briefs and outcomes
-are in `docs/game-v2/tasks/`. `V2-104` is implemented, mutation-proved,
-independently reviewed with its findings fixed, and verified, awaiting
-acceptance. `V2-105` is next.
+`22a00d14`. `V2-103` is accepted and closed at `357ef443`. `V2-104` is
+accepted and closed at `7116c729`; briefs and outcomes are in
+`docs/game-v2/tasks/`. `V2-105` is scoped
+(`docs/game-v2/tasks/V2-105-reroll-and-banish.md`); implementation has not
+started.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (now pushed; tracks `origin/codex/threejs-gameplay-v2`) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-104` — thirteen-second card flow |
-| Status | Implemented, mutation-proved, independently reviewed with findings fixed, fully re-verified; uncommitted and not yet accepted |
-| Closed | `V2-103` accepted at `357ef443` |
+| Active task | `V2-105` — reroll and banish |
+| Status | `Scoping` — task brief generated; implementation not started |
+| Closed | `V2-104` accepted at `7116c729` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1357,26 +1357,52 @@
   touched file, and
   `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
   (2 passed).
-- V2-104 is implemented, mutation-proved, independently reviewed with its
-  findings fixed and re-verified, but still uncommitted and not yet accepted
-  by the user.
+### V2-104 acceptance (2026-08-24)
+
+- The user accepted `V2-104`; it is closed at `7116c729`. Staged and committed
+  only the V2-104 changeset (40 files: the `game-v2/**`, `tests/game-v2/**`,
+  `e2e/game-v2-walking-skeleton.spec.ts`, and `docs/game-v2/**` paths listed
+  under Files in the task brief plus this checkpoint's own edits);
+  the pre-existing unrelated working-tree changes listed under "Known
+  Pre-existing Working-tree Changes" below were left untouched and remain
+  uncommitted.
+- `docs/game-v2/MASTER_PLAN.md`'s MVP-1 status line was updated to record
+  `V2-103` accepted at `357ef443` and `V2-104` accepted at `7116c729`.
+- The branch is not pushed past this commit; `origin/codex/threejs-gameplay-v2`
+  is behind local `HEAD` by this commit until an explicit push.
+- The `V2-105` task brief (reroll and banish) was generated at
+  `docs/game-v2/tasks/V2-105-reroll-and-banish.md` per `MASTER_PLAN.md`. The
+  design spec's entire treatment of the feature is one line (§5.4: "One
+  reroll and one banish are available per run in the vertical slice."), so
+  the brief's mechanics beyond that line are its own interpretation, recorded
+  as proposed V2-ADR-056 through V2-ADR-061 for review rather than assumed
+  silently: reroll regenerates the entire offer through the existing
+  `generateOffer` RNG step; banish permanently excludes one *identity* (not
+  just the shown card) and replaces only that card's own slot; both charges
+  are persistent per-run state independent of the transient offer
+  (V2-ADR-049); both actions consume RNG at their own recorded tick exactly
+  like `choose-upgrade` already does, which does not weaken V2-ADR-050 (that
+  ADR forbids RNG consumption at the real-time-driven *timeout* specifically,
+  not at any explicit player-driven command). It scopes the World/replay
+  layer, the offer mutation and resolution systems, runtime wiring, and two
+  new presentation controls; it excludes keyboard shortcuts, granting more
+  than one charge, and the remaining ability/passive identities
+  (`V2-106`/`V2-107`/`V2-401`). Implementation has not started.
 
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
    is fixed, mutation-proved, and re-verified, and the three deferred findings
    are assigned to later blocks.
-2. `V2-100`, `V2-101`, `V2-102`, and `V2-103` are accepted and closed
-   (`V2-103` at `357ef443`, current HEAD). `V2-104` is implemented,
-   mutation-proved, independently reviewed with its findings fixed, and fully
-   re-verified on top of that HEAD — but not yet committed or accepted. Re-run
-   the last GREEN command before touching code:
+2. `V2-100` through `V2-104` are accepted and closed (`V2-104` at `7116c729`,
+   current HEAD). Re-run the last GREEN command before touching code:
    `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (expect 32 files,
    657 tests),
    `npm run typecheck`, `npm run check:architecture`, `npm run check:reset-coverage`,
    `npm run check:ui-contract`, `npm run build`, and
    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
-   (expect 2 passed). All were last confirmed green on 2026-08-23.
+   (expect 2 passed). All were last confirmed green on 2026-08-24, on HEAD
+   `7116c729`.
 
 ## Known MVP-0 Limitations
 
@@ -1415,11 +1441,13 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-Accept the `V2-104` checkpoint (implemented, mutation-proved, independently
-reviewed with findings fixed, and re-verified — but not yet committed).
-`V2-103` is already accepted and committed at `357ef443` (current HEAD); only
-`V2-104`'s diff on top of it needs a commit. On acceptance, generate the
-`V2-105` task brief (reroll and banish), per `MASTER_PLAN.md`. Do not deploy,
+The `V2-105` task brief (reroll and banish) is generated at
+`docs/game-v2/tasks/V2-105-reroll-and-banish.md`; its six proposed ADRs
+(V2-ADR-056 through V2-ADR-061) are the interpretation of a single design-spec
+line and are worth a second look before implementation starts, since they
+decide real player-facing behavior the spec does not itself specify. Start
+Step 1 (World/replay layer, RED then implement) once that review is done.
+`V2-104` is accepted and closed at `7116c729` (current HEAD). Do not deploy,
 cut over production, or replace the legacy demo.
 ## Known Pre-existing Working-tree Changes
 
