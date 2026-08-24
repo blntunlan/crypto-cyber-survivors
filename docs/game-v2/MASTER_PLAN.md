@@ -1,6 +1,6 @@
 # Game V2 LEGO Master Plan
 
-> Status: MVP-0 accepted and closed at `085697b5`; MVP-1 is the active milestone
+> Status: MVP-0 and MVP-1 accepted and closed; MVP-2 accepted and closed; MVP-3 is the active milestone
 > Branch: `codex/threejs-gameplay-v2`
 > Design contract: `docs/superpowers/specs/2026-08-21-threejs-gameplay-v2-design.md`
 > Live execution state: `docs/game-v2/PROGRESS.md`
@@ -101,7 +101,7 @@ and `PROGRESS.md` for the evidence.
 Goal: prove that real market evidence changes gameplay identity without becoming
 an uncontrolled difficulty multiplier.
 
-Status: `In Progress`. `V2-200` is accepted and closed, scoped to BTC only
+Status: `Done`. `V2-200` is accepted and closed, scoped to BTC only
 after checking the real infrastructure:
 `SSEMarketService` and every `railway-market-aggregator` service are
 single-asset today, with no `asset`/`symbol` parameter anywhere. ETH/SOL
@@ -213,6 +213,25 @@ is built from; `SPAWN` completion stays explicitly deferred, since no
 batch-lifecycle tracking exists to say when a spawn encounter's enemies
 are dealt with; not wired into `GameV2Runtime` yet; see
 `docs/game-v2/tasks/V2-212-market-convergence-contribution.md`.
+`V2-213` is accepted and closed — MVP-2's own evidence gate, the first
+MVP-2 task since `V2-203` to actually wire market mechanisms into
+`GameV2Runtime`: `MarketEncounterRuntime` (a new facade) is an optional,
+default-inert dependency — every pre-`V2-213` caller/test is
+byte-for-byte unaffected — that composes `SPAWN`/`WORLD_EVENT`/
+`LOOT_EVENT` outputs each tick and routes them through the already-tested
+`V2-208`/`V2-209`/`V2-210` consumers into real `World` spawns and a
+deferred Convergence bonus, applied only once death-dominance is known
+(mirroring `V2-ADR-027`). A deterministic, scripted `MarketSnapshotSource`
+(not a live feed) drove a real `createMvp0Runtime` run through all three
+encounter kinds and a Convergence bonus, and that run's recording
+replayed to the identical final state hash by injecting the identical
+scripted source into a custom `ReplayRuntimeFactory` — proving replay
+determinism holds for a market-influenced run when the market feed
+itself is deterministic. A live, SSE-backed run's replay-reproducibility
+remains an explicitly flagged gap for `§13`'s production-replacement
+gate, not solved here (recording the per-tick snapshot sequence into
+`RunRecording` would be the correct fix, deferred). This closes MVP-2;
+see `docs/game-v2/tasks/V2-213-mvp2-evidence-gate.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

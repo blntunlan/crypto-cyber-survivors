@@ -17,6 +17,7 @@ import { OrthographicCameraController } from '@/game-v2/presentation/Orthographi
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
 import { ThreeRenderBridge } from '@/game-v2/presentation/ThreeRenderBridge';
 import { ThreeScene, type RendererPort } from '@/game-v2/presentation/ThreeScene';
+import { MarketEncounterRuntime } from '@/game-v2/market/MarketEncounterRuntime';
 import { CommandRecorder } from '@/game-v2/replay/CommandRecorder';
 import { InputRecorder } from '@/game-v2/replay/InputRecorder';
 import { DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
@@ -71,6 +72,10 @@ export type Mvp0RuntimeOptions = {
    * (`V2-ADR-089`). `GameV2App` always supplies a real one explicitly.
    */
   positionContext?: PositionContext;
+  /** Omit for a fully inert (no market feed) runtime (`V2-213`). */
+  marketEncounterRuntime?: MarketEncounterRuntime;
+  /** Omit for the real `Date.now` (`V2-213`, `V2-ADR-156`). */
+  nowMsProvider?: () => number;
 };
 
 const createPresentation = (target: Mvp0RenderTarget): RuntimePresentation => {
@@ -142,6 +147,9 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     ),
     abilityLoadoutSystem: abilityLoadout,
     offerSystem,
+    marketEncounterRuntime:
+      options.marketEncounterRuntime ?? new MarketEncounterRuntime(),
+    nowMsProvider: options.nowMsProvider ?? Date.now,
     presentation:
       options.renderTarget === undefined || options.renderTarget === null
         ? null

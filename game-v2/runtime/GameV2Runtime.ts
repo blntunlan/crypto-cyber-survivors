@@ -34,6 +34,7 @@ import {
 } from '@/game-v2/contracts/RunRecording';
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
+import { MarketEncounterRuntime } from '@/game-v2/market/MarketEncounterRuntime';
 import { type RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
 import { type CommandRecorder } from '@/game-v2/replay/CommandRecorder';
 import {
@@ -172,6 +173,18 @@ export type GameV2RuntimeDependencies = {
   /** Read-only from the runtime's perspective: fills `readout().levelUpOffer`. */
   offerSystem: LevelUpOfferSystem;
   presentation: RuntimePresentation | null;
+  /**
+   * Omit for a fully inert (no market feed) runtime — every pre-`V2-213`
+   * caller is unaffected (`V2-ADR-152`).
+   */
+  marketEncounterRuntime?: MarketEncounterRuntime;
+  /**
+   * Staleness must measure real wall-clock time (`V2-ADR-142`), which
+   * tick-derived time cannot correctly represent across a paused run.
+   * Omit for the real `Date.now` in production; inject a scripted clock
+   * for deterministic tests (`V2-ADR-156`).
+   */
+  nowMsProvider?: () => number;
 };
 
 /**
@@ -204,6 +217,8 @@ export class GameV2Runtime {
   private readonly abilityLoadoutSystem: AbilityLoadoutSystem;
   private readonly offerSystem: LevelUpOfferSystem;
   private readonly presentation: RuntimePresentation | null;
+  private readonly marketEncounterRuntime: MarketEncounterRuntime;
+  private readonly nowMsProvider: () => number;
 
   private readonly initialRngSnapshot: RngSnapshot;
   private readonly intent: PlayerIntent = { moveX: 0, moveY: 0, dashPressed: false };
@@ -229,6 +244,14 @@ export class GameV2Runtime {
    * first, so a stale entry can never leak into a shorter composition.
    */
   private readonly spawnBatch: EnemyDefinition[] = [];
+
+  /**
+   * Separate from `spawnBatch` (`V2-213`) — the two spawn sources run
+   * sequentially within the same tick, but a dedicated buffer keeps each
+   * one's contents unambiguous rather than relying on call order.
+   * `MarketEncounterRuntime.step` always resets `.length` to `0` first.
+   */
+  private readonly marketSpawnBatch: EnemyDefinition[] = [];
 
   private playerEntity: EntityId = NO_ENTITY;
   private simulationTick = 0;
@@ -258,6 +281,9 @@ export class GameV2Runtime {
     this.abilityLoadoutSystem = dependencies.abilityLoadoutSystem;
     this.offerSystem = dependencies.offerSystem;
     this.presentation = dependencies.presentation;
+    this.marketEncounterRuntime =
+      dependencies.marketEncounterRuntime ?? new MarketEncounterRuntime();
+    this.nowMsProvider = dependencies.nowMsProvider ?? Date.now;
     this.initialRngSnapshot = this.rng.snapshot();
     this.stepContext = {
       tick: 0,
@@ -437,6 +463,7 @@ export class GameV2Runtime {
     this.intentSource.reset?.();
     this.inputRecorder.reset();
     this.commandRecorder.reset();
+    this.marketEncounterRuntime.reset();
     this.playerEntity = NO_ENTITY;
     this.simulationTick = 0;
     this.initialHash = '';
@@ -643,6 +670,7 @@ export class GameV2Runtime {
     const player = this.playerEntity;
 
     this.spawnDueEnemy(nextTick);
+    this.stepMarketEncounters(nextTick);
     this.dashSystem.step(this.world, player, this.stepContext);
     this.movementSystem.step(this.world, player, this.stepContext);
     this.enemySystem.step(this.world, player, SIMULATION_STEP_SECONDS);
@@ -666,6 +694,15 @@ export class GameV2Runtime {
       return;
     }
 
+    // Mirrors the same death-dominance rule (V2-ADR-155): a market bonus
+    // recorded by stepMarketEncounters this tick is only applied once the
+    // tick is known not to be lethal.
+    this.marketEncounterRuntime.applyPendingConvergenceBonus(
+      this.world,
+      player,
+      this.stepContext
+    );
+
     if (progression.offerPending) {
       this.clock.pause();
     }
@@ -686,12 +723,7 @@ export class GameV2Runtime {
       return;
     }
 
-    let liveEnemies = 0;
-    for (let slot = 0; slot < this.world.masks.length; slot += 1) {
-      if (((this.world.masks[slot] ?? 0) & ENEMY_MASK) === ENEMY_MASK) {
-        liveEnemies += 1;
-      }
-    }
+    let liveEnemies = this.countLiveEnemies();
 
     if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
       return;
@@ -712,6 +744,58 @@ export class GameV2Runtime {
       this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest, definition);
       liveEnemies += 1;
     }
+  }
+
+  /**
+   * `V2-213`: composes this tick's market encounter (a no-op with the
+   * default inert `MarketEncounterRuntime`) and spends any `SPAWN`
+   * composition through the exact same live-enemy-cap/free-slot guards
+   * `spawnDueEnemy` uses, sharing `countLiveEnemies` so the two spawn
+   * sources agree on the same live count within one tick.
+   */
+  private stepMarketEncounters(tick: number): void {
+    this.marketEncounterRuntime.step(
+      this.rng,
+      tick,
+      this.nowMsProvider(),
+      this.marketSpawnBatch
+    );
+
+    if (this.marketSpawnBatch.length === 0) {
+      return;
+    }
+
+    let liveEnemies = this.countLiveEnemies();
+
+    if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
+      return;
+    }
+
+    const playerSlot = this.world.slotOf(this.playerEntity);
+
+    this.spawnRequest.centerX = this.world.x[playerSlot] ?? 0;
+    this.spawnRequest.centerY = this.world.y[playerSlot] ?? 0;
+
+    for (const definition of this.marketSpawnBatch) {
+      if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
+        return;
+      }
+
+      this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest, definition);
+      liveEnemies += 1;
+    }
+  }
+
+  private countLiveEnemies(): number {
+    let liveEnemies = 0;
+
+    for (let slot = 0; slot < this.world.masks.length; slot += 1) {
+      if (((this.world.masks[slot] ?? 0) & ENEMY_MASK) === ENEMY_MASK) {
+        liveEnemies += 1;
+      }
+    }
+
+    return liveEnemies;
   }
 
   private createPlayer(): EntityId {

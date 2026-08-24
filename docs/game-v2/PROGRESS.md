@@ -8,10 +8,10 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
-| Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-212` (Market Convergence Contribution) is accepted and closed — completed market encounters can now add bonus Convergence progress, though not wired into `GameV2Runtime`. `V2-213` (the MVP-2 evidence gate) is the only remaining MVP-2 task. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-212` accepted; `V2-213` not started. |
-| Closed | `V2-212` accepted (this checkpoint); `V2-211` accepted at `805e117b`; `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `Done`; MVP-3 (Complete Risk Loop) is the active milestone |
+| Active task | None. `V2-213` (MVP-2 evidence gate) is accepted and closed — `MarketEncounterRuntime` wires every MVP-2 mechanism into the real `GameV2Runtime` tick order for the first time, proven end-to-end (real spawns/hazard cycle/loot/Convergence bonus, replay-reproducible against a deterministic scripted market source). MVP-2 is `Done`. `V2-300` (Six enemy archetypes) is the first reachable MVP-3 task. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2 fully closed (`V2-200`..`V2-213`). MVP-3 not started. |
+| Closed | `V2-213` accepted (this checkpoint); `V2-212` accepted at `cbec53ac`; `V2-211` accepted at `805e117b`; `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3866,44 +3866,180 @@ three indicator families.
   wiring into `GameV2Runtime` was added; (5) every gate passes and the
   mutation pass leaves no survivor. `V2-212` is accepted.
 
+## V2-213 — MVP-2 Evidence Gate
+
+- Task brief: `docs/game-v2/tasks/V2-213-mvp2-evidence-gate.md`.
+  Governing decisions: V2-ADR-151 through V2-ADR-157. User-confirmed via
+  `AskUserQuestion`: real `GameV2Runtime` wiring first, then evidence —
+  not a narrower headless-mechanism-only scope, correcting this
+  checkpoint's own prior framing that `V2-213` might need to be scoped
+  down instead.
+- `game-v2/market/MarketEncounterRuntime.ts` (new facade): owns an
+  optional `Pick<MarketSnapshotAdapter, 'latest'>` snapshot source
+  (`null` by default — fully inert, V2-ADR-152), a
+  `StaleAwareMarketEncounterDirector` (`V2-211`), the three real output
+  consumers (`V2-208`/`V2-209`/`V2-210`), and a `MarketConvergenceBridge`
+  (`V2-212`). `step(rng, tick, nowMs, spawnOut)` samples the snapshot (a
+  no-op with no source wired), composes this tick's primary/support
+  outputs, writes any `SPAWN` composition into caller-owned `spawnOut`,
+  and either activates a fresh `WORLD_EVENT` or advances the hazard
+  lifecycle one tick — never both on the same tick, since
+  `HazardLifecycle`'s own monotonic-tick contract forbids `activate()`
+  and `step()` on the identical tick. `applyPendingConvergenceBonus`
+  applies whatever `step` recorded, called separately so a caller can
+  gate it behind death-dominance.
+- `game-v2/runtime/GameV2Runtime.ts`: gained two new optional
+  dependencies — `marketEncounterRuntime` (default: a fresh inert
+  `MarketEncounterRuntime`) and `nowMsProvider` (default: `Date.now`,
+  V2-ADR-156, since staleness must measure real wall-clock time across a
+  paused run, which tick-derived time cannot). A new `countLiveEnemies()`
+  helper was extracted from `spawnDueEnemy` and reused by a new
+  `stepMarketEncounters(tick)` private method, inserted into the tick
+  order immediately after `spawnDueEnemy` — spending any market `SPAWN`
+  composition through the exact same live-enemy-cap/free-slot guards the
+  cadence spawner uses. `marketEncounterRuntime.applyPendingConvergenceBonus`
+  is called immediately after `combat.playerDied` is resolved, skipped
+  entirely on a lethal tick (V2-ADR-155) — mirroring `ConvergenceSystem.step`'s
+  own established death-dominance rule (`V2-ADR-027`) for strict
+  consistency, even though a market bonus is not itself
+  combat-outcome-dependent. `marketEncounterRuntime.reset()` was added to
+  `GameV2Runtime.reset()`, since its internal state (indicator machines,
+  hazard lifecycle) lives outside `World` and `World.reset()` cannot
+  clear it. `game-v2/runtime/createMvp0Runtime.ts` defaults both new
+  fields the same way.
+- Every pre-existing `GameV2Runtime`/`Mvp0CoreLoop`/`ReplayRunner` test
+  (100 tests across 13 files) was re-run completely unmodified and
+  stayed green — the default inert configuration is behaviorally
+  identical to before this task, the literal proof of V2-ADR-152.
+- `tests/game-v2/market/MarketEncounterRuntime.test.ts` (6 tests): inert
+  by default (never composes a spawn, never has a pending bonus over 200
+  ticks); routes a real `SPAWN` output into `spawnOut`; routes a real
+  `WORLD_EVENT` expiry into a Convergence bonus once applied; the bonus
+  is not applied until `applyPendingConvergenceBonus` is explicitly
+  called; routes a real `LOOT_EVENT` into a bonus; `reset()` clears the
+  underlying director, hazard lifecycle, and pending state (proven by a
+  post-reset cycle restarting ticks from `1`, which would throw a
+  monotonic-tick `RangeError` if the wrapped state machines were not
+  genuinely cleared). Three of these tests initially failed on first
+  attempt from the test's own tick-math being wrong — the underlying
+  indicator machine's own confirmation-window offset was omitted from
+  the expected activation/expiry ticks — fixed by re-deriving each
+  boundary tick explicitly, matching this project's established
+  tick-math discipline.
+- `tests/game-v2/runtime/GameV2RuntimeMarketWiring.test.ts` (4 tests, a
+  new dedicated wiring-proof file): `MarketEncounterRuntime.step` is
+  called with the correct tick every processed tick; `applyPendingConvergenceBonus`
+  is called once per tick while the player is alive; it is **not**
+  called on the tick the player dies (a real lethal contact forced via
+  direct `World` manipulation, not simulated); the market spawn path
+  respects the same live-enemy cap the cadence spawner uses (proven by
+  pre-populating the world to the cap and confirming no
+  `RenderSnapshotWriter` capacity crash).
+- `tests/game-v2/integration/Mvp2MarketEvidence.test.ts` (4 tests, the
+  golden-fixture/evidence deliverable): a `ScriptedMarketSnapshotSource`
+  — deterministic and self-driving, deriving its answer purely from a
+  call counter rather than wall time or tick state, so a live run and a
+  replay of its recorded commands call it identically — stages
+  `Trend/Breakout` (`SPAWN`, confirms at call 61), `Volatility Surge`
+  (`WORLD_EVENT`, confirms at call 122, telegraphs to `ACTIVE` at 242,
+  expires at 722), and `Volume/Whale` (`LOOT_EVENT`, spikes once at call
+  300) on non-colliding ticks — verified empirically, matching this
+  project's own tick-math precedent, to avoid a same-tick composer tie
+  between families. A real `createMvp0Runtime` run, driven by a simple
+  drift/dash survival policy (mirroring `V2-110`'s own
+  `driveToFullBuild` precedent) and reusing `resolveAnyOfferChoiceIndex`
+  to resolve level-up pauses, survives the full scripted window and
+  reaches `convergenceProgress > 0`. Its exported recording replays to
+  the identical final state hash via a custom `ReplayRuntimeFactory`
+  that constructs a fresh `MarketEncounterRuntime` with a fresh
+  identical-script `ScriptedMarketSnapshotSource` instance. A separate
+  flat-market control run (default inert `MarketEncounterRuntime`) also
+  reaches `convergenceProgress > 0` via kills alone, proving "market
+  encounters provide bonus progress but are not required" end-to-end
+  through the real runtime, not just at the unit level `V2-212` already
+  proved.
+- **A real evidence gap was found and closed during this task, not
+  merely assumed absent.** The evidence test's first-draft assertions
+  (`observedSpawnGrowth`/`convergenceProgress > 0`) did not actually
+  discriminate "market wiring works" from "market wiring is completely
+  disabled" — the ordinary MVP-0 cadence spawner and kill-based
+  Convergence accrual alone already satisfy both assertions, as directly
+  confirmed by mutating `stepMarketEncounters` out of the tick order
+  entirely and observing the evidence suite still pass. This is exactly
+  why `GameV2RuntimeMarketWiring.test.ts` was built as a second,
+  dedicated file using direct spies on `MarketEncounterRuntime`'s own
+  methods — proving the wiring calls happen, not just that downstream
+  state looks plausible. Both the missing-call mutant and the
+  death-dominance-ordering mutant were confirmed genuinely uncaught by
+  the full existing suite (including the evidence test) before this
+  fix, then confirmed caught after it.
+- **Mutation pass, 4 mutants targeting the new wiring, all caught (after
+  the gap above was closed).** Removing the `stepMarketEncounters` call
+  from the tick order entirely: uncaught by the full suite including the
+  evidence test at first, caught directly by the new spy-based wiring
+  test once added. Moving `applyPendingConvergenceBonus` before the
+  `combat.playerDied` check: likewise initially uncaught, caught
+  directly once the dedicated death-forcing test existed. Removing the
+  live-enemy-cap guard from the market spawn path: uncaught by the full
+  suite (including the bounds test file, which does not exercise the
+  market path), caught by a new cap-respecting test that stubs
+  `MarketEncounterRuntime.step` to force an over-cap composition and
+  confirms no `RenderSnapshotWriter` capacity crash.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (76 files,
+  1186 tests, up from 75 files/1182 tests before this task), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files —
+  `MarketEncounterRuntime` is constructed per-runtime, not a module-level
+  singleton, so it is correctly unflagged), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on every changed/new
+  file (clean), and `npm run build` (succeeded, ~34s). No e2e run was
+  needed: `V2-213`'s evidence is headless/deterministic by design
+  (V2-ADR-153), matching `V2-110`'s own scripted-policy precedent rather
+  than requiring a live browser session.
+- All six acceptance criteria in the task brief are met with the
+  evidence above: (1) the default inert configuration is behaviorally
+  identical to before this task, proven by the full pre-existing suite
+  passing unmodified; (2) a real production-path run driven by a
+  deterministic scripted market source produces real `SPAWN`/`WORLD_EVENT`/
+  `LOOT_EVENT` effects and a Convergence bonus; (3) that run's replay
+  reproduces the identical final state hash; (4) a flat-market run
+  reaches Convergence via kills alone, unaffected; (5) the live-SSE
+  replay-determinism gap is explicitly flagged (V2-ADR-151), not
+  silently left unaddressed; (6) every gate passes and the mutation pass
+  leaves no survivor. `V2-213` is accepted — **MVP-2 (Market Vertical
+  Slice) is `Done`.**
+
 ## Exact Next Action
 
-MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is functionally
-complete at the mechanism level: `V2-200` through `V2-212` are all
-accepted. All three indicator-event families compose together (`V2-207`)
-with safe stale/reconnect degradation (`V2-211`); all three real outputs
-have a tested consumer (`V2-208`/`V2-209`/`V2-210`); and completed
-`WORLD_EVENT`/`LOOT_EVENT` encounters can add bonus Convergence progress
-without blocking a flat run (`V2-212`, `SPAWN` completion explicitly
-deferred). None of this is wired into `GameV2Runtime` yet — every single
-MVP-2 task since `V2-203` has deliberately stayed an isolated,
-independently-tested mechanism rather than touching the live runtime.
+MVP-0, MVP-1, and MVP-2 are all fully closed. MVP-3 (Complete Risk Loop)
+is now the active milestone. Per `MASTER_PLAN.md`, `V2-300` (Six enemy
+archetypes, depends on `V2-213`, now closed) is the first reachable
+MVP-3 task — the real content-authoring task that `V2-208`'s
+`SpawnEncounterConsumer` and every `game-v2/config/EnemyRegistry.ts`
+deferral since `V2-108` has been waiting on: today's registry still has
+only three archetypes (`grunt`/`swarmling`/`brute`), and every
+themeId-differentiated composition deferral recorded across `V2-208`
+(V2-ADR-130) exists specifically because this task's content did not
+exist yet. Read `docs/game-v2/MASTER_PLAN.md`'s MVP-3 section and the
+design spec's §6/§9 (enemy/boss content) before scoping `V2-300`, since
+unlike every MVP-2 task this is genuine new-content authoring, not a
+mechanism build.
 
-Per `MASTER_PLAN.md`, `V2-213` (the MVP-2 evidence gate: "Golden
-fixtures, edge cases, playable market feel, and performance evidence are
-committed") is the only remaining MVP-2 task, and it is a different
-shape of task than every other one in this milestone — it is the
-evidence/closure gate, not another isolated mechanism. Given nothing is
-wired into `GameV2Runtime`, "playable market feel" cannot be evidenced
-by playing the game — this needs to be flagged to the user explicitly
-before scoping `V2-213`, mirroring how `V2-110` (the MVP-1 evidence
-gate) was scoped: read `V2-110`'s own task brief and closure
-(`docs/game-v2/tasks/V2-110-mvp1-evidence-gate.md`) first for the
-precedent of what an evidence gate actually demanded there, since it may
-turn out `V2-213` either needs a real (even if minimal)
-`GameV2Runtime`/`MarketEncounterDirector` wiring step first, or needs to
-honestly scope "playable market feel" down to what is evidenceable via
-golden fixtures and headless simulation alone, consistent with this
-milestone's mechanism-only pattern. This decision point is worth
-surfacing to the user rather than assumed silently, since it may be the
-first MVP-2 task that legitimately must touch `GameV2Runtime.ts`.
+The live-SSE replay-determinism gap (V2-ADR-151) remains a real,
+explicitly flagged item for the `§13` production-replacement gate —
+recording the per-tick `MarketSnapshot` sequence into `RunRecording`
+(a real schema extension) is the correct fix, not yet scheduled to any
+task.
 
-ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
-the critical path for `V2-201`..`V2-213` since every one of those blocks
-can be evidenced against BTC alone, but it must be opened before MVP-2's own
-Done-When ("BTC/ETH/SOL normalize...") can be called fully met at the
-milestone level — flag this to the user rather than silently letting it slip
-through MVP-2's evidence gate (`V2-213`).
+ETH/SOL multi-asset support remains a real, unassigned gap, now closed
+out at the MVP-2 milestone level on the same honest basis `V2-200`
+recorded when it amended its own Done-When: the real
+`railway-market-aggregator`/`SSEMarketService` infrastructure is
+single-asset today, with no `asset`/`symbol` parameter anywhere, so
+ETH/SOL support cannot be built without first extending that
+infrastructure — an unassigned follow-up task, not resolved by this
+milestone's closure.
 
 All 9 findings from `V2-109`'s `/code-review high` pass are resolved and none
 remain open: 6 were fixed in the `374cec0e` cleanup, `WeaponSystem`'s
