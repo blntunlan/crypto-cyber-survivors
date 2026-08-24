@@ -148,6 +148,17 @@ real `whaleCooldownMs`; completes the `SPAWN`/`WORLD_EVENT`/`LOOT_EVENT`
 taxonomy across the three families (only `HYBRID` remains unauthored, with
 no owning task yet); not wired into any runtime yet; see
 `docs/game-v2/tasks/V2-206-volume-whale-family.md`.
+`V2-207` is accepted and closed: `EncounterComposer` selects at most one
+primary (highest `priority`, deterministic ascending-id tie-break) and one
+compatible support per tick, first giving `IndicatorEventProfile`'s
+`priority`/`compatibleWith` fields a reader since `V2-203`; and
+`MarketEncounterDirector` steps all three real families
+(Trend/Breakout, Volatility/Surge, Volume/Whale) against one
+`MarketSnapshot` and composes their outputs — the three families' own
+`compatibleWith` stay `[]` (a deferred content decision, not authored
+here), so today's real behavior always resolves primary-only; not wired
+into `GameV2Runtime` yet; see
+`docs/game-v2/tasks/V2-207-primary-support-composer.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

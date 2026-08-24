@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-206` (Volume/Whale family) is accepted and closed — all three indicator families are now done. The next task is `V2-207` (primary/support composer), now reachable for the first time since it depends on all three. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-206` accepted; `V2-207`..`V2-213` not started. |
-| Closed | `V2-206` accepted (this checkpoint); `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-207` (primary/support composer) is accepted and closed — all three indicator families now compose together, though not yet wired into `GameV2Runtime`. The next reachable tasks are `V2-208` (Spawn output) and `V2-209` (World-event output), both now unblocked. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-207` accepted; `V2-208`..`V2-213` not started. |
+| Closed | `V2-207` accepted (this checkpoint); `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3264,27 +3264,119 @@ three indicator families.
   mutation checks confirm load-bearing assertions, one via `tsc` itself.
   `V2-206` is accepted.
 
+## V2-207 — Primary/Support Composer
+
+- Task brief: `docs/game-v2/tasks/V2-207-primary-support-composer.md`.
+  Governing decisions: V2-ADR-122 through V2-ADR-127.
+- `game-v2/market/EncounterComposer.ts`: a pure, stateless `compose`
+  function. Given the set of `EncounterCandidate`s that produced an
+  output on this exact tick, it selects at most one primary (highest
+  `profile.priority`, deterministic ascending-`profile.id` tie-break,
+  V2-ADR-124) and, among the rest, at most one support whose id appears
+  in the primary's own `compatibleWith` (checked directionally against
+  the primary only, not bidirectionally — V2-ADR-125), same tie-break.
+  Every other candidate is dropped, never queued (V2-ADR-122). Writes
+  into a caller-owned `out: ComposedEncounter` object rather than
+  allocating, mirroring `EnemyComposer`'s own precedent.
+- `game-v2/market/MarketEncounterDirector.ts`: owns all three real
+  encounters (`TrendBreakoutEncounter`, `VolatilitySurgeEncounter`,
+  `VolumeWhaleEncounter`) plus one `EncounterComposer`. `step(snapshot,
+  tick)` steps all three against the same `MarketSnapshot` and returns
+  this tick's composed result — the first piece of code in this
+  milestone that wires all three real families together. Allocates a
+  fresh `ComposedEncounter` per call rather than writing into a
+  caller-owned scratch object (V2-ADR-127), since market encounters step
+  at the ~1 Hz `MarketSnapshot` cadence, not the 60 Hz RAF loop the
+  project's allocation-discipline rule targets. `reset()` clears all
+  three underlying encounters.
+- This is the first task to give `IndicatorEventProfile`'s `priority`
+  and `compatibleWith` fields a reader — both have existed since
+  `V2-203` with none. No new `compatibleWith` content is authored
+  (V2-ADR-126): all three real families still declare
+  `compatibleWith: []`, a deliberate deferral of a real game-design
+  judgment call (which families feel thematically compatible together)
+  with no derivable anchor, matching `V2-204`'s `WORLD_EVENT`/`LOOT_EVENT`
+  and `V2-205`'s `HYBRID` deferrals. Today's real behavior therefore
+  always resolves primary-only, but the mechanism is proven correct
+  against all four cases (zero/one/two-compatible/two-incompatible/
+  three-with-one-compatible-pair) via synthetic test profiles.
+- "A merged event consumes the cooldown/rearm state of every source
+  profile it uses" requires no new bookkeeping in the composer
+  (V2-ADR-123): each candidate's own `IndicatorEventStateMachine`
+  already transitioned to `COOLDOWN` when it produced this tick's
+  output, entirely independent of whatever the composer ultimately
+  selects.
+- `tests/game-v2/market/EncounterComposer.test.ts` (10 tests, synthetic
+  `IndicatorEventProfile`/`EncounterOutput` fixtures via
+  `assertIndicatorEventProfile`/`assertSpawnEncounterOutput`): zero
+  candidates; single candidate; compatible pair yields primary+support;
+  incompatible pair drops the loser; three candidates with only one
+  compatible pair still yield at most primary+support; equal-priority
+  ties resolve by ascending id (both for primary and for support
+  selection); strictly higher priority overrides id ordering; support
+  compatibility is checked directionally against the primary only
+  (V2-ADR-125, proven with an asymmetric `compatibleWith` pair);
+  statelessness across consecutive `compose` calls (a rejected candidate
+  is never remembered on a later call).
+- `tests/game-v2/market/MarketEncounterDirector.test.ts` (4 tests, real
+  `MarketSnapshot` sequences): a single qualifying family (Volatility
+  Surge, held past its 60-tick confirmation window) yields primary-only
+  with the correct real `WORLD_EVENT` output; two real families
+  activating on the identical tick yield primary-only with the loser
+  silently dropped — proven with a deliberate tick-alignment trick
+  (`TrendBreakoutEncounter` needs 60 ticks to confirm while
+  `VolumeWhaleEncounter` activates instantly at `confirmationTicks: 0`,
+  so holding `whaleTier: 0` until exactly tick 60 makes both real
+  families activate simultaneously; the ascending-id tie-break correctly
+  picks `'trend-breakout'` over `'volume-whale'`); a calm tick composes
+  `{ primary: null, support: null }`; `reset()` clears all three
+  encounters, proven by a fresh activation cycle needing the full
+  confirmation duration again without a monotonic-tick violation.
+- **Mutation pass, 4 mutants, all caught.** Removing the
+  `compatibleWith` check in support selection failed 5 tests. Reversing
+  the tie-break comparison direction failed 3 tests. Disabling the
+  primary-selection preference loop failed 2 tests. Removing
+  `volatilitySurge.reset()` from `MarketEncounterDirector.reset()`
+  failed 1 test — notably via a `RangeError` (the monotonic-tick guard
+  inside `IndicatorEventStateMachine`) rather than a silent logic
+  mismatch, an even stronger signal than a plain assertion failure.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (64 files,
+  1115 tests, up from 62 files/1101 tests before this task by the two
+  new test files), `npm run typecheck`, `npm run check:architecture`,
+  `npm run check:reset-coverage`, `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all four
+  new files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, 1m 16s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `EncounterComposer.compose` selects at most one
+  primary and one compatible support, deterministically, statelessly,
+  every other candidate dropped; (2) `MarketEncounterDirector` drives
+  all three real families together and composes their outputs
+  correctly, including today's real always-incompatible case; (3)
+  `priority`/`compatibleWith` are read by real logic for the first
+  time; (4) nothing outside `game-v2/market/**` was touched, confirmed
+  by the file diff, and no wiring into `GameV2Runtime` was added; (5)
+  every gate passes and the mutation pass leaves no survivor.
+  `V2-207` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-206` are all accepted — all three indicator-event
-families (`Trend/Breakout`, `Volatility Surge`, `Volume/Whale`) are done,
-and `EncounterOutput` carries all three of design §6.2's owned variants
-(`SPAWN`/`WORLD_EVENT`/`LOOT_EVENT`; `HYBRID` remains deliberately
-unauthored, no owning task yet). Per `MASTER_PLAN.md`, `V2-207` (the
-primary/support composer, "At most one primary encounter and one
-compatible support modifier may be active") is now reachable for the
-first time, since it depends on all three families and they are all now
-closed. This is a real architectural step up from the three prior
-tasks: it is the first task that has to *choose between* multiple
-concrete `IndicatorEventProfile`s (all three families' profiles can be
-simultaneously `ARMED` against the same live `MarketSnapshot`) rather than
-author one family in isolation — worth scoping carefully, including
-reading design §7.5's "compatible simultaneous signals may produce one
-primary plus one support; incompatible or lower-priority signals are
-rejected rather than banked" and the `priority`/`compatibleWith` fields
-each family's `IndicatorEventProfile` already carries but has never been
-read by anything until now.
+`V2-200` through `V2-207` are all accepted — all three indicator-event
+families are done and now compose together through
+`MarketEncounterDirector`/`EncounterComposer`, though neither is wired
+into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-208` (Spawn output
+consumption) and `V2-209` (World-event output consumption) both depend
+on `V2-207` and are now reachable for the first time, as is the
+still-unassigned `LOOT_EVENT`-consumption task. These are the first
+MVP-2 tasks that have to reach into `GameV2Runtime`/the ECS world rather
+than staying isolated under `game-v2/market/**` and
+`game-v2/contracts/**` — worth scoping carefully, including confirming
+how each consumption path locates or spawns the relevant ECS entities
+and whether any new singleton needs `check:architecture`/
+`check:reset-coverage` registration.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
