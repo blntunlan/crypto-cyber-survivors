@@ -1,5 +1,9 @@
 import { MVP0_CONFIG_VERSION, SIMULATION_HZ } from '@/game-v2/config/Mvp0Config';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
+import {
+  createPositionContext,
+  type PositionContext,
+} from '@/game-v2/contracts/PositionContext';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type RunIdentity } from '@/game-v2/contracts/RunIdentity';
 import {
@@ -21,11 +25,23 @@ export type ReplayResult = Readonly<{
 
 export type ReplayRuntimeFactory = (
   runIdentity: RunIdentity,
+  positionContext: PositionContext,
   intentSource: IntentSource
 ) => GameV2Runtime;
 
-const defaultRuntimeFactory: ReplayRuntimeFactory = (runIdentity, intentSource) =>
-  createMvp0Runtime({ runIdentity, intentSource });
+/**
+ * Reconstructs the exact locked position the live run played under
+ * (`V2-202`, closing `V2-ADR-089`): `positionContext` is runtime-
+ * construction input, not `World` state, exactly like `runIdentity`'s seed
+ * already is — a replay that silently defaulted to the leverage-`1`
+ * profile regardless of what the recording actually locked would desync
+ * from the live run's `playerMaxHealth` from tick one.
+ */
+const defaultRuntimeFactory: ReplayRuntimeFactory = (
+  runIdentity,
+  positionContext,
+  intentSource
+) => createMvp0Runtime({ runIdentity, positionContext, intentSource });
 
 /** Takes `unknown` so a literal-typed field is still checked at runtime. */
 const assertSchemaVersion = (value: unknown, expected: number, name: string): void => {
@@ -64,6 +80,12 @@ const assertRecording = (recording: RunRecording): void => {
   if (recording.configVersion !== MVP0_CONFIG_VERSION) {
     throw new RangeError('run recording was made for a different config version');
   }
+
+  // Re-validated through the real constructor rather than a shape check, so
+  // a forged/corrupt positionContext (e.g. an unregistered leverage) is
+  // rejected here, before any tick runs, instead of surfacing later as a
+  // confusing lethality-resolution failure or a silent desync.
+  createPositionContext(recording.positionContext);
 
   if (typeof recording.initialHash !== 'string' || recording.initialHash.length === 0) {
     throw new RangeError('run recording is missing its initial state hash');
@@ -159,7 +181,11 @@ export class ReplayRunner {
       },
     };
 
-    const runtime = this.createRuntime(recording.runIdentity, intentSource);
+    const runtime = this.createRuntime(
+      recording.runIdentity,
+      recording.positionContext,
+      intentSource
+    );
 
     try {
       runtime.start();

@@ -111,10 +111,16 @@ see `docs/game-v2/tasks/V2-200-canonical-market-snapshot.md` for the
 user-confirmed scope decision. `V2-201` is accepted and closed: `/game-v2`
 now shows a real pre-run position-select screen (BTC, LONG/SHORT, one of
 five leverage modes, live price) before any run starts; see
-`docs/game-v2/tasks/V2-201-locked-position-context.md`. `V2-201`
-deliberately does not thread the locked `PositionContext` into
-`RuntimeCheckpoint`/the replay hash yet (`V2-ADR-089`) — that is owed to
-`V2-202`, the first task to give leverage/side an actual gameplay effect.
+`docs/game-v2/tasks/V2-201-locked-position-context.md`. `V2-202` is
+accepted and closed: leverage now has a real gameplay effect — five
+`CombatLethalityProfile`s (`playerMaxHealth`, `playerArmor`,
+`enemyDamageMultiplier`, plus four documented placeholder fields pending
+future systems) resolve through one composer, `CombatSystem` consumes it,
+and `RunRecording` now carries `positionContext` (schema version `1 → 2`)
+so replay reconstructs the exact locked position instead of defaulting to
+leverage `1` — closing the `V2-ADR-089` deferral without a `World`/
+`WorldSnapshot` schema bump; see
+`docs/game-v2/tasks/V2-202-five-lethality-profiles.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

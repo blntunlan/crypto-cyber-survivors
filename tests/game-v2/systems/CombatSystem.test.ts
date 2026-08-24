@@ -19,6 +19,7 @@ import {
   SIMULATION_HZ,
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
+import { resolveLethalityProfile } from '@/game-v2/config/LethalityRegistry';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
 import {
@@ -820,5 +821,60 @@ describe('Contact damage input validation and cadence', () => {
     const combat = new CombatSystem();
 
     expect(() => combat.step(world, player, createContext(0))).toThrow(RangeError);
+  });
+});
+
+describe('Lethality profile wiring (V2-202)', () => {
+  it('sets resetPlayer health from an injected non-default profile, not the hardcoded constant', () => {
+    const world = new World(16);
+    const player = world.createEntity(PLAYER_MASK);
+    const combat = new CombatSystem(undefined, undefined, resolveLethalityProfile(5));
+
+    combat.resetPlayer(world, player);
+
+    const slot = world.slotOf(player);
+    expect(world.health[slot]).toBe(resolveLethalityProfile(5).playerMaxHealth);
+    expect(world.maxHealth[slot]).toBe(resolveLethalityProfile(5).playerMaxHealth);
+    expect(world.health[slot]).not.toBe(PLAYER_MAX_HEALTH);
+  });
+
+  it('routes contact damage through resolveIncomingDamage rather than applying it raw', () => {
+    const world = new World(16);
+    const profile = {
+      leverage: 5 as const,
+      playerMaxHealth: 100,
+      playerArmor: 0.5,
+      enemyDamageMultiplier: 2,
+      incomingDamageEnvelope: { min: 0, max: 100 },
+      recoveryToleranceTicks: 0,
+      encounterPressureLimit: 1,
+      encounterComplexityLimit: 1,
+      liquidationDistance: 100,
+      rewardCeiling: 5,
+    };
+    const player = createPlayer(world, 0, 0, profile.playerMaxHealth);
+    createEnemy(world, 0, 0);
+    const combat = new CombatSystem(undefined, undefined, profile);
+
+    combat.step(world, player, createContext(0));
+
+    // rawDamage(15) * multiplier(2) * (1 - armor(0.5)) = 15, not the raw 15
+    // that would land if the composer were bypassed and not the naive
+    // rawDamage * multiplier = 30 either (proves both terms are applied).
+    const expectedDamage = ENEMY_CONTACT_DAMAGE * profile.enemyDamageMultiplier * 0.5;
+    const slot = world.slotOf(player);
+    expect(world.health[slot]).toBe(profile.playerMaxHealth - expectedDamage);
+  });
+
+  it('defaults to the leverage-1 profile, matching pre-V2-202 behavior exactly', () => {
+    const world = new World(16);
+    const player = createPlayer(world);
+    createEnemy(world, 0, 0);
+    const combat = new CombatSystem();
+
+    combat.step(world, player, createContext(0));
+
+    const slot = world.slotOf(player);
+    expect(world.health[slot]).toBe(PLAYER_MAX_HEALTH - ENEMY_CONTACT_DAMAGE);
   });
 });

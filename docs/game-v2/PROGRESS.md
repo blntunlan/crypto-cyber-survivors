@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-201` (locked position context) is accepted and closed. The next task is `V2-202` (five lethality profiles) or `V2-203` (indicator-event state machine) — `V2-202` depends on `V2-201`, `V2-203` depends only on `V2-200`, and either may be opened next. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201` accepted; `V2-202`..`V2-213` not started. |
-| Closed | `V2-201` accepted (this checkpoint); `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-202` (five lethality profiles) is accepted and closed. The next task is `V2-203` (indicator-event state machine) — the only remaining unblocked MVP-2 block (`V2-204`..`V2-206` depend on it; `V2-211` depends on `V2-200`/`V2-207`). |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202` accepted; `V2-203`..`V2-213` not started. |
+| Closed | `V2-202` accepted (this checkpoint); `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2666,19 +2666,170 @@ Brief: `docs/game-v2/tasks/V2-201-locked-position-context.md`.
   passes and all three mutation checks confirm their assertions are
   load-bearing. `V2-201` is accepted.
 
+## V2-202 — Five Lethality Profiles
+
+Brief: `docs/game-v2/tasks/V2-202-five-lethality-profiles.md`.
+
+- **Two scope questions were put to the user directly, and the answer on
+  the first overturned the initial recommendation.** Design §7.3 lists
+  seven `CombatLethalityProfile` fields; only three
+  (`playerMaxHealth`/`playerArmor`/`enemyDamageMultiplier`) have a real
+  gameplay reader today — no encounter system exists before `V2-207`, no
+  economy/liquidation system before `V2-306`, and no regen/heal mechanic
+  exists anywhere in `game-v2/**`. The narrower "only build the three real
+  fields" option was recommended (mirroring `V2-200`/`V2-201`'s own
+  precedent of deferring what has no consumer); the user chose the wider
+  option instead — model all seven now, four as documented placeholders.
+  Armor mechanic: percentage reduction,
+  `finalDamage = rawDamage * enemyDamageMultiplier * (1 - playerArmor)`,
+  one composer, confirmed via `AskUserQuestion`.
+- **Reconciling "model placeholders" with this project's hard "derived, not
+  felt" rule for numeric constants.** A field with no reader is only
+  acceptable per this project's own precedent (`AbilitySlot.startEligible`,
+  V2-ADR-062) when the *data itself* is well-defined, not when the value is
+  arbitrary. Rather than inventing four numbers, each placeholder was tied
+  to a real existing constant or an alias of an already-derived field:
+  `encounterPressureLimit = MVP0_MAX_LIVE_ENEMIES`,
+  `encounterComplexityLimit = MVP0_ENEMY_SPAWN_BUDGET`,
+  `liquidationDistance = playerMaxHealth` (an alias, pending real
+  price-distance math), `rewardCeiling = leverage` (an alias, pending
+  `V2-306`+'s run-points economy). None of the five profiles differs on
+  these four fields today — that absence of differentiation is itself
+  honest, not hidden, since nothing exists yet to justify differentiating
+  them.
+- `game-v2/contracts/CombatLethalityProfile.ts`: the frozen type and
+  `assertCombatLethalityProfile`, mirroring `assertEnemyDefinition`'s
+  `unknown`-input validation pattern.
+- `game-v2/config/LethalityRegistry.ts`: `resolveIncomingDamage` (the
+  single composer — one multiplication by `enemyDamageMultiplier`, one
+  reduction by `(1 - playerArmor)`, a safety floor at zero) and the five
+  authored `CombatLethalityProfile`s. `playerMaxHealth(leverage) =
+  round(PLAYER_MAX_HEALTH / leverage)` is the only dial that varies with
+  leverage; `enemyDamageMultiplier`/`playerArmor` stay fixed at `1`/`0`
+  across every mode. This is what makes "no double scaling" true by
+  construction rather than by cross-checking two independently varying
+  multipliers, and it makes `1×` reproduce `PLAYER_MAX_HEALTH = 100`
+  exactly — non-negotiable, since `UNSPECIFIED_POSITION_CONTEXT` has
+  `leverage: 1` and every pre-existing headless/test call site depends on
+  that default reproducing today's constants byte-for-byte.
+  `incomingDamageEnvelope` is computed from the enemy registry's own
+  authored min/max contact damage run through the same composer, not a
+  separately hand-authored range, so it cannot drift from what the
+  composer actually produces. `V2-405` (MVP-4) is the task whose explicit
+  job is tuning these five profiles for real balance; this task derives
+  the mechanism and the `1×` anchor, not the final numbers.
+- `game-v2/systems/CombatSystem.ts`: the constructor gains an optional
+  third `profile` parameter, defaulting to the leverage-`1` profile,
+  mirroring the existing `candidateProvider`/`killCapacity` optional-
+  parameter pattern (V2-ADR-039's injected-dependency precedent). `resetPlayer`
+  now sets health/maxHealth from `profile.playerMaxHealth` instead of the
+  hardcoded `PLAYER_MAX_HEALTH` constant; `resolveContactDamage` routes raw
+  `world.contactDamage` through `resolveIncomingDamage` before applying it.
+  All 40 pre-existing `CombatSystem.test.ts` tests pass unmodified,
+  confirming the default profile is byte-identical to pre-task behavior.
+- **A real determinism gap was found while implementing, not assumed away
+  — closing the `V2-ADR-089` deferral `V2-201` explicitly flagged.** Once
+  leverage changes `playerMaxHealth`, a replay that reconstructed the
+  runtime with the default leverage-`1` profile regardless of what the
+  live run actually locked would silently desync from tick one for any
+  non-default leverage. `RunRecording` gains `positionContext`
+  (`RUN_RECORDING_SCHEMA_VERSION` `1 → 2`); `GameV2Runtime.exportRecording()`
+  includes the locked position; `ReplayRunner`'s `ReplayRuntimeFactory`
+  gains a `positionContext` parameter, and `assertRecording` re-validates
+  it through the real `createPositionContext` constructor (not a shape
+  check) before the first tick, so a forged/corrupt recording is rejected
+  early rather than surfacing as a confusing lethality-resolution failure.
+  This is carried by `RunRecording` exactly like `RunIdentity`'s seed
+  already is — `PositionContext` is runtime-construction input, not `World`
+  state — which is what let this close **without** the `World`/
+  `WorldSnapshot`/`StateHasher` schema bump `V2-ADR-089` expected might be
+  unavoidable. No existing golden hash changed.
+- `game-v2/runtime/createMvp0Runtime.ts` resolves the profile from
+  `positionContext.leverage` and constructs `CombatSystem` with it.
+- Two `no-unnecessary-condition` lint warnings surfaced and were fixed
+  properly rather than suppressed: `resolveLethalityProfile`'s not-found
+  guard was checking a `Record<LeverageMode, ...>` index, which `tsc`
+  treats as always-present for a value already narrowed to the
+  `LeverageMode` union — fixed by switching the throwing lookup to a `Map`
+  (`Map.get`'s return type always includes `| undefined` regardless of key
+  narrowness), mirroring `AbilityRegistry.byId`'s identical precedent for
+  the same reason. `assertCombatLethalityProfile`'s nested
+  `incomingDamageEnvelope` null/shape check had the same issue for the
+  opposite reason — the enclosing `Partial<CombatLethalityProfile>` cast
+  only promises "right shape or `undefined`," making a `null` check on it
+  look statically unreachable — fixed by reading that one nested field as
+  `unknown` before checking it, rather than loosening the cast strategy
+  for the whole function.
+- Test coverage: `CombatLethalityProfile.test.ts` (24 tests — valid input;
+  one rejection per invalid field); `LethalityRegistry.test.ts` (12 tests —
+  all five profiles registered and pairwise distinct; `1×` exact-equals
+  today's constants; `enemyDamageMultiplier`/`playerArmor` fixed across
+  every mode; `playerMaxHealth` strictly decreases as leverage rises; every
+  placeholder field's derivation formula; the composer's no-double-scaling
+  math and safety floor); 3 new tests appended to `CombatSystem.test.ts`
+  (profile-driven `resetPlayer`, profile-driven contact-damage resolution,
+  default-profile backward compatibility); `LethalityProfile.test.ts` (3
+  tests, real production path — two different leverage modes produce
+  different `playerMaxHealth` through the live `GameV2Runtime`; a
+  non-default-leverage recording replays to the identical final hash; a
+  recording with a tampered `positionContext` is rejected).
+- **Mutation pass, 5 mutants, all killed, one test strengthened rather
+  than accepted as a survivor.** Dropping `resolveIncomingDamage`'s
+  multiplier term failed 2 tests; dropping its armor term failed 3;
+  dropping its safety floor (`Math.max(0, ...)`) survived the first pass —
+  every authored profile keeps `playerArmor` inside the validator's `0..1`
+  bound, where the floor never binds, and `resolveIncomingDamage` itself
+  does not re-validate its `Pick`-shaped input against that bound. The
+  test was strengthened with an out-of-range `playerArmor: 1.5` case
+  (`resolveIncomingDamage` takes any object matching its narrow shape, not
+  only a validated `CombatLethalityProfile`), which then caught it
+  (`expected -50 to be +0`). Reverting `CombatSystem.resetPlayer` to the
+  hardcoded `PLAYER_MAX_HEALTH` constant failed 2 tests. Reverting
+  `ReplayRunner` to reconstruct with `UNSPECIFIED_POSITION_CONTEXT`
+  regardless of the recording's actual `positionContext` was caught by the
+  *pre-existing* initial-hash mismatch check with no dedicated assertion
+  needed — real defense-in-depth from `V2-014`'s own design, not a gap
+  this task had to patch. All five mutated files were restored and
+  reverified green after each mutant.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (53 files, 997
+  tests, up from 50 files/955 tests before this task: three new files —
+  `CombatLethalityProfile.test.ts` (24), `LethalityRegistry.test.ts` (12),
+  `LethalityProfile.test.ts` (3) — plus 3 tests appended to the existing
+  `CombatSystem.test.ts`), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files — nothing new
+  was added), `npm run check:reset-coverage` (89 singletons: 29 wired, 60
+  exempt, unchanged), `npm run check:ui-contract`, `npm run check:event-contract`,
+  focused ESLint on all eleven changed/new files (clean after the two
+  `no-unnecessary-condition` fixes above), focused Prettier (clean),
+  `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed, unmodified — the seeded run stays at leverage `1` via the
+  selection screen's own default).
+- All six acceptance criteria in the task brief are met with the evidence
+  above: (1) `CombatLethalityProfile` covers all seven design fields,
+  validated and frozen, five profiles pairwise distinct, `1×` exact-equals
+  today's behavior; (2) `resolveIncomingDamage` is the single composer, no
+  other code path scales incoming damage; (3) `CombatSystem` consumes the
+  locked profile for both player health and incoming contact damage; (4)
+  replay is deterministic for every leverage mode with no `World`/
+  `WorldSnapshot`/`StateHasher` schema change; (5) every pre-existing
+  headless/test call site kept working unmodified, confirmed by the
+  unchanged 40-test `CombatSystem.test.ts` baseline; (6) every gate passes
+  and all five mutation checks confirm their assertions are load-bearing.
+  `V2-202` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` (canonical market snapshot, BTC-only) and `V2-201` (locked
-position context) are both accepted. Per `MASTER_PLAN.md`, `V2-202` (five
-lethality profiles) depends on `V2-201` and is now unblocked; `V2-203`
-(indicator-event state machine) depends only on `V2-200` and was already
-unblocked. Either may be opened next — no ordering between them is
-mandated by the dependency graph; the next session should confirm which
-one the user wants first (or whether to interleave both). `V2-202` is also
-where the `V2-201`/`V2-ADR-089` hash deferral gets picked up: threading
-`PositionContext` into `RuntimeCheckpoint`/the replay hash becomes real
-work the moment leverage/side start affecting player stats.
+`V2-200` (canonical market snapshot, BTC-only), `V2-201` (locked position
+context), and `V2-202` (five lethality profiles) are all accepted. Per
+`MASTER_PLAN.md`, `V2-203` (indicator-event state machine) depends only on
+`V2-200` and is the only remaining MVP-2 block with no unmet dependency —
+`V2-204`/`V2-205`/`V2-206` (the three indicator-event families) each
+depend on `V2-203`, and `V2-211` (stale/reconnect degradation) depends on
+`V2-200` and `V2-207`, which is not yet reachable. The next session should
+open `V2-203`.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks

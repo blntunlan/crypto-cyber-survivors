@@ -414,6 +414,7 @@ export class GameV2Runtime {
       schemaVersion: RUN_RECORDING_SCHEMA_VERSION,
       configVersion: MVP0_CONFIG_VERSION,
       runIdentity: this.identity,
+      positionContext: this.position,
       initialHash: this.initialHash,
       frames: Object.freeze(frames),
       commands: Object.freeze(commands),

@@ -1,9 +1,13 @@
 import {
+  LEVERAGE_LETHALITY_PROFILES,
+  resolveIncomingDamage,
+} from '@/game-v2/config/LethalityRegistry';
+import {
   COMBAT_KILL_BUFFER_CAPACITY,
   ENEMY_CONTACT_COOLDOWN_TICKS,
-  PLAYER_MAX_HEALTH,
   PLAYER_RADIUS,
 } from '@/game-v2/config/Mvp0Config';
+import { type CombatLethalityProfile } from '@/game-v2/contracts/CombatLethalityProfile';
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
@@ -117,11 +121,21 @@ export class CollisionCandidateProvider {
 export class CombatSystem {
   private readonly candidateProvider: CollisionCandidateProvider;
   private readonly killCapacity: number;
+  private readonly profile: CombatLethalityProfile;
   private readonly result: CombatStepResult;
 
+  /**
+   * `profile` defaults to the leverage-`1` profile, mirroring the existing
+   * `candidateProvider`/`killCapacity` optional-parameter pattern
+   * (V2-ADR-098): every pre-existing direct `new CombatSystem()` test
+   * construction keeps behaving exactly as before this task, since the
+   * leverage-`1` profile is byte-identical to the old hardcoded constants
+   * (V2-ADR-092).
+   */
   public constructor(
     candidateProvider: CollisionCandidateProvider = new CollisionCandidateProvider(),
-    killCapacity: number = COMBAT_KILL_BUFFER_CAPACITY
+    killCapacity: number = COMBAT_KILL_BUFFER_CAPACITY,
+    profile: CombatLethalityProfile = LEVERAGE_LETHALITY_PROFILES[1]
   ) {
     if (!Number.isSafeInteger(killCapacity) || killCapacity <= 0) {
       throw new RangeError('killCapacity must be a positive safe integer');
@@ -129,6 +143,7 @@ export class CombatSystem {
 
     this.candidateProvider = candidateProvider;
     this.killCapacity = killCapacity;
+    this.profile = profile;
     this.result = {
       playerDied: false,
       killCount: 0,
@@ -141,9 +156,9 @@ export class CombatSystem {
   /**
    * Initializes the player's combat-owned fields for a new run.
    *
-   * `PLAYER_MAX_HEALTH` and `PLAYER_RADIUS` have no other writer in `game-v2/**`,
-   * so without this the player would enter every run with the zeroed slot values
-   * and `step` would latch `playerDied` on its first call. Mirrors
+   * `playerMaxHealth`/`PLAYER_RADIUS` have no other writer in `game-v2/**`,
+   * so without this the player would enter every run with the zeroed slot
+   * values and `step` would latch `playerDied` on its first call. Mirrors
    * `DashSystem.resetPlayer` and `WeaponSystem.resetPlayer`; V2-014 composition
    * calls all three.
    */
@@ -155,8 +170,8 @@ export class CombatSystem {
       throw new RangeError('player entity is missing required components');
     }
 
-    world.health[slot] = PLAYER_MAX_HEALTH;
-    world.maxHealth[slot] = PLAYER_MAX_HEALTH;
+    world.health[slot] = this.profile.playerMaxHealth;
+    world.maxHealth[slot] = this.profile.playerMaxHealth;
     world.radius[slot] = PLAYER_RADIUS;
   }
 
@@ -346,7 +361,8 @@ export class CombatSystem {
         continue;
       }
 
-      const contactDamage = world.contactDamage[slot] ?? 0;
+      const rawContactDamage = world.contactDamage[slot] ?? 0;
+      const contactDamage = resolveIncomingDamage(this.profile, rawContactDamage);
       const currentHealth = world.health[playerSlot] ?? 0;
       const nextHealth = Math.max(0, currentHealth - contactDamage);
       world.health[playerSlot] = nextHealth;

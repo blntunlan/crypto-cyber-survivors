@@ -2,6 +2,7 @@ import {
   MVP0_MAX_LIVE_ENEMIES,
   MVP0_WORLD_CAPACITY,
 } from '@/game-v2/config/Mvp0Config';
+import { resolveLethalityProfile } from '@/game-v2/config/LethalityRegistry';
 import { MVP1_MAX_LIVE_PROJECTILES } from '@/game-v2/config/ProjectileCapacity';
 import {
   RenderSnapshot,
@@ -110,6 +111,8 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
   const passiveLoadout = new PassiveLoadoutSystem();
   const weaponSystem = new WeaponSystem(targetingSystem, abilityLoadout);
   const offerSystem = new LevelUpOfferSystem(abilityLoadout, passiveLoadout);
+  const positionContext = options.positionContext ?? UNSPECIFIED_POSITION_CONTEXT;
+  const lethalityProfile = resolveLethalityProfile(positionContext.leverage);
 
   return new GameV2Runtime({
     world: new World(MVP0_WORLD_CAPACITY),
@@ -117,7 +120,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     clock: new SimulationClock(),
     lifecycle,
     runIdentity: options.runIdentity,
-    positionContext: options.positionContext ?? UNSPECIFIED_POSITION_CONTEXT,
+    positionContext,
     intentSource: options.intentSource,
     inputRecorder: new InputRecorder(),
     commandRecorder,
@@ -128,7 +131,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     enemySystem: new EnemySystem(),
     enemyComposer: new EnemyComposer(),
     weaponSystem,
-    combatSystem: new CombatSystem(),
+    combatSystem: new CombatSystem(undefined, undefined, lethalityProfile),
     convergenceSystem: new ConvergenceSystem(),
     progressionSystem: new ProgressionSystem(
       lifecycle,
