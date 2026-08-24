@@ -65,7 +65,7 @@ const writeComponentFixtureForward = (world: World, slot: number): void => {
   world.contactCooldownTicksRemaining[slot] = 19;
   world.xpValue[slot] = 5;
   world.projectileDamage[slot] = 10.25;
-  world.projectileLifetimeTicksRemaining[slot] = 88;
+  world.lifetimeTicksRemaining[slot] = 88;
   world.weaponCooldownTicksRemaining[slot] = 17;
   world.xp[slot] = 4.25;
   world.level[slot] = 3;
@@ -111,7 +111,7 @@ const writeComponentFixtureReverse = (world: World, slot: number): void => {
   world.level[slot] = 3;
   world.xp[slot] = 4.25;
   world.weaponCooldownTicksRemaining[slot] = 17;
-  world.projectileLifetimeTicksRemaining[slot] = 88;
+  world.lifetimeTicksRemaining[slot] = 88;
   world.projectileDamage[slot] = 10.25;
   world.xpValue[slot] = 5;
   world.contactCooldownTicksRemaining[slot] = 19;

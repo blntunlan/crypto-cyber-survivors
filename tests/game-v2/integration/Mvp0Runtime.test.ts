@@ -20,22 +20,31 @@ import {
   createFakeRenderer,
   createManualIntentSource,
   driveScriptedRun,
+  resolveAnyOfferChoiceIndex,
   resolveOfferChoiceIndex,
   type FakeRenderer,
 } from '../support/scriptedRun';
 
 /**
- * Chooses the ability candidate of the currently open offer, matching
- * `driveScriptedRun`'s default kind so a live re-drive of its recorded
- * frames (not a recorded-command replay — see `replayAfterReset` below)
- * reaches the same offer and resolves it the identical way.
- * `resolveOfferChoiceIndex` is the single shared policy `driveScriptedRun`
- * itself also uses, which matters here: two different policies would
- * consume RNG differently between a live run and a live re-drive of its own
- * frames, desyncing entity-generation counts between them.
+ * Mirrors `driveScriptedRun`'s upgrade policy exactly.
+ *
+ * Two different policies consume RNG differently, which desyncs a live re-drive
+ * from the run whose frames it is replaying. Since `V2-112`'s repeating curve
+ * that policy is no longer uniform — the first card uses the preferring
+ * resolver, later cards fall back to any candidate — so a re-drive has to
+ * carry the same first/later split, not just the first behavior.
  */
-const chooseAbilityUpgrade = (runtime: GameV2Runtime): void => {
-  runtime.chooseUpgrade(resolveOfferChoiceIndex(runtime, 'ability'));
+const createScriptedUpgradeChooser = (): ((runtime: GameV2Runtime) => void) => {
+  let resolved = 0;
+
+  return (runtime: GameV2Runtime): void => {
+    const index =
+      resolved === 0
+        ? resolveOfferChoiceIndex(runtime, 'ability')
+        : resolveAnyOfferChoiceIndex(runtime, 'ability');
+    runtime.chooseUpgrade(index);
+    resolved += 1;
+  };
 };
 
 /**
@@ -145,13 +154,15 @@ const replayFramesUntilTick = (
 
   runtime.start();
 
+  const chooseUpgrade = createScriptedUpgradeChooser();
+
   advanceWithBudget(
     runtime,
     lastTick * 2,
     () => runtime.tick < lastTick && runtime.phase !== 'game-over',
     () => {
       if (runtime.phase === 'level-up') {
-        chooseAbilityUpgrade(runtime);
+        chooseUpgrade(runtime);
         return;
       }
 
@@ -192,13 +203,17 @@ const replayAfterReset = (
   });
 
   const replay = (): void => {
+    // A fresh chooser per pass: the reset restarts the run, so the second pass
+    // must repeat the first pass's policy from its own beginning.
+    const chooseUpgrade = createScriptedUpgradeChooser();
+
     advanceWithBudget(
       runtime,
       recording.frames.length * 2,
       () => runtime.tick < recording.frames.length && runtime.phase !== 'game-over',
       () => {
         if (runtime.phase === 'level-up') {
-          chooseAbilityUpgrade(runtime);
+          chooseUpgrade(runtime);
           return;
         }
 
@@ -232,9 +247,14 @@ describe('MVP-0 runtime composition', () => {
     expect(run.renderer.renderCalls).toBeGreaterThan(0);
 
     // The scenario has to be a real run, not a degenerate two-tick one: it
-    // survives several spawn cadences and issues exactly one upgrade command.
+    // survives several spawn cadences and records one command per card it
+    // resolved. Since `V2-112`'s repeating curve that count is no longer
+    // always 1, so it is asserted against what the run actually did — which
+    // catches a dropped or duplicated command the old fixed `1` also caught,
+    // plus the case of a card resolved without recording anything.
     expect(run.runtime.tick).toBeGreaterThan(MVP0_ENEMY_SPAWN_INTERVAL_TICKS * 4);
-    expect(run.runtime.exportRecording().commands).toHaveLength(1);
+    expect(run.upgradesResolved).toBeGreaterThan(0);
+    expect(run.runtime.exportRecording().commands).toHaveLength(run.upgradesResolved);
 
     run.runtime.dispose();
   });
@@ -567,7 +587,7 @@ describe('MVP-0 runtime composition', () => {
       tier: 1,
     });
 
-    chooseAbilityUpgrade(runtime);
+    createScriptedUpgradeChooser()(runtime);
     const { abilitySlots } = runtime.readout();
 
     expect(abilitySlots[0]).toEqual({ index: 0, activation: 'auto', tier: 2 });

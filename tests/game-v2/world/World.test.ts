@@ -36,7 +36,7 @@ const componentStores = (world: World): Array<ArrayLike<number>> => [
   world.contactCooldownTicksRemaining,
   world.xpValue,
   world.projectileDamage,
-  world.projectileLifetimeTicksRemaining,
+  world.lifetimeTicksRemaining,
   // `weaponCooldownTicksRemaining` is deliberately absent: since `V2-111` it is
   // strided per ability slot, so it is neither indexed by nor cleared at a bare
   // world slot. Its allocation and clearing are covered by their own tests.

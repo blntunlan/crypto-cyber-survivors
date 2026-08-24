@@ -1,7 +1,7 @@
 import {
   DASH_INVULNERABILITY_TICKS,
   ENEMY_RADIUS,
-  MVP0_MAX_PLAYER_LEVEL,
+  PLAYER_STARTING_LEVEL,
   PLAYER_MAX_HEALTH,
   PLAYER_RADIUS,
   SIMULATION_STEP_MS,
@@ -47,7 +47,7 @@ export const STEER_MAGNITUDE = 0.999;
  */
 export const SCENARIO_SEED = 50;
 
-const MAX_FRAMES = 6000;
+const MAX_FRAMES = 30000;
 
 export type FakeRenderer = {
   port: RendererPort;
@@ -180,6 +180,35 @@ export const resolveOfferChoiceIndex = (
   return chosen as 0 | 1 | 2;
 };
 
+/**
+ * Picks any resolvable candidate, preferring `desiredKind` when one is still
+ * offerable.
+ *
+ * `resolveOfferChoiceIndex` throws when the desired kind is absent, which is
+ * correct for the one upgrade a scripted run reports on. Later level-ups —
+ * plentiful since `V2-112`'s repeating curve — only need to keep the run
+ * moving, and by then the desired kind may legitimately be capped out.
+ */
+export const resolveAnyOfferChoiceIndex = (
+  runtime: GameV2Runtime,
+  desiredKind: OfferCandidate['kind']
+): 0 | 1 | 2 => {
+  const candidates = runtime.readout().levelUpOffer?.candidates ?? [];
+  const preferred = candidates.findIndex(candidate => candidate?.kind === desiredKind);
+
+  if (preferred >= 0) {
+    return preferred as 0 | 1 | 2;
+  }
+
+  const any = candidates.findIndex(candidate => candidate !== null);
+
+  if (any < 0) {
+    throw new Error('the current offer holds no candidate at all');
+  }
+
+  return any as 0 | 1 | 2;
+};
+
 export type ScriptedRun = {
   runtime: GameV2Runtime;
   renderer: FakeRenderer;
@@ -190,6 +219,12 @@ export type ScriptedRun = {
   enemyKilled: boolean;
   levelUpReached: boolean;
   upgradeApplied: boolean;
+  /**
+   * How many level-up cards the run actually resolved. Since `V2-112`'s
+   * repeating curve this is no longer always `1`, and it is exactly the number
+   * of `choose-upgrade` commands the recording must carry.
+   */
+  upgradesResolved: number;
   gameOverTransitions: number;
 };
 
@@ -233,6 +268,7 @@ export const driveScriptedRun = (
   let enemyKilled = false;
   let levelUpReached = false;
   let upgradeApplied = false;
+  let upgradesResolved = 0;
   let gameOverTransitions = 0;
   let previousHealth = PLAYER_MAX_HEALTH;
   let previousPhase: GameV2RuntimeReadout['phase'] = 'idle';
@@ -271,9 +307,22 @@ export const driveScriptedRun = (
       }
 
       const beforeUpgrade = readout;
-      const chosenIndex = resolveOfferChoiceIndex(runtime, desiredKind);
+      // Since `V2-112` a run reaches many level-ups. Only the first is the
+      // scripted evidence this helper reports on; later ones are resolved so
+      // the run keeps moving, and are allowed to fall back to any candidate
+      // once the desired kind is exhausted or capped.
+      const isFirstUpgrade = !upgradeApplied;
+      const chosenIndex = isFirstUpgrade
+        ? resolveOfferChoiceIndex(runtime, desiredKind)
+        : resolveAnyOfferChoiceIndex(runtime, desiredKind);
       runtime.chooseUpgrade(chosenIndex);
+      upgradesResolved += 1;
       const afterUpgrade = runtime.readout();
+
+      if (!isFirstUpgrade) {
+        previousHealth = afterUpgrade.playerHealth;
+        continue;
+      }
       // Recognized generically rather than by a specific identity's numbers,
       // since V2-107 grew the ability pool to eight and any of them may be
       // the one actually offered and chosen: an ability upgrade either adds
@@ -291,7 +340,9 @@ export const driveScriptedRun = (
             afterUpgrade.moveSpeed === PASSIVE_MOVE_SPEED_BY_LEVEL[1];
       upgradeApplied =
         effectApplied &&
-        afterUpgrade.playerLevel === MVP0_MAX_PLAYER_LEVEL &&
+        // Since `V2-112` the curve repeats, so this asserts the level the
+        // first upgrade actually reaches rather than a run-wide cap.
+        afterUpgrade.playerLevel === PLAYER_STARTING_LEVEL + 1 &&
         afterUpgrade.phase === 'playing';
       previousHealth = afterUpgrade.playerHealth;
       continue;
@@ -387,6 +438,7 @@ export const driveScriptedRun = (
     enemyKilled,
     levelUpReached,
     upgradeApplied,
+    upgradesResolved,
     gameOverTransitions,
   };
 };

@@ -46,6 +46,23 @@ export const ENEMY_CONTACT_COOLDOWN_TICKS = Math.ceil(
 );
 export const COMBAT_KILL_BUFFER_CAPACITY = 32;
 export const XP_PICKUP_RADIUS = 0.3;
+
+/**
+ * How long a dropped XP pickup stays collectable (`V2-112`, V2-ADR-083).
+ *
+ * Derived as the time it takes the player to cross the full visible arena
+ * height at base move speed: `18 / 6 = 3` seconds. A pickup older than that
+ * was already unreachable from wherever the player stood when it dropped, so
+ * expiring it removes nothing a player could have collected.
+ *
+ * Without a lifetime, pickups accumulated for the whole run — the only bound
+ * was `MVP0_WORLD_CAPACITY`, and `V2-112`'s repeating curve made runs long and
+ * lethal enough to actually reach it, at which point `WeaponSystem` threw
+ * `entity capacity exhausted` mid-frame and ended the run.
+ */
+export const XP_PICKUP_LIFETIME_TICKS = Math.ceil(
+  (TOP_DOWN_CAMERA_VISIBLE_HEIGHT / PLAYER_MOVE_SPEED) * SIMULATION_HZ
+);
 export const LEVEL_2_XP_THRESHOLD = 5;
 export const STARTER_WEAPON_DAMAGE_TIER_2 = 15;
 
@@ -85,7 +102,13 @@ export const LEVEL_UP_OFFER_REVEAL_SECONDS = 4;
 export const LEVEL_UP_OFFER_COUNTDOWN_SECONDS = 5;
 
 export const PLAYER_STARTING_LEVEL = 1;
-export const MVP0_MAX_PLAYER_LEVEL = 2;
+
+/**
+ * The repeating level curve lives in `config/LevelCurve.ts` (`V2-112`,
+ * V2-ADR-080 and V2-ADR-082). It cannot live here: it is derived from the
+ * ability and passive registries, and both already import their constants from
+ * this module, so deriving it here would close an import cycle.
+ */
 
 /**
  * MVP-0 runtime composition (V2-014).

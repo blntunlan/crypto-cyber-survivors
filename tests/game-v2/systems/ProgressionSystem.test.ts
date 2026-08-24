@@ -4,7 +4,6 @@ import {
   ENEMY_HEALTH,
   ENEMY_XP_VALUE,
   LEVEL_2_XP_THRESHOLD,
-  MVP0_MAX_PLAYER_LEVEL,
   PLAYER_MAX_HEALTH,
   PLAYER_MOVE_SPEED,
   PLAYER_RADIUS,
@@ -13,8 +12,14 @@ import {
   SIMULATION_HZ,
   STARTER_WEAPON_DAMAGE_TIER_2,
   WEAPON_RANGE,
+  XP_PICKUP_LIFETIME_TICKS,
   XP_PICKUP_RADIUS,
 } from '@/game-v2/config/Mvp0Config';
+import {
+  LEVEL_XP_STEP,
+  levelXpThreshold,
+  MVP1_MAX_PLAYER_LEVEL,
+} from '@/game-v2/config/LevelCurve';
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import {
@@ -232,11 +237,13 @@ describe('Progression config invariants', () => {
     expect(collectionDistance).toBeLessThan(WEAPON_RANGE / 4);
   });
 
-  it('P5: ensures valid positive pickup radius and bounded MVP-0 progression levels', () => {
+  it('P5: ensures valid positive pickup radius and bounded progression levels', () => {
     expect(XP_PICKUP_RADIUS).toBeGreaterThan(0);
     expect(Number.isFinite(XP_PICKUP_RADIUS)).toBe(true);
     expect(PLAYER_STARTING_LEVEL).toBe(1);
-    expect(MVP0_MAX_PLAYER_LEVEL).toBe(PLAYER_STARTING_LEVEL + 1);
+    // Since `V2-112` the cap is a full build's worth of picks, not one
+    // (V2-ADR-080). The derivation itself is pinned in `LevelCurve.test.ts`.
+    expect(MVP1_MAX_PLAYER_LEVEL).toBeGreaterThan(PLAYER_STARTING_LEVEL + 1);
   });
 });
 
@@ -1007,7 +1014,7 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     expect(lifecycle.phase).toBe('level-up');
   });
 
-  it('does not advance beyond MVP0_MAX_PLAYER_LEVEL and accumulates XP without pausing', () => {
+  it('does not level again until the next, higher threshold is met', () => {
     const world = new World(16);
     const player = createRawPlayer(world, 0, 0);
     const playerSlot = world.slotOf(player);
@@ -1046,11 +1053,111 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       new DeterministicRng(1)
     );
 
+    // Since `V2-112` the curve repeats, so this no longer proves a hard cap —
+    // it proves the *next* threshold is higher than one kill. Level 2 costs
+    // `levelXpThreshold(2) = 7`, and a single grunt kill is worth 5.
+    expect(levelXpThreshold(2)).toBe(LEVEL_2_XP_THRESHOLD + LEVEL_XP_STEP);
+    expect(LEVEL_2_XP_THRESHOLD).toBeLessThan(levelXpThreshold(2));
     expect(res2.leveledUp).toBe(false);
     expect(res2.offerPending).toBe(false);
-    expect(world.level[playerSlot]).toBe(MVP0_MAX_PLAYER_LEVEL);
+    expect(world.level[playerSlot]).toBe(2);
     expect(world.xp[playerSlot]).toBe(LEVEL_2_XP_THRESHOLD);
     expect(lifecycle.phase).toBe('playing');
+  });
+
+  it('levels again once the higher threshold is met', () => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: levelXpThreshold(1) }]),
+      createContext(10),
+      new DeterministicRng(1)
+    );
+    expect(world.level[playerSlot]).toBe(2);
+
+    progression.resolveUpgrade(world, player, {
+      tick: 10,
+      type: 'choose-upgrade',
+      choiceIndex: 0,
+    });
+    expect(lifecycle.phase).toBe('playing');
+
+    const res = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: levelXpThreshold(2) }]),
+      createContext(20),
+      new DeterministicRng(1)
+    );
+
+    expect(res.leveledUp).toBe(true);
+    expect(res.offerPending).toBe(true);
+    expect(world.level[playerSlot]).toBe(3);
+    expect(world.xp[playerSlot]).toBe(0);
+    expect(lifecycle.phase).toBe('level-up');
+  });
+
+  it('advances exactly one level per tick and retains the surplus', () => {
+    // V2-ADR-081: one card per pick. A kill batch worth two thresholds must
+    // not silently consume two picks for one card.
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const playerSlot = world.slotOf(player);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const weaponSystem = new WeaponSystem();
+    weaponSystem.resetPlayer(world, player);
+    const { progression } = createHarness(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    const twoLevelsWorth = levelXpThreshold(1) + levelXpThreshold(2);
+
+    const res = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: twoLevelsWorth }]),
+      createContext(10),
+      new DeterministicRng(1)
+    );
+
+    expect(res.leveledUp).toBe(true);
+    expect(world.level[playerSlot]).toBe(2);
+    expect(world.xp[playerSlot]).toBe(twoLevelsWorth - levelXpThreshold(1));
+
+    // Resolving the card re-enters the branch on the very next step, because
+    // the retained surplus already clears the next threshold.
+    progression.resolveUpgrade(world, player, {
+      tick: 10,
+      type: 'choose-upgrade',
+      choiceIndex: 0,
+    });
+    expect(lifecycle.phase).toBe('playing');
+
+    const res2 = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([]),
+      createContext(11),
+      new DeterministicRng(1)
+    );
+
+    expect(res2.leveledUp).toBe(true);
+    expect(world.level[playerSlot]).toBe(3);
+    expect(lifecycle.phase).toBe('level-up');
   });
 
   it('leaves level and xp unchanged when nothing is offerable and the level-up throws', () => {
@@ -1948,3 +2055,118 @@ const combatResetPlayerHelper = (world: World, player: EntityId): void => {
   world.maxHealth[slot] = PLAYER_MAX_HEALTH;
   world.radius[slot] = PLAYER_RADIUS;
 };
+
+describe('XP pickup lifetime (V2-112, V2-ADR-083)', () => {
+  const pickupSlots = (world: World): number[] => {
+    const slots: number[] = [];
+    for (let slot = 0; slot < world.masks.length; slot += 1) {
+      if (((world.masks[slot] ?? 0) & XP_PICKUP_MASK) === XP_PICKUP_MASK) {
+        slots.push(slot);
+      }
+    }
+    return slots;
+  };
+
+  const harness = (): {
+    world: World;
+    player: EntityId;
+    progression: ProgressionSystem;
+  } => {
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const { progression } = createHarness(lifecycle, new CommandRecorder());
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+    new WeaponSystem().resetPlayer(world, player);
+    return { world, player, progression };
+  };
+
+  it('spawns pickups with the full lifetime and counts it down', () => {
+    const { world, player, progression } = harness();
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 50, y: 0, xp: 1 }]),
+      createContext(0),
+      new DeterministicRng(1)
+    );
+
+    const slot = pickupSlots(world)[0] as number;
+    expect(world.lifetimeTicksRemaining[slot]).toBe(XP_PICKUP_LIFETIME_TICKS);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([]),
+      createContext(1),
+      new DeterministicRng(1)
+    );
+
+    expect(world.lifetimeTicksRemaining[slot]).toBe(XP_PICKUP_LIFETIME_TICKS - 1);
+  });
+
+  it('destroys a pickup the player never reached once its lifetime runs out', () => {
+    const { world, player, progression } = harness();
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 50, y: 0, xp: 1 }]),
+      createContext(0),
+      new DeterministicRng(1)
+    );
+    expect(pickupSlots(world)).toHaveLength(1);
+
+    for (let tick = 1; tick <= XP_PICKUP_LIFETIME_TICKS; tick += 1) {
+      progression.step(
+        world,
+        player,
+        createCombatResultWithKills([]),
+        createContext(tick),
+        new DeterministicRng(1)
+      );
+    }
+
+    // Without this the run's only bound was world capacity, which a long run
+    // reaches — `WeaponSystem` then throws `entity capacity exhausted`.
+    expect(pickupSlots(world)).toHaveLength(0);
+  });
+
+  it('collects a pickup expiring on the same tick exactly once', () => {
+    // The double-record case: overlapping *and* on its final lifetime tick.
+    // Recording it in both branches would destroy the same slot twice.
+    const { world, player, progression } = harness();
+    const playerSlot = world.slotOf(player);
+
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 50, y: 0, xp: 7 }]),
+      createContext(0),
+      new DeterministicRng(1)
+    );
+
+    const slot = pickupSlots(world)[0] as number;
+    world.lifetimeTicksRemaining[slot] = 1;
+    world.x[playerSlot] = world.x[slot] ?? 0;
+    world.y[playerSlot] = world.y[slot] ?? 0;
+
+    const before = world.activeCount;
+    const result = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([]),
+      createContext(1),
+      new DeterministicRng(1)
+    );
+
+    // Collected, not silently expired: the XP must land on the player.
+    expect(result.xpCollected).toBe(7);
+    expect(pickupSlots(world)).toHaveLength(0);
+    // Exactly one entity left the world; a double destroy would free two.
+    expect(world.activeCount).toBe(before - 1);
+  });
+});

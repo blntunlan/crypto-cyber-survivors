@@ -400,7 +400,7 @@ describe('EnemySystem', () => {
     world.xp[slot] = 60;
     world.level[slot] = 61;
     world.projectileDamage[slot] = 62;
-    world.projectileLifetimeTicksRemaining[slot] = 63;
+    world.lifetimeTicksRemaining[slot] = 63;
     world.xpPickupValue[slot] = 64;
 
     enemySystem.releaseEnemy(world, first);
@@ -448,7 +448,7 @@ describe('EnemySystem', () => {
     expect(world.xp[slot]).toBe(0);
     expect(world.level[slot]).toBe(0);
     expect(world.projectileDamage[slot]).toBe(0);
-    expect(world.projectileLifetimeTicksRemaining[slot]).toBe(0);
+    expect(world.lifetimeTicksRemaining[slot]).toBe(0);
     expect(world.xpPickupValue[slot]).toBe(0);
   });
 

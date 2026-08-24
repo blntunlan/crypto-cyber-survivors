@@ -117,7 +117,7 @@ const createProjectile = (
   world.previousY[slot] = y;
   world.radius[slot] = radius;
   world.projectileDamage[slot] = damage;
-  world.projectileLifetimeTicksRemaining[slot] = PROJECTILE_LIFETIME_TICKS;
+  world.lifetimeTicksRemaining[slot] = PROJECTILE_LIFETIME_TICKS;
   return projectile;
 };
 

@@ -73,9 +73,14 @@ post-acceptance code-review cleanup is committed at `374cec0e`. `V2-111`
 (concurrent autonomous weapon slots) is briefed and is the active task: it
 closes the V2-ADR-068 deferral that left seven of the eight ability
 identities unable to fire, and `V2-110` now depends on it because build
-diversity cannot be evidenced until it lands. `V2-111` is numbered after
-`V2-110` because task IDs are stable identifiers, not an ordering — the
-dependency column governs execution order (Operating Rule 1).
+diversity cannot be evidenced until it lands. `V2-112` (repeating level curve)
+follows it: `ProgressionSystem` granted exactly one level-up per run, so
+design §5.1/§5.2/§5.3's slot, tier, and passive-level limits were reachable
+only through injected-registry contract tests, never through play — which
+made MVP-1's own goal, "constrained builds create meaningful play,"
+unevidenceable. `V2-111` and `V2-112` are numbered after `V2-110` because
+task IDs are stable identifiers, not an ordering — the dependency column
+governs execution order (Operating Rule 1).
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
@@ -90,7 +95,8 @@ dependency column governs execution order (Operating Rule 1).
 | V2-108 | Basic enemy composition | V2-010 | Multiple archetypes spend one bounded composition budget. |
 | V2-109 | Market-independent Convergence | V2-108 | Active combat reaches the boss threshold envelope without market input. |
 | V2-111 | Concurrent autonomous weapon slots | V2-107 | Every occupied AUTO slot fires on its own authored cadence through the live level-up path. |
-| V2-110 | MVP-1 evidence gate | V2-100..V2-109, V2-111 | Build diversity, replay, lifecycle, and playable-core evidence are committed. |
+| V2-112 | Repeating level curve | V2-104,V2-109,V2-111 | A run reaches a fully capped build through ordinary play, not only through injected-registry contract tests. |
+| V2-110 | MVP-1 evidence gate | V2-100..V2-109, V2-111, V2-112 | Build diversity, replay, lifecycle, and playable-core evidence are committed. |
 
 ## MVP-2 — Market Vertical Slice
 

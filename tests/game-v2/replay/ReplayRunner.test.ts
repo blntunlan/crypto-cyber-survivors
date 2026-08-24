@@ -62,10 +62,27 @@ describe('ReplayRunner', () => {
 
     expect(run.upgradeApplied).toBe(true);
     const types = recording.commands.map(command => command.type);
-    expect(types).toEqual(['reroll-offer', 'banish-offer', 'choose-upgrade']);
-    // All three share one tick: no simulation tick advances while paused.
-    const ticks = new Set(recording.commands.map(command => command.tick));
-    expect(ticks.size).toBe(1);
+    // The reroll and banish are spent on the first card, which is followed by
+    // its own `choose-upgrade`. Since `V2-112`'s repeating curve the run then
+    // resolves further cards, each adding one more `choose-upgrade` and
+    // nothing else — the charges are once per run.
+    expect(types.slice(0, 3)).toEqual([
+      'reroll-offer',
+      'banish-offer',
+      'choose-upgrade',
+    ]);
+    expect(types.filter(type => type === 'reroll-offer')).toHaveLength(1);
+    expect(types.filter(type => type === 'banish-offer')).toHaveLength(1);
+    expect(types.filter(type => type === 'choose-upgrade')).toHaveLength(
+      run.upgradesResolved
+    );
+
+    // The first card's three commands share one tick: no simulation tick
+    // advances while paused.
+    const firstCardTicks = new Set(
+      recording.commands.slice(0, 3).map(command => command.tick)
+    );
+    expect(firstCardTicks.size).toBe(1);
 
     const replayRunner = new ReplayRunner();
     const at30 = replayRunner.run(recording, 30);
@@ -76,7 +93,7 @@ describe('ReplayRunner', () => {
     expect(at30.finalHash).toBe(at60.finalHash);
     expect(at120.finalHash).toBe(at60.finalHash);
     expect(at60.commandsApplied).toBe(recording.commands.length);
-    expect(at60.commandsApplied).toBe(3);
+    expect(at60.commandsApplied).toBe(run.upgradesResolved + 2);
   });
 
   it('replays a recorded passive choice to the same state at every frame rate', () => {
@@ -215,15 +232,19 @@ describe('ReplayRunner', () => {
 
     expect(firstCommand).toBeDefined();
 
-    // The run pauses exactly once, so a second well-formed command on a later
-    // tick can never be consumed. This is the only case that reaches the
-    // unconsumed-command guard rather than the missing-command-at-pause guard.
-    const orphan = { ...firstCommand!, tick: firstCommand!.tick + 100 };
+    // Every real command is kept, so no pause goes unanswered and the
+    // missing-command guard cannot fire first — since `V2-112`'s repeating
+    // curve the run pauses many times, so dropping the tail no longer works.
+    // The orphan sits on the run's final tick, which ends in `game-over` and
+    // therefore never pauses, so only the unconsumed-command guard can reject
+    // it.
+    const lastTick = recording.frames.length - 1;
+    const orphan = { ...firstCommand!, tick: lastTick };
     const replayRunner = new ReplayRunner();
 
-    expect(orphan.tick).toBeLessThanOrEqual(recording.frames.length);
+    expect(recording.commands.every(command => command.tick < lastTick)).toBe(true);
     expect(() =>
-      replayRunner.run({ ...recording, commands: [firstCommand!, orphan] }, 60)
+      replayRunner.run({ ...recording, commands: [...recording.commands, orphan] }, 60)
     ).toThrow(/never landed on a paused tick/);
   });
 

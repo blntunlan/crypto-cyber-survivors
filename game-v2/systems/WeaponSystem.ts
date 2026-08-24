@@ -353,7 +353,7 @@ export class WeaponSystem {
         continue;
       }
 
-      const lifetime = world.projectileLifetimeTicksRemaining[slot] ?? 0;
+      const lifetime = world.lifetimeTicksRemaining[slot] ?? 0;
 
       if (lifetime === 0) {
         world.destroyEntity(world.entityIdOf(slot));
@@ -397,7 +397,7 @@ export class WeaponSystem {
         continue;
       }
 
-      world.projectileLifetimeTicksRemaining[slot] = nextLifetime;
+      world.lifetimeTicksRemaining[slot] = nextLifetime;
     }
   }
 
@@ -452,6 +452,6 @@ export class WeaponSystem {
     world.velocityY[slot] = velocityY;
     world.radius[slot] = projectileRadius;
     world.projectileDamage[slot] = weaponDamage;
-    world.projectileLifetimeTicksRemaining[slot] = PROJECTILE_LIFETIME_TICKS;
+    world.lifetimeTicksRemaining[slot] = PROJECTILE_LIFETIME_TICKS;
   }
 }

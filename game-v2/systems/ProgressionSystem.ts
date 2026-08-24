@@ -1,11 +1,11 @@
 import {
   COMBAT_KILL_BUFFER_CAPACITY,
-  LEVEL_2_XP_THRESHOLD,
   MAX_WORLD_CAPACITY,
-  MVP0_MAX_PLAYER_LEVEL,
   PLAYER_STARTING_LEVEL,
+  XP_PICKUP_LIFETIME_TICKS,
   XP_PICKUP_RADIUS,
 } from '@/game-v2/config/Mvp0Config';
+import { levelXpThreshold, MVP1_MAX_PLAYER_LEVEL } from '@/game-v2/config/LevelCurve';
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type ProgressionStepResult } from '@/game-v2/contracts/ProgressionStepResult';
@@ -72,7 +72,10 @@ export class ProgressionSystem {
    * is always large enough regardless of which `World` instance is passed
    * to `step`.
    */
-  private readonly overlappingPickupSlots = new Uint16Array(MAX_WORLD_CAPACITY);
+  private readonly pickupSlotsToDestroy = new Uint16Array(MAX_WORLD_CAPACITY);
+  /** Slots whose countdown advances this tick, committed after validation. */
+  private readonly expiringPickupSlots = new Uint16Array(MAX_WORLD_CAPACITY);
+  private readonly expiringPickupLifetimes = new Uint16Array(MAX_WORLD_CAPACITY);
 
   public constructor(
     lifecycle: GameV2Lifecycle,
@@ -208,7 +211,7 @@ export class ProgressionSystem {
       throw new RangeError('player progression state must be finite and non-negative');
     }
 
-    if (playerLevel < PLAYER_STARTING_LEVEL || playerLevel > MVP0_MAX_PLAYER_LEVEL) {
+    if (playerLevel < PLAYER_STARTING_LEVEL || playerLevel > MVP1_MAX_PLAYER_LEVEL) {
       throw new RangeError('player was not initialized by resetPlayer');
     }
 
@@ -244,7 +247,8 @@ export class ProgressionSystem {
     // Validate every existing pickup before collection can destroy any of
     // them, and record which ones overlap so the destroy pass below does
     // not need a second `world.masks.length` scan to rediscover them.
-    let overlapCount = 0;
+    let destroyCount = 0;
+    let expiringCount = 0;
     for (let slot = 0; slot < world.masks.length; slot += 1) {
       const mask = world.masks[slot];
       if (
@@ -258,16 +262,21 @@ export class ProgressionSystem {
       const pickupY = world.y[slot];
       const pickupRadius = world.radius[slot];
       const xpValue = world.xpPickupValue[slot];
+      const lifetime = world.lifetimeTicksRemaining[slot];
 
       if (
         pickupX === undefined ||
         pickupY === undefined ||
         pickupRadius === undefined ||
         xpValue === undefined ||
+        lifetime === undefined ||
         !Number.isFinite(pickupX) ||
         !Number.isFinite(pickupY) ||
         !Number.isFinite(pickupRadius) ||
         pickupRadius < 0 ||
+        !Number.isInteger(lifetime) ||
+        lifetime < 0 ||
+        lifetime > XP_PICKUP_LIFETIME_TICKS ||
         !isFiniteNonNegativeFloat32(xpValue)
       ) {
         throw new RangeError('XP pickup state must be finite and non-negative');
@@ -278,9 +287,25 @@ export class ProgressionSystem {
         if (!isFiniteNonNegativeFloat32(xpCollectedThisTick)) {
           throw new RangeError('collected XP exceeds finite Float32 storage');
         }
-        this.overlappingPickupSlots[overlapCount] = slot;
-        overlapCount += 1;
+        this.pickupSlotsToDestroy[destroyCount] = slot;
+        destroyCount += 1;
+        continue;
       }
+
+      // Collection wins over expiry on the tick they coincide, and the slot is
+      // recorded once either way so the destroy pass cannot double-free it
+      // (V2-ADR-083).
+      const nextLifetime = lifetime - 1;
+
+      if (nextLifetime <= 0) {
+        this.pickupSlotsToDestroy[destroyCount] = slot;
+        destroyCount += 1;
+        continue;
+      }
+
+      this.expiringPickupSlots[expiringCount] = slot;
+      this.expiringPickupLifetimes[expiringCount] = nextLifetime;
+      expiringCount += 1;
     }
 
     const nextPlayerXp = playerXp + xpCollectedThisTick;
@@ -324,28 +349,48 @@ export class ProgressionSystem {
       if (
         overlaps(playerX, playerY, playerRadius, spawnX, spawnY, XP_PICKUP_RADIUS_F32)
       ) {
-        this.overlappingPickupSlots[overlapCount] = slot;
-        overlapCount += 1;
+        this.pickupSlotsToDestroy[destroyCount] = slot;
+        destroyCount += 1;
       }
+
+      world.lifetimeTicksRemaining[slot] = XP_PICKUP_LIFETIME_TICKS;
     }
 
-    for (let i = 0; i < overlapCount; i += 1) {
-      const slot = this.overlappingPickupSlots[i];
+    // Surviving pickups commit their decremented countdown only now, after
+    // every throw tied to input validity is behind us, so a refused tick never
+    // ages the field.
+    for (let i = 0; i < expiringCount; i += 1) {
+      const slot = this.expiringPickupSlots[i];
+      const nextLifetime = this.expiringPickupLifetimes[i];
+      if (slot === undefined || nextLifetime === undefined) {
+        throw new Error('expiring pickup buffer is corrupt');
+      }
+      world.lifetimeTicksRemaining[slot] = nextLifetime;
+    }
+
+    for (let i = 0; i < destroyCount; i += 1) {
+      const slot = this.pickupSlotsToDestroy[i];
       if (slot === undefined) {
-        throw new Error('overlapping pickup slot buffer is corrupt');
+        throw new Error('pickup destroy buffer is corrupt');
       }
       world.destroyEntity(world.entityIdOf(slot));
     }
 
+    // At most one level resolves per tick (V2-ADR-081). A kill batch worth two
+    // thresholds keeps its surplus, and the tick after `resolveUpgrade` resumes
+    // the run re-enters this branch — so §5.4's one-card-per-pick model holds
+    // without a queue or any pending-offer state.
+    const canLevel = playerLevel < MVP1_MAX_PLAYER_LEVEL;
     let leveledUp = false;
-    if (playerLevel === PLAYER_STARTING_LEVEL && nextPlayerXp >= LEVEL_2_XP_THRESHOLD) {
+
+    if (canLevel && nextPlayerXp >= levelXpThreshold(playerLevel)) {
       // Generate before mutating level/xp: if nothing is offerable and this
       // throws, the player must remain at its pre-level-up level/xp rather
       // than being left in a half-transitioned state with no open offer and
       // no way to retrigger the level-up branch.
       this.offerSystem.generateOffer(world, rng, playerEntity);
       world.level[playerSlot] = playerLevel + 1;
-      world.xp[playerSlot] = nextPlayerXp - LEVEL_2_XP_THRESHOLD;
+      world.xp[playerSlot] = nextPlayerXp - levelXpThreshold(playerLevel);
       this.lifecycle.pauseForLevelUp();
       leveledUp = true;
     } else if (xpCollectedThisTick > 0) {

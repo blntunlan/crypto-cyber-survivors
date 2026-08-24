@@ -66,7 +66,7 @@ export class World {
   public readonly contactCooldownTicksRemaining: Uint16Array;
   public readonly xpValue: Float32Array;
   public readonly projectileDamage: Float32Array;
-  public readonly projectileLifetimeTicksRemaining: Uint16Array;
+  public readonly lifetimeTicksRemaining: Uint16Array;
   /**
    * `ABILITY_SLOT_COUNT` entries per world slot, addressed through
    * `abilitySlotIndexOf` (V2-111, V2-ADR-076). A cooldown belongs to the
@@ -158,7 +158,7 @@ export class World {
     this.contactCooldownTicksRemaining = new Uint16Array(capacity);
     this.xpValue = new Float32Array(capacity);
     this.projectileDamage = new Float32Array(capacity);
-    this.projectileLifetimeTicksRemaining = new Uint16Array(capacity);
+    this.lifetimeTicksRemaining = new Uint16Array(capacity);
     this.weaponCooldownTicksRemaining = new Uint16Array(capacity * ABILITY_SLOT_COUNT);
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
@@ -455,7 +455,7 @@ export class World {
     this.contactCooldownTicksRemaining[slot] = 0;
     this.xpValue[slot] = 0;
     this.projectileDamage[slot] = 0;
-    this.projectileLifetimeTicksRemaining[slot] = 0;
+    this.lifetimeTicksRemaining[slot] = 0;
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;

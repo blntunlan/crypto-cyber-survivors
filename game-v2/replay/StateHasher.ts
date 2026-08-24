@@ -60,7 +60,7 @@ export const HASHED_WORLD_FIELDS = [
   'contactCooldownTicksRemaining',
   'xpValue',
   'projectileDamage',
-  'projectileLifetimeTicksRemaining',
+  'lifetimeTicksRemaining',
   'weaponCooldownTicksRemaining',
   'xp',
   'level',
@@ -252,7 +252,7 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.u16(world.contactCooldownTicksRemaining[slot] ?? 0);
     hash.f32(world.xpValue[slot] ?? 0);
     hash.f32(world.projectileDamage[slot] ?? 0);
-    hash.u16(world.projectileLifetimeTicksRemaining[slot] ?? 0);
+    hash.u16(world.lifetimeTicksRemaining[slot] ?? 0);
     hash.f32(world.xp[slot] ?? 0);
     hash.u16(world.level[slot] ?? 0);
     hash.f32(world.xpPickupValue[slot] ?? 0);

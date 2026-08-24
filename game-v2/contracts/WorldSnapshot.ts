@@ -32,7 +32,7 @@ export type WorldSnapshot = Readonly<{
   contactCooldownTicksRemaining: Uint16Array;
   xpValue: Float32Array;
   projectileDamage: Float32Array;
-  projectileLifetimeTicksRemaining: Uint16Array;
+  lifetimeTicksRemaining: Uint16Array;
   xp: Float32Array;
   level: Uint16Array;
   xpPickupValue: Float32Array;

@@ -7,10 +7,10 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 10 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 11 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-111` (concurrent autonomous weapon slots) is implemented and verified; `V2-110` is the last remaining MVP-1 task and has no brief yet |
-| Status | `V2-111` briefed at `docs/game-v2/tasks/V2-111-concurrent-autonomous-weapons.md` and implemented; `V2-110` is `Not Started` |
+| Active task | `V2-111` and `V2-112` are implemented and verified; `V2-110` is the last remaining MVP-1 task and has no brief yet |
+| Status | `V2-111` and `V2-112` briefed in `docs/game-v2/tasks/` and implemented; `V2-110` is `Not Started` |
 | Closed | `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1992,16 +1992,15 @@
 
 ## Known MVP-0 Limitations
 
-- One level-up exists per run (`MVP0_MAX_PLAYER_LEVEL = 2`), so neither the
-  four-slot ability cap, the six-slot passive cap, nor any level above 1 is
-  reachable in production. Those limits are proved by contract tests using
-  injected registries (V2-ADR-039) rather than by gameplay, and become reachable
-  when V2-104 replaces the fixed card with the real offer flow.
+- ~~One level-up exists per run~~ — closed by `V2-112`. The prediction that
+  `V2-104` would resolve it was wrong: `V2-104` shipped and the cap stayed at
+  `2`. `MVP1_MAX_PLAYER_LEVEL` is now derived and a fully capped build is
+  reachable through play.
 
-- XP pickups have no lifetime and no magnet, so they accumulate for the whole
-  run. `MVP0_WORLD_CAPACITY = 512` is the only bound, and a run long enough to
-  fill it now stops the loop with a surfaced error rather than spinning.
-  Pickup lifetime belongs to MVP-1.
+- XP pickups had no lifetime and no magnet, so they accumulated for the whole
+  run with `MVP0_WORLD_CAPACITY = 512` as the only bound. Closed by `V2-112`
+  (V2-ADR-083): pickups now expire after `XP_PICKUP_LIFETIME_TICKS = 180`.
+  There is still no magnet.
 - One runtime is one run identity, so the game-over restart replays the same
   seed. A different run needs a reload, which is correct for a `?seed=` session
   and a wart for an unseeded one.
@@ -2240,12 +2239,105 @@ player-facing defect and became this task.
   was already present at the start of this session and no `V2-111` file is
   involved. Filtering `.delegate` out leaves zero lint problems.
 
+## V2-112 — Repeating Level Curve
+
+Opened after `V2-111`, when scoping `V2-110` (the MVP-1 evidence gate)
+surfaced that its Done-When could not be met. Brief:
+`docs/game-v2/tasks/V2-112-repeating-level-curve.md`.
+
+- **The defect.** `ProgressionSystem.step`'s level-up branch was literally
+  single-shot — `playerLevel === PLAYER_STARTING_LEVEL && nextPlayerXp >=
+  LEVEL_2_XP_THRESHOLD`, with `MVP0_MAX_PLAYER_LEVEL = 2`. One pick per run
+  means no build, so design §5.1's four-slot cap, §5.2's three-tier path, and
+  §5.3's five-level passive path were reachable only through injected-registry
+  contract tests (V2-ADR-039), never through play. MVP-1's stated goal is
+  "prove that constrained builds create meaningful play", so `V2-110` would
+  have certified a milestone whose central claim was unmet. `PROGRESS.md`
+  predicted `V2-104` would resolve this; `V2-104` shipped and the cap stayed
+  at `2`, so the prediction was wrong.
+- The user chose to open this as its own task before `V2-110`, targeting a
+  curve that lets a player fill their slots.
+- New decisions: V2-ADR-080 (registry-derived level cap), V2-ADR-081 (one
+  level-up per tick, surplus retained), V2-ADR-082 (computed `LEVEL_XP_STEP`),
+  V2-ADR-083 (XP pickup lifetime).
+- **Two brief assumptions were wrong, both caught by a failing test rather
+  than review.** The brief derived 42 picks / level 43 / step 2 from
+  `ABILITY_SLOT_COUNT * ABILITY_MAX_TIER + PASSIVE_SLOT_COUNT *
+  PASSIVE_MAX_LEVEL`. In fact MVP-1 registers only **one** passive identity
+  (`MOVE_SPEED_PASSIVE`; `V2-401` authors the other nine in MVP-4), so six
+  empty passive slots contribute one slot's worth of picks — 25 phantom picks
+  — and design §5.1 **grants** the starting weapon rather than offering it, so
+  its Tier 1 costs no card — one more. Both overcounts made
+  `LevelUpOfferSystem.generateOffer` throw `no offerable candidates exist`
+  mid-run. The corrected derivation is keyed off live registry sizes:
+  `min(4, 8) * 3 - 1 + min(6, 1) * 5 = 16` picks, `MVP1_MAX_PLAYER_LEVEL = 17`.
+- `LEVEL_XP_STEP` is **computed**, not written down: the largest integer step
+  for which a capped build costs no more than `CONVERGENCE_THRESHOLD`. Today
+  that is `19` (2360 XP = 472 of the 480-kill Convergence baseline, so the
+  build finishes just before the boss threshold arrives); `20` costs 2480 and
+  overshoots. When `V2-401` lands the ten passives it re-derives itself to 41
+  picks / level 42 / step 2 with no edit.
+- The curve lives in the new `game-v2/config/LevelCurve.ts`, not
+  `Mvp0Config.ts`: it reads the registries, which already import from that
+  module, so deriving it there would close an import cycle — the same
+  constraint `ProjectileCapacity.ts` solved the same way in `V2-111`.
+- **A third gap surfaced and had to be closed here (V2-ADR-083).** With
+  repeated level-ups the player kills far more, and XP pickups had no
+  lifetime — `PROGRESS.md` already recorded this as MVP-1 work. Runs now got
+  long enough to fill `MVP0_WORLD_CAPACITY = 512`, at which point
+  `WeaponSystem` threw `entity capacity exhausted` mid-frame and ended the
+  run. `XP_PICKUP_LIFETIME_TICKS` is derived as the time to cross the visible
+  arena at base move speed (`18 / 6 = 3` seconds, 180 ticks): a pickup older
+  than that was already unreachable from where the player stood when it
+  dropped. `V2-112` could not land green without it, so it was folded in
+  rather than deferred.
+- `projectileLifetimeTicksRemaining` was renamed to `lifetimeTicksRemaining`
+  and is now shared by projectiles and XP pickups. A rename changes no bytes,
+  so `WORLD_SNAPSHOT_SCHEMA_VERSION` stays `7` and the checkpoint golden is
+  untouched — deliberately chosen over adding a second store, which would have
+  forced another schema bump and golden-hash churn.
+- **A real determinism defect was found and fixed in the test harness.**
+  `Mvp0Runtime.test.ts`'s re-drive helpers resolved every level-up with
+  `resolveOfferChoiceIndex`, while `driveScriptedRun` uses that only for the
+  first card and falls back to any candidate afterwards. Two policies consume
+  RNG differently, so a re-drive desynced from the run whose frames it was
+  replaying (replay stopped at tick 574 against a reference of 720). The
+  file's own comment had warned about exactly this trap. Both now share one
+  `createScriptedUpgradeChooser` carrying the same first/later split.
+- Test ripples were re-pointed at the new contract, never weakened. The
+  recorded-command count assertions moved from a magic `1`/`3` to
+  `run.upgradesResolved` — strictly stronger, since they now also catch a card
+  resolved without recording anything. `ReplayRunner`'s orphan-command test
+  kept every real command and moved its orphan to the run's final tick (which
+  ends in `game-over` and therefore never pauses), because "the run pauses
+  exactly once" stopped being true.
+- **Mutation pass, 9 mutants, all killed** (failures against the full 902-test
+  suite): revert to the single-shot branch 3; drop the max-level guard 1;
+  discard surplus XP 2; flat threshold 8; forget the granted starting weapon
+  4; slot capacity instead of registry size 8; pickups never expire 1;
+  collection and expiry recorded together 0 → **1 after strengthening**; no
+  lifetime on spawn 5. The one survivor was a same-tick collect-and-expire
+  double-free that no test reached; a new test pins that such a pickup is
+  collected (XP kept) and destroyed exactly once, asserted via `activeCount`.
+  All three mutated production files were restored byte-identically, verified
+  by sha256.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (44 files, 902
+  tests, up from 890 by 12 new tests), `npm run typecheck`,
+  `npm run check:architecture`, `npm run check:reset-coverage`,
+  `npm run check:event-contract`, `npm run check:ui-contract`,
+  `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed). `npm run lint`'s only errors remain the pre-existing
+  `.delegate/**` parsing errors described under `V2-111`.
+
 ## Exact Next Action
 
-`V2-111` is implemented and fully verified. `V2-110` (MVP-1 evidence gate)
-is the last remaining MVP-1 task; per `MASTER_PLAN.md` it now depends on
-`V2-100`..`V2-109` plus `V2-111`, all of which are complete, and it has no
-brief yet.
+`V2-111` and `V2-112` are implemented and fully verified. `V2-110` (MVP-1
+evidence gate) is the last remaining MVP-1 task; per `MASTER_PLAN.md` it now
+depends on `V2-100`..`V2-109` plus `V2-111` and `V2-112`, all of which are
+complete, and it has no brief yet. Build diversity is now genuinely
+evidenceable: a run reaches a fully capped build through play.
 
 All 9 findings from `V2-109`'s `/code-review high` pass are now resolved
 and none remain open: 6 were fixed in the `374cec0e` cleanup,

@@ -127,7 +127,7 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   contactCooldownTicksRemaining: world.contactCooldownTicksRemaining.slice(),
   xpValue: world.xpValue.slice(),
   projectileDamage: world.projectileDamage.slice(),
-  projectileLifetimeTicksRemaining: world.projectileLifetimeTicksRemaining.slice(),
+  lifetimeTicksRemaining: world.lifetimeTicksRemaining.slice(),
   weaponCooldownTicksRemaining: world.weaponCooldownTicksRemaining.slice(),
   xp: world.xp.slice(),
   level: world.level.slice(),

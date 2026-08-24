@@ -128,7 +128,7 @@ const firedProjectileSlot = (world: World): number => {
     const mask = world.masks[slot] ?? 0;
     if (
       (mask & PROJECTILE_MASK) === PROJECTILE_MASK &&
-      world.projectileLifetimeTicksRemaining[slot] === PROJECTILE_LIFETIME_TICKS
+      world.lifetimeTicksRemaining[slot] === PROJECTILE_LIFETIME_TICKS
     ) {
       return slot;
     }
@@ -156,7 +156,7 @@ const worldState = (world: World): unknown => ({
   abilitySlotIdentity: [...world.abilitySlotIdentity],
   abilitySlotTier: [...world.abilitySlotTier],
   projectileDamage: [...world.projectileDamage],
-  projectileLifetimeTicksRemaining: [...world.projectileLifetimeTicksRemaining],
+  lifetimeTicksRemaining: [...world.lifetimeTicksRemaining],
 });
 
 describe('WeaponSystem config', () => {
@@ -336,9 +336,7 @@ describe('WeaponSystem', () => {
     expect(world.previousY[slot]).toBe(-1);
     expect(world.radius[slot]).toBeCloseTo(PROJECTILE_RADIUS, 6);
     expect(world.projectileDamage[slot]).toBe(PROJECTILE_DAMAGE);
-    expect(world.projectileLifetimeTicksRemaining[slot]).toBe(
-      PROJECTILE_LIFETIME_TICKS
-    );
+    expect(world.lifetimeTicksRemaining[slot]).toBe(PROJECTILE_LIFETIME_TICKS);
     expect(world.velocityX[slot]).toBeCloseTo(PROJECTILE_SPEED * 0.6, 4);
     expect(world.velocityY[slot]).toBeCloseTo(PROJECTILE_SPEED * 0.8, 4);
   });
@@ -543,9 +541,7 @@ describe('WeaponSystem', () => {
     for (let tick = 1; tick <= PROJECTILE_LIFETIME_TICKS - 1; tick += 1) {
       weapon.step(world, player, context(tick));
       expect(world.isAlive(projectile)).toBe(true);
-      expect(world.projectileLifetimeTicksRemaining[slot]).toBe(
-        PROJECTILE_LIFETIME_TICKS - tick
-      );
+      expect(world.lifetimeTicksRemaining[slot]).toBe(PROJECTILE_LIFETIME_TICKS - tick);
     }
 
     expect(world.x[slot]).toBeCloseTo(
@@ -631,9 +627,7 @@ describe('WeaponSystem', () => {
     expect(world.previousY[slot]).toBe(-1);
     expect(world.radius[slot]).toBeCloseTo(PROJECTILE_RADIUS, 6);
     expect(world.projectileDamage[slot]).toBe(PROJECTILE_DAMAGE);
-    expect(world.projectileLifetimeTicksRemaining[slot]).toBe(
-      PROJECTILE_LIFETIME_TICKS
-    );
+    expect(world.lifetimeTicksRemaining[slot]).toBe(PROJECTILE_LIFETIME_TICKS);
     expect(world.health[slot]).toBe(0);
     expect(world.maxHealth[slot]).toBe(0);
     expect(world.faction[slot]).toBe(0);
@@ -927,9 +921,7 @@ describe('WeaponSystem concurrent auto slots (V2-ADR-076, V2-ADR-077)', () => {
       weapons.step(world, player, context(tick));
 
       for (const slot of projectileSlots(world)) {
-        if (
-          world.projectileLifetimeTicksRemaining[slot] !== PROJECTILE_LIFETIME_TICKS
-        ) {
+        if (world.lifetimeTicksRemaining[slot] !== PROJECTILE_LIFETIME_TICKS) {
           continue;
         }
         // Damage is the only per-slot signature a single-weapon mutant cannot

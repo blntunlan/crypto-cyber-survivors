@@ -71,7 +71,7 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'invulnerabilityTicksRemaining',
     'dashCooldownTicksRemaining',
     'contactCooldownTicksRemaining',
-    'projectileLifetimeTicksRemaining',
+    'lifetimeTicksRemaining',
     'level',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   /** One entry per ability slot per world slot rather than one per world slot. */

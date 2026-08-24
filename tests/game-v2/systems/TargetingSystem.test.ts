@@ -74,7 +74,7 @@ const worldState = (world: World): unknown => ({
   faction: [...world.faction],
   weaponCooldownTicksRemaining: [...world.weaponCooldownTicksRemaining],
   projectileDamage: [...world.projectileDamage],
-  projectileLifetimeTicksRemaining: [...world.projectileLifetimeTicksRemaining],
+  lifetimeTicksRemaining: [...world.lifetimeTicksRemaining],
 });
 
 describe('TargetingSystem', () => {
