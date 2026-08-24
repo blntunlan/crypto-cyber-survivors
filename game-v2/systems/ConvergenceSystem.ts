@@ -94,12 +94,6 @@ export class ConvergenceSystem {
       throw new RangeError('player entity is missing required components');
     }
 
-    const currentConvergence = world.convergence[playerSlot];
-
-    if (currentConvergence === undefined || !isFiniteNonNegative(currentConvergence)) {
-      throw new RangeError('player convergence state must be finite and non-negative');
-    }
-
     // Validate the complete kill batch before accruing any of it.
     let accrued = 0;
     for (let i = 0; i < killCount; i += 1) {
@@ -112,7 +106,77 @@ export class ConvergenceSystem {
       accrued += xp;
     }
 
-    const nextConvergence = currentConvergence + accrued;
+    this.result.convergenceReachedThisTick = this.accrueAndCheckLatch(
+      world,
+      playerSlot,
+      accrued,
+      context.tick
+    );
+
+    return this.result;
+  }
+
+  /**
+   * Adds bonus progress for a completed market encounter (`V2-212`,
+   * design §6.3: "Market encounters provide bonus progress but are not
+   * required"). Uses the exact same accrual/latch logic `step()`'s kill
+   * path uses (`accrueAndCheckLatch`), so a run that never calls this —
+   * a flat market with zero encounters — reaches Convergence via kills
+   * alone exactly as before, unaffected by this method's existence.
+   */
+  public applyMarketBonus(
+    world: World,
+    playerEntity: EntityId,
+    bonusXp: number,
+    context: StepContext
+  ): ConvergenceStepResult {
+    assertStepContext(context);
+
+    if (!isFiniteNonNegative(bonusXp) || bonusXp <= 0) {
+      throw new RangeError('market convergence bonus must be a finite positive number');
+    }
+
+    const playerSlot = world.slotOf(playerEntity);
+    const playerMask = world.masks[playerSlot];
+
+    if (
+      playerMask === undefined ||
+      (playerMask & PLAYER_ENTITY_MASK) !== PLAYER_ENTITY_MASK
+    ) {
+      throw new RangeError('player entity is missing required components');
+    }
+
+    this.result.convergenceReachedThisTick = this.accrueAndCheckLatch(
+      world,
+      playerSlot,
+      bonusXp,
+      context.tick
+    );
+
+    return this.result;
+  }
+
+  /**
+   * Shared by `step()`'s kill-XP accrual and `applyMarketBonus`
+   * (V2-ADR-146): validates the current convergence value, adds
+   * `amount`, checks the Float32 rounding bound, and checks the
+   * min-floor/threshold/max-ceiling latch condition. Exactly one
+   * implementation of "how Convergence accrues and latches" stays
+   * correct.
+   */
+  private accrueAndCheckLatch(
+    world: World,
+    playerSlot: number,
+    amount: number,
+    tick: number
+  ): boolean {
+    const currentConvergence = world.convergence[playerSlot];
+
+    if (currentConvergence === undefined || !isFiniteNonNegative(currentConvergence)) {
+      throw new RangeError('player convergence state must be finite and non-negative');
+    }
+
+    const nextConvergence = currentConvergence + amount;
 
     if (!isFiniteNonNegative(Math.fround(nextConvergence))) {
       throw new RangeError('convergence exceeds finite Float32 storage');
@@ -123,16 +187,16 @@ export class ConvergenceSystem {
     const alreadyReached = world.convergenceReached[playerSlot] === 1;
 
     if (!alreadyReached) {
-      const pastMinFloor = context.tick >= CONVERGENCE_MIN_CYCLE_TICKS;
+      const pastMinFloor = tick >= CONVERGENCE_MIN_CYCLE_TICKS;
       const pastThreshold = nextConvergence >= CONVERGENCE_THRESHOLD;
-      const pastMaxCeiling = context.tick >= CONVERGENCE_MAX_CYCLE_TICKS;
+      const pastMaxCeiling = tick >= CONVERGENCE_MAX_CYCLE_TICKS;
 
       if (pastMinFloor && (pastThreshold || pastMaxCeiling)) {
         world.convergenceReached[playerSlot] = 1;
-        this.result.convergenceReachedThisTick = true;
+        return true;
       }
     }
 
-    return this.result;
+    return false;
   }
 }

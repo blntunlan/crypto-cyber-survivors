@@ -202,6 +202,17 @@ events" is proven structurally (no snapshot queue exists anywhere) with
 a test driving a long stale outage followed by resumption producing
 exactly one activation, not a burst; not wired into `GameV2Runtime` yet;
 see `docs/game-v2/tasks/V2-211-stale-reconnect-degradation.md`.
+`V2-212` is accepted and closed: `ConvergenceSystem` (`V2-109`) gains
+`applyMarketBonus`, sharing its accrual/latch logic with `step()`'s own
+kill path through one extracted private helper — `step()`'s existing
+behavior is provably unchanged; `MarketConvergenceBridge` connects two
+real completion signals (a hazard's `ACTIVE → IDLE` expiry, `V2-209`; a
+produced `LootOpportunity`, `V2-210`) to a bonus derived from
+`ENEMY_XP_VALUE` — the same real anchor `CONVERGENCE_THRESHOLD` itself
+is built from; `SPAWN` completion stays explicitly deferred, since no
+batch-lifecycle tracking exists to say when a spawn encounter's enemies
+are dealt with; not wired into `GameV2Runtime` yet; see
+`docs/game-v2/tasks/V2-212-market-convergence-contribution.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

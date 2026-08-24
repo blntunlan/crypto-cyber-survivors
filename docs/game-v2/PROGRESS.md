@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-211` (Stale/Reconnect Degradation) is accepted and closed — market encounter composition now degrades safely under stale/reconnect conditions, though not wired into `GameV2Runtime`. The next reachable task is `V2-212` (Market Convergence contribution, depends on `V2-207`+`V2-109`), the last task before `V2-213`'s MVP-2 evidence gate. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-211` accepted; `V2-212`..`V2-213` not started. |
-| Closed | `V2-211` accepted (this checkpoint); `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-212` (Market Convergence Contribution) is accepted and closed — completed market encounters can now add bonus Convergence progress, though not wired into `GameV2Runtime`. `V2-213` (the MVP-2 evidence gate) is the only remaining MVP-2 task. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-212` accepted; `V2-213` not started. |
+| Closed | `V2-212` accepted (this checkpoint); `V2-211` accepted at `805e117b`; `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3759,26 +3759,144 @@ three indicator families.
   (5) every gate passes and the mutation pass leaves no survivor.
   `V2-211` is accepted.
 
+## V2-212 — Market Convergence Contribution
+
+- Task brief: `docs/game-v2/tasks/V2-212-market-convergence-contribution.md`.
+  Governing decisions: V2-ADR-146 through V2-ADR-150.
+- This is the first MVP-2 task to modify an existing MVP-1 system
+  (`ConvergenceSystem`, `V2-109`) rather than staying confined to
+  `game-v2/market/**`/`game-v2/config/**` — legitimately so, since the
+  master plan lists `V2-109` as a direct dependency specifically because
+  this task bridges MVP-1's kill-based Convergence and MVP-2's market
+  encounters.
+- `game-v2/systems/ConvergenceSystem.ts`: the accrual + latch-check logic
+  in `step()`'s tail (validate finite convergence, add the amount, check
+  the Float32 rounding bound, check the min-floor/threshold/max-ceiling
+  latch condition) was extracted into a private `accrueAndCheckLatch`
+  helper and reused by both `step()` and the new `applyMarketBonus`
+  method (V2-ADR-146) — not duplicated, so there is exactly one
+  implementation of "how Convergence accrues and latches" to keep
+  correct. `step()`'s own behavior is provably unchanged: its existing
+  test file was re-run completely unmodified and stayed green.
+  `applyMarketBonus(world, playerEntity, bonusXp, context)` validates
+  `bonusXp` is finite and strictly positive, validates the player
+  entity, then delegates to the shared helper — reusing the same mutable
+  `this.result` scratch object `step()` already reuses (proven by a test
+  showing both methods return the identical object reference across
+  calls, matching this codebase's established no-allocation convention).
+- `game-v2/config/MarketConvergenceBonus.ts`:
+  `MARKET_CONVERGENCE_BONUS_XP_PER_UNIT` reuses `ENEMY_XP_VALUE`
+  (V2-ADR-147) — the exact same real anchor `CONVERGENCE_THRESHOLD`
+  itself is built from in `Mvp0Config.ts`, not an independently invented
+  bonus rate. `WORLD_EVENT_CONVERGENCE_BONUS_UNITS = 1` (flat,
+  V2-ADR-148): `WorldEventEncounterOutput` carries no numeric field to
+  scale a bonus by, unlike `LootEventEncounterOutput`'s real `lootValue`
+  — a first-pass authored value with stated reasoning, matching
+  `V2-108`/`V2-204`/`V2-205`'s own precedent for an irreducible judgment
+  call; `V2-405` tunes final balance later.
+- `game-v2/market/MarketConvergenceBridge.ts`: `MarketConvergenceBridge`
+  connects two real, already-existing completion signals to
+  `applyMarketBonus` (V2-ADR-149): `HazardLifecycle`'s `ACTIVE → IDLE`
+  transition (`expiredThisTick`, `V2-209`) — a no-op unless that flag is
+  true, since a hazard result is passed every tick regardless of phase —
+  contributes the flat `WORLD_EVENT_CONVERGENCE_BONUS_UNITS *
+  MARKET_CONVERGENCE_BONUS_XP_PER_UNIT`; a produced `LootOpportunity`
+  (`LootEventEncounterConsumer`, `V2-210`) is its own completion instant
+  and contributes `lootValue * MARKET_CONVERGENCE_BONUS_XP_PER_UNIT`,
+  scaling the bonus by the real whale tier that triggered it.
+- `SPAWN` completion is explicitly, honestly deferred rather than
+  silently skipped: neither `EnemyComposer` (`V2-108`) nor
+  `SpawnEncounterConsumer` (`V2-208`) tags which spawned entities belong
+  to which encounter, so there is no observable "this encounter's
+  enemies are dealt with" signal to hook a bonus to. Building that
+  tracking would be real scope expansion into `EnemySystem`/`World`,
+  which `V2-208` explicitly avoided touching — the same honest-deferral
+  discipline `V2-205`/`V2-206` applied to missing content, applied here
+  to a missing signal instead.
+- `tests/game-v2/config/MarketConvergenceBonus.test.ts` (2 tests): pins
+  both constants.
+- `tests/game-v2/systems/ConvergenceSystem.test.ts` gained a nested
+  `applyMarketBonus (V2-212)` describe block (9 new tests, all existing
+  tests untouched): accrues exactly the given bonus; accumulates on top
+  of prior kill-XP accrual using the same underlying `world.convergence`
+  state; can flip the latch exactly like a kill would, both via the
+  threshold path and the max-cycle-ceiling path; never flips the latch
+  before the minimum-cycle floor; rejects a non-positive or non-finite
+  bonus (zero, negative, `NaN`, `Infinity`); rejects a malformed player
+  entity; rejects an invalid `StepContext`; reuses the same scratch
+  result object `step()` uses.
+- `tests/game-v2/market/MarketConvergenceBridge.test.ts` (5 tests): a
+  real hazard expiry applies the correct flat bonus; a non-expiry hazard
+  result is a no-op (`null` returned, no accrual); a real loot
+  opportunity scales the bonus by its `lootValue`; a flat run that never
+  calls the bridge still reaches Convergence via kills alone exactly as
+  `V2-109` already proved; a bridged bonus can flip the Convergence
+  latch. All tests across all three new/changed files passed on first
+  attempt (37 total, including the 9 new `ConvergenceSystem` cases).
+- **Mutation pass, 4 mutants, all caught.** Removing the
+  `world.convergence[playerSlot] = nextConvergence` write inside the
+  shared helper failed 6 tests (both `step()`-based and
+  `applyMarketBonus`-based tests, confirming both consumers genuinely
+  depend on the one shared implementation). Reversing the latch
+  condition (`&&` instead of `||` between threshold/ceiling) failed 6
+  tests for the same reason. The bridge applying the hazard bonus even
+  when `expiredThisTick` is `false` failed 1 test. The loot bonus not
+  scaling by `lootValue` (hardcoded to the flat per-unit rate) failed 1
+  test.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (73 files,
+  1172 tests, up from 71 files/1153 tests before this task — 2 new test
+  files plus 9 new `ConvergenceSystem` cases), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files — nothing
+  new was added), `npm run check:reset-coverage` (89 singletons: 29
+  wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, ~40s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `applyMarketBonus` accrues and latches identically
+  to `step()`'s own logic via one shared implementation; (2) `step()`'s
+  own existing behavior is provably unchanged (its full existing test
+  file re-run unmodified and green); (3) `MarketConvergenceBridge`
+  correctly derives and applies a bonus for real hazard-expiry and
+  loot-opportunity signals, and is a no-op for a non-expiry hazard
+  result; (4) `SPAWN` completion is explicitly deferred, confirmed by
+  the file diff touching nothing outside the documented files, and no
+  wiring into `GameV2Runtime` was added; (5) every gate passes and the
+  mutation pass leaves no survivor. `V2-212` is accepted.
+
 ## Exact Next Action
 
-MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-211` are all accepted. All three indicator-event
-families compose together (`V2-207`) with safe stale/reconnect
-degradation (`V2-211`), and all three real outputs have a tested
-consumer (`V2-208`/`V2-209`/`V2-210`) — none of this is wired into
-`GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-212` (Market Convergence
-contribution, depends on `V2-207`+`V2-109`) is the only remaining MVP-2
-task before `V2-213`'s evidence gate, and is reachable now. Given
-`V2-211`'s own experience — a task predicted to need runtime wiring
-turned out not to — `V2-212` should be scoped freshly rather than
-assumed: it needs to actually touch `ConvergenceSystem`'s (`V2-109`)
-real API to add bonus progress for completed market encounters, which
-may or may not require reading `GameV2Runtime.ts` depending on whether
-`ConvergenceSystem` already exposes an injectable bonus-progress entry
-point or needs one added — check `game-v2/systems/ConvergenceSystem.ts`
-before assuming either way. After `V2-212`, `V2-213` (the MVP-2 evidence
-gate: golden fixtures, edge cases, playable market feel, performance
-evidence) closes the milestone.
+MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is functionally
+complete at the mechanism level: `V2-200` through `V2-212` are all
+accepted. All three indicator-event families compose together (`V2-207`)
+with safe stale/reconnect degradation (`V2-211`); all three real outputs
+have a tested consumer (`V2-208`/`V2-209`/`V2-210`); and completed
+`WORLD_EVENT`/`LOOT_EVENT` encounters can add bonus Convergence progress
+without blocking a flat run (`V2-212`, `SPAWN` completion explicitly
+deferred). None of this is wired into `GameV2Runtime` yet — every single
+MVP-2 task since `V2-203` has deliberately stayed an isolated,
+independently-tested mechanism rather than touching the live runtime.
+
+Per `MASTER_PLAN.md`, `V2-213` (the MVP-2 evidence gate: "Golden
+fixtures, edge cases, playable market feel, and performance evidence are
+committed") is the only remaining MVP-2 task, and it is a different
+shape of task than every other one in this milestone — it is the
+evidence/closure gate, not another isolated mechanism. Given nothing is
+wired into `GameV2Runtime`, "playable market feel" cannot be evidenced
+by playing the game — this needs to be flagged to the user explicitly
+before scoping `V2-213`, mirroring how `V2-110` (the MVP-1 evidence
+gate) was scoped: read `V2-110`'s own task brief and closure
+(`docs/game-v2/tasks/V2-110-mvp1-evidence-gate.md`) first for the
+precedent of what an evidence gate actually demanded there, since it may
+turn out `V2-213` either needs a real (even if minimal)
+`GameV2Runtime`/`MarketEncounterDirector` wiring step first, or needs to
+honestly scope "playable market feel" down to what is evidenceable via
+golden fixtures and headless simulation alone, consistent with this
+milestone's mechanism-only pattern. This decision point is worth
+surfacing to the user rather than assumed silently, since it may be the
+first MVP-2 task that legitimately must touch `GameV2Runtime.ts`.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks

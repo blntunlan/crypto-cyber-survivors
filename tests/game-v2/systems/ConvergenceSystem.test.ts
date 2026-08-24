@@ -303,4 +303,141 @@ describe('ConvergenceSystem', () => {
       system.step(world, nonPlayer, createEmptyCombatResult(), createContext(1))
     ).toThrow(RangeError);
   });
+
+  describe('applyMarketBonus (V2-212)', () => {
+    it('accrues exactly the given bonus amount', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+      const slot = world.slotOf(player);
+
+      system.applyMarketBonus(world, player, 12, createContext(1));
+
+      expect(world.convergence[slot]).toBe(12);
+    });
+
+    it('accumulates on top of prior kill-XP accrual, using the same underlying state', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+      const slot = world.slotOf(player);
+
+      system.step(world, player, createCombatResultWithKills([5]), createContext(1));
+      system.applyMarketBonus(world, player, 7, createContext(2));
+
+      expect(world.convergence[slot]).toBe(12);
+    });
+
+    it('can flip the latch exactly like a kill would (min-floor + threshold)', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+      const slot = world.slotOf(player);
+      world.convergence[slot] = CONVERGENCE_THRESHOLD - ENEMY_XP_VALUE;
+
+      const result = system.applyMarketBonus(
+        world,
+        player,
+        ENEMY_XP_VALUE,
+        createContext(CONVERGENCE_MIN_CYCLE_TICKS)
+      );
+
+      expect(world.convergenceReached[slot]).toBe(1);
+      expect(result.convergenceReachedThisTick).toBe(true);
+    });
+
+    it('can flip the latch at the maximum-cycle tick ceiling', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+      const slot = world.slotOf(player);
+
+      const result = system.applyMarketBonus(
+        world,
+        player,
+        1,
+        createContext(CONVERGENCE_MAX_CYCLE_TICKS)
+      );
+
+      expect(world.convergenceReached[slot]).toBe(1);
+      expect(result.convergenceReachedThisTick).toBe(true);
+    });
+
+    it('never flips the latch before the minimum-cycle tick floor', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+      const slot = world.slotOf(player);
+      world.convergence[slot] = CONVERGENCE_THRESHOLD * 10;
+
+      const result = system.applyMarketBonus(
+        world,
+        player,
+        1,
+        createContext(CONVERGENCE_MIN_CYCLE_TICKS - 1)
+      );
+
+      expect(world.convergenceReached[slot]).toBe(0);
+      expect(result.convergenceReachedThisTick).toBe(false);
+    });
+
+    it.each([
+      ['zero', 0],
+      ['negative', -1],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('rejects a non-positive or non-finite bonus: %s', (_name, bonusXp) => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+
+      expect(() =>
+        system.applyMarketBonus(world, player, bonusXp, createContext(1))
+      ).toThrow(RangeError);
+    });
+
+    it('rejects a player entity missing the Player component', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const nonPlayer = world.createEntity(ComponentMask.Transform);
+
+      expect(() =>
+        system.applyMarketBonus(world, nonPlayer, 5, createContext(1))
+      ).toThrow(RangeError);
+    });
+
+    it('rejects a context whose tick is not a safe non-negative integer', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+
+      expect(() =>
+        system.applyMarketBonus(world, player, 5, createContext(-1))
+      ).toThrow(RangeError);
+    });
+
+    it('reuses the same scratch result object step() uses', () => {
+      const world = new World(4);
+      const system = new ConvergenceSystem();
+      const player = createPlayer(world);
+      system.resetPlayer(world, player);
+
+      const fromStep = system.step(
+        world,
+        player,
+        createEmptyCombatResult(),
+        createContext(1)
+      );
+      const fromBonus = system.applyMarketBonus(world, player, 1, createContext(2));
+
+      expect(fromStep).toBe(fromBonus);
+    });
+  });
 });
