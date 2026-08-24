@@ -20,6 +20,7 @@ import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
+import { EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
@@ -74,6 +75,7 @@ const composeRuntime = (world: World): GameV2Runtime => {
     dashSystem: new DashSystem(),
     movementSystem: new MovementSystem(),
     enemySystem: new EnemySystem(),
+    enemyComposer: new EnemyComposer(),
     weaponSystem,
     combatSystem: new CombatSystem(),
     progressionSystem: new ProgressionSystem(

@@ -34,10 +34,18 @@ export const STEER_MAGNITUDE = 0.999;
  * identity entirely in a 3-of-9 draw). `driveScriptedRun` below no longer
  * depends on offer content matching a specific identity — it recognizes
  * "an ability was upgraded" generically and self-heals a missing passive
- * candidate through a real reroll — so this value has no significance
- * beyond being fixed and reproducible.
+ * candidate through a real reroll.
+ *
+ * V2-108 made `EnemyComposer.compose` draw from the same shared RNG stream
+ * every spawn-cadence tick (even a single-archetype outcome still consumes a
+ * draw to choose among the affordable set), which shifts every subsequent
+ * RNG-dependent outcome for the rest of the run. This value was re-picked
+ * after that change so the default path's recorded command count stays `1`,
+ * the dash-prevented-damage comparison still holds, and both the passive and
+ * reroll+banish paths still resolve — verified empirically, not derivable
+ * from the registry the way V2-106/V2-107's constraints were.
  */
-export const SCENARIO_SEED = 9;
+export const SCENARIO_SEED = 50;
 
 const MAX_FRAMES = 6000;
 

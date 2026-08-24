@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 6 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-107` is accepted and closed. No task brief exists yet for the next MVP-1 task |
-| Status | `V2-107` accepted at `a43d8c1c`; MVP-1's next task is `Not Started` |
+| Active task | `V2-108` (basic enemy composition): implementation and tests complete, Step 5 gates green, **not yet committed** — awaiting explicit instruction to commit |
+| Status | `V2-108` implemented on top of `V2-107` (`a43d8c1c`); `V2-107` itself remains accepted and closed |
 | Closed | `V2-107` accepted at `a43d8c1c`; `V2-106` accepted at `ecd2f13f` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1752,6 +1752,97 @@
     behavior — proved by the full green suite, e2e run, and the
     entity-generation-desync fix; (5) every Step 5 gate passes with no
     mutation survivor among the brief's named mutants. `V2-107` is accepted.
+- Scope decision for `V2-108`: the user chose stats-only archetype variety
+  (over adding a genuinely new movement/behavior variant), confirmed via
+  `AskUserQuestion`. The task brief
+  (`docs/game-v2/tasks/V2-108-basic-enemy-composition.md`) records this and
+  the resulting preflight decisions (V2-ADR-069…V2-ADR-071).
+- `V2-108` (basic enemy composition) implemented per its task brief:
+  - No per-entity "which archetype" store was added (V2-ADR-069): a new
+    `game-v2/contracts/EnemyArchetype.ts` (`EnemyDefinition`,
+    `assertEnemyDefinition`) and `game-v2/config/EnemyRegistry.ts` register
+    three archetypes — `grunt` (the unchanged MVP-0 baseline, cost `2`),
+    `swarmling` (half health/damage/xp, `1.5x` speed, `0.75x` radius, cost
+    `1`), `brute` (`1.5x` health/damage/xp, `0.6x` speed, `1.25x` radius,
+    cost `2` — an equal-cost sidegrade to `grunt`, not a strict upgrade).
+    `EnemySystem.spawnEnemy` gained an optional `definition` parameter
+    defaulting to `GRUNT_ENEMY`, so all ~27 existing call sites across
+    `game-v2/**`/`tests/game-v2/**` are unaffected.
+  - A new `game-v2/systems/EnemyComposer.ts` spends a per-interval budget
+    greedily against the registry, allocation-free (writes into a
+    caller-owned reused array). `MVP0_ENEMY_SPAWN_BUDGET` is fixed at
+    `grunt`'s own cost (V2-ADR-070): a composition that draws `grunt` or
+    `brute` reproduces today's exact one-enemy-per-interval cadence exactly,
+    and a composition that draws `swarmling` spends the identical budget on
+    two weaker enemies whose combined health and damage equal one `grunt`'s
+    — MVP-0's calibrated balance stays intact while every archetype becomes
+    individually reachable within one budget window.
+  - `GameV2Runtime.spawnDueEnemy` now spends the budget through the composer
+    each cadence tick instead of always spawning exactly one grunt, bounded
+    by the existing free-slot/live-enemy caps — realizing the "two bounds…
+    neither reachable from a gameplay test yet" limitation the method's own
+    prior docstring already named.
+  - Test coverage added: `EnemyArchetype.test.ts`, `EnemyRegistry.test.ts`
+    (including `createEnemyRegistry`'s empty/duplicate/malformed rejection),
+    `Mvp0Config.test.ts` (archetype derivation formulas, budget, pick
+    bound), `EnemySystem.test.ts` (definition parameter, non-cross-
+    contamination between two spawned archetypes), `EnemyComposer.test.ts`
+    (budget-respect, determinism, reachability across a continuously-
+    advancing RNG stream, narrowing once pricier archetypes stop fitting),
+    and a new `tests/game-v2/integration/EnemyComposition.test.ts` proving
+    live archetype diversity through the real production cadence via
+    `runtime.checkpoint()` inspection — not just the composer/registry in
+    isolation.
+  - A genuine RNG-methodology finding from writing `EnemyComposer.test.ts`:
+    this project's shared `DeterministicRng` (xorshift32) has a weak first
+    draw for small sequential seeds immediately after construction —
+    `new DeterministicRng(seed).nextInt(3)` returns `0` for every seed from
+    `1` to at least `20`, because xorshift32's first iteration barely mixes
+    a small seed's low bit count. Tests that reseed fresh per iteration with
+    small sequential integers (an easy pattern to reach for) can therefore
+    look like they exercise variety while actually always drawing the same
+    outcome; the fix used here was a single continuously-advancing RNG
+    across many draws, matching how the production spawn cadence actually
+    reuses one stream. This is a pre-existing characteristic of the shared
+    RNG, not something this task introduced or fixed — noted here as a
+    reusable lesson for future test-writing against `DeterministicRng`, not
+    an action item.
+  - Ripple fixes from `EnemyComposer` consuming the shared RNG stream every
+    spawn-cadence tick, even for a single-archetype outcome (V2-ADR-071):
+    `SCENARIO_SEED` in `tests/game-v2/support/scriptedRun.ts` was re-picked
+    (from `9` to `50`) and re-verified against the plain path, the passive
+    path, the reroll+banish path, and (newly) the dash-prevented-damage
+    health comparison in `Mvp0Runtime.test.ts`, which had never depended on
+    offer content before but broke once enemy composition shifted contact
+    timing for the old seed. `e2e/game-v2-walking-skeleton.spec.ts`'s fixed
+    seeded-run URL was likewise re-picked (from `12345` to `50`) and
+    re-verified against the real browser flow.
+  - Verification: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+    (38 files, 841 tests, all green), full root `npx vitest run` (380
+    files; 4111/4112 tests green — the one failure,
+    `tests/components/landing/LandingPriceFeed.test.tsx`, is a pre-existing,
+    unrelated legacy landing-page test that fails identically in isolation
+    on a clean checkout of this file, confirmed via `git diff --stat`
+    showing zero changes to it or anything it imports), `npm run typecheck`,
+    `npm run check:architecture`, `npm run check:reset-coverage`,
+    `npm run check:ui-contract`, `npm run check:event-contract`,
+    `npm run check:director-manifest`, `npm run lint` (clean on every file
+    this task touched), `npm run format` (no unwanted changes), `npm run
+    build`, and
+    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+    (2 passed, after the seed re-selection above).
+  - Manual mutation spot-checks: widening `EnemyComposer`'s affordable-count
+    check to ignore the remaining budget makes 7 of 10
+    `EnemyComposer.test.ts` tests fail (the composer's own corrupt-pick
+    guard fires, since the ordinal-selection loop and the affordable count
+    go out of sync); reverting `GameV2Runtime.spawnDueEnemy` to always spawn
+    the hardcoded grunt regardless of the composed batch makes the new
+    diversity assertion in `EnemyComposition.test.ts` fail. Restoring both
+    fixes returns the suite to green.
+  - Not yet committed. Working tree holds exactly the files the task brief
+    lists plus the e2e ripple fix, the task brief, and this
+    checkpoint/decision-log/master-plan documentation; verified scoped via
+    `git status --short`.
 
 ## Verification Required
 
@@ -1805,13 +1896,16 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-107` is accepted and closed at `a43d8c1c` (current local `HEAD`, not yet
-pushed). No task brief exists yet for the next MVP-1 task; per
-`MASTER_PLAN.md`'s table, `V2-108` (basic enemy composition, depends on
-`V2-010`) is the next candidate by ID and has its dependency already
-satisfied. Confirm scope, generate its task brief, then start Step 1. Do not
-deploy, cut over production, or replace the legacy demo. Do not push the
-branch without explicit instruction.
+`V2-107` remains accepted and closed at `a43d8c1c` (current local `HEAD`, not
+yet pushed). `V2-108` (basic enemy composition) is implemented and fully
+verified on top of that commit per its task brief
+(`docs/game-v2/tasks/V2-108-basic-enemy-composition.md`), but **not yet
+committed** — commit only on explicit instruction. Once committed, update
+this file's `Current State` table and this section to record the real
+commit hash, matching the pattern `V2-100`..`V2-107` already established,
+then decide whether to scope `V2-109` (market-independent Convergence,
+depends on `V2-108`) next. Do not deploy, cut over production, or replace
+the legacy demo. Do not push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

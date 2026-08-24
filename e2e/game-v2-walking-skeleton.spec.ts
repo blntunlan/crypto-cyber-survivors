@@ -20,7 +20,14 @@ type DebugSnapshot = {
 
 type MovementSample = { tick: number; x: number; y: number; invulnerable: number };
 
-const SEEDED_RUN_URL = '/game-v2?no-sw=true&seed=12345';
+/**
+ * `V2-108` made `EnemyComposer` draw from the RNG stream every spawn-cadence
+ * tick, shifting every downstream RNG-dependent outcome for the rest of the
+ * run (same effect `tests/game-v2/support/scriptedRun.ts`'s `SCENARIO_SEED`
+ * documents). Re-picked after that change so the first offer still contains
+ * `starter-projectile` — verified empirically against this exact seed.
+ */
+const SEEDED_RUN_URL = '/game-v2?no-sw=true&seed=50';
 const DIRECTION_KEYS = ['KeyW', 'KeyS', 'KeyA', 'KeyD'] as const;
 const STEER_DEADZONE = 0.15;
 const LEVEL_UP_BUDGET_MS = 45_000;

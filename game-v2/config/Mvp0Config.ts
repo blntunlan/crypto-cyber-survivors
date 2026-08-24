@@ -222,3 +222,47 @@ export const SIEGE_PROJECTILE_DAMAGE_TIER_2 = SIEGE_PROJECTILE_DAMAGE_TIER_1 * 1
 export const SIEGE_PROJECTILE_RADIUS_TIER_3 = SIEGE_PROJECTILE_RADIUS_TIER_1 * 1.5;
 export const SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
   (SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * `V2-108` basic enemy composition (V2-ADR-070). `grunt` is the unchanged
+ * MVP-0 baseline (`ENEMY_HEALTH`/`ENEMY_MOVE_SPEED`/`ENEMY_CONTACT_DAMAGE`/
+ * `ENEMY_RADIUS`/`ENEMY_XP_VALUE`, cost `2`). `swarmling` is half its health,
+ * damage, and xp, one and a half times its speed, three quarters its radius,
+ * and half its cost — a cheap, weak, fast archetype. `brute` is one and a
+ * half times its health, damage, and xp, three fifths its speed, and one and
+ * a quarter times its radius, at the *same* cost as `grunt` — an equal-cost
+ * sidegrade, not a strict upgrade. `MVP0_ENEMY_SPAWN_BUDGET` equals `grunt`'s
+ * own cost, so a composition that always draws `grunt` or `brute` reproduces
+ * today's exact one-enemy-per-interval cadence exactly, and a composition
+ * that draws `swarmling` instead spends the identical budget on two weaker
+ * enemies whose combined health and damage equal one `grunt`'s
+ * (`Mvp0Config.test.ts` pins this) — composition varies which archetype(s)
+ * appear without escalating total per-interval threat power.
+ */
+export const SWARMLING_ENEMY_HEALTH = ENEMY_HEALTH / 2;
+export const SWARMLING_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 1.5;
+export const SWARMLING_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE / 2;
+export const SWARMLING_ENEMY_RADIUS = ENEMY_RADIUS * 0.75;
+export const SWARMLING_ENEMY_XP_VALUE = ENEMY_XP_VALUE / 2;
+export const SWARMLING_ENEMY_COST = 1;
+
+export const BRUTE_ENEMY_HEALTH = ENEMY_HEALTH * 1.5;
+export const BRUTE_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.6;
+export const BRUTE_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.5;
+export const BRUTE_ENEMY_RADIUS = ENEMY_RADIUS * 1.25;
+export const BRUTE_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.5;
+export const BRUTE_ENEMY_COST = 2;
+
+export const GRUNT_ENEMY_COST = 2;
+export const MVP0_ENEMY_SPAWN_BUDGET = GRUNT_ENEMY_COST;
+
+/**
+ * A safety bound on `EnemyComposer`'s pick loop, not a designed value: every
+ * pick costs at least `SWARMLING_ENEMY_COST` (the cheapest archetype), so the
+ * loop already terminates after at most `budget / SWARMLING_ENEMY_COST`
+ * picks by construction. This constant exists only to size the reused output
+ * buffer so composing never allocates.
+ */
+export const MVP0_ENEMY_COMPOSITION_MAX_PICKS = Math.ceil(
+  MVP0_ENEMY_SPAWN_BUDGET / SWARMLING_ENEMY_COST
+);

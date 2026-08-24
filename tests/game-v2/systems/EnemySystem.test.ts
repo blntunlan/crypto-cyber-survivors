@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { BRUTE_ENEMY, SWARMLING_ENEMY } from '@/game-v2/config/EnemyRegistry';
 import {
   ENEMY_CONTACT_DAMAGE,
   ENEMY_FACTION,
@@ -548,4 +549,66 @@ describe('EnemySystem', () => {
       expect(enemyStepState(world)).toEqual(before);
     }
   );
+});
+
+/**
+ * V2-108: `spawnEnemy` writes a definition's stats instead of the hardcoded
+ * grunt baseline when one is passed, while every caller that omits it keeps
+ * the exact grunt behavior the tests above already pin.
+ */
+describe('EnemySystem archetype definitions (V2-108)', () => {
+  it.each([
+    ['swarmling', SWARMLING_ENEMY],
+    ['brute', BRUTE_ENEMY],
+  ] as const)(
+    'spawns %s with its own definition stats, not the grunt baseline',
+    (_, definition) => {
+      const { world } = createWorldWithPlayer();
+      const enemySystem = new EnemySystem();
+
+      const enemy = enemySystem.spawnEnemy(
+        world,
+        { nextFloat: () => 0 },
+        pointRequest(4, 0),
+        definition
+      );
+      const slot = world.slotOf(enemy);
+
+      expect(world.masks[slot]).toBe(ENEMY_MASK);
+      expect(world.radius[slot]).toBeCloseTo(definition.radius);
+      expect(world.health[slot]).toBe(definition.health);
+      expect(world.maxHealth[slot]).toBe(definition.health);
+      expect(world.faction[slot]).toBe(ENEMY_FACTION);
+      expect(world.enemySpeed[slot]).toBeCloseTo(definition.moveSpeed);
+      expect(world.contactDamage[slot]).toBe(definition.contactDamage);
+      expect(world.xpValue[slot]).toBe(definition.xpValue);
+    }
+  );
+
+  it('spawns two different archetypes side by side without cross-contaminating their stats', () => {
+    const { world } = createWorldWithPlayer(4);
+    const enemySystem = new EnemySystem();
+
+    const swarmling = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(1, 0),
+      SWARMLING_ENEMY
+    );
+    const brute = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(2, 0),
+      BRUTE_ENEMY
+    );
+
+    const swarmlingSlot = world.slotOf(swarmling);
+    const bruteSlot = world.slotOf(brute);
+
+    expect(world.health[swarmlingSlot]).toBe(SWARMLING_ENEMY.health);
+    expect(world.health[bruteSlot]).toBe(BRUTE_ENEMY.health);
+    expect(world.health[swarmlingSlot]).not.toBe(world.health[bruteSlot]);
+    expect(world.contactDamage[swarmlingSlot]).toBe(SWARMLING_ENEMY.contactDamage);
+    expect(world.contactDamage[bruteSlot]).toBe(BRUTE_ENEMY.contactDamage);
+  });
 });

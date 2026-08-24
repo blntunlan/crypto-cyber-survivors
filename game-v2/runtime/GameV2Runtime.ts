@@ -1,5 +1,6 @@
 import {
   MVP0_CONFIG_VERSION,
+  MVP0_ENEMY_SPAWN_BUDGET,
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
   MVP0_MAX_LIVE_ENEMIES,
@@ -47,7 +48,9 @@ import { type GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { type SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { type CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { type DashSystem } from '@/game-v2/systems/DashSystem';
+import { type EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { type EnemySystem } from '@/game-v2/systems/EnemySystem';
+import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
 import { type MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { type AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { type LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
@@ -149,6 +152,7 @@ export type GameV2RuntimeDependencies = {
   dashSystem: DashSystem;
   movementSystem: MovementSystem;
   enemySystem: EnemySystem;
+  enemyComposer: EnemyComposer;
   weaponSystem: WeaponSystem;
   combatSystem: CombatSystem;
   progressionSystem: ProgressionSystem;
@@ -180,6 +184,7 @@ export class GameV2Runtime {
   private readonly dashSystem: DashSystem;
   private readonly movementSystem: MovementSystem;
   private readonly enemySystem: EnemySystem;
+  private readonly enemyComposer: EnemyComposer;
   private readonly weaponSystem: WeaponSystem;
   private readonly combatSystem: CombatSystem;
   private readonly progressionSystem: ProgressionSystem;
@@ -205,6 +210,13 @@ export class GameV2Runtime {
     radius: MVP0_ENEMY_SPAWN_RING_RADIUS,
   };
 
+  /**
+   * Reused so a cadence tick's composition draw allocates no new array
+   * (`V2-108`); `EnemyComposer.compose` always resets `.length` to `0`
+   * first, so a stale entry can never leak into a shorter composition.
+   */
+  private readonly spawnBatch: EnemyDefinition[] = [];
+
   private playerEntity: EntityId = NO_ENTITY;
   private simulationTick = 0;
   private initialHash = '';
@@ -224,6 +236,7 @@ export class GameV2Runtime {
     this.dashSystem = dependencies.dashSystem;
     this.movementSystem = dependencies.movementSystem;
     this.enemySystem = dependencies.enemySystem;
+    this.enemyComposer = dependencies.enemyComposer;
     this.weaponSystem = dependencies.weaponSystem;
     this.combatSystem = dependencies.combatSystem;
     this.progressionSystem = dependencies.progressionSystem;
@@ -632,21 +645,17 @@ export class GameV2Runtime {
   };
 
   /**
-   * Spawns at most one enemy per cadence tick, on a ring centred on the player.
+   * Spends `MVP0_ENEMY_SPAWN_BUDGET` composing a batch of enemies each
+   * cadence tick (`V2-108`), each spawned on a ring centred on the player.
    *
-   * Two bounds gate the spawn. `freeSlotCount` is `spawnEnemy`'s documented
-   * precondition. The live-enemy cap is the invariant that keeps the spawner
-   * inside the render snapshot's enemy capacity: both are the same constant,
-   * pinned together in the config test. MVP-0 balance kills the player long
-   * before either binds, so neither is reachable from a gameplay test yet;
-   * V2-108's composition budget is what will make them binding.
+   * Two bounds gate every spawn in the batch: `freeSlotCount` is
+   * `spawnEnemy`'s documented precondition, and the live-enemy cap keeps the
+   * spawner inside the render snapshot's enemy capacity (the same constant,
+   * pinned together in the config test). A composition drawing more than one
+   * archetype is what makes these bounds binding rather than merely defined.
    */
   private spawnDueEnemy(tick: number): void {
     if (tick % MVP0_ENEMY_SPAWN_INTERVAL_TICKS !== 1) {
-      return;
-    }
-
-    if (this.world.freeSlotCount === 0) {
       return;
     }
 
@@ -657,7 +666,7 @@ export class GameV2Runtime {
       }
     }
 
-    if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES) {
+    if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
       return;
     }
 
@@ -666,7 +675,16 @@ export class GameV2Runtime {
     this.spawnRequest.centerX = this.world.x[playerSlot] ?? 0;
     this.spawnRequest.centerY = this.world.y[playerSlot] ?? 0;
 
-    this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest);
+    this.enemyComposer.compose(MVP0_ENEMY_SPAWN_BUDGET, this.rng, this.spawnBatch);
+
+    for (const definition of this.spawnBatch) {
+      if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
+        return;
+      }
+
+      this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest, definition);
+      liveEnemies += 1;
+    }
   }
 
   private createPlayer(): EntityId {

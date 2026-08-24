@@ -1,12 +1,7 @@
-import {
-  ENEMY_CONTACT_DAMAGE,
-  ENEMY_FACTION,
-  ENEMY_HEALTH,
-  ENEMY_MOVE_SPEED,
-  ENEMY_RADIUS,
-  ENEMY_XP_VALUE,
-} from '@/game-v2/config/Mvp0Config';
+import { ENEMY_FACTION } from '@/game-v2/config/Mvp0Config';
+import { GRUNT_ENEMY } from '@/game-v2/config/EnemyRegistry';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
+import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
 import { type DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
@@ -109,7 +104,14 @@ export class EnemySystem {
   public spawnEnemy(
     world: World,
     rng: Pick<DeterministicRng, 'nextFloat'>,
-    request: EnemySpawnRequest
+    request: EnemySpawnRequest,
+    /**
+     * Defaults to `grunt` (`V2-108`) so every pre-`V2-108` caller — the
+     * production spawn cadence before `EnemyComposer` existed, and the many
+     * tests that call `spawnEnemy` directly — produces byte-for-byte
+     * identical entity state without passing anything new.
+     */
+    definition: EnemyDefinition = GRUNT_ENEMY
   ): EntityId {
     assertSpawnRequest(request);
 
@@ -146,14 +148,14 @@ export class EnemySystem {
     world.previousY[slot] = spawnY;
     world.velocityX[slot] = 0;
     world.velocityY[slot] = 0;
-    world.radius[slot] = ENEMY_RADIUS;
-    world.health[slot] = ENEMY_HEALTH;
-    world.maxHealth[slot] = ENEMY_HEALTH;
+    world.radius[slot] = definition.radius;
+    world.health[slot] = definition.health;
+    world.maxHealth[slot] = definition.health;
     world.faction[slot] = ENEMY_FACTION;
-    world.enemySpeed[slot] = ENEMY_MOVE_SPEED;
-    world.contactDamage[slot] = ENEMY_CONTACT_DAMAGE;
+    world.enemySpeed[slot] = definition.moveSpeed;
+    world.contactDamage[slot] = definition.contactDamage;
     world.contactCooldownTicksRemaining[slot] = 0;
-    world.xpValue[slot] = ENEMY_XP_VALUE;
+    world.xpValue[slot] = definition.xpValue;
 
     return enemy;
   }

@@ -24,6 +24,7 @@ import { GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
+import { EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
@@ -113,6 +114,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     dashSystem: new DashSystem(),
     movementSystem: new MovementSystem(passiveLoadout),
     enemySystem: new EnemySystem(),
+    enemyComposer: new EnemyComposer(),
     weaponSystem,
     combatSystem: new CombatSystem(),
     progressionSystem: new ProgressionSystem(

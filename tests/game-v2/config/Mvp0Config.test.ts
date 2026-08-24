@@ -27,12 +27,30 @@ import {
   LANCE_PROJECTILE_DAMAGE_TIER_2,
   LANCE_PROJECTILE_RADIUS_TIER_1,
   LANCE_PROJECTILE_RADIUS_TIER_3,
+  BRUTE_ENEMY_COST,
+  BRUTE_ENEMY_CONTACT_DAMAGE,
+  BRUTE_ENEMY_HEALTH,
+  BRUTE_ENEMY_MOVE_SPEED,
+  BRUTE_ENEMY_RADIUS,
+  BRUTE_ENEMY_XP_VALUE,
+  ENEMY_CONTACT_DAMAGE,
+  ENEMY_MOVE_SPEED,
+  ENEMY_XP_VALUE,
+  GRUNT_ENEMY_COST,
   MAX_WORLD_CAPACITY,
+  MVP0_ENEMY_COMPOSITION_MAX_PICKS,
+  MVP0_ENEMY_SPAWN_BUDGET,
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
   MVP0_MAX_LIVE_ENEMIES,
   MVP0_MAX_LIVE_PROJECTILES,
   MVP0_WORLD_CAPACITY,
+  SWARMLING_ENEMY_COST,
+  SWARMLING_ENEMY_CONTACT_DAMAGE,
+  SWARMLING_ENEMY_HEALTH,
+  SWARMLING_ENEMY_MOVE_SPEED,
+  SWARMLING_ENEMY_RADIUS,
+  SWARMLING_ENEMY_XP_VALUE,
   NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
   NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
   NEEDLE_PROJECTILE_DAMAGE_TIER_1,
@@ -343,5 +361,43 @@ describe('mid-run-only projectile family (V2-107, V2-ADR-066)', () => {
       expect(reserved).not.toContain(n);
     }
     expect(new Set(ns).size).toBe(ns.length);
+  });
+});
+
+describe('basic enemy composition (V2-108, V2-ADR-070)', () => {
+  it('derives swarmling as half of grunt on health/damage/xp, 1.5x speed, 0.75x radius, half cost', () => {
+    expect(SWARMLING_ENEMY_HEALTH).toBe(ENEMY_HEALTH / 2);
+    expect(SWARMLING_ENEMY_CONTACT_DAMAGE).toBe(ENEMY_CONTACT_DAMAGE / 2);
+    expect(SWARMLING_ENEMY_XP_VALUE).toBe(ENEMY_XP_VALUE / 2);
+    expect(SWARMLING_ENEMY_MOVE_SPEED).toBe(ENEMY_MOVE_SPEED * 1.5);
+    expect(SWARMLING_ENEMY_RADIUS).toBe(ENEMY_RADIUS * 0.75);
+    expect(SWARMLING_ENEMY_COST).toBe(1);
+  });
+
+  it('derives brute as 1.5x grunt on health/damage/xp, 0.6x speed, 1.25x radius, equal cost', () => {
+    expect(BRUTE_ENEMY_HEALTH).toBe(ENEMY_HEALTH * 1.5);
+    expect(BRUTE_ENEMY_CONTACT_DAMAGE).toBe(ENEMY_CONTACT_DAMAGE * 1.5);
+    expect(BRUTE_ENEMY_XP_VALUE).toBe(ENEMY_XP_VALUE * 1.5);
+    expect(BRUTE_ENEMY_MOVE_SPEED).toBe(ENEMY_MOVE_SPEED * 0.6);
+    expect(BRUTE_ENEMY_RADIUS).toBe(ENEMY_RADIUS * 1.25);
+    expect(BRUTE_ENEMY_COST).toBe(GRUNT_ENEMY_COST);
+  });
+
+  it("sets the spawn budget to exactly grunt's own cost", () => {
+    expect(MVP0_ENEMY_SPAWN_BUDGET).toBe(GRUNT_ENEMY_COST);
+    expect(MVP0_ENEMY_SPAWN_BUDGET).toBe(2);
+  });
+
+  it('derives the composition pick bound from the budget and the cheapest archetype', () => {
+    expect(MVP0_ENEMY_COMPOSITION_MAX_PICKS).toBe(
+      Math.ceil(MVP0_ENEMY_SPAWN_BUDGET / SWARMLING_ENEMY_COST)
+    );
+    expect(MVP0_ENEMY_COMPOSITION_MAX_PICKS).toBe(2);
+  });
+
+  it('makes two swarmlings sum to grunt-equal total health, damage, and cost', () => {
+    expect(SWARMLING_ENEMY_HEALTH * 2).toBe(ENEMY_HEALTH);
+    expect(SWARMLING_ENEMY_CONTACT_DAMAGE * 2).toBe(ENEMY_CONTACT_DAMAGE);
+    expect(SWARMLING_ENEMY_COST * 2).toBe(GRUNT_ENEMY_COST);
   });
 });
