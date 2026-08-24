@@ -66,10 +66,9 @@ is accepted and closed at `b7a5c07a`. `V2-102` is accepted and closed at
 `22a00d14`. `V2-103` is accepted and closed at `357ef443`. `V2-104` is
 accepted and closed at `7116c729`. `V2-105` is accepted and closed at
 `841160a2`. `V2-106` is accepted and closed at `ecd2f13f`. `V2-107` is
-accepted and closed at `a43d8c1c`; briefs and outcomes are in
-`docs/game-v2/tasks/`. `V2-108` is implemented and fully verified per its
-brief (`docs/game-v2/tasks/V2-108-basic-enemy-composition.md`) but **not
-yet committed** — see `docs/game-v2/PROGRESS.md` for evidence and status.
+accepted and closed at `a43d8c1c`. `V2-108` is accepted and closed at
+`94a48e7a`; briefs and outcomes are in `docs/game-v2/tasks/`. No task brief
+exists yet for the next MVP-1 task.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

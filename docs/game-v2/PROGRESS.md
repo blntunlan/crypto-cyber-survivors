@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 6 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 7 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | `V2-108` (basic enemy composition): implementation and tests complete, Step 5 gates green, **not yet committed** — awaiting explicit instruction to commit |
-| Status | `V2-108` implemented on top of `V2-107` (`a43d8c1c`); `V2-107` itself remains accepted and closed |
-| Closed | `V2-107` accepted at `a43d8c1c`; `V2-106` accepted at `ecd2f13f` |
+| Active task | None in progress; `V2-108` is accepted and closed. No task brief exists yet for the next MVP-1 task |
+| Status | `V2-108` accepted at `94a48e7a`; MVP-1's next task is `Not Started` |
+| Closed | `V2-108` accepted at `94a48e7a`; `V2-107` accepted at `a43d8c1c` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1839,10 +1839,25 @@
     the hardcoded grunt regardless of the composed batch makes the new
     diversity assertion in `EnemyComposition.test.ts` fail. Restoring both
     fixes returns the suite to green.
-  - Not yet committed. Working tree holds exactly the files the task brief
-    lists plus the e2e ripple fix, the task brief, and this
-    checkpoint/decision-log/master-plan documentation; verified scoped via
-    `git status --short`.
+  - Implementation and tests are committed at `94a48e7a` (21 files: every
+    `game-v2/**` and `tests/game-v2/**` path this task touched, the e2e
+    ripple fix, the task brief, and this checkpoint/decision-log/master-plan
+    documentation). Staged content was verified file-by-file before
+    committing; no unrelated pre-existing working-tree change was included.
+    Pre-commit hooks (`eslint --fix`, `prettier --write`, `vitest related`,
+    `check:ui-contract`) passed.
+  - All five acceptance criteria in the task brief are met with evidence
+    above: (1) three archetypes registered, pairwise distinct, each a
+    derived multiple of the unchanged grunt baseline — proved by
+    `EnemyRegistry.test.ts`/`Mvp0Config.test.ts`; (2) every pre-`V2-108`
+    `spawnEnemy` caller unaffected by the optional `definition` parameter —
+    proved by the full existing `EnemySystem.test.ts` suite passing
+    unchanged; (3) `EnemyComposer` never exceeds budget, is deterministic,
+    and reaches every archetype — proved by `EnemyComposer.test.ts` and the
+    manual mutation spot-check; (4) a live run provably spawns more than one
+    distinct archetype bounded by the existing caps — proved by
+    `EnemyComposition.test.ts` and its own mutation spot-check; (5) every
+    Step 5 gate passes with no mutation survivor. `V2-108` is accepted.
 
 ## Verification Required
 
@@ -1896,16 +1911,13 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-107` remains accepted and closed at `a43d8c1c` (current local `HEAD`, not
-yet pushed). `V2-108` (basic enemy composition) is implemented and fully
-verified on top of that commit per its task brief
-(`docs/game-v2/tasks/V2-108-basic-enemy-composition.md`), but **not yet
-committed** — commit only on explicit instruction. Once committed, update
-this file's `Current State` table and this section to record the real
-commit hash, matching the pattern `V2-100`..`V2-107` already established,
-then decide whether to scope `V2-109` (market-independent Convergence,
-depends on `V2-108`) next. Do not deploy, cut over production, or replace
-the legacy demo. Do not push the branch without explicit instruction.
+`V2-108` is accepted and closed at `94a48e7a` (current local `HEAD`, not yet
+pushed). No task brief exists yet for the next MVP-1 task; per
+`MASTER_PLAN.md`'s table, `V2-109` (market-independent Convergence, depends
+on `V2-108`) is the next candidate by ID and has its dependency already
+satisfied. Confirm scope, generate its task brief, then start Step 1. Do not
+deploy, cut over production, or replace the legacy demo. Do not push the
+branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 
