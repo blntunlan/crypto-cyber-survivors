@@ -41,6 +41,18 @@ export const VOLATILITY_SURGE_COOLDOWN_TICKS = 10 * SIMULATION_HZ;
  */
 export const VOLATILITY_SURGE_TELEGRAPH_TICKS = 2 * SIMULATION_HZ;
 
+/**
+ * `VOLATILITY_SURGE_COOLDOWN_TICKS - VOLATILITY_SURGE_TELEGRAPH_TICKS`
+ * (`V2-209`): the hazard's telegraph + active lifespan is made to exactly
+ * span the state machine's own cooldown window, so the earliest tick a
+ * second real activation could possibly arm (`cooldownTicks` after the
+ * first) coincides with the exact tick this hazard's active phase ends —
+ * a provable, zero-gap non-overlap guarantee derived from two already-real
+ * constants, not an independently chosen duration.
+ */
+export const VOLATILITY_SURGE_ACTIVE_TICKS =
+  VOLATILITY_SURGE_COOLDOWN_TICKS - VOLATILITY_SURGE_TELEGRAPH_TICKS;
+
 export const VOLATILITY_SURGE_PROFILE = assertIndicatorEventProfile({
   id: 'volatility-surge',
   direction: 'above',

@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-208` (Spawn Encounter Consumer) is accepted and closed — `SpawnEncounterOutput` now composes real enemy content, though not yet wired into `GameV2Runtime`. The next reachable tasks are `V2-209` (World-event output) and `V2-210` (Loot-event output), both unblocked since `V2-207`. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-208` accepted; `V2-209`..`V2-213` not started. |
-| Closed | `V2-208` accepted (this checkpoint); `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-209` (World-Event Consumer) is accepted and closed — hazard telegraph/lifecycle timing is now simulation-tick-driven and proven, though no ECS component or `GameV2Runtime` wiring exists yet. The next reachable task is `V2-210` (Loot-event output), unblocked since `V2-207`. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-209` accepted; `V2-210`..`V2-213` not started. |
+| Closed | `V2-209` accepted (this checkpoint); `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3456,25 +3456,143 @@ three indicator families.
   the mutation pass leaves no survivor, one caught by `tsc` itself.
   `V2-208` is accepted.
 
+## V2-209 — World-Event Consumer
+
+- Task brief: `docs/game-v2/tasks/V2-209-world-event-consumer.md`.
+  Governing decisions: V2-ADR-132 through V2-ADR-136.
+- `game-v2/market/HazardLifecycle.ts`: a generic, tick-driven
+  `IDLE → TELEGRAPHING → ACTIVE → IDLE` state machine — never
+  wall-clock/`setTimeout` — mirroring `IndicatorEventStateMachine`'s own
+  monotonic fixed-step convention (V2-ADR-103), the literal proof of the
+  master-plan "Done when" property ("telegraph and lifecycle are
+  simulation-time controlled"). `activate(output, activeTicks, tick)`
+  takes `activeTicks` as an explicit parameter rather than hardcoding one
+  family's value, mirroring `IndicatorEventStateMachine`'s own
+  profile-driven design (V2-ADR-132). Because
+  `WorldEventEncounterOutput.telegraphTicks` is always a positive integer
+  (`assertWorldEventEncounterOutput`), the `TELEGRAPHING → ACTIVE`
+  transition can never land on the same tick as `activate()`, so no
+  same-tick cascade logic (unlike `IndicatorEventStateMachine`'s
+  `confirmationTicks: 0` case) was needed.
+- `activate()` throws if called while a hazard is already in flight
+  (V2-ADR-133) — defensive: `V2-207`'s composer already selects at most
+  one primary per tick, and (per the next point) a real family's own
+  cooldown structurally prevents overlap, so this path is believed
+  unreachable through the real pipeline today, kept anyway mirroring
+  `IndicatorEventStateMachine.reset()`'s own "kept defensively though
+  currently unreachable" precedent.
+- `game-v2/config/VolatilitySurgeFamily.ts` gains
+  `VOLATILITY_SURGE_ACTIVE_TICKS = VOLATILITY_SURGE_COOLDOWN_TICKS -
+  VOLATILITY_SURGE_TELEGRAPH_TICKS` (V2-ADR-134) — `8 * SIMULATION_HZ`.
+  `WorldEventEncounterOutput` carries no active-duration field, and this
+  project's convention avoids inventing an unanchored one where a real
+  anchor exists; this derivation makes the hazard's telegraph + active
+  lifespan exactly span the state machine's own cooldown window, so the
+  earliest tick a second real activation could arm coincides with the
+  exact tick this hazard's active phase ends — a provable, zero-gap
+  non-overlap guarantee derived from two already-real constants, stronger
+  than `V2-108`/`V2-204`/`V2-205`'s own "chosen with stated reasoning,
+  `V2-405` tunes later" fallback (which is only used where no such link
+  exists). Pinned by an exact-equality test proving both the literal
+  value and the zero-gap identity
+  (`TELEGRAPH_TICKS + ACTIVE_TICKS === COOLDOWN_TICKS`).
+- `game-v2/market/WorldEventEncounterConsumer.ts`: resolves the real
+  `activeTicks` for a real `hazardId`
+  (`VOLATILITY_SURGE_HAZARD_ID` = `'volatility-tremor'`, exported from
+  `VolatilitySurgeEncounter.ts` mirroring `V2-208`'s
+  `TREND_BREAKOUT_THEME_IDS` precedent) and delegates to an injected
+  `HazardLifecycle`. An unrecognized `hazardId` throws (V2-ADR-135),
+  matching `SpawnEncounterConsumer`'s `themeId` validation (V2-ADR-129).
+  This two-tier mechanism/content split (generic `HazardLifecycle` +
+  real-content `WorldEventEncounterConsumer`) mirrors `V2-203`/`V2-204`+
+  and `V2-208`'s own `EnemyComposer`/`SpawnEncounterConsumer` split.
+- No ECS `World` component, no `EnemySystem`-style damage application, no
+  renderer work, and no wiring into `GameV2Runtime` (V2-ADR-136) — a
+  hazard's real gameplay effect (damage, arena-region shape) has no
+  anchored content yet (`V2-ADR-115`'s own deferral from `V2-205`), and
+  inventing one here would be scope creep beyond the "Done when"
+  property, which is about transition *timing*, not gameplay effect.
+- `tests/game-v2/market/HazardLifecycle.test.ts` (6 tests, synthetic
+  `WorldEventEncounterOutput` fixtures): starts `IDLE`; a full
+  `TELEGRAPHING → ACTIVE → IDLE` cycle lands exactly on the derived
+  boundary ticks (`telegraphTicks` after arm, `activeTicks` after that),
+  proven at the exact boundary tick and one tick before it to rule out a
+  premature transition; `activate()` while not `IDLE` throws; a
+  non-positive or non-integer `activeTicks` throws; a non-increasing tick
+  between `activate()`/`step()` calls throws; `reset()` returns to a
+  fresh `IDLE` state and allows a new cycle restarting ticks from any
+  value. All 6 passed on first attempt.
+- `tests/game-v2/market/WorldEventEncounterConsumer.test.ts` (6 tests):
+  a real `volatility-tremor` output reaches `ACTIVE` at the real
+  telegraph boundary and expires at the real telegraph+active boundary
+  (using the real `SIMULATION_HZ`-derived tick counts directly, no
+  per-tick loop needed since `HazardLifecycle` compares against
+  precomputed absolute boundary ticks rather than an incrementing
+  counter); an unrecognized `hazardId` throws; an injected mock
+  `HazardLifecycle` receives the exact `(output, activeTicks, tick)` call
+  via a spy; an injected custom `hazardId → activeTicks` map is honoured
+  over the default; `reset()` delegates to the injected lifecycle. All 6
+  passed on first attempt.
+- **Mutation pass, 5 mutants, all caught.** Removing the in-flight guard
+  in `activate()` failed 1 test. An off-by-one (`>` instead of `>=`) on
+  the `TELEGRAPHING → ACTIVE` boundary failed 2 tests (across both test
+  files). An off-by-one on the `ACTIVE → IDLE` boundary combined with
+  removing the `hazardId = null` clear failed 2 tests. Reversing the
+  `VOLATILITY_SURGE_ACTIVE_TICKS` derivation (using
+  `VOLATILITY_SURGE_COOLDOWN_TICKS` directly, unadjusted) failed the new
+  pinned constant test — a real gap that would otherwise have gone
+  undetected, since the consumer test derives its own expected boundary
+  ticks from the same (importable) constant rather than an independent
+  literal, so only a dedicated pinned-value test in
+  `VolatilitySurgeFamily.test.ts` could catch a wrong derivation; adding
+  that test was itself part of closing this task correctly. The
+  constructor ignoring its injected `activeTicksByHazardId` argument
+  (always using the default map) failed 1 test.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (67 files,
+  1133 tests, up from 65 files/1120 tests before this task by the two new
+  test files plus the one new `VolatilitySurgeFamily.test.ts` case),
+  `npm run typecheck`, `npm run check:architecture` (89 baseline
+  singleton files — nothing new was added), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all seven
+  changed/new files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, ~35s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `HazardLifecycle` transitions phases exactly on the
+  derived tick boundaries, driven only by explicit tick arguments; (2)
+  `WorldEventEncounterConsumer` resolves the real `volatility-tremor`
+  hazard's `activeTicks` correctly and throws on an unrecognized
+  `hazardId`; (3) `VOLATILITY_SURGE_ACTIVE_TICKS` is derived from two
+  already-real constants, pinned by an exact-equality test; (4) no ECS
+  component, gameplay effect, or `GameV2Runtime` wiring was added,
+  confirmed by the file diff; (5) every gate passes and the mutation pass
+  leaves no survivor. `V2-209` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-208` are all accepted. All three indicator-event
-families compose together through `MarketEncounterDirector`/
-`EncounterComposer` (`V2-207`), and `SPAWN` outputs now compose real
-enemy content through `SpawnEncounterConsumer` (`V2-208`) — none of this
-is wired into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-209`
-(World-event output) and `V2-210` (Loot-event output) both depend only
-on `V2-207` (already closed) and are reachable now; `V2-209` is the more
-natural next pick following `V2-208`'s established
-mechanism-before-runtime-wiring pattern, since `V2-205`'s
-`WorldEventEncounterOutput` (`hazardId`/`telegraphTicks`) has no consumer
-yet and no hazard system exists at all in `game-v2/**` — this will be the
-first MVP-2 task to design a genuinely new system (a hazard/telegraph
-lifecycle) rather than reuse an existing one (`EnemyComposer` for
-`V2-208`), worth scoping carefully against design's "Telegraph and
-lifecycle are simulation-time controlled" Done-When and `TimeService`/
-simulation-clock conventions already established by `SimulationClock.ts`.
+`V2-200` through `V2-209` are all accepted. All three indicator-event
+families compose together (`V2-207`), `SPAWN` outputs compose real enemy
+content (`V2-208`), and `WORLD_EVENT` outputs now drive a real,
+tick-controlled hazard lifecycle (`V2-209`) — none of this is wired into
+`GameV2Runtime` yet, and `V2-209` added no ECS hazard component or
+gameplay effect (deliberately deferred, V2-ADR-136). Per `MASTER_PLAN.md`,
+`V2-210` (Loot-event output) is the only remaining `V2-207`-dependent
+consumption task and is reachable now — completing it closes the full
+`SPAWN`/`WORLD_EVENT`/`LOOT_EVENT` consumption set, mirroring `V2-208`'s
+`SpawnEncounterConsumer` shape (a real, already-tested downstream
+mechanism — likely `RewardCalculator`/`CoinService`-adjacent or a new
+minimal lootbox-opportunity record, since MVP-3's `V2-306` "Unbanked
+run-point ledger" is the real economy system and hasn't landed yet) —
+worth checking during scoping whether `V2-210` should stay similarly
+minimal (record the opportunity, no economy wiring) given no loot/reward
+system exists in `game-v2/**` yet, matching `V2-206`'s own
+`lootValue`-is-a-pass-through-tier reasoning. After `V2-210`, `V2-211`
+(Stale/reconnect degradation) and `V2-212` (Market Convergence
+contribution) remain, both larger runtime-integration tasks, before
+`V2-213`'s MVP-2 evidence gate.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks

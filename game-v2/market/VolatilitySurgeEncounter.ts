@@ -9,7 +9,13 @@ import {
 } from '@/game-v2/contracts/EncounterOutput';
 import { IndicatorEventStateMachine } from '@/game-v2/market/IndicatorEventStateMachine';
 
-const HAZARD_ID = 'volatility-tremor';
+/**
+ * Every real `hazardId` any `WORLD_EVENT`-producing family currently emits
+ * (`V2-209`) — `Volatility Surge` is the only such family (V2-ADR-110).
+ * Consumers validate against this rather than accepting an arbitrary
+ * string, mirroring `V2-208`'s own `TREND_BREAKOUT_THEME_IDS` precedent.
+ */
+export const VOLATILITY_SURGE_HAZARD_ID = 'volatility-tremor';
 
 /**
  * The Volatility Surge family's concrete encounter (`V2-205`). Wraps one
@@ -35,7 +41,7 @@ export class VolatilitySurgeEncounter {
 
     return assertWorldEventEncounterOutput({
       kind: 'WORLD_EVENT',
-      hazardId: HAZARD_ID,
+      hazardId: VOLATILITY_SURGE_HAZARD_ID,
       telegraphTicks: VOLATILITY_SURGE_TELEGRAPH_TICKS,
     });
   }

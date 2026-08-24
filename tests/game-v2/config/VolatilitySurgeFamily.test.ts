@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SIMULATION_HZ } from '@/game-v2/config/Mvp0Config';
 import {
+  VOLATILITY_SURGE_ACTIVE_TICKS,
   VOLATILITY_SURGE_CONFIRMATION_TICKS,
   VOLATILITY_SURGE_COOLDOWN_TICKS,
   VOLATILITY_SURGE_ENTRY_THRESHOLD,
@@ -32,6 +33,13 @@ describe('VolatilitySurgeFamily derivations', () => {
 
   it('derives the telegraph duration from SIMULATION_HZ', () => {
     expect(VOLATILITY_SURGE_TELEGRAPH_TICKS).toBe(2 * SIMULATION_HZ);
+  });
+
+  it('derives active ticks as cooldown minus telegraph, spanning the cooldown exactly (V2-ADR-134)', () => {
+    expect(VOLATILITY_SURGE_ACTIVE_TICKS).toBe(8 * SIMULATION_HZ);
+    expect(VOLATILITY_SURGE_TELEGRAPH_TICKS + VOLATILITY_SURGE_ACTIVE_TICKS).toBe(
+      VOLATILITY_SURGE_COOLDOWN_TICKS
+    );
   });
 
   it('produces a profile that passes assertIndicatorEventProfile', () => {

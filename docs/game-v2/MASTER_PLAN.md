@@ -171,6 +171,16 @@ resolve to the same `MVP1_ENEMY_REGISTRY` — no themeId-differentiated
 registry exists yet, deferred to `V2-300`+ once themed archetype content
 is authored; not wired into `GameV2Runtime` yet; see
 `docs/game-v2/tasks/V2-208-spawn-encounter-consumer.md`.
+`V2-209` is accepted and closed: `HazardLifecycle` is a generic, tick-driven
+`IDLE → TELEGRAPHING → ACTIVE → IDLE` state machine (never wall-clock),
+proving "telegraph and lifecycle are simulation-time controlled";
+`WorldEventEncounterConsumer` resolves the real `volatility-tremor`
+hazard's `activeTicks`
+(`VOLATILITY_SURGE_COOLDOWN_TICKS - VOLATILITY_SURGE_TELEGRAPH_TICKS`, a
+provable zero-gap non-overlap derivation) and throws on an unrecognized
+`hazardId`. No ECS hazard component, gameplay effect, or `GameV2Runtime`
+wiring was added — this task proves the lifecycle timing mechanism only;
+see `docs/game-v2/tasks/V2-209-world-event-consumer.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
