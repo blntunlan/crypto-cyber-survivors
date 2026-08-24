@@ -1,9 +1,8 @@
 /**
  * The full market-encounter output taxonomy (design §6.2, `V2-204`).
- * `WORLD_EVENT`/`LOOT_EVENT`/`HYBRID` have no concrete shape yet — the
- * families that own them (`V2-205`/`V2-206`) add their own variant to
- * `EncounterOutput` when they need one, rather than this task guessing
- * their content (V2-ADR-105).
+ * `LOOT_EVENT`/`HYBRID` have no concrete shape yet — the family that owns
+ * `LOOT_EVENT` (`V2-206`) adds its own variant to `EncounterOutput` when it
+ * needs one, rather than this task guessing its content (V2-ADR-105).
  */
 export type EncounterOutputKind = 'SPAWN' | 'WORLD_EVENT' | 'LOOT_EVENT' | 'HYBRID';
 
@@ -18,8 +17,21 @@ export type SpawnEncounterOutput = Readonly<{
   themeId: string;
 }>;
 
-/** Grows as later families add their own variant (`V2-205`/`V2-206`). */
-export type EncounterOutput = SpawnEncounterOutput;
+/**
+ * A telegraphed arena hazard or environment event (design line 185,
+ * `V2-205`). No hazard-effect payload yet (no arena-region shape, no
+ * damage/DoT numbers) — no hazard system exists to consume one
+ * (`V2-209`), matching `SpawnEncounterOutput`'s own precedent of staying
+ * minimal until a real consumer needs more (V2-ADR-115).
+ */
+export type WorldEventEncounterOutput = Readonly<{
+  kind: 'WORLD_EVENT';
+  hazardId: string;
+  telegraphTicks: number;
+}>;
+
+/** Grows as the remaining family adds its own variant (`V2-206`). */
+export type EncounterOutput = SpawnEncounterOutput | WorldEventEncounterOutput;
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === 'number' &&
@@ -53,5 +65,41 @@ export const assertSpawnEncounterOutput = (value: unknown): SpawnEncounterOutput
     kind: 'SPAWN',
     enemyBudget: candidate.enemyBudget,
     themeId: candidate.themeId,
+  });
+};
+
+/** Validates one `WorldEventEncounterOutput`'s shape and field ranges. */
+export const assertWorldEventEncounterOutput = (
+  value: unknown
+): WorldEventEncounterOutput => {
+  if (typeof value !== 'object' || value === null) {
+    throw new TypeError('world event encounter output must be an object');
+  }
+
+  const candidate = value as Partial<WorldEventEncounterOutput>;
+
+  if (candidate.kind !== 'WORLD_EVENT') {
+    throw new RangeError("world event encounter output kind must be 'WORLD_EVENT'");
+  }
+
+  if (
+    typeof candidate.hazardId !== 'string' ||
+    candidate.hazardId.trim().length === 0
+  ) {
+    throw new TypeError(
+      'world event encounter output hazardId must be a non-empty string'
+    );
+  }
+
+  if (!isPositiveInteger(candidate.telegraphTicks)) {
+    throw new RangeError(
+      'world event encounter output telegraphTicks must be a positive integer'
+    );
+  }
+
+  return Object.freeze({
+    kind: 'WORLD_EVENT',
+    hazardId: candidate.hazardId,
+    telegraphTicks: candidate.telegraphTicks,
   });
 };

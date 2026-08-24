@@ -130,7 +130,14 @@ authors a real `IndicatorEventProfile` sampling `MarketSnapshot.trendStrength`
 and produces a bounded, themed `SpawnEncounterOutput` on activation; also
 defines the shared `EncounterOutput` contract `V2-205`/`V2-206` will extend
 with their own variant; not wired into any runtime yet; see
-`docs/game-v2/tasks/V2-204-trend-breakout-family.md`.
+`docs/game-v2/tasks/V2-204-trend-breakout-family.md`. `V2-205` is accepted
+and closed: the second concrete indicator family, `Volatility Surge`,
+samples `MarketSnapshot.atrPercent` and produces a bounded
+`WorldEventEncounterOutput` on activation, anchored to
+`ATRCalculator`'s own real, already-calibrated tier boundaries
+(`0.03`/`0.015`) rather than an invented threshold; adds
+`WorldEventEncounterOutput` to `EncounterOutput`; not wired into any
+runtime yet; see `docs/game-v2/tasks/V2-205-volatility-surge-family.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

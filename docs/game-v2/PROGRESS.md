@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-204` (Trend/Breakout family) is accepted and closed. The next task is one of `V2-205`/`V2-206` (Volatility Surge, Volume/Whale — each depends only on `V2-203` and either may be opened next; no ordering between them is mandated). |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203`, `V2-204` accepted; `V2-205`..`V2-213` not started. |
-| Closed | `V2-204` accepted (this checkpoint); `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-205` (Volatility Surge family) is accepted and closed. The next task is `V2-206` (Volume/Whale) — the last family, depends only on `V2-203`. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203`, `V2-204`, `V2-205` accepted; `V2-206`..`V2-213` not started. |
+| Closed | `V2-205` accepted (this checkpoint); `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3050,20 +3050,124 @@ Brief: `docs/game-v2/tasks/V2-204-trend-breakout-family.md`.
   touched, confirmed by the file diff; (5) every gate passes and all four
   mutation checks confirm load-bearing assertions. `V2-204` is accepted.
 
+## V2-205 — Volatility Surge Family
+
+Brief: `docs/game-v2/tasks/V2-205-volatility-surge-family.md`.
+
+- **A stronger real-value anchor than `V2-204` had available, found by
+  reading the legacy calculator rather than deriving a range midpoint.**
+  `atrPercent` has no proven upper bound the way `trendStrength` did
+  (`(atr / close) * 100`, non-negative, but no ceiling any validator
+  enforces), so `V2-204`'s midpoint strategy did not apply. Reading
+  `railway-market-aggregator/src/indicators/ATRCalculator.ts` surfaced
+  something better: `getSpawnRateMultiplier` already classifies
+  `atrPercent` into four real, already-calibrated tiers — Calm (`< 0.005`),
+  Normal (`< 0.015`), Volatile (`< 0.03`), Chaos (`>= 0.03`). The entry
+  threshold (`0.03`) and hysteresis-derived rearm threshold (`0.015`) both
+  reuse these real tier boundaries directly, rather than inventing a
+  fraction of an unbounded range.
+- **This required distinguishing "reusing an indicator classification
+  fact" from "reusing the excluded legacy gameplay multiplier," a
+  real judgment call, not a rubber-stamp.** `V2-ADR-085` (`V2-200`)
+  already excluded `getSpawnRateMultiplier`'s *return value*
+  (`spawnRateMultiplier`) from `MarketSnapshot` as a legacy
+  gameplay-multiplier output. The *tier boundaries* the same function
+  switches on are a different kind of fact — real, already-tuned
+  indicator classification cutoffs, the same class of value `V2-200`'s own
+  `rsiState` (`OVERSOLD`/`NEUTRAL`/`OVERBOUGHT`) already carries through
+  from real RSI threshold boundaries. Reusing the boundary numbers is not
+  reusing the multiplier pipeline design excludes.
+- `game-v2/contracts/EncounterOutput.ts` (modified): adds
+  `WorldEventEncounterOutput` (`kind: 'WORLD_EVENT'`, `hazardId`,
+  `telegraphTicks`) and `assertWorldEventEncounterOutput`;
+  `EncounterOutput` becomes `SpawnEncounterOutput | WorldEventEncounterOutput`.
+  No hazard-effect payload (no arena-region shape, no damage/DoT numbers)
+  — no hazard system exists yet to consume one (`V2-209`), matching
+  `V2-204`'s own precedent of staying minimal until a real consumer needs
+  more.
+- `game-v2/config/VolatilitySurgeFamily.ts`: the derived constants and
+  `VOLATILITY_SURGE_PROFILE`. Confirmation/cooldown durations (1 and 10
+  real seconds) reuse `V2-204`'s own derived values verbatim — no
+  family-specific reason to differ, keeping the "why this number" story
+  simple until `V2-405` tunes per-family balance.
+  `VOLATILITY_SURGE_TELEGRAPH_TICKS` (2 real seconds via `SIMULATION_HZ`)
+  is chosen with stated reasoning, like `V2-204`'s spawn-budget multiplier
+  — no hazard/telegraph constant exists yet to anchor to.
+- `game-v2/market/VolatilitySurgeEncounter.ts`: wraps one
+  `IndicatorEventStateMachine`, samples `MarketSnapshot.atrPercent` each
+  step, and produces a `WorldEventEncounterOutput` exactly on the
+  activation tick. Simpler than `TrendBreakoutEncounter`: no direction-
+  theming branch, so no `'NEUTRAL'`-style defensive guard was needed here.
+- Test coverage: `EncounterOutput.test.ts` gained a full
+  `assertWorldEventEncounterOutput` describe block (10 tests — valid
+  input, one rejection per invalid field), existing `SpawnEncounterOutput`
+  tests unaffected; `VolatilitySurgeFamily.test.ts` (6 tests — every
+  derivation pinned by exact equality, including confirming `0.03 - 0.015`
+  is exact in IEEE754 rather than assuming it and reaching for
+  `toBeCloseTo`); `VolatilitySurgeEncounter.test.ts` (5 tests, mirroring
+  `TrendBreakoutEncounter.test.ts`'s shape — no output while `ARMED`;
+  exactly one bounded output on the activation tick; no output on any
+  tick before or after it; no output while `COOLDOWN` even when the entry
+  condition is met again, re-verifying `V2-203`'s anti-spam property
+  through the real wrapper; `reset()`). All tick-math loops matched their
+  first-try-correct form on the first attempt, applying the exact
+  arm-to-promotion counting rule `V2-204`'s own two test-authoring bugs
+  established.
+- **Mutation pass, 3 mutants, all caught — a narrower but complete set
+  than `V2-204`'s, since this encounter has less branching logic (no
+  theme-direction mapping to get wrong).** Producing output on every
+  `ACTIVE` tick instead of only the activation tick failed 1 test.
+  Reverting the entry threshold to a felt value (`0.05`) failed 2 tests
+  (the entry-threshold pin itself, and the hysteresis pin since it is
+  derived from the entry threshold). Reverting `telegraphTicks` to a raw
+  tick count (`30`) instead of the `SIMULATION_HZ`-derived value failed 1
+  test. The brief's fourth planned target ("cooldown anti-spam property
+  broken") was recognized as redundant with the first mutant before
+  attempting it: this file has no anti-spam logic of its own to break —
+  it is entirely inherited from `IndicatorEventStateMachine`, already
+  exhaustively mutation-tested in `V2-203` — so forcing a fourth,
+  artificial mutant here would have tested the same code path twice
+  rather than covering new surface area.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (60 files,
+  1079 tests, up from 58 files/1058 tests before this task by the two new
+  test files plus the `EncounterOutput.test.ts` additions, 21 tests
+  total), `npm run typecheck`, `npm run check:architecture` (89 baseline
+  singleton files — nothing new was added), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean), focused Prettier (clean), and `npm run build`. No e2e run
+  was needed: this task touches nothing under `game-v2/GameV2App.tsx` or
+  `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `WorldEventEncounterOutput` validates and freezes
+  correctly, existing `SpawnEncounterOutput` behavior unaffected; (2)
+  `VOLATILITY_SURGE_PROFILE` and every derived constant are pinned by
+  exact-equality tests tracing to a real existing value (the
+  `ATRCalculator` tier boundaries or `SIMULATION_HZ`); (3)
+  `VolatilitySurgeEncounter` produces exactly one bounded output per
+  activation and `null` otherwise, including through `COOLDOWN`'s
+  anti-spam property; (4) nothing outside
+  `game-v2/contracts/**`/`game-v2/config/**`/`game-v2/market/**` was
+  touched, confirmed by the file diff; (5) every gate passes and all
+  three mutation checks confirm load-bearing assertions. `V2-205` is
+  accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
 `V2-200` (canonical market snapshot, BTC-only), `V2-201` (locked position
 context), `V2-202` (five lethality profiles), `V2-203` (indicator-event
-state machine), and `V2-204` (Trend/Breakout family) are all accepted. Per
-`MASTER_PLAN.md`, `V2-205` (Volatility Surge) and `V2-206` (Volume/Whale)
-each depend only on `V2-203` and are both still unblocked — no ordering
-between them is mandated by the dependency graph, so the next session
-should confirm which family the user wants first (or whether to interleave
-them). `V2-207` (the primary/support composer) depends on all three
-families and remains blocked until `V2-205`/`V2-206` also exist.
-`EncounterOutput.ts` (this checkpoint's own new contract) is where each of
-those two families will add their own `WORLD_EVENT`/`LOOT_EVENT` variant.
+state machine), `V2-204` (Trend/Breakout family), and `V2-205` (Volatility
+Surge family) are all accepted. Per `MASTER_PLAN.md`, `V2-206`
+(Volume/Whale) is the only remaining family — it depends only on `V2-203`
+and is unblocked. Once it lands, `V2-207` (the primary/support composer)
+becomes reachable for the first time, since it depends on all three
+families. `V2-206` will add `LootEventEncounterOutput` to
+`EncounterOutput.ts` (the contract's third and, per design §6.2's
+taxonomy, second-to-last variant — only `HYBRID` remains unauthored,
+deliberately, since it combines the other three and has no task of its
+own to own it yet).
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
