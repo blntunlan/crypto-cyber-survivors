@@ -67,6 +67,12 @@ export class World {
   public readonly xpValue: Float32Array;
   public readonly projectileDamage: Float32Array;
   public readonly projectileLifetimeTicksRemaining: Uint16Array;
+  /**
+   * `ABILITY_SLOT_COUNT` entries per world slot, addressed through
+   * `abilitySlotIndexOf` (V2-111, V2-ADR-076). A cooldown belongs to the
+   * weapon occupying an ability slot, so every occupied `auto` slot advances
+   * its own cadence independently.
+   */
   public readonly weaponCooldownTicksRemaining: Uint16Array;
   public readonly xp: Float32Array;
   public readonly level: Uint16Array;
@@ -153,7 +159,7 @@ export class World {
     this.xpValue = new Float32Array(capacity);
     this.projectileDamage = new Float32Array(capacity);
     this.projectileLifetimeTicksRemaining = new Uint16Array(capacity);
-    this.weaponCooldownTicksRemaining = new Uint16Array(capacity);
+    this.weaponCooldownTicksRemaining = new Uint16Array(capacity * ABILITY_SLOT_COUNT);
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
     this.xpPickupValue = new Float32Array(capacity);
@@ -450,7 +456,6 @@ export class World {
     this.xpValue[slot] = 0;
     this.projectileDamage[slot] = 0;
     this.projectileLifetimeTicksRemaining[slot] = 0;
-    this.weaponCooldownTicksRemaining[slot] = 0;
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;
@@ -461,6 +466,7 @@ export class World {
     for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
       this.abilitySlotIdentity[abilityBase + index] = 0;
       this.abilitySlotTier[abilityBase + index] = 0;
+      this.weaponCooldownTicksRemaining[abilityBase + index] = 0;
     }
 
     const passiveBase = passiveStoreIndex(slot, 0);

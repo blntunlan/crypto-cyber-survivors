@@ -5,6 +5,7 @@ import {
 import { STARTER_PROJECTILE } from '@/game-v2/config/AbilityRegistry';
 import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
 import {
+  ABILITY_SLOT_COUNT,
   type AbilitySlotIndex,
   type AbilityTier,
 } from '@/game-v2/contracts/AbilitySlot';
@@ -33,10 +34,28 @@ const DEFAULT_FIRE_DIRECTION_X = 1;
 const DEFAULT_FIRE_DIRECTION_Y = 0;
 
 /**
- * MVP-1 holds exactly one autonomous firing slot (V2-ADR-064): `WeaponSystem`
- * fires whatever identity occupies it, not a hardcoded starter-only lookup.
+ * The starter weapon's fixed home. `resetPlayer` always seats
+ * `starter-projectile` here, so `starterDamageOf` and `advanceStarterTier` can
+ * name it directly. Firing is **not** limited to it: since `V2-111` every
+ * occupied `auto` slot fires (V2-ADR-077).
  */
-const AUTONOMOUS_WEAPON_SLOT_INDEX: AbilitySlotIndex = 0;
+const STARTER_WEAPON_SLOT_INDEX: AbilitySlotIndex = 0;
+
+/**
+ * Scratch sentinel for a slot this system does not own — empty, or holding an
+ * `active` identity. Distinguishable from every real cooldown, which is a
+ * non-negative tick count.
+ */
+const NOT_AN_AUTO_SLOT = -1;
+
+/**
+ * The ability slot indices in firing order. A frozen literal rather than a
+ * counting loop so the iteration is typed as `AbilitySlotIndex` without a cast,
+ * and so a mutant that reverses the order is a visible edit (V2-ADR-077).
+ */
+const ABILITY_SLOT_FIRING_ORDER: readonly AbilitySlotIndex[] = Object.freeze([
+  0, 1, 2, 3,
+] as const);
 
 const isProjectile = (mask: number | undefined): boolean =>
   mask !== undefined && (mask & PROJECTILE_ENTITY_MASK) === PROJECTILE_ENTITY_MASK;
@@ -44,6 +63,17 @@ const isProjectile = (mask: number | undefined): boolean =>
 export class WeaponSystem {
   private readonly targetingSystem: TargetingSystem;
   private readonly loadout: AbilityLoadoutSystem;
+  /**
+   * Preallocated per-tick scratch. `step` runs inside the fixed-step loop, so
+   * it allocates nothing: both buffers are overwritten in full at the top of
+   * every call before either is read.
+   */
+  private readonly readyEffects: (AbilityTierEffect | null)[] = new Array(
+    ABILITY_SLOT_COUNT
+  ).fill(null);
+  private readonly nextCooldowns: number[] = new Array(ABILITY_SLOT_COUNT).fill(
+    NOT_AN_AUTO_SLOT
+  );
 
   public constructor(
     targetingSystem: TargetingSystem = new TargetingSystem(),
@@ -61,7 +91,10 @@ export class WeaponSystem {
       throw new RangeError('player entity is missing required components');
     }
 
-    world.weaponCooldownTicksRemaining[slot] = 0;
+    for (const index of ABILITY_SLOT_FIRING_ORDER) {
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)] = 0;
+    }
+
     this.loadout.resetOwner(world, playerEntity);
     this.loadout.add(world, playerEntity, STARTER_PROJECTILE.id);
   }
@@ -111,14 +144,34 @@ export class WeaponSystem {
     const identity = this.loadout.identityAt(
       world,
       playerEntity,
-      AUTONOMOUS_WEAPON_SLOT_INDEX
+      STARTER_WEAPON_SLOT_INDEX
     );
 
     if (identity === null) {
       throw new RangeError('player holds no starter weapon');
     }
 
-    return AUTONOMOUS_WEAPON_SLOT_INDEX;
+    return STARTER_WEAPON_SLOT_INDEX;
+  }
+
+  /**
+   * The authored effect for ability slot `index`, or `null` when the slot is
+   * empty or holds a non-`auto` identity.
+   *
+   * `active` identities are skipped rather than fired: their `1`–`4` binding is
+   * owned by whatever task authors manual abilities, and no registered identity
+   * is `active` today.
+   */
+  private autoTierEffectAt(
+    world: World,
+    playerEntity: EntityId,
+    index: AbilitySlotIndex
+  ): AbilityTierEffect | null {
+    if (this.loadout.activationAt(world, playerEntity, index) !== 'auto') {
+      return null;
+    }
+
+    return this.loadout.tierEffectAt(world, playerEntity, index);
   }
 
   /**
@@ -164,8 +217,6 @@ export class WeaponSystem {
 
     const playerX = world.x[playerSlot];
     const playerY = world.y[playerSlot];
-    const effect = this.starterTierEffect(world, playerEntity);
-    const { damage: weaponDamage, projectileRadius, cooldownTicks } = effect;
     const lastFacingX = world.lastFacingX[playerSlot];
     const lastFacingY = world.lastFacingY[playerSlot];
 
@@ -176,46 +227,124 @@ export class WeaponSystem {
       lastFacingY === undefined ||
       !Number.isFinite(playerX) ||
       !Number.isFinite(playerY) ||
-      !Number.isFinite(weaponDamage) ||
-      weaponDamage < 0 ||
       !Number.isFinite(lastFacingX) ||
       !Number.isFinite(lastFacingY)
     ) {
       throw new RangeError('player weapon state must be finite');
     }
 
-    let nextCooldown = world.weaponCooldownTicksRemaining[playerSlot] ?? 0;
+    // Pass 1: advance every occupied `auto` slot's cadence and record which of
+    // them come up ready, without mutating the world. Ascending slot order is
+    // the determinism contract (V2-ADR-077).
+    let readyCount = 0;
+    let autoSlotCount = 0;
 
-    if (nextCooldown > 0) {
-      nextCooldown -= 1;
+    for (const index of ABILITY_SLOT_FIRING_ORDER) {
+      const effect = this.autoTierEffectAt(world, playerEntity, index);
+
+      this.readyEffects[index] = null;
+      // `NOT_AN_AUTO_SLOT` keeps an empty or `active` slot from committing a
+      // stale cooldown left in this reused scratch buffer by an earlier tick.
+      this.nextCooldowns[index] = NOT_AN_AUTO_SLOT;
+
+      if (effect === null) {
+        continue;
+      }
+
+      autoSlotCount += 1;
+
+      const { damage } = effect;
+
+      if (!Number.isFinite(damage) || damage < 0) {
+        throw new RangeError('player weapon state must be finite');
+      }
+
+      const storeIndex = world.abilitySlotIndexOf(playerSlot, index);
+      let nextCooldown = world.weaponCooldownTicksRemaining[storeIndex] ?? 0;
+
+      if (nextCooldown > 0) {
+        nextCooldown -= 1;
+      }
+
+      this.nextCooldowns[index] = nextCooldown;
+
+      if (nextCooldown === 0) {
+        this.readyEffects[index] = effect;
+        readyCount += 1;
+      }
     }
 
-    let target: EntityId = NO_ENTITY;
+    // A player always carries at least one autonomous weapon: `resetPlayer`
+    // seats the starter and no path removes it. Holding none means `resetPlayer`
+    // was never called, which must fail loudly here rather than present as a
+    // player who silently never shoots — the defect class V2-012's review found
+    // in `CombatSystem`.
+    if (autoSlotCount === 0) {
+      throw new RangeError('player holds no autonomous weapon');
+    }
 
-    if (nextCooldown === 0) {
-      target = this.targetingSystem.findNearestTarget(world, playerEntity);
+    // A target is resolved at most once per tick. `findNearestTarget` is pure
+    // and nothing below mutates an enemy, so every ready slot would compute the
+    // identical answer including the ascending-slot tie-break (V2-ADR-077).
+    const target =
+      readyCount > 0
+        ? this.targetingSystem.findNearestTarget(world, playerEntity)
+        : NO_ENTITY;
+    const firingCount = target === NO_ENTITY ? 0 : readyCount;
 
-      if (target !== NO_ENTITY && world.freeSlotCount === 0) {
-        throw new RangeError('entity capacity exhausted');
-      }
+    // Whole-tick precondition (V2-ADR-079): with up to `ABILITY_SLOT_COUNT`
+    // fires per tick, a per-fire check could fire some slots and then throw,
+    // leaving the tick half-applied. Nothing has been mutated yet here.
+    if (firingCount > world.freeSlotCount) {
+      throw new RangeError('entity capacity exhausted');
     }
 
     this.advanceProjectiles(world, context.deltaSeconds);
 
-    if (target !== NO_ENTITY) {
+    for (const index of ABILITY_SLOT_FIRING_ORDER) {
+      const effect = this.readyEffects[index];
+
+      if (effect === undefined || effect === null) {
+        continue;
+      }
+
+      const storeIndex = world.abilitySlotIndexOf(playerSlot, index);
+
+      if (target === NO_ENTITY) {
+        // Stay armed: the weapon fires on the first tick a target exists.
+        world.weaponCooldownTicksRemaining[storeIndex] = 0;
+        continue;
+      }
+
       this.fire(
         world,
         playerEntity,
         target,
         playerX,
         playerY,
-        weaponDamage,
-        projectileRadius
+        effect.damage,
+        effect.projectileRadius
       );
-      nextCooldown = cooldownTicks;
+      world.weaponCooldownTicksRemaining[storeIndex] = effect.cooldownTicks;
     }
 
-    world.weaponCooldownTicksRemaining[playerSlot] = nextCooldown;
+    // Occupied `auto` slots that were not ready commit their decremented
+    // cadence. Ready slots were already written above; `NOT_AN_AUTO_SLOT`
+    // marks slots this system does not own.
+    for (const index of ABILITY_SLOT_FIRING_ORDER) {
+      const nextCooldown = this.nextCooldowns[index];
+
+      if (
+        nextCooldown === undefined ||
+        nextCooldown === NOT_AN_AUTO_SLOT ||
+        this.readyEffects[index] !== null
+      ) {
+        continue;
+      }
+
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(playerSlot, index)] =
+        nextCooldown;
+    }
   }
 
   private advanceProjectiles(world: World, deltaSeconds: number): void {

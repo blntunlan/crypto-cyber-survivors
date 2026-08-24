@@ -1,8 +1,8 @@
 import {
   MVP0_MAX_LIVE_ENEMIES,
-  MVP0_MAX_LIVE_PROJECTILES,
   MVP0_WORLD_CAPACITY,
 } from '@/game-v2/config/Mvp0Config';
+import { MVP1_MAX_LIVE_PROJECTILES } from '@/game-v2/config/ProjectileCapacity';
 import {
   RenderSnapshot,
   type RenderSnapshotCapacities,
@@ -46,7 +46,7 @@ const UINT32_MAX = 0xffffffff;
  */
 export const MVP0_RENDER_CAPACITIES: RenderSnapshotCapacities = Object.freeze({
   enemyCapacity: MVP0_MAX_LIVE_ENEMIES,
-  projectileCapacity: MVP0_MAX_LIVE_PROJECTILES,
+  projectileCapacity: MVP1_MAX_LIVE_PROJECTILES,
   xpPickupCapacity: MVP0_WORLD_CAPACITY,
 });
 

@@ -6,6 +6,8 @@ import {
   MVP0_CONFIG_VERSION,
 } from '@/game-v2/config/Mvp0Config';
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
+import { WORLD_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/contracts/WorldSnapshot';
+import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
 import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
 import {
   OFFER_CANDIDATE_COUNT,
@@ -188,10 +190,13 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    // V2-109: the golden shifted again because `hashWorld` now hashes two
-    // more per-slot bytes (convergence f32, convergenceReached u8);
-    // recomputed and pinned to the new schema.
-    expect(hashA).toBe('c72df511');
+    // V2-111 (V2-ADR-076): the golden shifted again because
+    // `weaponCooldownTicksRemaining` moved out of the per-world-slot u16 run
+    // and into the per-ability-slot loop, so each slot now contributes
+    // `ABILITY_SLOT_COUNT` cooldown u16s instead of one. Recomputed and pinned
+    // to schema 7.
+    expect(WORLD_SNAPSHOT_SCHEMA_VERSION).toBe(7);
+    expect(hashA).toBe('9760ebe8');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -568,6 +573,26 @@ describe('canonical runtime checkpoint', () => {
       mutate(input.world);
       expect(() => writeCheckpoint(input), name).toThrow(message);
     }
+  });
+
+  it('rejects a weapon cooldown store still sized one entry per world slot', () => {
+    // V2-111, V2-ADR-076. The pre-V2-111 store was `Uint16Array(capacity)`.
+    // A forged checkpoint carrying that shape must be refused at the boundary
+    // rather than silently read with the wrong stride.
+    const input = createRuntimeInput();
+    const capacity = input.world.masks.length;
+
+    expect(input.world.weaponCooldownTicksRemaining).toHaveLength(
+      capacity * ABILITY_SLOT_COUNT
+    );
+
+    (
+      input.world as unknown as { weaponCooldownTicksRemaining: Uint16Array }
+    ).weaponCooldownTicksRemaining = new Uint16Array(capacity);
+
+    expect(() => writeCheckpoint(input)).toThrow(
+      /weaponCooldownTicksRemaining must be a canonical typed store/
+    );
   });
 
   it('rejects passive loadout state that breaks its structural invariants', () => {

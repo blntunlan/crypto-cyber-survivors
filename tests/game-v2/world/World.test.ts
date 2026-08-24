@@ -37,7 +37,9 @@ const componentStores = (world: World): Array<ArrayLike<number>> => [
   world.xpValue,
   world.projectileDamage,
   world.projectileLifetimeTicksRemaining,
-  world.weaponCooldownTicksRemaining,
+  // `weaponCooldownTicksRemaining` is deliberately absent: since `V2-111` it is
+  // strided per ability slot, so it is neither indexed by nor cleared at a bare
+  // world slot. Its allocation and clearing are covered by their own tests.
   world.xp,
   world.level,
   world.xpPickupValue,
@@ -114,6 +116,50 @@ describe('World', () => {
     expect(world.abilitySlotIndexOf(7, ABILITY_SLOT_COUNT - 1)).toBe(
       8 * ABILITY_SLOT_COUNT - 1
     );
+  });
+
+  it('allocates the weapon cooldown store at one entry per ability slot', () => {
+    // V2-111, V2-ADR-076: a cooldown belongs to the weapon occupying a slot,
+    // not to the entity holding it. A single per-entity counter is what forced
+    // `WeaponSystem` to fire exactly one slot.
+    const world = new World(8);
+
+    expect(world.weaponCooldownTicksRemaining).toHaveLength(8 * ABILITY_SLOT_COUNT);
+  });
+
+  it('clears every ability slot cooldown when a slot is destroyed or the world resets', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.AbilityLoadout);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.AbilityLoadout);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)] =
+        index + 1;
+      world.weaponCooldownTicksRemaining[
+        world.abilitySlotIndexOf(neighbourSlot, index)
+      ] = 9;
+    }
+
+    world.destroyEntity(entity);
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)]
+      ).toBe(0);
+      // A neighbour's entries must survive: clearing the whole store, or
+      // clearing the wrong stride range, would pass a same-slot-only assertion.
+      expect(
+        world.weaponCooldownTicksRemaining[
+          world.abilitySlotIndexOf(neighbourSlot, index)
+        ]
+      ).toBe(9);
+    }
+
+    world.reset();
+
+    expect(world.weaponCooldownTicksRemaining.every(value => value === 0)).toBe(true);
   });
 
   it('allocates passive loadout stores at one entry per passive slot', () => {

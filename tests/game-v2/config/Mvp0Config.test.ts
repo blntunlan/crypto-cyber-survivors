@@ -47,7 +47,6 @@ import {
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
   MVP0_MAX_LIVE_ENEMIES,
-  MVP0_MAX_LIVE_PROJECTILES,
   MVP0_WORLD_CAPACITY,
   SWARMLING_ENEMY_COST,
   SWARMLING_ENEMY_CONTACT_DAMAGE,
@@ -86,6 +85,7 @@ import {
   WEAPON_COOLDOWN_TICKS,
   WEAPON_RANGE,
 } from '@/game-v2/config/Mvp0Config';
+import { MVP1_MAX_LIVE_PROJECTILES } from '@/game-v2/config/ProjectileCapacity';
 import { MVP0_RENDER_CAPACITIES } from '@/game-v2/runtime/createMvp0Runtime';
 
 const FIXED_DELTA_SECONDS = 1 / SIMULATION_HZ;
@@ -124,23 +124,26 @@ describe('MVP-0 composition constants', () => {
     expect(MVP0_ENEMY_SPAWN_RING_RADIUS).toBeGreaterThan(PLAYER_RADIUS + ENEMY_RADIUS);
   });
 
-  it('holds every projectile that can be in flight at once', () => {
+  it('holds every projectile the starter weapon alone can put in flight', () => {
+    // The starter weapon's own bound. The bound across all four slots and every
+    // authored identity lives in `ProjectileCapacity.test.ts` (V2-ADR-078);
+    // this row only pins that the MVP-0 baseline still fits.
     const concurrentProjectiles =
       Math.ceil(PROJECTILE_LIFETIME_TICKS / WEAPON_COOLDOWN_TICKS) + 1;
 
-    expect(MVP0_MAX_LIVE_PROJECTILES).toBeGreaterThanOrEqual(concurrentProjectiles);
+    expect(MVP1_MAX_LIVE_PROJECTILES).toBeGreaterThanOrEqual(concurrentProjectiles);
   });
 
   it('keeps the world inside the supported capacity with room for the caps', () => {
     expect(MVP0_WORLD_CAPACITY).toBeLessThanOrEqual(MAX_WORLD_CAPACITY);
     expect(MVP0_WORLD_CAPACITY).toBeGreaterThan(
-      MVP0_MAX_LIVE_ENEMIES + MVP0_MAX_LIVE_PROJECTILES + 1
+      MVP0_MAX_LIVE_ENEMIES + MVP1_MAX_LIVE_PROJECTILES + 1
     );
   });
 
   it('sizes render categories so the world runs out before the snapshot does', () => {
     expect(MVP0_RENDER_CAPACITIES.enemyCapacity).toBe(MVP0_MAX_LIVE_ENEMIES);
-    expect(MVP0_RENDER_CAPACITIES.projectileCapacity).toBe(MVP0_MAX_LIVE_PROJECTILES);
+    expect(MVP0_RENDER_CAPACITIES.projectileCapacity).toBe(MVP1_MAX_LIVE_PROJECTILES);
     expect(MVP0_RENDER_CAPACITIES.xpPickupCapacity).toBe(MVP0_WORLD_CAPACITY);
   });
 });

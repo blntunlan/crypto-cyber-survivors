@@ -390,7 +390,11 @@ describe('EnemySystem', () => {
     world.dashCooldownTicksRemaining[slot] = 56;
     world.dashCharges[slot] = 57;
     world.movementOverride[slot] = 1;
-    world.weaponCooldownTicksRemaining[slot] = 58;
+    // Strided per ability slot since `V2-111`; seed every entry so a partial
+    // clear on slot reuse is caught.
+    for (let index = 0; index < 4; index += 1) {
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)] = 58;
+    }
     world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 59;
     world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 1;
     world.xp[slot] = 60;
@@ -434,7 +438,11 @@ describe('EnemySystem', () => {
     expect(world.dashCooldownTicksRemaining[slot]).toBe(0);
     expect(world.dashCharges[slot]).toBe(0);
     expect(world.movementOverride[slot]).toBe(0);
-    expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
+    for (let index = 0; index < 4; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)]
+      ).toBe(0);
+    }
     expect(world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.xp[slot]).toBe(0);

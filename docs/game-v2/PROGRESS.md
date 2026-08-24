@@ -7,10 +7,10 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 9 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 10 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-109` is accepted and closed, and its post-acceptance code-review cleanup is committed. No task brief exists yet for the next MVP-1 task (`V2-110`) |
-| Status | `V2-109` accepted at `3dfd5f06`; its review-finding cleanup committed at `374cec0e`; MVP-1's next task is `Not Started` |
+| Active task | `V2-111` (concurrent autonomous weapon slots) is implemented and verified; `V2-110` is the last remaining MVP-1 task and has no brief yet |
+| Status | `V2-111` briefed at `docs/game-v2/tasks/V2-111-concurrent-autonomous-weapons.md` and implemented; `V2-110` is `Not Started` |
 | Closed | `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -2135,28 +2135,131 @@ already-closed `V2-100`-`V2-108` work, fixed directly rather than briefed.
   and pre-commit hooks (ESLint fix, Prettier, `vitest related --run`,
   `check:ui-contract`) passed during the commit itself.
 
+## V2-111 — Concurrent Autonomous Weapon Slots
+
+Opened at the user's request after the three findings deliberately left
+unfixed in the `374cec0e` cleanup were re-examined. Two of them stay
+closed as correct decisions (`AbilitySlot.startEligible` is correct data
+waiting on an MVP-4 UI per V2-ADR-062; `LevelUpOverlay`'s wall-clock timer
+is the determinism guarantee of V2-ADR-050/V2-ADR-054, which moving it
+into simulation time would break). The third turned out to be a live
+player-facing defect and became this task.
+
+- **The defect.** `WeaponSystem` fired ability slot `0` only
+  (`AUTONOMOUS_WEAPON_SLOT_INDEX`) and owned one cooldown counter keyed by
+  the player's *world* slot. All eight registered identities are
+  `activation: 'auto'` and `AbilityLoadoutSystem.isOfferable` does not
+  filter by activation, so any identity is offerable while a slot is free.
+  `resetPlayer` always seats `starter-projectile` in slot `0`, so every
+  other identity landed in slot `1`-`3` where nothing read it. With
+  `MVP0_MAX_PLAYER_LEVEL = 2` there is one level-up per run, so that single
+  pick is the player's whole build decision and seven of eight identities
+  made it a no-op. V2-ADR-068 recorded this and assigned it no task ID.
+- **The masked crash.** Fixing the firing model alone would have converted
+  the silent dead pick into an in-frame throw.
+  `MVP0_MAX_LIVE_PROJECTILES = 16` was derived for MVP-0's single 30-tick
+  starter weapon (`ceil(90 / 30) + 1 = 4`, with headroom); `V2-107` then
+  authored `needle-projectile` (fastest cadence `2` ticks, implying 46
+  concurrent projectiles; even Tier 1's cadence `3` implies 31) without
+  revisiting it. Only the single-slot defect kept those identities
+  unreachable. `RenderSnapshotWriter` throws when `projectileCount >
+  projectileCapacity` and the loop cancels itself on a throw (V2-ADR-035),
+  so this is run-ending. The capacity re-derivation was therefore in scope.
+- New decisions: V2-ADR-076 (per-ability-slot cooldown storage, schema
+  `6 → 7`), V2-ADR-077 (every occupied `auto` slot fires in ascending slot
+  order against one lazily resolved target), V2-ADR-078 (registry-derived
+  `MVP1_MAX_LIVE_PROJECTILES`), V2-ADR-079 (whole-tick capacity guard).
+- `MVP1_MAX_LIVE_PROJECTILES` lives in the new
+  `game-v2/config/ProjectileCapacity.ts`, not in `Mvp0Config.ts`:
+  `AbilityRegistry.ts` already imports its cadence constants from
+  `Mvp0Config.ts`, so deriving it there would close an import cycle. Its
+  value is `86` — `needle` 46 + `flicker` 24 + `rapid` 10 + `starter` 6,
+  the four fastest authored cadences. Worst-case world use is
+  `86 + 32 + 1 = 119` of `MVP0_WORLD_CAPACITY = 512`, pinned by a test.
+- `weaponCooldownTicksRemaining` moved from `Uint16Array(capacity)` to
+  `Uint16Array(capacity * ABILITY_SLOT_COUNT)` on the existing
+  `abilityStoreIndex` stride, so no new stride rule exists.
+  `WorldStateValidator` gained a `stridedUint16` group (covered by the same
+  `AssertNever` exhaustiveness mechanism), `StateHasher.hashWorld` moved
+  the field into its per-ability-slot loop, and the checkpoint golden
+  shifted `c72df511 → 9760ebe8` — recomputed and re-pinned alongside an
+  explicit `WORLD_SNAPSHOT_SCHEMA_VERSION === 7` assertion.
+- `step` is now two passes with preallocated scratch: pass 1 advances each
+  occupied `auto` slot's cadence and records which are ready, mutating
+  nothing; the whole-tick `freeSlotCount >= readyCount` guard runs before
+  the first `fire()`; pass 2 fires and re-arms. A `NOT_AN_AUTO_SLOT`
+  sentinel keeps an empty or `active` slot from committing a stale scratch
+  value left by an earlier tick.
+- The slot-`0` guard was reframed rather than dropped: `step` now throws
+  `player holds no autonomous weapon` when *no* slot holds one, so a
+  missing `resetPlayer` still fails loudly (the defect class V2-012's
+  review found in `CombatSystem`) while an empty slot `0` no longer
+  silences a weapon held elsewhere.
+- Two existing tests were passing for reasons the change invalidated, and
+  both were fixed rather than adjusted around.
+  `ProgressionSystem.test.ts`'s integration test parked heavy/rapid/needle
+  in slots 1-3 at max tier to keep them out of the offer pool — which now
+  makes them fire, so the enemy took 30 damage per tick instead of 10. The
+  exclusion moved to an injected starter-only registry (V2-ADR-039's
+  pattern), and `createHarness` gained an optional registry parameter.
+  `WeaponSystem.test.ts`'s `resetPlayer` test wrote
+  `weaponCooldownTicksRemaining[slot]` directly, which after the stride
+  change lands in an arbitrary cell; it now seeds and asserts all four.
+- **Mutation pass, 9 mutants, all killed** (failures against the full
+  890-test Game V2 suite): fire only slot `0` 8; descending slot order 1;
+  share one cooldown counter across slots 3; fire `active` slots too
+  0 → **2 after strengthening**; per-fire instead of whole-tick capacity
+  guard 2; clear only ability entry `0` in `clearSlot` 3; revert
+  `MVP1_MAX_LIVE_PROJECTILES` to `16` 3; drop the `+ 1` from
+  `concurrentProjectilesFor` 1; remove the `NOT_AN_AUTO_SLOT` sentinel
+  0 → **1 after strengthening**.
+- Two mutants survived the first pass and the tests were strengthened
+  until they died, rather than being recorded as unreachable. The
+  `activation !== 'auto'` filter is unreachable through the production
+  registry because no identity is `active` today, so a new block injects an
+  `active` identity (V2-ADR-039's pattern) and pins both that it never
+  fires and that an all-`active` loadout throws. The scratch sentinel is
+  unreachable with one player, so a new test steps two players through one
+  `WeaponSystem` instance and proves the armed player's leftover cadence
+  never writes into the starter-only player's empty slots. All three
+  mutated production files were restored byte-identically, verified by
+  sha256 against pre-mutation copies and by `git diff --stat`.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (42 files,
+  890 tests, up from 869 by 21 new tests), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files),
+  `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt),
+  `npm run check:ui-contract`, focused ESLint on all 16 changed files
+  (clean), focused Prettier (clean), `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed).
+- `npm run lint` reports 6 errors, all of them
+  `Parsing error: ... was not found by the project service` inside
+  `.delegate/runs/**`. That directory is user-owned untracked orchestrator
+  tooling listed below under known pre-existing working-tree changes; it
+  was already present at the start of this session and no `V2-111` file is
+  involved. Filtering `.delegate` out leaves zero lint problems.
+
 ## Exact Next Action
 
-The `374cec0e` cleanup commit is closed (current local `HEAD`, not yet
-pushed). No task brief exists yet for the next MVP-1 task; per
-`MASTER_PLAN.md`'s table, `V2-110` (MVP-1 evidence gate) depends on
-`V2-100`..`V2-109`, all of which are now closed, so it is the only
-remaining MVP-1 task and the next candidate. Separately, the `/code-review
-high` pass run during `V2-109` surfaced 9 findings that are pre-existing
-debt on already-closed tasks, out of scope for `V2-109` itself and not
-acted on: a real unacknowledged duplicate-offer bug in
-`LevelUpOfferSystem.banish()` (and `WorldStateValidator` not catching the
-resulting duplicate state), `WeaponSystem`'s single-fixed-slot firing gap
-(already tracked as V2-ADR-068), `ProgressionSystem`'s defaulted RNG
-parameters (already tracked as deferred), a weakened
-`ReplayRunner.test.ts` assertion, a narrowed e2e smoke spec, an unread
-`AbilitySlot.startEligible` field, a double-scan inefficiency in
-`ProgressionSystem.step`, `StateHasher.ts`'s lack of compile-time
-exhaustiveness against `WorldSnapshot`'s field list, and
-`LevelUpOverlay`'s wall-clock timer (deliberate per V2-ADR-050). The user
-should decide whether any of these become their own tracked task before or
-alongside `V2-110`. Do not deploy, cut over production, or replace the
-legacy demo. Do not push the branch without explicit instruction.
+`V2-111` is implemented and fully verified. `V2-110` (MVP-1 evidence gate)
+is the last remaining MVP-1 task; per `MASTER_PLAN.md` it now depends on
+`V2-100`..`V2-109` plus `V2-111`, all of which are complete, and it has no
+brief yet.
+
+All 9 findings from `V2-109`'s `/code-review high` pass are now resolved
+and none remain open: 6 were fixed in the `374cec0e` cleanup,
+`WeaponSystem`'s single-fixed-slot firing gap became `V2-111` above, and
+the remaining 2 stay closed as correct standing decisions rather than
+defects — `AbilitySlot.startEligible` has no reader because the pre-run
+selection UI it serves is deferred to MVP-4 (V2-ADR-062), and
+`LevelUpOverlay`'s wall-clock timer is deliberately outside simulation
+authority so a live timeout never consumes RNG at an instant replay
+cannot reproduce (V2-ADR-050, V2-ADR-054). Both were re-examined at the
+user's request before being left alone.
+
+Do not deploy, cut over production, or replace the legacy demo. Do not
+push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

@@ -34,10 +34,13 @@ import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import {
+  createAbilityRegistry,
   HEAVY_PROJECTILE,
+  MVP1_ABILITY_REGISTRY,
   NEEDLE_PROJECTILE,
   RAPID_PROJECTILE,
   STARTER_PROJECTILE,
+  type AbilityRegistry,
 } from '@/game-v2/config/AbilityRegistry';
 import { MOVE_SPEED_PASSIVE } from '@/game-v2/config/PassiveRegistry';
 import {
@@ -119,18 +122,33 @@ const createRawPlayer = (world: World, x = 0, y = 0): EntityId => {
  * generates (its candidate order is RNG-shuffled, so no test may hardcode an
  * index without first checking what it holds).
  */
+/**
+ * A registry holding `starter-projectile` alone.
+ *
+ * `V2-111` made every occupied `auto` slot fire, so a test can no longer park
+ * unwanted identities in slots 1-3 to keep them out of the offer pool — they
+ * would fire. Narrowing the registry is the V2-ADR-039 way to constrain the
+ * offer pool without changing what the player is holding.
+ */
+const STARTER_ONLY_ABILITY_REGISTRY = createAbilityRegistry([STARTER_PROJECTILE]);
+
 const createHarness = (
   lifecycle: GameV2Lifecycle,
-  commandRecorder: CommandRecorder
+  commandRecorder: CommandRecorder,
+  abilityRegistry: AbilityRegistry = MVP1_ABILITY_REGISTRY
 ): {
   progression: ProgressionSystem;
   abilityLoadout: AbilityLoadoutSystem;
   passiveLoadout: PassiveLoadoutSystem;
   offerSystem: LevelUpOfferSystem;
 } => {
-  const abilityLoadout = new AbilityLoadoutSystem();
+  const abilityLoadout = new AbilityLoadoutSystem(abilityRegistry);
   const passiveLoadout = new PassiveLoadoutSystem();
-  const offerSystem = new LevelUpOfferSystem(abilityLoadout, passiveLoadout);
+  const offerSystem = new LevelUpOfferSystem(
+    abilityLoadout,
+    passiveLoadout,
+    abilityRegistry
+  );
   const progression = new ProgressionSystem(
     lifecycle,
     commandRecorder,
@@ -1755,18 +1773,18 @@ describe('End-to-end real production path integration test', () => {
     const {
       progression: progressionSystem,
       offerSystem,
-      abilityLoadout,
-    } = createHarness(lifecycle, commandRecorder);
+      // V2-106 grew the offerable ability pool; a starter-only registry keeps
+      // this test's upgraded-kill assertion deterministic instead of
+      // RNG-dependent on which ability offers. Before `V2-111` this test parked
+      // the other identities in slots 1-3 to exclude them — which now makes
+      // them fire, so the exclusion moved to the registry (V2-ADR-039).
+    } = createHarness(lifecycle, commandRecorder, STARTER_ONLY_ABILITY_REGISTRY);
 
     // Initial production reset
     combatSystem.resetPlayer(world, player);
     dashSystem.resetPlayer(world, player);
     weaponSystem.resetPlayer(world, player);
     progressionSystem.resetPlayer(world, player);
-    // V2-106 grew the offerable ability pool to three; keep starter-projectile
-    // the only offerable ability so this test's upgraded-kill assertion below
-    // stays deterministic rather than RNG-dependent on which ability offers.
-    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
     lifecycle.start();
 
     expect(world.health[playerSlot]).toBe(PLAYER_MAX_HEALTH);

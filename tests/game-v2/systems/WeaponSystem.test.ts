@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CANNON_PROJECTILE,
+  createAbilityRegistry,
   FLICKER_PROJECTILE,
   HEAVY_PROJECTILE,
   LANCE_PROJECTILE,
@@ -10,6 +11,7 @@ import {
   SIEGE_PROJECTILE,
   STARTER_PROJECTILE,
 } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityDefinition } from '@/game-v2/contracts/AbilitySlot';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import {
   CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
@@ -184,13 +186,21 @@ describe('WeaponSystem', () => {
     const world = new World(4);
     const player = createPlayer(world);
     const slot = world.slotOf(player);
-    world.weaponCooldownTicksRemaining[slot] = 17;
+    // Strided per ability slot since `V2-111`; a bare `[slot]` write would land
+    // in an arbitrary stride cell and pass for the wrong reason.
+    for (let index = 0; index < 4; index += 1) {
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)] = 17;
+    }
     const weapon = new WeaponSystem();
     const loadout = new AbilityLoadoutSystem();
 
     weapon.resetPlayer(world, player);
 
-    expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
+    for (let index = 0; index < 4; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)]
+      ).toBe(0);
+    }
     expect(loadout.identityAt(world, player, 0)).toBe(STARTER_PROJECTILE.id);
     expect(loadout.tierAt(world, player, 0)).toBe(1);
     expect(loadout.occupiedCount(world, player)).toBe(1);
@@ -246,7 +256,10 @@ describe('WeaponSystem', () => {
     );
   });
 
-  it('refuses to fire without a starter weapon in the loadout', () => {
+  it('refuses to fire without any autonomous weapon in the loadout', () => {
+    // Since `V2-111` firing is not tied to slot 0, so the loud guard is
+    // "no auto weapon anywhere" rather than "slot 0 is empty". It still catches
+    // a missing `resetPlayer`, which is what it exists for.
     const world = new World(4);
     const player = createPlayer(world);
     const weapon = new WeaponSystem();
@@ -256,10 +269,33 @@ describe('WeaponSystem', () => {
     loadout.remove(world, player, 0);
 
     expect(() => weapon.step(world, player, context(0))).toThrow(
-      'player holds no starter weapon'
+      'player holds no autonomous weapon'
     );
     expect(() => weapon.advanceStarterTier(world, player)).toThrow(
       'player holds no starter weapon'
+    );
+  });
+
+  it('fires from a later slot when slot 0 is empty', () => {
+    // The inverse of the guard above: an empty slot 0 must not silence a
+    // weapon held elsewhere. This is the exact case the pre-V2-111 system got
+    // wrong in reverse, by only ever reading slot 0.
+    const world = new World(8);
+    const player = createPlayer(world);
+    const weapon = new WeaponSystem();
+    const loadout = new AbilityLoadoutSystem();
+
+    weapon.resetPlayer(world, player);
+    loadout.add(world, player, HEAVY_PROJECTILE.id);
+    loadout.remove(world, player, 0);
+    createEnemy(world, 5, 0);
+
+    weapon.step(world, player, context(0));
+
+    const slots = projectileSlots(world);
+    expect(slots).toHaveLength(1);
+    expect(world.projectileDamage[slots[0] as number]).toBe(
+      HEAVY_PROJECTILE_DAMAGE_TIER_1
     );
   });
 
@@ -554,7 +590,12 @@ describe('WeaponSystem', () => {
     world.contactDamage[slot] = 84;
     world.contactCooldownTicksRemaining[slot] = 85;
     world.xpValue[slot] = 86;
-    world.weaponCooldownTicksRemaining[slot] = 87;
+    // Strided per ability slot since `V2-111`, so seed every entry: clearing
+    // only index 0 would otherwise leave ghost cadence behind on reuse.
+    world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, 0)] = 87;
+    world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, 1)] = 87;
+    world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, 2)] = 87;
+    world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, 3)] = 87;
     world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)] = 88;
     world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)] = 1;
     world.xp[slot] = 89;
@@ -611,7 +652,11 @@ describe('WeaponSystem', () => {
     expect(world.contactDamage[slot]).toBe(0);
     expect(world.contactCooldownTicksRemaining[slot]).toBe(0);
     expect(world.xpValue[slot]).toBe(0);
-    expect(world.weaponCooldownTicksRemaining[slot]).toBe(0);
+    for (let index = 0; index < 4; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(slot, index)]
+      ).toBe(0);
+    }
     expect(world.abilitySlotIdentity[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.abilitySlotTier[world.abilitySlotIndexOf(slot, 0)]).toBe(0);
     expect(world.xp[slot]).toBe(0);
@@ -846,4 +891,311 @@ describe('WeaponSystem firing a mid-run-only identity (V2-107)', () => {
       );
     }
   );
+});
+
+/**
+ * `V2-111` — concurrent autonomous weapon slots.
+ *
+ * Before this block, `WeaponSystem` fired ability slot `0` only and owned one
+ * cooldown counter keyed by the player's *world* slot, so every identity a
+ * player acquired after the starter weapon sat permanently un-fired
+ * (V2-ADR-068's deferral). These tests pin the fixed contract.
+ */
+describe('WeaponSystem concurrent auto slots (V2-ADR-076, V2-ADR-077)', () => {
+  const loadout = new AbilityLoadoutSystem();
+
+  const cooldownAt = (world: World, player: EntityId, index: number): number =>
+    world.weaponCooldownTicksRemaining[
+      world.abilitySlotIndexOf(world.slotOf(player), index)
+    ] ?? -1;
+
+  it('fires every occupied auto slot on its own authored cadence', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    // Slot 0 = starter (30 ticks), slot 1 = rapid (15 ticks).
+    loadout.add(world, player, RAPID_PROJECTILE.id);
+    createEnemy(world, 5, 0);
+
+    let starterFires = 0;
+    let rapidFires = 0;
+
+    for (let tick = 0; tick < 60; tick += 1) {
+      const before = projectileSlots(world).length;
+      weapons.step(world, player, context(tick));
+
+      for (const slot of projectileSlots(world)) {
+        if (
+          world.projectileLifetimeTicksRemaining[slot] !== PROJECTILE_LIFETIME_TICKS
+        ) {
+          continue;
+        }
+        // Damage is the only per-slot signature a single-weapon mutant cannot
+        // fake, mirroring V2-013 review fix round 2's technique.
+        if (world.projectileDamage[slot] === PROJECTILE_DAMAGE) {
+          starterFires += 1;
+        } else if (world.projectileDamage[slot] === RAPID_PROJECTILE_DAMAGE_TIER_1) {
+          rapidFires += 1;
+        }
+      }
+      void before;
+    }
+
+    expect(starterFires).toBe(60 / WEAPON_COOLDOWN_TICKS);
+    expect(rapidFires).toBe(60 / RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1);
+    expect(rapidFires).toBeGreaterThan(starterFires);
+  });
+
+  it('keeps each slot cooldown independent of its neighbours', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, SIEGE_PROJECTILE.id);
+    createEnemy(world, 5, 0);
+
+    weapons.step(world, player, context(0));
+
+    // Both fired on tick 0 and each re-armed to its own authored cadence.
+    expect(cooldownAt(world, player, 0)).toBe(WEAPON_COOLDOWN_TICKS);
+    expect(cooldownAt(world, player, 1)).toBe(SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1);
+    expect(cooldownAt(world, player, 2)).toBe(0);
+    expect(cooldownAt(world, player, 3)).toBe(0);
+  });
+
+  it('fires four occupied auto slots within a single tick', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, HEAVY_PROJECTILE.id);
+    loadout.add(world, player, LANCE_PROJECTILE.id);
+    loadout.add(world, player, CANNON_PROJECTILE.id);
+    createEnemy(world, 5, 0);
+
+    weapons.step(world, player, context(0));
+
+    const damages = projectileSlots(world)
+      .map(slot => world.projectileDamage[slot] ?? 0)
+      .sort((left, right) => left - right);
+
+    expect(damages).toEqual(
+      [
+        PROJECTILE_DAMAGE,
+        HEAVY_PROJECTILE_DAMAGE_TIER_1,
+        LANCE_PROJECTILE_DAMAGE_TIER_1,
+        CANNON_PROJECTILE_DAMAGE_TIER_1,
+      ].sort((left, right) => left - right)
+    );
+  });
+
+  it('spawns concurrent fires in ascending ability slot order', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, HEAVY_PROJECTILE.id);
+    loadout.add(world, player, LANCE_PROJECTILE.id);
+    createEnemy(world, 5, 0);
+
+    weapons.step(world, player, context(0));
+
+    // The World allocator hands out slots in a deterministic order, so the
+    // ascending-slot firing order is observable as ascending world slots.
+    // A descending mutant reverses this sequence.
+    const damagesInSpawnOrder = projectileSlots(world).map(
+      slot => world.projectileDamage[slot] ?? 0
+    );
+
+    expect(damagesInSpawnOrder).toEqual([
+      PROJECTILE_DAMAGE,
+      HEAVY_PROJECTILE_DAMAGE_TIER_1,
+      LANCE_PROJECTILE_DAMAGE_TIER_1,
+    ]);
+  });
+
+  it('refuses the whole tick atomically when capacity cannot hold every ready fire', () => {
+    // Two ready weapons, one free slot: the tick must create nothing rather
+    // than fire the first and throw on the second.
+    const world = new World(3);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, HEAVY_PROJECTILE.id);
+    createEnemy(world, 5, 0);
+
+    // Two weapons are ready; exactly one slot is free.
+    expect(world.freeSlotCount).toBe(1);
+
+    expect(() => weapons.step(world, player, context(0))).toThrow(
+      'entity capacity exhausted'
+    );
+
+    expect(projectileSlots(world)).toHaveLength(0);
+    expect(world.freeSlotCount).toBe(1);
+    // No cooldown may be re-armed by a refused tick either.
+    expect(cooldownAt(world, player, 0)).toBe(0);
+    expect(cooldownAt(world, player, 1)).toBe(0);
+  });
+
+  it('skips empty slots without consuming a cooldown', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    createEnemy(world, 5, 0);
+
+    weapons.step(world, player, context(0));
+
+    expect(cooldownAt(world, player, 1)).toBe(0);
+    expect(cooldownAt(world, player, 2)).toBe(0);
+    expect(cooldownAt(world, player, 3)).toBe(0);
+    expect(projectileSlots(world)).toHaveLength(1);
+  });
+
+  it('zeroes every ability slot cooldown on resetPlayer', () => {
+    const world = new World(64);
+    const weapons = new WeaponSystem();
+    const player = createPlayer(world);
+    const playerSlot = world.slotOf(player);
+
+    for (let index = 0; index < 4; index += 1) {
+      world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(playerSlot, index)] =
+        99;
+    }
+
+    weapons.resetPlayer(world, player);
+
+    for (let index = 0; index < 4; index += 1) {
+      expect(cooldownAt(world, player, index)).toBe(0);
+    }
+  });
+});
+
+/**
+ * `active`-activation coverage (V2-ADR-077).
+ *
+ * No registered identity is `active` today, so the activation filter in
+ * `autoTierEffectAt` is unreachable through the production registry — a
+ * mutation pass proved that deleting it changed nothing. This block injects an
+ * `active` identity, the V2-ADR-039 way to test a contract before production
+ * content reaches it, so the filter is load-bearing rather than decorative.
+ */
+describe('WeaponSystem active-activation slots (V2-ADR-077)', () => {
+  const ACTIVE_ABILITY: AbilityDefinition = Object.freeze({
+    // Reuses `heavy-projectile`'s id so no production identity type widens for
+    // a test; only its `activation` differs from the shipped definition.
+    id: HEAVY_PROJECTILE.id,
+    code: HEAVY_PROJECTILE.code,
+    activation: 'active',
+    authoredTiers: 1,
+    startEligible: false,
+    tierEffects: Object.freeze([
+      Object.freeze({
+        ability: HEAVY_PROJECTILE.id,
+        damage: HEAVY_PROJECTILE_DAMAGE_TIER_1,
+        projectileRadius: HEAVY_PROJECTILE_RADIUS_TIER_1,
+        cooldownTicks: HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+      }),
+    ]),
+  });
+
+  const registryWithActive = createAbilityRegistry([
+    STARTER_PROJECTILE,
+    ACTIVE_ABILITY,
+  ]);
+
+  it('never fires an occupied active slot', () => {
+    const world = new World(16);
+    const loadout = new AbilityLoadoutSystem(registryWithActive);
+    const weapons = new WeaponSystem(undefined, loadout);
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, ACTIVE_ABILITY.id);
+    createEnemy(world, 5, 0);
+
+    expect(loadout.activationAt(world, player, 1)).toBe('active');
+
+    weapons.step(world, player, context(0));
+
+    const damages = projectileSlots(world).map(slot => world.projectileDamage[slot]);
+
+    // Only the starter weapon fired; the active slot produced nothing.
+    expect(damages).toEqual([PROJECTILE_DAMAGE]);
+    // And the active slot's cooldown was never armed, so it owns no cadence.
+    expect(
+      world.weaponCooldownTicksRemaining[
+        world.abilitySlotIndexOf(world.slotOf(player), 1)
+      ]
+    ).toBe(0);
+  });
+
+  it('refuses to fire when every occupied slot is active', () => {
+    const world = new World(16);
+    const loadout = new AbilityLoadoutSystem(registryWithActive);
+    const weapons = new WeaponSystem(undefined, loadout);
+    const player = createPlayer(world);
+
+    weapons.resetPlayer(world, player);
+    loadout.add(world, player, ACTIVE_ABILITY.id);
+    loadout.remove(world, player, 0);
+    createEnemy(world, 5, 0);
+
+    expect(() => weapons.step(world, player, context(0))).toThrow(
+      'player holds no autonomous weapon'
+    );
+  });
+});
+
+describe('WeaponSystem per-tick scratch isolation (V2-111)', () => {
+  it('does not leak one player scratch cooldown into another player empty slots', () => {
+    // `step`'s per-tick buffers are preallocated and reused, so a slot index
+    // that held an `auto` weapon on the previous call must not write that
+    // leftover cadence into a different player's empty slot on the next one.
+    const world = new World(64);
+    const loadout = new AbilityLoadoutSystem();
+    const weapons = new WeaponSystem(undefined, loadout);
+
+    const armedPlayer = createPlayer(world, 0, 0);
+    const starterOnlyPlayer = createPlayer(world, 40, 0);
+
+    weapons.resetPlayer(world, armedPlayer);
+    loadout.add(world, armedPlayer, SIEGE_PROJECTILE.id);
+    loadout.add(world, armedPlayer, CANNON_PROJECTILE.id);
+    loadout.add(world, armedPlayer, LANCE_PROJECTILE.id);
+
+    weapons.resetPlayer(world, starterOnlyPlayer);
+
+    createEnemy(world, 3, 0);
+
+    // Tick 0 arms all four of the armed player's slots.
+    weapons.step(world, armedPlayer, context(0));
+    // Tick 1 leaves them all non-zero, so the scratch buffer is fully dirty.
+    weapons.step(world, armedPlayer, context(1));
+
+    const armedSlot = world.slotOf(armedPlayer);
+    for (let index = 1; index < 4; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(armedSlot, index)]
+      ).toBeGreaterThan(0);
+    }
+
+    // The same instance now steps a player holding only the starter weapon.
+    weapons.step(world, starterOnlyPlayer, context(2));
+
+    const starterSlot = world.slotOf(starterOnlyPlayer);
+    for (let index = 1; index < 4; index += 1) {
+      expect(
+        world.weaponCooldownTicksRemaining[world.abilitySlotIndexOf(starterSlot, index)]
+      ).toBe(0);
+    }
+  });
 });

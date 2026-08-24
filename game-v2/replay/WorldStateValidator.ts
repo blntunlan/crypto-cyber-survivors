@@ -72,13 +72,16 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'dashCooldownTicksRemaining',
     'contactCooldownTicksRemaining',
     'projectileLifetimeTicksRemaining',
-    'weaponCooldownTicksRemaining',
     'level',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   /** One entry per ability slot per world slot rather than one per world slot. */
   stridedUint8: Object.freeze([
     'abilitySlotIdentity',
     'abilitySlotTier',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per ability slot per world slot, 16-bit (V2-111, V2-ADR-076). */
+  stridedUint16: Object.freeze([
+    'weaponCooldownTicksRemaining',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   /** One entry per passive slot per world slot. */
   passiveStridedUint8: Object.freeze([
@@ -99,6 +102,7 @@ type ListedStoreName =
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint16)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8)[number]
   | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.offerStridedUint8)[number];
 type AssertNever<T extends never> = T;
@@ -163,6 +167,9 @@ const validateStores = (state: AuthoritativeWorldState, capacity: number): void 
   }
   for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8) {
     assertStore(state[name], Uint8Array, capacity * ABILITY_SLOT_COUNT, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint16) {
+    assertStore(state[name], Uint16Array, capacity * ABILITY_SLOT_COUNT, name);
   }
   for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8) {
     assertStore(state[name], Uint8Array, capacity * PASSIVE_SLOT_COUNT, name);

@@ -108,11 +108,12 @@ export const MVP0_ENEMY_SPAWN_RING_RADIUS = 8;
 export const MVP0_MAX_LIVE_ENEMIES = 32;
 
 /**
- * At most `ceil(PROJECTILE_LIFETIME_TICKS / WEAPON_COOLDOWN_TICKS)` projectiles
- * are already in flight when the next one is fired, so the concurrent bound is
- * that quotient plus the one being fired.
+ * The concurrent projectile bound lives in `config/ProjectileCapacity.ts` as
+ * `MVP1_MAX_LIVE_PROJECTILES` (`V2-111`, V2-ADR-078). It cannot live here: it
+ * is derived from every authored ability cadence, and `AbilityRegistry.ts`
+ * already imports this module, so deriving it here would close an import
+ * cycle.
  */
-export const MVP0_MAX_LIVE_PROJECTILES = 16;
 
 export const MVP0_WORLD_CAPACITY = 512;
 export const MVP0_PLAYER_SPAWN_X = 0;
