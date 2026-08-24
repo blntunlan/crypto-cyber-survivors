@@ -27,6 +27,8 @@ export default tseslint.config(
       '.agents/**',
       '.windsurf/**',
       '.worktrees/**',
+      '.delegate/**', // Untracked orchestrator-run output, not project source
+
       '.github/skills/**', // Skill templates - not part of main project
       'supabase/functions/**', // Deno environment - different runtime
       'railway-market-server/**',
