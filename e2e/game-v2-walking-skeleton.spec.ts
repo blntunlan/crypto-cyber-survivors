@@ -27,7 +27,12 @@ type MovementSample = { tick: number; x: number; y: number; invulnerable: number
  * documents). Re-picked after that change so the first offer still contains
  * `starter-projectile` — verified empirically against this exact seed.
  */
-const SEEDED_RUN_URL = '/game-v2?no-sw=true&seed=50';
+/**
+ * `entryPrice` unblocks the `V2-201` position-select screen's Start button
+ * without a live market connection — this harness (`npx vite` only, no SSE
+ * server) cannot reach one (`V2-ADR-090`).
+ */
+const SEEDED_RUN_URL = '/game-v2?no-sw=true&seed=50&entryPrice=65000';
 const DIRECTION_KEYS = ['KeyW', 'KeyS', 'KeyA', 'KeyD'] as const;
 const STEER_DEADZONE = 0.15;
 const LEVEL_UP_BUDGET_MS = 45_000;
@@ -50,6 +55,13 @@ const readSnapshot = async (page: Page): Promise<DebugSnapshot> =>
 
 const openSeededRun = async (page: Page): Promise<DebugSnapshot> => {
   await page.goto(SEEDED_RUN_URL);
+
+  // V2-201: a real position-select screen gates every run. LONG/1x are the
+  // screen's own defaults; only Start needs a click.
+  await expect(page.getByTestId('position-select-overlay')).toBeVisible();
+  await expect(page.getByTestId('position-select-start')).toBeEnabled();
+  await page.getByTestId('position-select-start').click();
+
   await expect(page.getByTestId('game-v2-canvas')).toBeVisible();
 
   await expect

@@ -8,6 +8,10 @@ import {
   SIMULATION_STEP_MS,
 } from '@/game-v2/config/Mvp0Config';
 import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
+import {
+  createPositionContext,
+  UNSPECIFIED_POSITION_CONTEXT,
+} from '@/game-v2/contracts/PositionContext';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { type RunRecording } from '@/game-v2/contracts/RunRecording';
 import { type RuntimeCheckpoint } from '@/game-v2/contracts/RuntimeCheckpoint';
@@ -553,6 +557,33 @@ describe('MVP-0 runtime composition', () => {
     expect(readout.playerY).toBe(0);
 
     runtime.dispose();
+  });
+
+  it('exposes the constructed positionContext read-only and defaults it when omitted (V2-201)', () => {
+    const { source } = createManualIntentSource();
+    const defaulted = createMvp0Runtime({
+      runIdentity: createRunIdentity('position-default', 1),
+      intentSource: source,
+    });
+
+    expect(defaulted.positionContext).toEqual(UNSPECIFIED_POSITION_CONTEXT);
+    defaulted.dispose();
+
+    const locked = createPositionContext({
+      asset: 'BTC',
+      side: 'SHORT',
+      leverage: 25,
+      entryPrice: 71_234.5,
+      lockedAtTick: 0,
+    });
+    const withPosition = createMvp0Runtime({
+      runIdentity: createRunIdentity('position-locked', 1),
+      intentSource: source,
+      positionContext: locked,
+    });
+
+    expect(withPosition.positionContext).toBe(locked);
+    withPosition.dispose();
   });
 
   it('reports the starter weapon as an occupied AUTO slot and every other slot empty', () => {

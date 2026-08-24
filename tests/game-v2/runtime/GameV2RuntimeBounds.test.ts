@@ -7,6 +7,7 @@ import {
   WEAPON_RANGE,
 } from '@/game-v2/config/Mvp0Config';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
+import { UNSPECIFIED_POSITION_CONTEXT } from '@/game-v2/contracts/PositionContext';
 import { RenderSnapshot } from '@/game-v2/contracts/RenderSnapshot';
 import { createRunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
@@ -68,6 +69,7 @@ const composeRuntime = (world: World): GameV2Runtime => {
     clock: new SimulationClock(),
     lifecycle,
     runIdentity: createRunIdentity('bounds', 1),
+    positionContext: UNSPECIFIED_POSITION_CONTEXT,
     intentSource: idleIntent,
     inputRecorder: new InputRecorder(),
     commandRecorder,

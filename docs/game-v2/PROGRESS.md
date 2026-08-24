@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-200` (canonical market snapshot, BTC only) is accepted and closed. The next task is `V2-201` (locked position context) or `V2-203` (indicator-event state machine) — both depend only on `V2-200` and either may be opened next. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200` accepted; `V2-201`..`V2-213` not started. |
-| Closed | `V2-200` accepted (this checkpoint, BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-201` (locked position context) is accepted and closed. The next task is `V2-202` (five lethality profiles) or `V2-203` (indicator-event state machine) — `V2-202` depends on `V2-201`, `V2-203` depends only on `V2-200`, and either may be opened next. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201` accepted; `V2-202`..`V2-213` not started. |
+| Closed | `V2-201` accepted (this checkpoint); `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2524,16 +2524,164 @@ task, opened after `V2-110`.
   every Step 5 gate passes and the mutation check confirms load-bearing
   assertions. `V2-200` is accepted.
 
+## V2-201 — Locked Position Context
+
+Brief: `docs/game-v2/tasks/V2-201-locked-position-context.md`.
+
+- **Scoping surfaced that the legacy game already has this UI.** The user
+  pointed out `components/screens/MainMenu.tsx` already has a full
+  BTC/ETH/SOL selector, LONG/SHORT buttons, `LEVERAGE_OPTIONS`, and a live
+  `price` prop — `/game-v2` has none of that and starts a run immediately on
+  mount. Rather than deferring the selection step again behind an invisible
+  URL-param contract (the initially-proposed narrow scope), the task became:
+  build a real Game V2-owned selection screen now, reusing the established
+  UX idea (not the legacy component, which is tied to legacy state
+  `game-v2/**` may not import). Confirmed via `AskUserQuestion`.
+- Two further scope boundaries decided while writing the brief: BTC only
+  (matching `V2-200`'s own `V2-ADR-084`), and `PositionContext` is **not**
+  threaded into `RuntimeCheckpoint`/the replay hash in this task
+  (`V2-ADR-089`) — nothing reads it for a gameplay effect yet (`V2-202`'s
+  job), so hashing it now would ripple every existing golden hash in the
+  Game V2 suite for a field with no consumer, mirroring the
+  `WORLD_SNAPSHOT_SCHEMA_VERSION` ripple `V2-109`/`V2-111` each caused.
+  `V2-202` picks this up alongside its own hash ripple.
+- `game-v2/contracts/PositionContext.ts`: `PositionSide`, `LeverageMode`
+  (`1 | 5 | 10 | 25 | 50`, `LEVERAGE_MODES`), the frozen `PositionContext`
+  type, `createPositionContext` (throws on invalid input — unlike `V2-200`'s
+  `normalizeMarketUpdate`, this is fed by already-validated UI state, not
+  parsed external bytes, so invalid input here is a real internal defect,
+  `V2-ADR-091`), and `UNSPECIFIED_POSITION_CONTEXT` (a deliberately
+  non-price-shaped placeholder, `entryPrice: 1`, for headless/test
+  composition that never locked a real position). `createPositionContext`
+  takes a loosely-typed `PositionContextInput` (`side: string`,
+  `leverage: number`) rather than the exact narrow union, mirroring
+  `assertEnemyDefinition`'s `unknown`-input pattern — otherwise `tsc` flags
+  the runtime guards as "always false" against the already-narrow type.
+- `game-v2/runtime/GameV2Runtime.ts`: `GameV2RuntimeDependencies` gains a
+  required `positionContext`; the class exposes `public get
+  positionContext()`, mirroring the existing `runIdentity` getter exactly —
+  not part of `GameV2RuntimeReadout`/`checkpoint()` (see the hash-deferral
+  decision above). `game-v2/runtime/createMvp0Runtime.ts`:
+  `Mvp0RuntimeOptions.positionContext` is optional, defaulting to
+  `UNSPECIFIED_POSITION_CONTEXT` — the *only* place the default applies, so
+  `GameV2RuntimeDependencies` itself stays non-optional (no silent default
+  at the lowest layer) while every pre-existing headless/test call site
+  (`ReplayRunner.ts`'s default factory, `scriptedRun.ts`, every integration
+  test) needed zero changes. Only two test files construct
+  `new GameV2Runtime({...})` directly, bypassing that default layer —
+  `GameV2RuntimeBounds.test.ts`/`GameV2RuntimeOffer.test.ts` each gained one
+  line (`positionContext: UNSPECIFIED_POSITION_CONTEXT`).
+- `game-v2/ui/PositionSelectScreen.tsx`: the new screen. BTC-fixed asset
+  display, LONG/SHORT toggle, five leverage buttons, live price (or a
+  "Connecting to market…" state), a Start button disabled until a price
+  exists — inventing a placeholder price a player could mistake for real
+  data would defeat the point of locking a genuine entry price. Mirrors
+  `LevelUpOverlay.tsx`'s conventions exactly (`data-testid` everywhere,
+  `role="dialog"`/`aria-*`, plain semantic HTML, reused `level-up-*` CSS
+  classes for the dialog chrome plus new `position-select-*` classes for
+  the controls).
+- `game-v2/GameV2App.tsx` restructured into two stages. `'select'`: a new
+  effect drives a `MarketSnapshotAdapter` (injectable via a new
+  `createMarketFeedSource` prop, mirroring the existing `createRenderer`
+  prop) for the live price; no runtime exists yet. `'run'`: today's
+  existing canvas/HUD/level-up/game-over tree, now constructed with the
+  locked `PositionContext`. Restart-after-death disposes the runtime
+  (via the effect's own cleanup, triggered by the `appStage` change — no
+  explicit `dispose()` call needed in the handler) and returns to
+  `'select'` rather than calling `runtime.reset()`/`runtime.start()` on the
+  same instance — each run locks its own fresh position (`V2-ADR-088`). A
+  `?entryPrice=<number>` URL override (`resolveEntryPriceOverride`, added
+  next to `resolveRunIdentity` in `createMvp0Runtime.ts` rather than in the
+  component file, which avoids an unrelated `react-refresh/only-export-components`
+  lint warning) unblocks Start without a live connection — confirmed by
+  reading `SSEMarketService.getMarketBaseUrl()`, which resolves to the same
+  origin in dev mode, so the Vite-only e2e/dev harness this project's e2e
+  conventions already establish cannot reach a real SSE stream
+  (`V2-ADR-090`).
+- Test coverage: `PositionContext.test.ts` (10 tests — valid input; one
+  rejection per invalid field; every documented leverage mode accepted;
+  `UNSPECIFIED_POSITION_CONTEXT` itself validates through the real
+  constructor rather than being a hand-written literal);
+  `PositionSelectScreen.test.tsx` (5 tests — BTC shown, connecting state,
+  live price display, side/leverage toggling, `onStart` called with the
+  current selection, all five leverage options render);
+  `GameV2App.test.tsx`'s existing tests updated to click through the
+  selection screen first (a new `startRun()` helper), plus a new test
+  asserting the position-select screen shows before any run and a new test
+  asserting the selected side/leverage/live-price reach the locked runtime
+  position. A dedicated `GameV2AppRestart.test.tsx` (new file, not added to
+  `GameV2App.test.tsx`) mocks `createMvp0Runtime` to start already
+  `game-over` — reaching a real game-over takes hundreds of combat ticks
+  (impractical in jsdom, and `vi.mock` is module-wide, which would have
+  broken every other `GameV2App.test.tsx` test using the real runtime) —
+  and proves restart returns to selection, resets the side/leverage
+  defaults, and locks a genuinely new `PositionContext` (not the same
+  object, a different entry price) on the next Start.
+- `Mvp0Runtime.test.ts` gained one test proving the `positionContext` getter
+  returns exactly what was constructed, and that it defaults to
+  `UNSPECIFIED_POSITION_CONTEXT` when omitted.
+- **A real defect was found and fixed while adapting the existing
+  StrictMode double-mount test.** Its old assertion (`probe.created === 2`)
+  assumed the runtime is created during the tree's *initial* commit, which
+  React 19 StrictMode double-invokes. Since the runtime is now created by a
+  *later* state transition (Start clicked, `appStage` flips to `'run'`),
+  StrictMode does not double-invoke that effect — only the `'select'`
+  stage's market-feed effect runs during the initial commit. The test was
+  corrected (`probe.created === 1`, `probe.disposed === 0` before unmount)
+  rather than the assumption being carried over silently; this is expected,
+  correct React behavior, not a regression.
+- Mutation spot-checks, each restored and reverified green: removing
+  `createPositionContext`'s `side` validation failed exactly the 1
+  dedicated `rejects invalid side` test; removing `PositionSelectScreen`'s
+  `disabled={livePrice === null}` gate failed exactly the connecting-state
+  test's `toBeDisabled()` assertion; removing `GameV2App`'s
+  `setAppStage('select')` restart line failed the entire
+  `GameV2AppRestart.test.tsx` test (the position-select overlay never
+  reappeared).
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (50 files, 955
+  tests, up from 48 files/946 tests by the two new UI/restart test files
+  plus the `PositionContext`/`Mvp0Runtime` additions), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files — nothing new
+  was added), `npm run check:reset-coverage` (89 singletons: 29 wired, 60
+  exempt, unchanged), `npm run check:ui-contract`, `npm run check:event-contract`,
+  focused ESLint on every changed/new file (one warning found and fixed —
+  `resolveEntryPriceOverride` moved out of the component file to avoid a
+  Fast Refresh lint warning; one more found and fixed —
+  `no-unnecessary-condition` on `createPositionContext`'s narrow input
+  type, fixed by loosening the input type per `assertEnemyDefinition`'s own
+  precedent), focused Prettier (clean), `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed, after adding `&entryPrice=65000` to the seeded URL and
+  clicking through the selection screen in `openSeededRun`).
+- All six acceptance criteria in the task brief are met with the evidence
+  above: (1) a real selection screen locks the position before any run
+  starts, with `GameV2Runtime` exposing it read-only and no mutator
+  anywhere; (2) restart returns to selection and locks a fresh position,
+  proved by `GameV2AppRestart.test.tsx`; (3) every pre-existing
+  headless/test call site kept working unmodified via the documented
+  default, confirmed by the unchanged full suite; (4) the hash-deferral to
+  `V2-202` is recorded here and in `MASTER_PLAN.md`, not silently dropped;
+  (5) the real browser e2e spec selects and starts a run; (6) every gate
+  passes and all three mutation checks confirm their assertions are
+  load-bearing. `V2-201` is accepted.
+
 ## Exact Next Action
 
-MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is open: `V2-200`
-(canonical market snapshot, BTC-only) is accepted. Per `MASTER_PLAN.md`,
-both `V2-201` (locked position context) and `V2-203` (indicator-event state
-machine) depend only on `V2-200`, so either may be opened next — no
-ordering between them is mandated by the dependency graph; the next session
-should confirm which one the user wants first (or whether to interleave
-both). ETH/SOL multi-asset support remains a real, unassigned gap: it is not
-on the critical path for `V2-201`..`V2-213` since every one of those blocks
+MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
+`V2-200` (canonical market snapshot, BTC-only) and `V2-201` (locked
+position context) are both accepted. Per `MASTER_PLAN.md`, `V2-202` (five
+lethality profiles) depends on `V2-201` and is now unblocked; `V2-203`
+(indicator-event state machine) depends only on `V2-200` and was already
+unblocked. Either may be opened next — no ordering between them is
+mandated by the dependency graph; the next session should confirm which
+one the user wants first (or whether to interleave both). `V2-202` is also
+where the `V2-201`/`V2-ADR-089` hash deferral gets picked up: threading
+`PositionContext` into `RuntimeCheckpoint`/the replay hash becomes real
+work the moment leverage/side start affecting player stats.
+
+ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
+the critical path for `V2-201`..`V2-213` since every one of those blocks
 can be evidenced against BTC alone, but it must be opened before MVP-2's own
 Done-When ("BTC/ETH/SOL normalize...") can be called fully met at the
 milestone level — flag this to the user rather than silently letting it slip

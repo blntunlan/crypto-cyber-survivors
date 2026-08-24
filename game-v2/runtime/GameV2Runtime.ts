@@ -23,6 +23,7 @@ import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
 import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
+import { type PositionContext } from '@/game-v2/contracts/PositionContext';
 import { type RenderSnapshot } from '@/game-v2/contracts/RenderSnapshot';
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type RunIdentity } from '@/game-v2/contracts/RunIdentity';
@@ -148,6 +149,11 @@ export type GameV2RuntimeDependencies = {
   clock: SimulationClock;
   lifecycle: GameV2Lifecycle;
   runIdentity: RunIdentity;
+  /**
+   * Locked before the runtime is constructed (`V2-ADR-088`); exposed via the
+   * `positionContext` getter with no mutator anywhere on this class.
+   */
+  positionContext: PositionContext;
   intentSource: IntentSource;
   inputRecorder: InputRecorder;
   commandRecorder: CommandRecorder;
@@ -181,6 +187,7 @@ export class GameV2Runtime {
   private readonly clock: SimulationClock;
   private readonly lifecycle: GameV2Lifecycle;
   private readonly identity: RunIdentity;
+  private readonly position: PositionContext;
   private readonly intentSource: IntentSource;
   private readonly inputRecorder: InputRecorder;
   private readonly commandRecorder: CommandRecorder;
@@ -234,6 +241,7 @@ export class GameV2Runtime {
     this.clock = dependencies.clock;
     this.lifecycle = dependencies.lifecycle;
     this.identity = dependencies.runIdentity;
+    this.position = dependencies.positionContext;
     this.intentSource = dependencies.intentSource;
     this.inputRecorder = dependencies.inputRecorder;
     this.commandRecorder = dependencies.commandRecorder;
@@ -268,6 +276,11 @@ export class GameV2Runtime {
 
   public get runIdentity(): RunIdentity {
     return this.identity;
+  }
+
+  /** Locked before construction (`V2-ADR-088`); no mutator exists. */
+  public get positionContext(): PositionContext {
+    return this.position;
   }
 
   /** Creates the player and opens the run. Only legal from `idle`. */

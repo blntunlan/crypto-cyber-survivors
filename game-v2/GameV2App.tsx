@@ -5,15 +5,26 @@ import { ABILITY_SLOT_COUNT } from '@/game-v2/contracts/AbilitySlot';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
 import { type LevelUpOfferReadout } from '@/game-v2/contracts/GameV2Debug';
 import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
+import {
+  createPositionContext,
+  type LeverageMode,
+  type PositionContext,
+  type PositionSide,
+} from '@/game-v2/contracts/PositionContext';
 import { KeyboardInput } from '@/game-v2/input/KeyboardInput';
+import { createBtcMarketFeedSource } from '@/game-v2/market/BtcMarketFeedSource';
+import { type MarketFeedSource } from '@/game-v2/market/MarketFeedSource';
+import { MarketSnapshotAdapter } from '@/game-v2/market/MarketSnapshotAdapter';
 import { type RendererPort } from '@/game-v2/presentation/ThreeScene';
 import {
   createMvp0Runtime,
+  resolveEntryPriceOverride,
   resolveRunIdentity,
 } from '@/game-v2/runtime/createMvp0Runtime';
 import { type GameV2Runtime, type IntentSource } from '@/game-v2/runtime/GameV2Runtime';
 import { formatAbilitySlotBinding } from '@/game-v2/ui/AbilitySlotLabel';
 import { LevelUpOverlay } from '@/game-v2/ui/LevelUpOverlay';
+import { PositionSelectScreen } from '@/game-v2/ui/PositionSelectScreen';
 
 const ABILITY_SLOT_INDICES = Array.from({ length: ABILITY_SLOT_COUNT }, (_, i) => i);
 
@@ -41,17 +52,22 @@ const randomSeed = (): number => {
 export type GameV2AppProps = {
   /** Overridable so the runtime can be driven without a real WebGL context. */
   createRenderer?: (canvas: HTMLCanvasElement) => RendererPort;
+  /** Overridable so tests never open a real `EventSource`. */
+  createMarketFeedSource?: () => MarketFeedSource;
 };
 
 /**
- * The `/game-v2` surface: one runtime, one animation frame loop, one canvas.
+ * The `/game-v2` surface: a pre-run position selection screen, then one
+ * runtime, one animation frame loop, one canvas (`V2-201`).
  *
- * React state changes only when the lifecycle phase changes. Everything that
- * moves at simulation rate is written straight to the DOM or lives inside the
- * runtime, so no 60 Hz value ever passes through a re-render.
+ * React state changes only when the stage/lifecycle phase changes.
+ * Everything that moves at simulation rate is written straight to the DOM or
+ * lives inside the runtime, so no 60 Hz value ever passes through a
+ * re-render.
  */
 export const GameV2App = ({
   createRenderer = createWebGlRenderer,
+  createMarketFeedSource = createBtcMarketFeedSource,
 }: GameV2AppProps): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -60,18 +76,67 @@ export const GameV2App = ({
   const tickRef = useRef<HTMLSpanElement>(null);
   const abilitySlotRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const runtimeRef = useRef<GameV2Runtime | null>(null);
+  const positionContextRef = useRef<PositionContext | null>(null);
 
+  const [appStage, setAppStage] = useState<'select' | 'run'>('select');
+  const [livePrice, setLivePrice] = useState<number | null>(() =>
+    resolveEntryPriceOverride(window.location.search)
+  );
   const [phase, setPhase] = useState<GameV2Phase>('idle');
   const [offer, setOffer] = useState<LevelUpOfferReadout | null>(null);
   const [rerollCharges, setRerollCharges] = useState<0 | 1>(0);
   const [banishCharges, setBanishCharges] = useState<0 | 1>(0);
   const [failure, setFailure] = useState<string | null>(null);
 
+  // Stage 'select': drives the live BTC price for the selection screen.
+  // Stopped as soon as a position locks — nothing consumes a live price
+  // during a run yet.
   useEffect(() => {
+    if (appStage !== 'select') {
+      return undefined;
+    }
+
+    const adapter = new MarketSnapshotAdapter(createMarketFeedSource());
+    const unsubscribe = adapter.subscribe(snapshot => {
+      setLivePrice(snapshot.price);
+    });
+    adapter.start();
+
+    return () => {
+      unsubscribe();
+      adapter.stop();
+    };
+  }, [appStage, createMarketFeedSource]);
+
+  const handleStart = useCallback(
+    (side: PositionSide, leverage: LeverageMode): void => {
+      if (livePrice === null) {
+        return;
+      }
+
+      positionContextRef.current = createPositionContext({
+        asset: 'BTC',
+        side,
+        leverage,
+        entryPrice: livePrice,
+        lockedAtTick: 0,
+      });
+      setAppStage('run');
+    },
+    [livePrice]
+  );
+
+  // Stage 'run': the runtime, the frame loop, and everything it drives.
+  useEffect(() => {
+    if (appStage !== 'run') {
+      return undefined;
+    }
+
     const canvas = canvasRef.current;
     const stage = stageRef.current;
+    const positionContext = positionContextRef.current;
 
-    if (canvas === null || stage === null) {
+    if (canvas === null || stage === null || positionContext === null) {
       return undefined;
     }
 
@@ -89,6 +154,7 @@ export const GameV2App = ({
     };
     const runtime = createMvp0Runtime({
       runIdentity: resolveRunIdentity(window.location.search, randomSeed),
+      positionContext,
       intentSource,
       renderTarget: { canvas, createRenderer },
     });
@@ -207,7 +273,7 @@ export const GameV2App = ({
       runtime.dispose();
       runtimeRef.current = null;
     };
-  }, [createRenderer]);
+  }, [appStage, createRenderer]);
 
   const handleChoose = useCallback((choiceIndex: OfferCandidateIndex): void => {
     const runtime = runtimeRef.current;
@@ -253,13 +319,25 @@ export const GameV2App = ({
       return;
     }
 
-    runtime.reset();
-    runtime.start();
+    // Each run is a new trade: a restart locks a fresh position rather than
+    // silently reusing the old one (V2-ADR-088), so it returns to the
+    // selection screen instead of resetting the same runtime in place.
+    positionContextRef.current = null;
     setOffer(null);
     setRerollCharges(0);
     setBanishCharges(0);
-    setPhase(runtime.phase);
+    setPhase('idle');
+    setLivePrice(resolveEntryPriceOverride(window.location.search));
+    setAppStage('select');
   }, []);
+
+  if (appStage === 'select') {
+    return (
+      <main className="game-v2" data-testid="game-v2-root">
+        <PositionSelectScreen livePrice={livePrice} onStart={handleStart} />
+      </main>
+    );
+  }
 
   return (
     <main className="game-v2" data-testid="game-v2-root">

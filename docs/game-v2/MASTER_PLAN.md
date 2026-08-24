@@ -108,7 +108,13 @@ single-asset today, with no `asset`/`symbol` parameter anywhere. ETH/SOL
 multi-asset support (this row's original Done-When) is deferred to an
 unassigned follow-up task that first extends `railway-market-aggregator`;
 see `docs/game-v2/tasks/V2-200-canonical-market-snapshot.md` for the
-user-confirmed scope decision.
+user-confirmed scope decision. `V2-201` is accepted and closed: `/game-v2`
+now shows a real pre-run position-select screen (BTC, LONG/SHORT, one of
+five leverage modes, live price) before any run starts; see
+`docs/game-v2/tasks/V2-201-locked-position-context.md`. `V2-201`
+deliberately does not thread the locked `PositionContext` into
+`RuntimeCheckpoint`/the replay hash yet (`V2-ADR-089`) — that is owed to
+`V2-202`, the first task to give leverage/side an actual gameplay effect.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

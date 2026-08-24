@@ -7,6 +7,10 @@ import {
   RenderSnapshot,
   type RenderSnapshotCapacities,
 } from '@/game-v2/contracts/RenderSnapshot';
+import {
+  UNSPECIFIED_POSITION_CONTEXT,
+  type PositionContext,
+} from '@/game-v2/contracts/PositionContext';
 import { createRunIdentity, type RunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { OrthographicCameraController } from '@/game-v2/presentation/OrthographicCameraController';
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
@@ -60,6 +64,12 @@ export type Mvp0RuntimeOptions = {
   intentSource: IntentSource;
   /** Omit for a headless runtime: replay, verification, and unit tests. */
   renderTarget?: Mvp0RenderTarget | null;
+  /**
+   * Omit for headless/test composition that has not locked a real position
+   * through `PositionSelectScreen` — defaults to `UNSPECIFIED_POSITION_CONTEXT`
+   * (`V2-ADR-089`). `GameV2App` always supplies a real one explicitly.
+   */
+  positionContext?: PositionContext;
 };
 
 const createPresentation = (target: Mvp0RenderTarget): RuntimePresentation => {
@@ -107,6 +117,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     clock: new SimulationClock(),
     lifecycle,
     runIdentity: options.runIdentity,
+    positionContext: options.positionContext ?? UNSPECIFIED_POSITION_CONTEXT,
     intentSource: options.intentSource,
     inputRecorder: new InputRecorder(),
     commandRecorder,
@@ -163,4 +174,23 @@ export const resolveRunIdentity = (
   }
 
   return createRunIdentity(`mvp0-${seed}`, seed);
+};
+
+/**
+ * `?entryPrice=<number>` unblocks `PositionSelectScreen`'s Start button
+ * without a live market connection, for dev/e2e use — the Vite-only
+ * dev/e2e harness this project's e2e conventions establish cannot reach a
+ * real SSE stream (`V2-ADR-090`). Mirrors `resolveRunIdentity`'s `?seed=`
+ * override.
+ */
+export const resolveEntryPriceOverride = (search: string): number | null => {
+  const requested = new URLSearchParams(search).get('entryPrice')?.trim();
+
+  if (requested === undefined || requested.length === 0) {
+    return null;
+  }
+
+  const parsed = Number(requested);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
