@@ -281,6 +281,77 @@ export const GRUNT_ENEMY_COST = 2;
 export const MVP0_ENEMY_SPAWN_BUDGET = GRUNT_ENEMY_COST;
 
 /**
+ * `V2-300`'s three telegraphed archetypes (V2-ADR-158..V2-ADR-165). No
+ * external anchor exists for this content the way market thresholds
+ * derived from real indicator math — every constant here is a first-pass
+ * authored value with stated reasoning, derived from `grunt`'s own
+ * baseline where possible, explicitly flagged for `V2-405` to tune.
+ *
+ * `charger` approaches at reduced speed, telegraphs, then dashes at
+ * `CHARGER_DASH_SPEED` — the strike itself reuses the existing,
+ * unmodified contact-damage system (V2-ADR-159), so `charger`'s own
+ * `contactDamage` is what actually resolves on a successful dash.
+ */
+export const CHARGER_ENEMY_HEALTH = ENEMY_HEALTH;
+export const CHARGER_ENEMY_APPROACH_SPEED = ENEMY_MOVE_SPEED * 0.8;
+export const CHARGER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.2;
+export const CHARGER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const CHARGER_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.2;
+export const CHARGER_ENEMY_COST = 3;
+/** A visible pause before the dash: half a real second. */
+export const CHARGER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.5);
+/** The dash itself: a third of a real second at burst speed. */
+export const CHARGER_ACTIVE_TICKS = Math.round(SIMULATION_HZ / 3);
+/** Recovery before the next dash attempt: two real seconds. */
+export const CHARGER_COOLDOWN_TICKS = SIMULATION_HZ * 2;
+export const CHARGER_DASH_SPEED = ENEMY_MOVE_SPEED * 3;
+/** Trigger range for the dash: a few units beyond simple contact. */
+export const CHARGER_TRIGGER_RANGE = ENEMY_RADIUS + PLAYER_RADIUS + 2;
+
+/**
+ * `bloater` is softer than `grunt` (meant to be poppable at range) and
+ * one-shot: no cooldown/re-arm cycle exists for it (V2-ADR-160). Its own
+ * `contactDamage` is a light nominal bump — the real threat is the
+ * burst.
+ */
+export const BLOATER_ENEMY_HEALTH = ENEMY_HEALTH * 0.7;
+export const BLOATER_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.9;
+export const BLOATER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 0.2;
+export const BLOATER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const BLOATER_ENEMY_XP_VALUE = ENEMY_XP_VALUE;
+export const BLOATER_ENEMY_COST = 2;
+/** The fuse: three quarters of a real second, long enough to retreat. */
+export const BLOATER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.75);
+export const BLOATER_BURST_DAMAGE = ENEMY_CONTACT_DAMAGE * 2;
+/** Bigger than its own contact radius: a real area-denial threat. */
+export const BLOATER_BURST_RADIUS = ENEMY_RADIUS * 4;
+
+/**
+ * `sniper` holds at `SNIPER_ENGAGE_RANGE` rather than closing to contact
+ * — reused as both its hold distance and its line-check's own maximum
+ * range (one field, two roles, since they are the same real distance:
+ * how far its threat reaches). Anchored to `WEAPON_RANGE` — the
+ * player's own real weapon range — rather than an unrelated invented
+ * distance.
+ */
+export const SNIPER_ENEMY_HEALTH = ENEMY_HEALTH * 0.6;
+export const SNIPER_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.7;
+export const SNIPER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 0.5;
+export const SNIPER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const SNIPER_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.2;
+export const SNIPER_ENEMY_COST = 3;
+export const SNIPER_ENGAGE_RANGE = WEAPON_RANGE * 0.6;
+/** The aim tell: six tenths of a real second. */
+export const SNIPER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.6);
+/** A brief recovery pose after firing. */
+export const SNIPER_ACTIVE_TICKS = Math.round(SIMULATION_HZ * 0.1);
+/** Recovery before the next shot: two and a half real seconds. */
+export const SNIPER_COOLDOWN_TICKS = Math.round(SIMULATION_HZ * 2.5);
+export const SNIPER_LINE_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.3;
+/** A generous beam width beyond the player's own radius. */
+export const SNIPER_LINE_TOLERANCE = PLAYER_RADIUS + 0.3;
+
+/**
  * A safety bound on `EnemyComposer`'s pick loop, not a designed value: every
  * pick costs at least `SWARMLING_ENEMY_COST` (the cheapest archetype), so the
  * loop already terminates after at most `budget / SWARMLING_ENEMY_COST`

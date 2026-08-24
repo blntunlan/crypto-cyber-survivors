@@ -2,6 +2,15 @@ import { ENEMY_FACTION } from '@/game-v2/config/Mvp0Config';
 import { GRUNT_ENEMY } from '@/game-v2/config/EnemyRegistry';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
+import {
+  TELEGRAPH_BEHAVIOR_BLOATER,
+  TELEGRAPH_BEHAVIOR_CHARGER,
+  TELEGRAPH_BEHAVIOR_NONE,
+  TELEGRAPH_BEHAVIOR_SNIPER,
+  TELEGRAPH_PHASE_ACTIVE,
+  TELEGRAPH_PHASE_READY,
+  TELEGRAPH_PHASE_TELEGRAPHING,
+} from '@/game-v2/contracts/EnemyTelegraphState';
 import { type DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
@@ -156,8 +165,60 @@ export class EnemySystem {
     world.contactDamage[slot] = definition.contactDamage;
     world.contactCooldownTicksRemaining[slot] = 0;
     world.xpValue[slot] = definition.xpValue;
+    this.writeTelegraphProfile(world, slot, definition);
 
     return enemy;
+  }
+
+  /**
+   * Flattens `definition.telegraph`'s discriminated union into the
+   * shared `World` columns every archetype writes into regardless of
+   * `behavior` (V2-ADR-164) — irrelevant fields for a given behavior
+   * are left at their default `0`. Always starts `READY` with no
+   * pending timer.
+   */
+  private writeTelegraphProfile(
+    world: World,
+    slot: number,
+    definition: EnemyDefinition
+  ): void {
+    const telegraph = definition.telegraph;
+
+    world.enemyTelegraphPhase[slot] = TELEGRAPH_PHASE_READY;
+    world.enemyTelegraphTicksRemaining[slot] = 0;
+    world.enemyTelegraphAimX[slot] = 0;
+    world.enemyTelegraphAimY[slot] = 0;
+
+    if (telegraph.behavior === 'none') {
+      world.enemyTelegraphBehavior[slot] = TELEGRAPH_BEHAVIOR_NONE;
+      return;
+    }
+
+    if (telegraph.behavior === 'charger') {
+      world.enemyTelegraphBehavior[slot] = TELEGRAPH_BEHAVIOR_CHARGER;
+      world.enemyTelegraphDurationTicks[slot] = telegraph.telegraphTicks;
+      world.enemyTelegraphActiveDurationTicks[slot] = telegraph.activeTicks;
+      world.enemyTelegraphCooldownTicks[slot] = telegraph.cooldownTicks;
+      world.enemyTelegraphDashSpeed[slot] = telegraph.dashSpeed;
+      world.enemyTelegraphEffectRange[slot] = telegraph.triggerRange;
+      return;
+    }
+
+    if (telegraph.behavior === 'bloater') {
+      world.enemyTelegraphBehavior[slot] = TELEGRAPH_BEHAVIOR_BLOATER;
+      world.enemyTelegraphDurationTicks[slot] = telegraph.telegraphTicks;
+      world.enemyTelegraphEffectDamage[slot] = telegraph.burstDamage;
+      world.enemyTelegraphEffectRadius[slot] = telegraph.burstRadius;
+      return;
+    }
+
+    world.enemyTelegraphBehavior[slot] = TELEGRAPH_BEHAVIOR_SNIPER;
+    world.enemyTelegraphDurationTicks[slot] = telegraph.telegraphTicks;
+    world.enemyTelegraphActiveDurationTicks[slot] = telegraph.activeTicks;
+    world.enemyTelegraphCooldownTicks[slot] = telegraph.cooldownTicks;
+    world.enemyTelegraphEffectDamage[slot] = telegraph.lineDamage;
+    world.enemyTelegraphEffectRadius[slot] = telegraph.lineTolerance;
+    world.enemyTelegraphEffectRange[slot] = telegraph.lineRange;
   }
 
   public step(world: World, playerEntity: EntityId, deltaSeconds: number): void {
@@ -212,7 +273,27 @@ export class EnemySystem {
 
       const currentX = world.x[slot] ?? 0;
       const currentY = world.y[slot] ?? 0;
-      const speed = world.enemySpeed[slot] ?? 0;
+      const behavior = world.enemyTelegraphBehavior[slot] ?? TELEGRAPH_BEHAVIOR_NONE;
+      const phase = world.enemyTelegraphPhase[slot] ?? TELEGRAPH_PHASE_READY;
+
+      // A telegraphed archetype holds still while telegraphing, and only
+      // `charger` moves (at its dash speed) during `ACTIVE` — `bloater`/
+      // `sniper` resolve instantly and do not move (V2-300).
+      let speed = world.enemySpeed[slot] ?? 0;
+      let holdRange = 0;
+
+      if (phase === TELEGRAPH_PHASE_TELEGRAPHING) {
+        speed = 0;
+      } else if (phase === TELEGRAPH_PHASE_ACTIVE) {
+        speed =
+          behavior === TELEGRAPH_BEHAVIOR_CHARGER
+            ? (world.enemyTelegraphDashSpeed[slot] ?? 0)
+            : 0;
+      } else if (behavior === TELEGRAPH_BEHAVIOR_SNIPER) {
+        // Holds at its own engage range rather than closing to contact.
+        holdRange = world.enemyTelegraphEffectRange[slot] ?? 0;
+      }
+
       const differenceX = playerX - currentX;
       const differenceY = playerY - currentY;
       const maxAxis = Math.max(Math.abs(differenceX), Math.abs(differenceY));
@@ -220,7 +301,7 @@ export class EnemySystem {
       world.previousX[slot] = currentX;
       world.previousY[slot] = currentY;
 
-      if (maxAxis === 0) {
+      if (maxAxis === 0 || speed === 0) {
         world.velocityX[slot] = 0;
         world.velocityY[slot] = 0;
         continue;
@@ -231,15 +312,32 @@ export class EnemySystem {
       const scaledDistance = Math.hypot(scaledX, scaledY);
       const directionX = scaledX / scaledDistance;
       const directionY = scaledY / scaledDistance;
-      const remainingDistance = maxAxis * scaledDistance;
+      const trueDistance = maxAxis * scaledDistance;
+      // `holdRange` is always `0` for every archetype but `sniper`, so this
+      // is a bit-identical no-op (`Math.max(0, trueDistance - 0)`) for
+      // every pre-`V2-300` archetype.
+      const remainingDistance = Math.max(0, trueDistance - holdRange);
+
+      if (remainingDistance === 0) {
+        world.velocityX[slot] = 0;
+        world.velocityY[slot] = 0;
+        continue;
+      }
+
       const travelDistance = Math.min(speed * deltaSeconds, remainingDistance);
 
       world.velocityX[slot] = directionX * speed;
       world.velocityY[slot] = directionY * speed;
 
       if (travelDistance >= remainingDistance) {
-        world.x[slot] = playerX;
-        world.y[slot] = playerY;
+        if (holdRange === 0) {
+          // Bit-identical to the pre-`V2-300` snap-to-player assignment.
+          world.x[slot] = playerX;
+          world.y[slot] = playerY;
+        } else {
+          world.x[slot] = currentX + directionX * remainingDistance;
+          world.y[slot] = currentY + directionY * remainingDistance;
+        }
       } else {
         world.x[slot] = currentX + directionX * travelDistance;
         world.y[slot] = currentY + directionY * travelDistance;

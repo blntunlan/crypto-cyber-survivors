@@ -68,6 +68,34 @@ export class World {
   public readonly projectileDamage: Float32Array;
   public readonly lifetimeTicksRemaining: Uint16Array;
   /**
+   * Telegraphed enemy attacks (`V2-300`). Every archetype writes into
+   * these shared columns at spawn regardless of `behavior`
+   * (`0`/`'none'` for the three untelegraphed archetypes), mirroring
+   * `enemySpeed`/`contactDamage`'s own "no per-entity archetype store"
+   * precedent (V2-ADR-069/V2-ADR-164). `enemyTelegraphBehavior`:
+   * `0`=none, `1`=charger, `2`=bloater, `3`=sniper.
+   * `enemyTelegraphPhase`: `0`=ready, `1`=telegraphing, `2`=active,
+   * `3`=cooldown.
+   */
+  public readonly enemyTelegraphBehavior: Uint8Array;
+  public readonly enemyTelegraphPhase: Uint8Array;
+  public readonly enemyTelegraphTicksRemaining: Uint16Array;
+  public readonly enemyTelegraphDurationTicks: Uint16Array;
+  public readonly enemyTelegraphActiveDurationTicks: Uint16Array;
+  public readonly enemyTelegraphCooldownTicks: Uint16Array;
+  public readonly enemyTelegraphEffectDamage: Float32Array;
+  public readonly enemyTelegraphEffectRadius: Float32Array;
+  public readonly enemyTelegraphEffectRange: Float32Array;
+  public readonly enemyTelegraphDashSpeed: Float32Array;
+  /**
+   * The sniper's aim direction (normalized), locked at the instant its
+   * telegraph begins rather than recomputed at resolution — the player
+   * gets the full telegraph window to move off this line before it
+   * resolves. Unused (`0`) for every other behavior.
+   */
+  public readonly enemyTelegraphAimX: Float32Array;
+  public readonly enemyTelegraphAimY: Float32Array;
+  /**
    * `ABILITY_SLOT_COUNT` entries per world slot, addressed through
    * `abilitySlotIndexOf` (V2-111, V2-ADR-076). A cooldown belongs to the
    * weapon occupying an ability slot, so every occupied `auto` slot advances
@@ -159,6 +187,18 @@ export class World {
     this.xpValue = new Float32Array(capacity);
     this.projectileDamage = new Float32Array(capacity);
     this.lifetimeTicksRemaining = new Uint16Array(capacity);
+    this.enemyTelegraphBehavior = new Uint8Array(capacity);
+    this.enemyTelegraphPhase = new Uint8Array(capacity);
+    this.enemyTelegraphTicksRemaining = new Uint16Array(capacity);
+    this.enemyTelegraphDurationTicks = new Uint16Array(capacity);
+    this.enemyTelegraphActiveDurationTicks = new Uint16Array(capacity);
+    this.enemyTelegraphCooldownTicks = new Uint16Array(capacity);
+    this.enemyTelegraphEffectDamage = new Float32Array(capacity);
+    this.enemyTelegraphEffectRadius = new Float32Array(capacity);
+    this.enemyTelegraphEffectRange = new Float32Array(capacity);
+    this.enemyTelegraphDashSpeed = new Float32Array(capacity);
+    this.enemyTelegraphAimX = new Float32Array(capacity);
+    this.enemyTelegraphAimY = new Float32Array(capacity);
     this.weaponCooldownTicksRemaining = new Uint16Array(capacity * ABILITY_SLOT_COUNT);
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
@@ -456,6 +496,18 @@ export class World {
     this.xpValue[slot] = 0;
     this.projectileDamage[slot] = 0;
     this.lifetimeTicksRemaining[slot] = 0;
+    this.enemyTelegraphBehavior[slot] = 0;
+    this.enemyTelegraphPhase[slot] = 0;
+    this.enemyTelegraphTicksRemaining[slot] = 0;
+    this.enemyTelegraphDurationTicks[slot] = 0;
+    this.enemyTelegraphActiveDurationTicks[slot] = 0;
+    this.enemyTelegraphCooldownTicks[slot] = 0;
+    this.enemyTelegraphEffectDamage[slot] = 0;
+    this.enemyTelegraphEffectRadius[slot] = 0;
+    this.enemyTelegraphEffectRange[slot] = 0;
+    this.enemyTelegraphDashSpeed[slot] = 0;
+    this.enemyTelegraphAimX[slot] = 0;
+    this.enemyTelegraphAimY[slot] = 0;
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;

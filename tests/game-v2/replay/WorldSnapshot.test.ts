@@ -190,13 +190,10 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    // V2-111 (V2-ADR-076): the golden shifted again because
-    // `weaponCooldownTicksRemaining` moved out of the per-world-slot u16 run
-    // and into the per-ability-slot loop, so each slot now contributes
-    // `ABILITY_SLOT_COUNT` cooldown u16s instead of one. Recomputed and pinned
-    // to schema 7.
-    expect(WORLD_SNAPSHOT_SCHEMA_VERSION).toBe(7);
-    expect(hashA).toBe('9760ebe8');
+    // V2-300: twelve new per-slot fields for telegraphed enemy attacks
+    // shifted the golden again. Recomputed and pinned to schema 8.
+    expect(WORLD_SNAPSHOT_SCHEMA_VERSION).toBe(8);
+    expect(hashA).toBe('1133df99');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });

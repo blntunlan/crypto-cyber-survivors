@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 7 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 8 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -33,6 +33,19 @@ export type WorldSnapshot = Readonly<{
   xpValue: Float32Array;
   projectileDamage: Float32Array;
   lifetimeTicksRemaining: Uint16Array;
+  /** Telegraphed enemy attacks (`V2-300`); see `World.ts`'s own field docs. */
+  enemyTelegraphBehavior: Uint8Array;
+  enemyTelegraphPhase: Uint8Array;
+  enemyTelegraphTicksRemaining: Uint16Array;
+  enemyTelegraphDurationTicks: Uint16Array;
+  enemyTelegraphActiveDurationTicks: Uint16Array;
+  enemyTelegraphCooldownTicks: Uint16Array;
+  enemyTelegraphEffectDamage: Float32Array;
+  enemyTelegraphEffectRadius: Float32Array;
+  enemyTelegraphEffectRange: Float32Array;
+  enemyTelegraphDashSpeed: Float32Array;
+  enemyTelegraphAimX: Float32Array;
+  enemyTelegraphAimY: Float32Array;
   xp: Float32Array;
   level: Uint16Array;
   xpPickupValue: Float32Array;

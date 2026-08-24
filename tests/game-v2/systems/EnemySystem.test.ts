@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { BRUTE_ENEMY, SWARMLING_ENEMY } from '@/game-v2/config/EnemyRegistry';
+import {
+  BLOATER_ENEMY,
+  BRUTE_ENEMY,
+  CHARGER_ENEMY,
+  SNIPER_ENEMY,
+  SWARMLING_ENEMY,
+} from '@/game-v2/config/EnemyRegistry';
 import {
   ENEMY_CONTACT_DAMAGE,
   ENEMY_FACTION,
@@ -9,6 +15,7 @@ import {
   ENEMY_RADIUS,
   ENEMY_XP_VALUE,
   SIMULATION_HZ,
+  SNIPER_ENGAGE_RANGE,
 } from '@/game-v2/config/Mvp0Config';
 import { DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { EnemySystem, type EnemySpawnRequest } from '@/game-v2/systems/EnemySystem';
@@ -618,5 +625,188 @@ describe('EnemySystem archetype definitions (V2-108)', () => {
     expect(world.health[swarmlingSlot]).not.toBe(world.health[bruteSlot]);
     expect(world.contactDamage[swarmlingSlot]).toBe(SWARMLING_ENEMY.contactDamage);
     expect(world.contactDamage[bruteSlot]).toBe(BRUTE_ENEMY.contactDamage);
+  });
+});
+
+describe('EnemySystem telegraph flattening (V2-300)', () => {
+  it('spawns grunt/swarmling/brute with behavior NONE and phase READY', () => {
+    const { world } = createWorldWithPlayer();
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(1, 0)
+    );
+    const slot = world.slotOf(enemy);
+
+    expect(world.enemyTelegraphBehavior[slot]).toBe(0);
+    expect(world.enemyTelegraphPhase[slot]).toBe(0);
+    expect(world.enemyTelegraphTicksRemaining[slot]).toBe(0);
+  });
+
+  it('flattens charger into behavior 1 with its dash/trigger fields', () => {
+    const { world } = createWorldWithPlayer();
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(1, 0),
+      CHARGER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+
+    if (CHARGER_ENEMY.telegraph.behavior !== 'charger') {
+      throw new Error('expected charger telegraph');
+    }
+    expect(world.enemyTelegraphBehavior[slot]).toBe(1);
+    expect(world.enemyTelegraphDurationTicks[slot]).toBe(
+      CHARGER_ENEMY.telegraph.telegraphTicks
+    );
+    expect(world.enemyTelegraphActiveDurationTicks[slot]).toBe(
+      CHARGER_ENEMY.telegraph.activeTicks
+    );
+    expect(world.enemyTelegraphCooldownTicks[slot]).toBe(
+      CHARGER_ENEMY.telegraph.cooldownTicks
+    );
+    expect(world.enemyTelegraphDashSpeed[slot]).toBeCloseTo(
+      CHARGER_ENEMY.telegraph.dashSpeed
+    );
+    expect(world.enemyTelegraphEffectRange[slot]).toBeCloseTo(
+      CHARGER_ENEMY.telegraph.triggerRange
+    );
+  });
+
+  it('flattens bloater into behavior 2 with its burst fields', () => {
+    const { world } = createWorldWithPlayer();
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(1, 0),
+      BLOATER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+
+    if (BLOATER_ENEMY.telegraph.behavior !== 'bloater') {
+      throw new Error('expected bloater telegraph');
+    }
+    expect(world.enemyTelegraphBehavior[slot]).toBe(2);
+    expect(world.enemyTelegraphDurationTicks[slot]).toBe(
+      BLOATER_ENEMY.telegraph.telegraphTicks
+    );
+    expect(world.enemyTelegraphEffectDamage[slot]).toBeCloseTo(
+      BLOATER_ENEMY.telegraph.burstDamage
+    );
+    expect(world.enemyTelegraphEffectRadius[slot]).toBeCloseTo(
+      BLOATER_ENEMY.telegraph.burstRadius
+    );
+  });
+
+  it('flattens sniper into behavior 3 with its line-check fields', () => {
+    const { world } = createWorldWithPlayer();
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(1, 0),
+      SNIPER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+
+    if (SNIPER_ENEMY.telegraph.behavior !== 'sniper') {
+      throw new Error('expected sniper telegraph');
+    }
+    expect(world.enemyTelegraphBehavior[slot]).toBe(3);
+    expect(world.enemyTelegraphDurationTicks[slot]).toBe(
+      SNIPER_ENEMY.telegraph.telegraphTicks
+    );
+    expect(world.enemyTelegraphActiveDurationTicks[slot]).toBe(
+      SNIPER_ENEMY.telegraph.activeTicks
+    );
+    expect(world.enemyTelegraphCooldownTicks[slot]).toBe(
+      SNIPER_ENEMY.telegraph.cooldownTicks
+    );
+    expect(world.enemyTelegraphEffectDamage[slot]).toBeCloseTo(
+      SNIPER_ENEMY.telegraph.lineDamage
+    );
+    expect(world.enemyTelegraphEffectRadius[slot]).toBeCloseTo(
+      SNIPER_ENEMY.telegraph.lineTolerance
+    );
+    expect(world.enemyTelegraphEffectRange[slot]).toBeCloseTo(
+      SNIPER_ENEMY.telegraph.lineRange
+    );
+  });
+});
+
+describe('EnemySystem sniper hold-at-range chase (V2-300)', () => {
+  it('stops closing once within its own engage range rather than reaching contact', () => {
+    const { world, player, playerSlot } = createWorldWithPlayer();
+    world.x[playerSlot] = 0;
+    world.y[playerSlot] = 0;
+
+    const enemySystem = new EnemySystem();
+    const holdRange = SNIPER_ENGAGE_RANGE;
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(holdRange + 5, 0),
+      SNIPER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+
+    for (let tick = 0; tick < 600; tick += 1) {
+      enemySystem.step(world, player, FIXED_DELTA_SECONDS);
+    }
+
+    const distance = Math.hypot(world.x[slot] ?? 0, world.y[slot] ?? 0);
+    expect(distance).toBeCloseTo(holdRange, 1);
+    expect(distance).toBeGreaterThan(0);
+  });
+
+  it('does not move at all while TELEGRAPHING', () => {
+    const { world, player } = createWorldWithPlayer();
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(3, 0),
+      SNIPER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+    world.enemyTelegraphPhase[slot] = 1; // TELEGRAPHING
+
+    const beforeX = world.x[slot];
+    const beforeY = world.y[slot];
+    enemySystem.step(world, player, FIXED_DELTA_SECONDS);
+
+    expect(world.x[slot]).toBe(beforeX);
+    expect(world.y[slot]).toBe(beforeY);
+    expect(world.velocityX[slot]).toBe(0);
+    expect(world.velocityY[slot]).toBe(0);
+  });
+
+  it('moves at dash speed for charger during ACTIVE', () => {
+    const { world, player, playerSlot } = createWorldWithPlayer();
+    world.x[playerSlot] = 100;
+    world.y[playerSlot] = 0;
+
+    const enemySystem = new EnemySystem();
+    const enemy = enemySystem.spawnEnemy(
+      world,
+      { nextFloat: () => 0 },
+      pointRequest(0, 0),
+      CHARGER_ENEMY
+    );
+    const slot = world.slotOf(enemy);
+    world.enemyTelegraphPhase[slot] = 2; // ACTIVE
+
+    enemySystem.step(world, player, FIXED_DELTA_SECONDS);
+
+    if (CHARGER_ENEMY.telegraph.behavior !== 'charger') {
+      throw new Error('expected charger telegraph');
+    }
+    expect(
+      Math.hypot(world.velocityX[slot] ?? 0, world.velocityY[slot] ?? 0)
+    ).toBeCloseTo(CHARGER_ENEMY.telegraph.dashSpeed);
   });
 });

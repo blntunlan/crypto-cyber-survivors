@@ -254,6 +254,28 @@ see `docs/game-v2/tasks/V2-213-mvp2-evidence-gate.md`.
 
 Goal: complete the authored boss, cash-out, and continued-cycle loop.
 
+`V2-300` is accepted and closed — the first MVP-3 task, and the first to
+mix a new mechanism with creative content authoring (the roster and its
+stats were proposed and approved via user checkpoint, since no design-spec
+anchor fixed them). Three new archetypes (`charger`, `bloater`, `sniper`)
+join the three untelegraphed `grunt`/`swarmling`/`brute` behind one shared,
+tick-driven telegraph phase machine (`READY → TELEGRAPHING → ACTIVE →
+(COOLDOWN →) READY`, `EnemyAttackSystem`), keyed by a discriminated
+`EnemyTelegraphProfile` on `EnemyDefinition` and flattened into twelve new
+`World` columns at spawn. `charger` dashes and deals its damage through the
+existing, unmodified contact-damage path; `bloater` is a one-shot AoE burst
+with no cooldown; `sniper` locks its aim direction at telegraph-*start*
+(not at resolution) so a line-check punish window is actually dodgeable,
+each routing new damage through the same `resolveIncomingDamage`/
+`CombatLethalityProfile` `CombatSystem` already uses. `WORLD_SNAPSHOT_SCHEMA_VERSION`
+bumped `7 → 8`; the one pinned golden-hash test was recomputed. Mutation
+testing on the integration evidence caught a real gap: the `bloater` test's
+original health/`isAlive` assertions passed even with `EnemyAttackSystem`
+disabled, since the player's own pre-existing weapon autofire and ordinary
+contact damage independently produce the same symptoms — fixed with a
+direct, unconfounded phase-check assertion; see
+`docs/game-v2/tasks/V2-300-six-enemy-archetypes.md`.
+
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
 | V2-300 | Six enemy archetypes | V2-213 | Each has an authored cost, behavior, damage, telegraph, pool, and tests. |

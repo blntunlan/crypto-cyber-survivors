@@ -61,6 +61,18 @@ export const HASHED_WORLD_FIELDS = [
   'xpValue',
   'projectileDamage',
   'lifetimeTicksRemaining',
+  'enemyTelegraphBehavior',
+  'enemyTelegraphPhase',
+  'enemyTelegraphTicksRemaining',
+  'enemyTelegraphDurationTicks',
+  'enemyTelegraphActiveDurationTicks',
+  'enemyTelegraphCooldownTicks',
+  'enemyTelegraphEffectDamage',
+  'enemyTelegraphEffectRadius',
+  'enemyTelegraphEffectRange',
+  'enemyTelegraphDashSpeed',
+  'enemyTelegraphAimX',
+  'enemyTelegraphAimY',
   'weaponCooldownTicksRemaining',
   'xp',
   'level',
@@ -253,6 +265,18 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.f32(world.xpValue[slot] ?? 0);
     hash.f32(world.projectileDamage[slot] ?? 0);
     hash.u16(world.lifetimeTicksRemaining[slot] ?? 0);
+    hash.u8(world.enemyTelegraphBehavior[slot] ?? 0);
+    hash.u8(world.enemyTelegraphPhase[slot] ?? 0);
+    hash.u16(world.enemyTelegraphTicksRemaining[slot] ?? 0);
+    hash.u16(world.enemyTelegraphDurationTicks[slot] ?? 0);
+    hash.u16(world.enemyTelegraphActiveDurationTicks[slot] ?? 0);
+    hash.u16(world.enemyTelegraphCooldownTicks[slot] ?? 0);
+    hash.f32(world.enemyTelegraphEffectDamage[slot] ?? 0);
+    hash.f32(world.enemyTelegraphEffectRadius[slot] ?? 0);
+    hash.f32(world.enemyTelegraphEffectRange[slot] ?? 0);
+    hash.f32(world.enemyTelegraphDashSpeed[slot] ?? 0);
+    hash.f32(world.enemyTelegraphAimX[slot] ?? 0);
+    hash.f32(world.enemyTelegraphAimY[slot] ?? 0);
     hash.f32(world.xp[slot] ?? 0);
     hash.u16(world.level[slot] ?? 0);
     hash.f32(world.xpPickupValue[slot] ?? 0);

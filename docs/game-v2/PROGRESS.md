@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `Done`; MVP-3 (Complete Risk Loop) is the active milestone |
-| Active task | None. `V2-213` (MVP-2 evidence gate) is accepted and closed — `MarketEncounterRuntime` wires every MVP-2 mechanism into the real `GameV2Runtime` tick order for the first time, proven end-to-end (real spawns/hazard cycle/loot/Convergence bonus, replay-reproducible against a deterministic scripted market source). MVP-2 is `Done`. `V2-300` (Six enemy archetypes) is the first reachable MVP-3 task. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2 fully closed (`V2-200`..`V2-213`). MVP-3 not started. |
-| Closed | `V2-213` accepted (this checkpoint); `V2-212` accepted at `cbec53ac`; `V2-211` accepted at `805e117b`; `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-300` (Six enemy archetypes) is accepted and closed — three new telegraphed archetypes (`charger`/`bloater`/`sniper`) join the existing three behind a shared tick-driven telegraph phase machine, roster approved via user `AskUserQuestion` checkpoint. `V2-301` (Elite modifiers) is the next reachable MVP-3 task. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2 fully closed (`V2-200`..`V2-213`). MVP-3 in progress (`V2-300` closed; `V2-301`..`V2-311` remaining). |
+| Closed | `V2-300` accepted (this checkpoint); `V2-213` accepted at `b61bc9e3`; `V2-212` accepted at `cbec53ac`; `V2-211` accepted at `805e117b`; `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -4010,21 +4010,131 @@ three indicator families.
   leaves no survivor. `V2-213` is accepted — **MVP-2 (Market Vertical
   Slice) is `Done`.**
 
+## V2-300 — Six Enemy Archetypes
+
+- Task brief: `docs/game-v2/tasks/V2-300-six-enemy-archetypes.md`.
+  Governing decisions: V2-ADR-158 through V2-ADR-166. This task mixed a
+  new mechanism build with genuine creative-content authoring, with no
+  design-spec anchor fixing the roster — resolved via two
+  `AskUserQuestion` checkpoints: first, how to approach a task with no
+  concrete spec (user chose "propose a roster for approval" over
+  autonomous authoring or a narrower mechanism-only scope); second, a
+  concrete roster preview (Charger/Bloater/Sniper archetypes plus a
+  generic tick-driven telegraph-timer mechanism), which the user
+  approved to build as-is.
+- `game-v2/contracts/EnemyTelegraphState.ts` (new): centralizes the
+  `TELEGRAPH_BEHAVIOR_*` (`none`/`charger`/`bloater`/`sniper`) and
+  `TELEGRAPH_PHASE_*` (`READY`/`TELEGRAPHING`/`ACTIVE`/`COOLDOWN`)
+  integer codes, so `EnemySystem`/`EnemyAttackSystem` share one encoding
+  instead of duplicating magic numbers.
+- `game-v2/contracts/EnemyArchetype.ts`: `EnemyDefinition` gained a
+  required `telegraph: EnemyTelegraphProfile` field — a discriminated
+  union keyed by `behavior`, each variant carrying only the fields its
+  archetype needs (charger: telegraph/active/cooldown ticks, dash speed,
+  trigger range; bloater: telegraph ticks, burst damage/radius only, no
+  cooldown — it is one-shot; sniper: telegraph/active/cooldown ticks,
+  line damage/tolerance/range). `grunt`/`swarmling`/`brute` all gained
+  `telegraph: { behavior: 'none' }`, an explicit no-op rather than an
+  optional/absent field, so every archetype is exhaustively classified.
+- `game-v2/config/EnemyRegistry.ts`: added `CHARGER_ENEMY`,
+  `BLOATER_ENEMY`, `SNIPER_ENEMY`. The registry now composes all six.
+  Every new stat traces to an existing `Mvp0Config` anchor (e.g.
+  `CHARGER_ENEMY_APPROACH_SPEED = ENEMY_MOVE_SPEED * 0.8`,
+  `BLOATER_ENEMY_COST = 2`, `SNIPER_ENGAGE_RANGE = WEAPON_RANGE * 0.6`)
+  per this project's "derived, not felt" constant discipline — flagged,
+  like every prior first-pass authored stat, for `V2-405`'s balance pass
+  rather than claimed as tuned.
+- `game-v2/systems/EnemyAttackSystem.ts` (new): drives the shared
+  `READY → TELEGRAPHING → ACTIVE → (COOLDOWN →) READY` phase machine,
+  tick-driven only, mirroring `HazardLifecycle`'s established pattern
+  (`V2-209`). `charger`'s strike stays on the existing, unmodified
+  contact-damage path (`EnemySystem`'s movement loop reads
+  `enemyTelegraphDashSpeed` during `ACTIVE`; `CombatSystem` does the
+  rest — this system never touches player health for `charger`).
+  `bloater`'s AoE burst and `sniper`'s line-check are new resolution
+  paths, both routed through `resolveIncomingDamage` with the same
+  injected `CombatLethalityProfile` `CombatSystem` uses (constructor
+  default: leverage-1, mirroring `CombatSystem`'s own V2-ADR-098
+  pattern), so enemy damage never enters a second, independent
+  multiplier pipeline (design §7.3).
+- **Design correction found mid-implementation**: the original plan
+  resolved every archetype's effect against the player's *current*
+  position at the resolution tick. For `sniper` this makes the line-check
+  trivially always-hit — aiming fresh at wherever the player currently is
+  means they are by definition exactly on the ray. Fixed by locking
+  `sniper`'s aim direction at telegraph-*start* instead (two new
+  `World` columns, `enemyTelegraphAimX`/`Y`, normalized and stored in
+  `tryArm`), giving the player the full telegraph window to actually
+  dodge. `charger` (continuous re-chase during its dash window) and
+  `bloater` (stationary AoE) remain correct with current-position
+  resolution.
+- `World.ts`/`WorldSnapshot.ts`/`WorldSnapshotWriter.ts`/`StateHasher.ts`/
+  `WorldStateValidator.ts`: twelve new per-slot columns (behavior, phase,
+  four tick-count fields, four effect fields, two locked-aim fields)
+  added end-to-end through every layer the schema-extension checklist
+  requires, including a new `validateEnemyTelegraphState` bounds check
+  mirroring `validateConvergenceState`'s precedent.
+  `WORLD_SNAPSHOT_SCHEMA_VERSION` bumped `7 → 8`; the one pinned
+  golden-hash test (`WorldSnapshot.test.ts`) was recomputed twice — once
+  after the initial ten columns, again after the two aim-lock columns
+  added during the sniper design correction — final pinned hash
+  `1133df99`, read from the test's own failure output, never
+  hand-computed.
+- `game-v2/systems/EnemySystem.ts`: movement loop extended to compute
+  per-enemy speed/hold-range from `behavior`/`phase` (frozen during
+  `TELEGRAPHING`; dash speed for `charger` during `ACTIVE`; zero for
+  `bloater`/`sniper` during `ACTIVE`; hold-at-range for `sniper`
+  otherwise). Branched explicitly on `holdRange === 0` to preserve the
+  exact original code path (bit-identical float output) for every
+  pre-`V2-300` archetype, verified by re-running the full
+  integration/replay suite unmodified.
+- `game-v2/runtime/GameV2Runtime.ts`/`createMvp0Runtime.ts`: new
+  optional `enemyAttackSystem` dependency (default: a fresh
+  `EnemyAttackSystem`), stepped immediately after `movementSystem.step`
+  and before `enemySystem.step` so enemy movement reads the current
+  tick's phase transitions. Production wiring passes the same
+  `lethalityProfile` variable already used for `combatSystem`.
+- **Mutation-testing gap found and closed in the integration evidence**:
+  `tests/game-v2/integration/EnemyArchetypeEvidence.test.ts`'s first
+  draft of the `bloater` test asserted only `isAlive`/health, and passed
+  even with `EnemyAttackSystem.step` mutated out of the tick order
+  entirely — the player's own pre-existing weapon autofire and
+  `bloater`'s own small nominal contact damage (via the unrelated,
+  pre-existing `CombatSystem.resolveContactDamage`) independently
+  produce the same symptoms. Fixed by adding a direct, unconfounded
+  `sawTelegraphing` assertion (reads `world.enemyTelegraphPhase[slot]`
+  each frame, before the entity might be destroyed) as the primary
+  proof; re-verified the mutant is now caught.
+- Full mutation pass, 4 mutants targeting the new mechanism, all caught:
+  bloater's burst-radius check, sniper's line-check hit condition,
+  `GameV2Runtime`'s `enemyAttackSystem.step` call, and charger's
+  `ACTIVE`-phase dash-speed logic in `EnemySystem.ts` — each removed,
+  confirmed a genuine test failure, then restored.
+- Verification, each passing: `npm run typecheck`,
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (79 files,
+  1235 tests, up from 76 files/1186 before this task),
+  `npm run check:architecture` (89 baseline singleton files —
+  `EnemyAttackSystem` is constructed per-runtime, not a singleton,
+  correctly unflagged), `npm run check:reset-coverage` (89 singletons:
+  29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, and `npm run build` (succeeded,
+  ~34s).
+
 ## Exact Next Action
 
-MVP-0, MVP-1, and MVP-2 are all fully closed. MVP-3 (Complete Risk Loop)
-is now the active milestone. Per `MASTER_PLAN.md`, `V2-300` (Six enemy
-archetypes, depends on `V2-213`, now closed) is the first reachable
-MVP-3 task — the real content-authoring task that `V2-208`'s
-`SpawnEncounterConsumer` and every `game-v2/config/EnemyRegistry.ts`
-deferral since `V2-108` has been waiting on: today's registry still has
-only three archetypes (`grunt`/`swarmling`/`brute`), and every
-themeId-differentiated composition deferral recorded across `V2-208`
-(V2-ADR-130) exists specifically because this task's content did not
-exist yet. Read `docs/game-v2/MASTER_PLAN.md`'s MVP-3 section and the
-design spec's §6/§9 (enemy/boss content) before scoping `V2-300`, since
-unlike every MVP-2 task this is genuine new-content authoring, not a
-mechanism build.
+MVP-0, MVP-1, and MVP-2 are fully closed. MVP-3 (Complete Risk Loop) is
+the active milestone, with `V2-300` now its first closed task. Per
+`MASTER_PLAN.md`, `V2-301` (Elite modifiers, depends on `V2-300`, now
+closed) is the next reachable MVP-3 task. Its Done-When ("Compatible
+elite variants remain inside threat and render caps") again mixes a
+mechanism (an elite-modifier composition system) with content authoring
+(which modifiers exist, their stat multipliers, and visual tells) and
+has no fuller design-spec anchor beyond that one sentence — before
+assuming full autonomy is appropriate, read the design spec's relevant
+section and `MASTER_PLAN.md`'s MVP-3 entry, and if the same
+no-anchor situation as `V2-300` recurs, use the same
+propose-then-confirm `AskUserQuestion` checkpoint pattern rather than
+authoring content unilaterally.
 
 The live-SSE replay-determinism gap (V2-ADR-151) remains a real,
 explicitly flagged item for the `§13` production-replacement gate —
@@ -4076,6 +4186,14 @@ not stage, edit, revert, or include them in a Game V2 commit:
   `tests/services/director/SeededRng.test.ts`,
   `tests/services/patterns/decorators/buffs/` — untracked, unrelated to
   Game V2.
+- `game-v2/presentation/CyberTraderCharacter.ts`,
+  `tests/game-v2/presentation/CyberTraderCharacter.test.ts` (untracked),
+  `game-v2/presentation/ThreeScene.ts` (modified) — the user's own
+  separate, concurrent Game V2 presentation work (a `signalColor`
+  parameter and `CYBER_TRADER_LONG_SIGNAL`/`SHORT_SIGNAL`). `V2-300`'s
+  own `createMvp0Runtime.ts` changes coexist with these but do not
+  depend on or complete them — do not stage, edit, or claim credit for
+  this work in a `V2-3xx` commit.
 
 ## Resume Protocol
 

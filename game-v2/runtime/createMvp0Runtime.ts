@@ -14,6 +14,10 @@ import {
 } from '@/game-v2/contracts/PositionContext';
 import { createRunIdentity, type RunIdentity } from '@/game-v2/contracts/RunIdentity';
 import { OrthographicCameraController } from '@/game-v2/presentation/OrthographicCameraController';
+import {
+  CYBER_TRADER_LONG_SIGNAL,
+  CYBER_TRADER_SHORT_SIGNAL,
+} from '@/game-v2/presentation/CyberTraderCharacter';
 import { RenderSnapshotWriter } from '@/game-v2/presentation/RenderSnapshotWriter';
 import { ThreeRenderBridge } from '@/game-v2/presentation/ThreeRenderBridge';
 import { ThreeScene, type RendererPort } from '@/game-v2/presentation/ThreeScene';
@@ -31,6 +35,7 @@ import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { ConvergenceSystem } from '@/game-v2/systems/ConvergenceSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
+import { EnemyAttackSystem } from '@/game-v2/systems/EnemyAttackSystem';
 import { EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { MovementSystem } from '@/game-v2/systems/MovementSystem';
@@ -78,9 +83,13 @@ export type Mvp0RuntimeOptions = {
   nowMsProvider?: () => number;
 };
 
-const createPresentation = (target: Mvp0RenderTarget): RuntimePresentation => {
+const createPresentation = (
+  target: Mvp0RenderTarget,
+  signalColor: number
+): RuntimePresentation => {
   const renderer = target.createRenderer(target.canvas);
   const scene = new ThreeScene(renderer, MVP0_RENDER_CAPACITIES);
+  scene.playerMesh.setSignalColor(signalColor);
   const bridge = new ThreeRenderBridge(scene);
   const camera = new OrthographicCameraController();
 
@@ -135,6 +144,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     movementSystem: new MovementSystem(passiveLoadout),
     enemySystem: new EnemySystem(),
     enemyComposer: new EnemyComposer(),
+    enemyAttackSystem: new EnemyAttackSystem(lethalityProfile),
     weaponSystem,
     combatSystem: new CombatSystem(undefined, undefined, lethalityProfile),
     convergenceSystem: new ConvergenceSystem(),
@@ -153,7 +163,12 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     presentation:
       options.renderTarget === undefined || options.renderTarget === null
         ? null
-        : createPresentation(options.renderTarget),
+        : createPresentation(
+            options.renderTarget,
+            positionContext.side === 'LONG'
+              ? CYBER_TRADER_LONG_SIGNAL
+              : CYBER_TRADER_SHORT_SIGNAL
+          ),
   });
 };
 

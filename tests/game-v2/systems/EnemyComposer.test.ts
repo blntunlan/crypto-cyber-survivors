@@ -87,7 +87,9 @@ describe('EnemyComposer', () => {
       }
     }
 
-    expect(seenIds).toEqual(new Set(['grunt', 'swarmling', 'brute']));
+    // `charger`/`sniper` cost 3, above `MVP0_ENEMY_SPAWN_BUDGET` (2), so they
+    // are correctly unreachable at this exact budget (V2-300).
+    expect(seenIds).toEqual(new Set(['grunt', 'swarmling', 'brute', 'bloater']));
   });
 
   it('narrows to only the cheapest archetype once remaining budget excludes the others', () => {

@@ -52,6 +52,7 @@ import { type SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { type CombatSystem } from '@/game-v2/systems/CombatSystem';
 import { type ConvergenceSystem } from '@/game-v2/systems/ConvergenceSystem';
 import { type DashSystem } from '@/game-v2/systems/DashSystem';
+import { EnemyAttackSystem } from '@/game-v2/systems/EnemyAttackSystem';
 import { type EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { type EnemySystem } from '@/game-v2/systems/EnemySystem';
 import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
@@ -164,6 +165,14 @@ export type GameV2RuntimeDependencies = {
   movementSystem: MovementSystem;
   enemySystem: EnemySystem;
   enemyComposer: EnemyComposer;
+  /**
+   * Omit for the default leverage-`1` profile (`V2-300`). Production
+   * composition wires the same real, leverage-derived
+   * `CombatLethalityProfile` `combatSystem` uses, so `bloater`/`sniper`
+   * damage scales consistently with `charger`'s (ordinary contact
+   * damage) rather than through an independent pipeline.
+   */
+  enemyAttackSystem?: EnemyAttackSystem;
   weaponSystem: WeaponSystem;
   combatSystem: CombatSystem;
   progressionSystem: ProgressionSystem;
@@ -210,6 +219,7 @@ export class GameV2Runtime {
   private readonly movementSystem: MovementSystem;
   private readonly enemySystem: EnemySystem;
   private readonly enemyComposer: EnemyComposer;
+  private readonly enemyAttackSystem: EnemyAttackSystem;
   private readonly weaponSystem: WeaponSystem;
   private readonly combatSystem: CombatSystem;
   private readonly progressionSystem: ProgressionSystem;
@@ -274,6 +284,7 @@ export class GameV2Runtime {
     this.movementSystem = dependencies.movementSystem;
     this.enemySystem = dependencies.enemySystem;
     this.enemyComposer = dependencies.enemyComposer;
+    this.enemyAttackSystem = dependencies.enemyAttackSystem ?? new EnemyAttackSystem();
     this.weaponSystem = dependencies.weaponSystem;
     this.combatSystem = dependencies.combatSystem;
     this.progressionSystem = dependencies.progressionSystem;
@@ -673,6 +684,10 @@ export class GameV2Runtime {
     this.stepMarketEncounters(nextTick);
     this.dashSystem.step(this.world, player, this.stepContext);
     this.movementSystem.step(this.world, player, this.stepContext);
+    // Runs before `enemySystem.step` so this tick's telegraph phase
+    // transitions (`V2-300`) are already current when enemy movement
+    // reads them (a charger's dash speed, a sniper's hold-range freeze).
+    this.enemyAttackSystem.step(this.world, player);
     this.enemySystem.step(this.world, player, SIMULATION_STEP_SECONDS);
     this.weaponSystem.step(this.world, player, this.stepContext);
 

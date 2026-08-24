@@ -49,6 +49,12 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'xp',
     'xpPickupValue',
     'convergence',
+    'enemyTelegraphEffectDamage',
+    'enemyTelegraphEffectRadius',
+    'enemyTelegraphEffectRange',
+    'enemyTelegraphDashSpeed',
+    'enemyTelegraphAimX',
+    'enemyTelegraphAimY',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint32: Object.freeze([
     'generations',
@@ -66,6 +72,8 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'bannedCandidateKind',
     'bannedCandidateCode',
     'convergenceReached',
+    'enemyTelegraphBehavior',
+    'enemyTelegraphPhase',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint16: Object.freeze([
     'invulnerabilityTicksRemaining',
@@ -73,6 +81,10 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'contactCooldownTicksRemaining',
     'lifetimeTicksRemaining',
     'level',
+    'enemyTelegraphTicksRemaining',
+    'enemyTelegraphDurationTicks',
+    'enemyTelegraphActiveDurationTicks',
+    'enemyTelegraphCooldownTicks',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   /** One entry per ability slot per world slot rather than one per world slot. */
   stridedUint8: Object.freeze([
@@ -368,6 +380,26 @@ const validateConvergenceState = (
   }
 };
 
+/**
+ * Validates the telegraphed-enemy enums (`V2-300`): `enemyTelegraphBehavior`
+ * is `0`-`3` (none/charger/bloater/sniper) and `enemyTelegraphPhase` is
+ * `0`-`3` (ready/telegraphing/active/cooldown), mirroring
+ * `validateConvergenceState`'s own enum-bound precedent.
+ */
+const validateEnemyTelegraphState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.enemyTelegraphBehavior[slot] ?? 0) > 3) {
+      throw new RangeError('enemyTelegraphBehavior must be 0-3');
+    }
+    if ((state.enemyTelegraphPhase[slot] ?? 0) > 3) {
+      throw new RangeError('enemyTelegraphPhase must be 0-3');
+    }
+  }
+};
+
 export const validateAuthoritativeWorldState = (
   state: AuthoritativeWorldState,
   candidateCapacity: number
@@ -451,4 +483,5 @@ export const validateAuthoritativeWorldState = (
   validateOfferCharges(state, capacity);
   validateBanishState(state, capacity);
   validateConvergenceState(state, capacity);
+  validateEnemyTelegraphState(state, capacity);
 };
