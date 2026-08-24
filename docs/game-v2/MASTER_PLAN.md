@@ -138,6 +138,16 @@ samples `MarketSnapshot.atrPercent` and produces a bounded
 (`0.03`/`0.015`) rather than an invented threshold; adds
 `WorldEventEncounterOutput` to `EncounterOutput`; not wired into any
 runtime yet; see `docs/game-v2/tasks/V2-205-volatility-surge-family.md`.
+`V2-206` is accepted and closed: the third and last concrete indicator
+family, `Volume/Whale`, samples `MarketSnapshot.whaleTier` — already a
+server-classified discrete tier, so no continuous threshold was needed —
+and produces a bounded, tier-valued `LootEventEncounterOutput` on
+instant activation (no confirmation delay, unlike the other two
+families), with its cooldown reused directly from `VolumeAnalyzer`'s own
+real `whaleCooldownMs`; completes the `SPAWN`/`WORLD_EVENT`/`LOOT_EVENT`
+taxonomy across the three families (only `HYBRID` remains unauthored, with
+no owning task yet); not wired into any runtime yet; see
+`docs/game-v2/tasks/V2-206-volume-whale-family.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

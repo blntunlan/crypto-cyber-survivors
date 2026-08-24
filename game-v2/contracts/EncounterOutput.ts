@@ -1,8 +1,8 @@
 /**
  * The full market-encounter output taxonomy (design §6.2, `V2-204`).
- * `LOOT_EVENT`/`HYBRID` have no concrete shape yet — the family that owns
- * `LOOT_EVENT` (`V2-206`) adds its own variant to `EncounterOutput` when it
- * needs one, rather than this task guessing its content (V2-ADR-105).
+ * `HYBRID` has no concrete shape yet — it combines the other three under
+ * one budget (design line 187) and has no owning task yet, so this
+ * taxonomy does not guess its content (V2-ADR-105).
  */
 export type EncounterOutputKind = 'SPAWN' | 'WORLD_EVENT' | 'LOOT_EVENT' | 'HYBRID';
 
@@ -30,8 +30,23 @@ export type WorldEventEncounterOutput = Readonly<{
   telegraphTicks: number;
 }>;
 
-/** Grows as the remaining family adds its own variant (`V2-206`). */
-export type EncounterOutput = SpawnEncounterOutput | WorldEventEncounterOutput;
+/**
+ * A lootbox or opportunity event (design line 186, `V2-206`). `lootValue`
+ * is the triggering `whaleTier` itself — a real pass-through value, not an
+ * invented number — since no loot/economy system exists yet to price a
+ * lootbox (`V2-306`+, MVP-3).
+ */
+export type LootEventEncounterOutput = Readonly<{
+  kind: 'LOOT_EVENT';
+  lootTierId: string;
+  lootValue: number;
+}>;
+
+/** `HYBRID` has no owning task yet (design line 187); not modeled. */
+export type EncounterOutput =
+  | SpawnEncounterOutput
+  | WorldEventEncounterOutput
+  | LootEventEncounterOutput;
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === 'number' &&
@@ -101,5 +116,41 @@ export const assertWorldEventEncounterOutput = (
     kind: 'WORLD_EVENT',
     hazardId: candidate.hazardId,
     telegraphTicks: candidate.telegraphTicks,
+  });
+};
+
+/** Validates one `LootEventEncounterOutput`'s shape and field ranges. */
+export const assertLootEventEncounterOutput = (
+  value: unknown
+): LootEventEncounterOutput => {
+  if (typeof value !== 'object' || value === null) {
+    throw new TypeError('loot event encounter output must be an object');
+  }
+
+  const candidate = value as Partial<LootEventEncounterOutput>;
+
+  if (candidate.kind !== 'LOOT_EVENT') {
+    throw new RangeError("loot event encounter output kind must be 'LOOT_EVENT'");
+  }
+
+  if (
+    typeof candidate.lootTierId !== 'string' ||
+    candidate.lootTierId.trim().length === 0
+  ) {
+    throw new TypeError(
+      'loot event encounter output lootTierId must be a non-empty string'
+    );
+  }
+
+  if (!isPositiveInteger(candidate.lootValue)) {
+    throw new RangeError(
+      'loot event encounter output lootValue must be a positive integer'
+    );
+  }
+
+  return Object.freeze({
+    kind: 'LOOT_EVENT',
+    lootTierId: candidate.lootTierId,
+    lootValue: candidate.lootValue,
   });
 };

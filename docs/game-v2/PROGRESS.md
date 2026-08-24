@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-205` (Volatility Surge family) is accepted and closed. The next task is `V2-206` (Volume/Whale) — the last family, depends only on `V2-203`. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203`, `V2-204`, `V2-205` accepted; `V2-206`..`V2-213` not started. |
-| Closed | `V2-205` accepted (this checkpoint); `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-206` (Volume/Whale family) is accepted and closed — all three indicator families are now done. The next task is `V2-207` (primary/support composer), now reachable for the first time since it depends on all three. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-206` accepted; `V2-207`..`V2-213` not started. |
+| Closed | `V2-206` accepted (this checkpoint); `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3153,21 +3153,138 @@ Brief: `docs/game-v2/tasks/V2-205-volatility-surge-family.md`.
   three mutation checks confirm load-bearing assertions. `V2-205` is
   accepted.
 
+## V2-206 — Volume/Whale Family
+
+Brief: `docs/game-v2/tasks/V2-206-volume-whale-family.md`. Last of the
+three indicator families.
+
+- **The strongest real anchor of the three families, because the server
+  already does the classification, not just the calibration.**
+  `V2-204`/`V2-205` each needed a threshold picked against a *continuous*
+  field (`trendStrength`, `atrPercent`). `MarketSnapshot.whaleTier` is
+  different in kind: `railway-market-aggregator/src/indicators/VolumeAnalyzer.ts`
+  already reduces real z-score cutoffs (`BABY_WHALE >= 1.5σ`,
+  `WHALE >= 2.0σ`, `MEGA_WHALE >= 2.5σ`) into a discrete `0..3` tier before
+  `MarketSnapshot` ever sees it. `V2-203`'s mechanism works on any
+  `number`, so `whaleTier` is sampled directly — no derivation of a new
+  threshold on a continuous range was needed at all, the strongest of the
+  three families' anchor arguments.
+- **A genuine, reasoned departure from the other two families' shared
+  confirmation-tick pattern, not a copy-paste.** `V2-204`/`V2-205` both use
+  a `SIMULATION_HZ`-tick (1-second) confirmation window, because a trend
+  or an elevated ATR reading is a *sustained* condition worth confirming.
+  A whale spike is not: it is a momentary statistical outlier, and
+  `VolumeAnalyzer`'s own anti-spam mechanism
+  (`whaleCooldownMs = 30000`, a genuine existing constant) is a flat
+  cooldown after one spike, never a sustained-holding requirement. This
+  confirmed `VOLUME_WHALE_CONFIRMATION_TICKS = 0` (instant activation) is
+  the right derivation for this family, not an oversight of the pattern
+  the other two established.
+- `VOLUME_WHALE_COOLDOWN_TICKS` reuses `VolumeAnalyzer`'s own real
+  `whaleCooldownMs` constant directly (converted from milliseconds to
+  ticks), rather than an independently narratively-justified duration like
+  `V2-204`/`V2-205`'s 10-second cooldowns — a real anchor existed for this
+  exact family, so it was used instead of inventing a new one.
+- `game-v2/contracts/EncounterOutput.ts` (modified): adds
+  `LootEventEncounterOutput` (`kind: 'LOOT_EVENT'`, `lootTierId`,
+  `lootValue`) and `assertLootEventEncounterOutput`; `EncounterOutput`
+  becomes the three-member union `SpawnEncounterOutput |
+  WorldEventEncounterOutput | LootEventEncounterOutput`, completing
+  design §6.2's taxonomy except `HYBRID` (line 187 — combines the other
+  three under one budget; has no owning task yet, so deliberately not
+  modeled, matching `V2-204`'s own reasoning for leaving unowned variants
+  unauthored). `lootValue` is the triggering `whaleTier` itself, a real
+  pass-through, not an invented loot value — no loot/economy system exists
+  yet (`V2-306`+, MVP-3) to price a lootbox against.
+- `game-v2/config/VolumeWhaleFamily.ts`: the derived constants and
+  `VOLUME_WHALE_PROFILE`.
+- `game-v2/market/VolumeWhaleEncounter.ts`: wraps one
+  `IndicatorEventStateMachine`, samples `MarketSnapshot.whaleTier` each
+  step, and produces a `LootEventEncounterOutput` themed and valued by the
+  triggering tier exactly on the activation tick. A defensive
+  `whaleTier !== 2 && whaleTier !== 3` guard exists ahead of the theme
+  lookup — provably stronger than `V2-204`'s `'NEUTRAL'`-direction guard,
+  which was unreachable only through the *real server pipeline*: here the
+  guard is unreachable through the *type system itself* (`WhaleTier` is
+  exactly `0 | 1 | 2 | 3`, and only `2`/`3` can satisfy the `> 1` entry
+  condition), confirmed empirically by mutation-removing it and finding
+  `tsc` itself fails to compile (`LOOT_TIER_BY_WHALE_TIER[snapshot.whaleTier]`
+  can no longer index a `Record<2 | 3, string>` with an ungoverned
+  `WhaleTier`) rather than merely a test failing at runtime.
+- Test coverage: `EncounterOutput.test.ts` gained a full
+  `assertLootEventEncounterOutput` describe block (9 tests — valid input,
+  one rejection per invalid field), existing variants unaffected;
+  `VolumeWhaleFamily.test.ts` (6 tests — every derivation pinned by exact
+  equality, including the `whaleCooldownMs -> ticks` conversion);
+  `VolumeWhaleEncounter.test.ts` (6 tests — no output for `NONE`/
+  `BABY_WHALE`; instant activation with no confirmation delay for both
+  `WHALE` and `MEGA_WHALE`, themed and valued correctly; no output on the
+  tick after activation; no output while `COOLDOWN` even when a second
+  whale tier is met, re-verifying `V2-203`'s anti-spam property through
+  the real wrapper; `reset()`). One redundant/trivial test assertion
+  (hardcoded `1 > 1`/`2 > 1`/`3 > 1` comparisons, all `no-unnecessary-condition`
+  lint warnings since both sides were literals) was simplified to a single
+  constant-value pin, with the real tier-activation behavior left to
+  `VolumeWhaleEncounter.test.ts`'s own end-to-end proof rather than
+  re-derived in the config test.
+- **Mutation pass, 4 mutants, all caught — the fourth caught by `tsc`
+  itself rather than a test, confirmed empirically rather than assumed.**
+  Producing output on every `ACTIVE` tick instead of only the activation
+  tick failed 1 test. Reversing the `WHALE`/`MEGA_WHALE` theme mapping
+  failed 2 tests. Hardcoding `lootValue` instead of passing through the
+  real `whaleTier` failed 2 tests. Reverting the cooldown-ticks derivation
+  to an unrelated raw value failed the dedicated constant-derivation test.
+  Removing the defensive tier guard was verified empirically rather than
+  assumed unreachable (mirroring `V2-203`'s own honest-reporting
+  precedent for its `reset()` finding): it does not even compile —
+  `npm run typecheck` itself is the gate that catches this mutant, a
+  stronger guarantee than any runtime test could give.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (62 files,
+  1101 tests, up from 60 files/1079 tests before this task by the two new
+  test files plus the `EncounterOutput.test.ts` additions, 22 tests
+  total), `npm run typecheck`, `npm run check:architecture` (89 baseline
+  singleton files — nothing new was added), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean after simplifying the one trivial-comparison test), focused
+  Prettier (clean), and `npm run build`. No e2e run was needed: this task
+  touches nothing under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `LootEventEncounterOutput` validates and freezes
+  correctly, existing variants unaffected; (2) `VOLUME_WHALE_PROFILE` and
+  every derived constant are pinned by exact-equality tests tracing to a
+  real existing value (`VolumeAnalyzer`'s z-score tiers and
+  `whaleCooldownMs`); (3) `VolumeWhaleEncounter` activates instantly on a
+  single qualifying tick and produces exactly one themed, valued output
+  per activation, `null` otherwise, including through the cooldown's
+  anti-spam property; (4) nothing outside
+  `game-v2/contracts/**`/`game-v2/config/**`/`game-v2/market/**` was
+  touched, confirmed by the file diff; (5) every gate passes and all four
+  mutation checks confirm load-bearing assertions, one via `tsc` itself.
+  `V2-206` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` (canonical market snapshot, BTC-only), `V2-201` (locked position
-context), `V2-202` (five lethality profiles), `V2-203` (indicator-event
-state machine), `V2-204` (Trend/Breakout family), and `V2-205` (Volatility
-Surge family) are all accepted. Per `MASTER_PLAN.md`, `V2-206`
-(Volume/Whale) is the only remaining family — it depends only on `V2-203`
-and is unblocked. Once it lands, `V2-207` (the primary/support composer)
-becomes reachable for the first time, since it depends on all three
-families. `V2-206` will add `LootEventEncounterOutput` to
-`EncounterOutput.ts` (the contract's third and, per design §6.2's
-taxonomy, second-to-last variant — only `HYBRID` remains unauthored,
-deliberately, since it combines the other three and has no task of its
-own to own it yet).
+`V2-200` through `V2-206` are all accepted — all three indicator-event
+families (`Trend/Breakout`, `Volatility Surge`, `Volume/Whale`) are done,
+and `EncounterOutput` carries all three of design §6.2's owned variants
+(`SPAWN`/`WORLD_EVENT`/`LOOT_EVENT`; `HYBRID` remains deliberately
+unauthored, no owning task yet). Per `MASTER_PLAN.md`, `V2-207` (the
+primary/support composer, "At most one primary encounter and one
+compatible support modifier may be active") is now reachable for the
+first time, since it depends on all three families and they are all now
+closed. This is a real architectural step up from the three prior
+tasks: it is the first task that has to *choose between* multiple
+concrete `IndicatorEventProfile`s (all three families' profiles can be
+simultaneously `ARMED` against the same live `MarketSnapshot`) rather than
+author one family in isolation — worth scoping carefully, including
+reading design §7.5's "compatible simultaneous signals may produce one
+primary plus one support; incompatible or lower-priority signals are
+rejected rather than banked" and the `priority`/`compatibleWith` fields
+each family's `IndicatorEventProfile` already carries but has never been
+read by anything until now.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
