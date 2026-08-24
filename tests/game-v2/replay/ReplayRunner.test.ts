@@ -5,6 +5,7 @@ import {
   RUN_RECORDING_SCHEMA_VERSION,
   type RunRecording,
 } from '@/game-v2/contracts/RunRecording';
+import { PASSIVE_MOVE_SPEED_BY_LEVEL } from '@/game-v2/contracts/PassiveSlot';
 import { ReplayRunner } from '@/game-v2/replay/ReplayRunner';
 
 import { SCENARIO_SEED, driveScriptedRun } from '../support/scriptedRun';
@@ -82,9 +83,16 @@ describe('ReplayRunner', () => {
     const run = driveScriptedRun(SCENARIO_SEED, 'passive');
     const recording = run.runtime.exportRecording();
     const liveHash = run.runtime.snapshotHash();
+    // Captured before dispose so the state the hash was taken from is
+    // provably a real passive upgrade — a raw `choiceIndex` bound check
+    // (0..2) is true by construction for any `OfferCandidateIndex` and
+    // proves nothing about which candidate was actually resolved.
+    const liveReadout = run.runtime.readout();
     run.runtime.dispose();
 
     expect(run.upgradeApplied).toBe(true);
+    expect(liveReadout.moveSpeedLevel).toBe(1);
+    expect(liveReadout.moveSpeed).toBe(PASSIVE_MOVE_SPEED_BY_LEVEL[1]);
     // The single passive identity can be crowded out of the offer by
     // V2-107's eight abilities, in which case `driveScriptedRun` rerolls
     // once (a real, recorded command) before choosing — so the
@@ -95,8 +103,6 @@ describe('ReplayRunner', () => {
     if (upgradeCommand === undefined) {
       throw new Error('expected a choose-upgrade command');
     }
-    expect(upgradeCommand.choiceIndex).toBeGreaterThanOrEqual(0);
-    expect(upgradeCommand.choiceIndex).toBeLessThanOrEqual(2);
 
     const replayRunner = new ReplayRunner();
     const at30 = replayRunner.run(recording, 30);

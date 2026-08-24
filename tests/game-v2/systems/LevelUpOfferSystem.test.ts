@@ -455,6 +455,58 @@ describe('LevelUpOfferSystem', () => {
       }
     });
 
+    it('never redraws a duplicate of a sibling candidate still shown in the same offer', () => {
+      // Sweeps many seeds and every target index: the redraw pool must
+      // exclude identities already occupying the offer's other two slots,
+      // not just the permanent per-run ban, or two cards in the same offer
+      // can show the identical identity. Seeds are spread across the full
+      // uint32 range via a multiplicative hash rather than small sequential
+      // integers: `DeterministicRng`'s xorshift32 mixes a small seed weakly
+      // on its very first output (harmless for real run identities, which
+      // are large uint32 values, but it collapses a small-sequential-seed
+      // sweep onto the same low-entropy draw and hides real RNG-dependent
+      // bugs — this test originally passed against the pre-fix code for
+      // exactly that reason).
+      const spread = (n: number): number => Math.imul(n, 2654435761) >>> 0;
+
+      for (let seed = 1; seed < 60; seed += 1) {
+        for (const targetIndex of [0, 1, 2] as const) {
+          const { world, owner, offerSystem } = createHarness();
+          offerSystem.generateOffer(world, new DeterministicRng(spread(seed)), owner);
+          world.banishCharges[world.slotOf(owner)] = 1;
+          const before = offerSystem.candidatesAt(world, owner);
+
+          if (before[targetIndex] === null) {
+            continue;
+          }
+
+          offerSystem.banish(
+            world,
+            new DeterministicRng(spread(seed * 10 + targetIndex + 1000)),
+            owner,
+            targetIndex
+          );
+
+          const after = offerSystem.candidatesAt(world, owner);
+          const redrawn = after[targetIndex];
+
+          if (redrawn === null || redrawn === undefined) {
+            continue;
+          }
+
+          for (let i = 0; i < 3; i += 1) {
+            if (i === targetIndex) {
+              continue;
+            }
+            const sibling = after[i];
+            const isDuplicate =
+              sibling?.kind === redrawn.kind && sibling.identity === redrawn.identity;
+            expect(isDuplicate, `seed ${seed}, targetIndex ${targetIndex}`).toBe(false);
+          }
+        }
+      }
+    });
+
     it('redraws the default index only when it pointed at the banished slot', () => {
       const { world, owner, offerSystem } = createHarness();
       offerSystem.generateOffer(world, new DeterministicRng(4), owner);

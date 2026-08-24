@@ -2025,6 +2025,110 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
   ECMA-262. V2-407 wants a Node-versus-browser comparison, and `Math.hypot` is
   replaceable with an exactly-specified `Math.sqrt` form.
 
+## Review-Finding Cleanup (post-V2-109, no task ID)
+
+At the user's request, 6 of the 9 findings from `V2-109`'s `/code-review
+high` pass (see that task's changelog entry) were fixed and TDD-verified in
+one follow-up pass. Not a numbered V2-1xx task — pre-existing debt on
+already-closed `V2-100`-`V2-108` work, fixed directly rather than briefed.
+
+- **`LevelUpOfferSystem.banish()` duplicate-offer bug (real, confirmed).**
+  The redraw pool excluded only the permanent per-run ban, not the
+  identities already occupying the offer's other two untouched slots, so a
+  banish could duplicate a sibling candidate in the same offer. Fixed by
+  excluding sibling `(kind, code)` pairs from the redraw pool, keyed as
+  `kind * 256 + code` (collision-free: `offerCandidateCode` is `Uint8Array`,
+  0..255). A property-style test sweeping seeds first had to be fixed
+  itself: small sequential seeds (1000-1029) all collapsed onto the same
+  `DeterministicRng` draw because xorshift32 mixes a small seed weakly on
+  its first output — real for any small seed, harmless for production (run
+  seeds are large uint32 values), but it silently passed against the
+  pre-fix code until seeds were spread across the full uint32 range via a
+  multiplicative hash. RED confirmed against the reverted pre-fix code
+  before the fix was restored.
+- **`WorldStateValidator` didn't reject the duplicate-offer state above.**
+  `validateLevelUpOffer` checked kind/code pairing, ownership, and the
+  default index, but never pairwise distinctness. Added the same
+  `kind * 256 + code` key check. RED confirmed against the reverted
+  pre-fix validator.
+- **`ProgressionSystem.step`/`rerollOffer`/`banishOffer`'s `rng` parameter
+  now required, not defaulted to `new DeterministicRng(1)`.** Production
+  already always passed the real RNG explicitly (`GameV2Runtime.ts`); the
+  default was a latent footgun for any future second call site. ~46 test
+  call sites across `ProgressionSystem.test.ts` needed an explicit
+  `new DeterministicRng(1)` added — done with a small balanced-paren-aware
+  Node script (deleted after use) rather than by hand, then formatted and
+  typechecked.
+- **`ReplayRunner.test.ts`'s passive-choice test strengthened.** The
+  `choiceIndex` bounds check (`0..2`) was true by construction for any
+  `OfferCandidateIndex` and proved nothing about which candidate replayed.
+  Replaced with a captured-before-dispose readout assertion
+  (`moveSpeedLevel === 1`, `moveSpeed === PASSIVE_MOVE_SPEED_BY_LEVEL[1]`)
+  tied to the exact state the hash comparison is taken from.
+- **`e2e/game-v2-walking-skeleton.spec.ts` reroll/banish coverage —
+  partial, deliberately.** Added visibility/enabled assertions for the
+  reroll button and every banish button on the level-up card (a real gap:
+  nothing previously checked these controls render at all). Did not add a
+  full click-through: rerolling or banishing regenerates the offer from
+  the complete ability pool, which is not guaranteed to still contain
+  `starter-projectile`, and every assertion for the rest of this scripted
+  run depends on that specific identity. The actual reroll/banish *logic*
+  is already exhaustively covered by `LevelUpOfferSystem.test.ts` and
+  `ReplayRunner.test.ts`'s "replays a recorded reroll and banish" test — a
+  smoke e2e spec re-proving business logic already proven elsewhere was
+  judged not worth the added CI time (this file is the chromium smoke
+  gate).
+- **`ProgressionSystem.step`'s double `world.masks.length` scan for XP
+  pickups collapsed to one, behavior-preserving.** The original scanned
+  once to validate/sum existing pickups' overlap, then again to destroy
+  them. Existing-pickup overlap is now recorded (slot index) during the
+  validation scan into a reused `Uint16Array` sized `MAX_WORLD_CAPACITY`;
+  newly-spawned kill pickups have overlap recomputed once right after
+  creation (cheap — `killCount` is bounded by
+  `COMBAT_KILL_BUFFER_CAPACITY`); one final small loop destroys exactly the
+  recorded slots. The "validate everything before mutating anything"
+  atomicity the original two-pass structure protected is preserved: kill
+  validation still fully completes before any pickup is created, and
+  pickup creation still fully completes before any destruction. A new
+  combined test (existing leftover pickup + newly-spawned overlapping
+  pickup destroyed in the same tick) was added and mutation-killed twice
+  (recording disabled at each of the two record sites independently, both
+  caught by existing plus the new test).
+- **`StateHasher.ts` gained a compile-time-only exhaustiveness guard.**
+  `hashWorld` is a hand-written function that must call the exact
+  `hash.f32`/`hash.u8`/etc. method per field's real byte layout, so it
+  cannot iterate `WorldSnapshot` generically the way
+  `WorldStateValidator`'s schema-array validation does — a future field
+  added to `WorldSnapshot` without a corresponding `hashWorld` line would
+  compile cleanly and silently ship a field the anti-cheat replay hash
+  never covers. `HASHED_WORLD_FIELDS` (exported, `as const satisfies
+  ReadonlyArray<keyof WorldSnapshot>`) plus an `AssertNever`-based
+  `HashedWorldFieldCoverage` type, mirroring `WorldStateValidator`'s own
+  pattern, makes that a `tsc` error instead. Verified load-bearing by
+  temporarily removing one field from the list and confirming `tsc` failed
+  with the expected error, then restoring it.
+- **Left alone, deliberately — each is an already-accepted decision, not a
+  hidden defect, and "fixing" it means either reversing that decision or
+  building a genuinely new deferred feature:** `WeaponSystem`'s
+  single-fixed-slot autonomous firing (V2-ADR-068, no task ID assigned yet
+  for generalizing it); `AbilitySlot.startEligible` having no reader today
+  (V2-ADR-062, explicitly deferred until a starting-weapon-selection
+  screen exists, itself deferred to MVP-4); `LevelUpOverlay`'s wall-clock
+  `setInterval` timer (V2-ADR-050, deliberately outside simulation
+  authority so RNG resolution never depends on real-time). Flagged to the
+  user for an explicit decision rather than silently reversed or expanded.
+- Full verification after all six fixes: `npx vitest run tests/game-v2
+  --pool=forks --maxWorkers=1` (40 files, 869 tests, up from 867 by two new
+  tests — the `LevelUpOfferSystem` duplicate-offer sweep and the
+  `ProgressionSystem` combined-destroy regression test), `npm run
+  typecheck`, `npm run check:architecture`, `npm run check:reset-coverage`,
+  `npm run check:event-contract`, `npm run check:ui-contract`, focused
+  ESLint on all nine changed files (0 errors, 2 warnings found and fixed —
+  an unexported type-only-used `const` and one `prefer-optional-chain`
+  suggestion), `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed). Nothing has been committed yet.
+
 ## Exact Next Action
 
 `V2-109` is accepted and closed at `3dfd5f06` (current local `HEAD`, not yet

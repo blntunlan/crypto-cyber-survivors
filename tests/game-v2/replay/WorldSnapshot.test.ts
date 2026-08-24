@@ -671,6 +671,18 @@ describe('canonical runtime checkpoint', () => {
           world.offerDefaultIndex[0] = 1;
         },
       ],
+      [
+        'two candidates sharing the same kind and code',
+        /offer candidates must be pairwise distinct/i,
+        world => {
+          // The fixture's own index 0 is {ABILITY, 5}; duplicating it into
+          // the empty index 1 must be rejected (V2-109 review finding: this
+          // exact duplicate state was reachable through
+          // `LevelUpOfferSystem.banish`'s pre-fix redraw pool).
+          world.offerCandidateKind[world.offerSlotIndexOf(0, 1)] = OFFER_KIND_ABILITY;
+          world.offerCandidateCode[world.offerSlotIndexOf(0, 1)] = 5;
+        },
+      ],
     ];
 
     for (const [name, message, mutate] of cases) {

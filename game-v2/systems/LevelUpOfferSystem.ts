@@ -233,7 +233,30 @@ export class LevelUpOfferSystem {
 
     const base = this.baseIndex(world, owner);
     const wasDefault = (world.offerDefaultIndex[slot] ?? 0) === targetIndex;
-    const pool = this.offerablePool(world, owner);
+
+    // Excludes the identities already occupying the offer's other slots, not
+    // just the permanent per-run ban: otherwise the redraw can duplicate a
+    // sibling candidate still shown in the same offer, which no test or ADR
+    // accepts (unlike `reroll`'s documented V2-ADR-057 "reappears by chance
+    // across a reroll" tolerance — that is a different offer instance, not
+    // two identical cards in the one currently on screen).
+    // `offerCandidateCode` is a `Uint8Array` (0..255), so `kind * 256 + code`
+    // is a collision-free composite key for the two small kind constants.
+    const siblingKeys = new Set<number>();
+    for (let i = 0; i < OFFER_CANDIDATE_COUNT; i += 1) {
+      if (i === targetIndex) {
+        continue;
+      }
+      const kind = world.offerCandidateKind[base + i] ?? 0;
+      if (kind !== 0) {
+        const code = world.offerCandidateCode[base + i] ?? 0;
+        siblingKeys.add(kind * 256 + code);
+      }
+    }
+
+    const pool = this.offerablePool(world, owner).filter(
+      entry => !siblingKeys.has(entry.kind * 256 + entry.code)
+    );
 
     if (pool.length === 0) {
       world.offerCandidateKind[base + targetIndex] = 0;

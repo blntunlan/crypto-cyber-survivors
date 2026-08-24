@@ -246,6 +246,10 @@ const validateLevelUpOffer = (
     const mask = state.masks[slot] ?? 0;
     const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
     let hasCandidate = false;
+    // `offerCandidateCode` is a `Uint8Array` (0..255), so `kind * 256 + code`
+    // is a collision-free composite key for the two small kind constants —
+    // mirrors `LevelUpOfferSystem.banish`'s own sibling-exclusion key.
+    const seenKeys = new Set<number>();
 
     for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
       const storeIndex = offerStoreIndex(slot, index);
@@ -266,6 +270,11 @@ const validateLevelUpOffer = (
 
       if (kind !== 0) {
         hasCandidate = true;
+        const key = kind * 256 + code;
+        if (seenKeys.has(key)) {
+          throw new RangeError('offer candidates must be pairwise distinct');
+        }
+        seenKeys.add(key);
       }
     }
 

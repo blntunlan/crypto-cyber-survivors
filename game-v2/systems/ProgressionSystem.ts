@@ -1,6 +1,7 @@
 import {
   COMBAT_KILL_BUFFER_CAPACITY,
   LEVEL_2_XP_THRESHOLD,
+  MAX_WORLD_CAPACITY,
   MVP0_MAX_PLAYER_LEVEL,
   PLAYER_STARTING_LEVEL,
   XP_PICKUP_RADIUS,
@@ -11,7 +12,7 @@ import { type ProgressionStepResult } from '@/game-v2/contracts/ProgressionStepR
 import { type RunCommand } from '@/game-v2/contracts/RunCommand';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
 import { type CommandRecorder } from '@/game-v2/replay/CommandRecorder';
-import { DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
+import { type DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 import { type GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { LevelUpOfferSystem } from '@/game-v2/systems/LevelUpOfferSystem';
@@ -58,6 +59,20 @@ export class ProgressionSystem {
   private readonly passiveLoadout: PassiveLoadoutSystem;
   private readonly offerSystem: LevelUpOfferSystem;
   private readonly result: ProgressionStepResult;
+
+  /**
+   * Reused across `step` calls so collecting overlapping XP pickups costs
+   * one `world.masks.length` scan (to validate and find the *existing*
+   * ones) instead of two: this buffer records which slots to destroy —
+   * existing pickups found overlapping during validation, plus any
+   * just-spawned kill pickups found overlapping right after creation —
+   * so the final destroy pass iterates exactly those slots instead of
+   * re-scanning the whole world a second time. Sized to
+   * `MAX_WORLD_CAPACITY`, the hard ceiling `World` itself enforces, so it
+   * is always large enough regardless of which `World` instance is passed
+   * to `step`.
+   */
+  private readonly overlappingPickupSlots = new Uint16Array(MAX_WORLD_CAPACITY);
 
   public constructor(
     lifecycle: GameV2Lifecycle,
@@ -113,7 +128,7 @@ export class ProgressionSystem {
     playerEntity: EntityId,
     combatResult: Readonly<CombatStepResult>,
     context: StepContext,
-    rng: DeterministicRng = new DeterministicRng(1)
+    rng: DeterministicRng
   ): ProgressionStepResult {
     assertStepContext(context);
 
@@ -226,7 +241,10 @@ export class ProgressionSystem {
       }
     }
 
-    // Validate every existing pickup before collection can destroy any of them.
+    // Validate every existing pickup before collection can destroy any of
+    // them, and record which ones overlap so the destroy pass below does
+    // not need a second `world.masks.length` scan to rediscover them.
+    let overlapCount = 0;
     for (let slot = 0; slot < world.masks.length; slot += 1) {
       const mask = world.masks[slot];
       if (
@@ -260,6 +278,8 @@ export class ProgressionSystem {
         if (!isFiniteNonNegativeFloat32(xpCollectedThisTick)) {
           throw new RangeError('collected XP exceeds finite Float32 storage');
         }
+        this.overlappingPickupSlots[overlapCount] = slot;
+        overlapCount += 1;
       }
     }
 
@@ -272,6 +292,11 @@ export class ProgressionSystem {
       throw new RangeError('entity capacity exhausted for XP pickups');
     }
 
+    // All existing pickups and the complete kill batch are validated by this
+    // point (the kill batch above, existing pickups above), so creation and
+    // the eventual destroy pass below cannot partially publish before a
+    // malformed later row — nothing past this point can still throw for a
+    // reason tied to input validity.
     for (let i = 0; i < killCount; i += 1) {
       const spawnX = killX[i];
       const spawnY = killY[i];
@@ -290,26 +315,26 @@ export class ProgressionSystem {
       world.previousY[slot] = spawnY;
       world.radius[slot] = XP_PICKUP_RADIUS_F32;
       world.xpPickupValue[slot] = pickupXp;
+
+      // A pickup can spawn already overlapping the player (e.g. a ranged
+      // kill at the player's own position); recomputing overlap here with
+      // the position just written is cheap (killCount is bounded by
+      // `COMBAT_KILL_BUFFER_CAPACITY`) and lets the destroy pass below stay
+      // a single pass over the recorded slots instead of a second full scan.
+      if (
+        overlaps(playerX, playerY, playerRadius, spawnX, spawnY, XP_PICKUP_RADIUS_F32)
+      ) {
+        this.overlappingPickupSlots[overlapCount] = slot;
+        overlapCount += 1;
+      }
     }
 
-    // All existing pickups and all just-spawned pickup data are validated now,
-    // so collection cannot partially publish before a malformed later row.
-    for (let slot = 0; slot < world.masks.length; slot += 1) {
-      const mask = world.masks[slot];
-      if (
-        mask === undefined ||
-        (mask & XP_PICKUP_ENTITY_MASK) !== XP_PICKUP_ENTITY_MASK
-      ) {
-        continue;
+    for (let i = 0; i < overlapCount; i += 1) {
+      const slot = this.overlappingPickupSlots[i];
+      if (slot === undefined) {
+        throw new Error('overlapping pickup slot buffer is corrupt');
       }
-
-      const pickupX = world.x[slot] ?? 0;
-      const pickupY = world.y[slot] ?? 0;
-      const pickupRadius = world.radius[slot] ?? 0;
-
-      if (overlaps(playerX, playerY, playerRadius, pickupX, pickupY, pickupRadius)) {
-        world.destroyEntity(world.entityIdOf(slot));
-      }
+      world.destroyEntity(world.entityIdOf(slot));
     }
 
     let leveledUp = false;
@@ -392,7 +417,7 @@ export class ProgressionSystem {
     world: World,
     playerEntity: EntityId,
     command: RunCommand & { type: 'reroll-offer' },
-    rng: DeterministicRng = new DeterministicRng(1)
+    rng: DeterministicRng
   ): void {
     if (this.lifecycle.phase !== 'level-up') {
       throw new RangeError(
@@ -418,7 +443,7 @@ export class ProgressionSystem {
     world: World,
     playerEntity: EntityId,
     command: RunCommand & { type: 'banish-offer' },
-    rng: DeterministicRng = new DeterministicRng(1)
+    rng: DeterministicRng
   ): void {
     if (this.lifecycle.phase !== 'level-up') {
       throw new RangeError(

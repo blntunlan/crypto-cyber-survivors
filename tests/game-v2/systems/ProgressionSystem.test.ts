@@ -237,13 +237,15 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
       world,
       player,
       createEmptyCombatResult(),
-      createContext(0)
+      createContext(0),
+      new DeterministicRng(1)
     );
     const result2 = progression.step(
       world,
       player,
       createEmptyCombatResult(),
-      createContext(1)
+      createContext(1),
+      new DeterministicRng(1)
     );
 
     expect(result2).toBe(result1);
@@ -260,7 +262,13 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     combatResetPlayerHelper(world, player);
 
     const combatWithKill = createCombatResultWithKills([{ x: 10, y: 10, xp: 5 }]);
-    const res1 = progression.step(world, player, combatWithKill, createContext(0));
+    const res1 = progression.step(
+      world,
+      player,
+      combatWithKill,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     expect(res1.pickupsSpawned).toBe(1);
     expect(res1.xpCollected).toBe(0);
@@ -271,7 +279,8 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
       world,
       player,
       createEmptyCombatResult(),
-      createContext(1)
+      createContext(1),
+      new DeterministicRng(1)
     );
 
     expect(res2.pickupsSpawned).toBe(0);
@@ -297,7 +306,8 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(0)
+      createContext(0),
+      new DeterministicRng(1)
     );
     expect(priorResult).toEqual({
       pickupsSpawned: 1,
@@ -324,7 +334,8 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
       world,
       player,
       simultaneousKillAndDeath,
-      createContext(1)
+      createContext(1),
+      new DeterministicRng(1)
     );
 
     expect(terminalResult).toBe(priorResult);
@@ -357,7 +368,13 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
     terminalWithMalformedKills.killCount = Number.MAX_SAFE_INTEGER;
 
     expect(
-      progression.step(world, player, terminalWithMalformedKills, createContext(0))
+      progression.step(
+        world,
+        player,
+        terminalWithMalformedKills,
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toEqual({
       pickupsSpawned: 0,
       xpCollected: 0,
@@ -388,7 +405,8 @@ describe('ProgressionStepResult lifecycle and reuse', () => {
         world,
         player,
         forged as unknown as CombatStepResult,
-        createContext(0)
+        createContext(0),
+        new DeterministicRng(1)
       )
     ).toThrow(TypeError);
     expect(world.freeSlotCount).toBe(freeSlotsBefore);
@@ -444,7 +462,13 @@ describe('Player progression initialization (resetPlayer)', () => {
     const progression = new ProgressionSystem(lifecycle, commandRecorder);
 
     expect(() =>
-      progression.step(world, player, createEmptyCombatResult(), createContext(0))
+      progression.step(
+        world,
+        player,
+        createEmptyCombatResult(),
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
   });
 });
@@ -466,7 +490,13 @@ describe('XP Pickup spawning', () => {
     ];
     const combatResult = createCombatResultWithKills(kills);
 
-    const res = progression.step(world, player, combatResult, createContext(0));
+    const res = progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     expect(res.pickupsSpawned).toBe(2);
 
@@ -503,7 +533,13 @@ describe('XP Pickup spawning', () => {
     ]);
 
     expect(() =>
-      progression.step(world, player, combatResult, createContext(0))
+      progression.step(
+        world,
+        player,
+        combatResult,
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
 
     let pickupCount = 0;
@@ -533,7 +569,13 @@ describe('XP Pickup spawning', () => {
     ]);
 
     expect(() =>
-      progression.step(world, player, combatResult, createContext(0))
+      progression.step(
+        world,
+        player,
+        combatResult,
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
 
     expect(world.freeSlotCount).toBe(freeSlotsBefore);
@@ -556,9 +598,15 @@ describe('XP Pickup spawning', () => {
     const malformed = createEmptyCombatResult();
     malformed.killCount = Number.MAX_SAFE_INTEGER;
 
-    expect(() => progression.step(world, player, malformed, createContext(0))).toThrow(
-      RangeError
-    );
+    expect(() =>
+      progression.step(
+        world,
+        player,
+        malformed,
+        createContext(0),
+        new DeterministicRng(1)
+      )
+    ).toThrow(RangeError);
     expect(world.freeSlotCount).toBe(freeSlotsBefore);
   });
 
@@ -577,9 +625,15 @@ describe('XP Pickup spawning', () => {
       killX: [0],
     } as unknown as CombatStepResult;
 
-    expect(() => progression.step(world, player, malformed, createContext(0))).toThrow(
-      TypeError
-    );
+    expect(() =>
+      progression.step(
+        world,
+        player,
+        malformed,
+        createContext(0),
+        new DeterministicRng(1)
+      )
+    ).toThrow(TypeError);
     expect(world.freeSlotCount).toBe(freeSlotsBefore);
   });
 });
@@ -599,7 +653,13 @@ describe('XP Pickup collection and overlap', () => {
     const combatResult = createCombatResultWithKills([
       { x: 20, y: 20, xp: pickupXpValue },
     ]);
-    progression.step(world, player, combatResult, createContext(0));
+    progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     let pickupSlot = -1;
     for (let slot = 0; slot < world.masks.length; slot += 1) {
@@ -618,7 +678,8 @@ describe('XP Pickup collection and overlap', () => {
       world,
       player,
       createEmptyCombatResult(),
-      createContext(1)
+      createContext(1),
+      new DeterministicRng(1)
     );
 
     expect(res.xpCollected).toBe(pickupXpValue);
@@ -630,7 +691,8 @@ describe('XP Pickup collection and overlap', () => {
       world,
       player,
       createEmptyCombatResult(),
-      createContext(2)
+      createContext(2),
+      new DeterministicRng(1)
     );
     expect(resNext.xpCollected).toBe(0);
   });
@@ -647,13 +709,20 @@ describe('XP Pickup collection and overlap', () => {
     combatResetPlayerHelper(world, player);
 
     const combatResult = createCombatResultWithKills([{ x: 10, y: 10, xp: 5 }]);
-    progression.step(world, player, combatResult, createContext(0));
+    progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     const res = progression.step(
       world,
       player,
       createEmptyCombatResult(),
-      createContext(1)
+      createContext(1),
+      new DeterministicRng(1)
     );
 
     expect(res.xpCollected).toBe(0);
@@ -674,7 +743,13 @@ describe('XP Pickup collection and overlap', () => {
     const combatResult = createCombatResultWithKills([
       { x: exactDistance, y: 0, xp: 5 },
     ]);
-    const res = progression.step(world, player, combatResult, createContext(0));
+    const res = progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     expect(res.xpCollected).toBe(5);
   });
@@ -694,9 +769,72 @@ describe('XP Pickup collection and overlap', () => {
       { x: 0.1, y: 0.1, xp: 10 },
     ]);
 
-    const res = progression.step(world, player, combatResult, createContext(0));
+    const res = progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     expect(res.xpCollected).toBe(15);
+  });
+
+  it('destroys an existing leftover pickup and a newly-spawned overlapping pickup in the same tick', () => {
+    // Locks in the single-pass overlap-collection refactor: existing
+    // pickups are recorded as overlapping during the validation scan, new
+    // kill pickups are recorded as overlapping right after creation, and
+    // one final pass destroys both sets — this is the one scenario that
+    // exercises both recording paths landing in the same destroy pass.
+    const world = new World(16);
+    const player = createRawPlayer(world, 0, 0);
+    const lifecycle = new GameV2Lifecycle();
+    lifecycle.start();
+    const commandRecorder = new CommandRecorder();
+    const progression = new ProgressionSystem(lifecycle, commandRecorder);
+    progression.resetPlayer(world, player);
+    combatResetPlayerHelper(world, player);
+
+    // A far-away kill leaves a real, non-overlapping pickup entity behind,
+    // then it is repositioned onto the player to become the "existing
+    // leftover pickup" the next step must find during its validation scan.
+    progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 20, y: 20, xp: 7 }]),
+      createContext(0),
+      new DeterministicRng(1)
+    );
+    let existingSlot = -1;
+    for (let slot = 0; slot < world.masks.length; slot += 1) {
+      if (((world.masks[slot] ?? 0) & XP_PICKUP_MASK) === XP_PICKUP_MASK) {
+        existingSlot = slot;
+        break;
+      }
+    }
+    expect(existingSlot).toBeGreaterThanOrEqual(0);
+    const existingEntity = world.entityIdOf(existingSlot);
+    world.x[existingSlot] = 0;
+    world.y[existingSlot] = 0;
+
+    const res = progression.step(
+      world,
+      player,
+      createCombatResultWithKills([{ x: 0, y: 0, xp: 11 }]),
+      createContext(1),
+      new DeterministicRng(1)
+    );
+
+    expect(res.xpCollected).toBe(18);
+    expect(world.isAlive(existingEntity)).toBe(false);
+
+    let livePickupCount = 0;
+    for (let slot = 0; slot < world.masks.length; slot += 1) {
+      if (((world.masks[slot] ?? 0) & XP_PICKUP_MASK) === XP_PICKUP_MASK) {
+        livePickupCount += 1;
+      }
+    }
+    expect(livePickupCount).toBe(0);
   });
 
   it('collects pickup spawned in the same tick if enemy dies on top of player', () => {
@@ -710,7 +848,13 @@ describe('XP Pickup collection and overlap', () => {
     combatResetPlayerHelper(world, player);
 
     const combatResult = createCombatResultWithKills([{ x: 0, y: 0, xp: 5 }]);
-    const res = progression.step(world, player, combatResult, createContext(0));
+    const res = progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(0),
+      new DeterministicRng(1)
+    );
 
     expect(res.pickupsSpawned).toBe(1);
     expect(res.xpCollected).toBe(5);
@@ -742,7 +886,13 @@ describe('XP Pickup collection and overlap', () => {
     world.xpPickupValue[laterSlot] = 2;
 
     expect(() =>
-      progression.step(world, player, createEmptyCombatResult(), createContext(0))
+      progression.step(
+        world,
+        player,
+        createEmptyCombatResult(),
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
 
     expect(world.isAlive(firstPickup)).toBe(true);
@@ -773,7 +923,13 @@ describe('XP Pickup collection and overlap', () => {
     world.xpPickupValue[secondSlot] = maximumFiniteFloat32;
 
     expect(() =>
-      progression.step(world, player, createEmptyCombatResult(), createContext(0))
+      progression.step(
+        world,
+        player,
+        createEmptyCombatResult(),
+        createContext(0),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
 
     expect(world.isAlive(firstPickup)).toBe(true);
@@ -797,7 +953,8 @@ describe('Level progression, surplus XP, and pause trigger', () => {
         world,
         player,
         createCombatResultWithKills([{ x: 10, y: 10, xp: 5 }]),
-        createContext(0)
+        createContext(0),
+        new DeterministicRng(1)
       )
     ).toThrow(RangeError);
     expect(world.freeSlotCount).toBe(15);
@@ -817,7 +974,13 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     const surplusXp = 8;
     const combatResult = createCombatResultWithKills([{ x: 0, y: 0, xp: surplusXp }]);
 
-    const res = progression.step(world, player, combatResult, createContext(42));
+    const res = progression.step(
+      world,
+      player,
+      combatResult,
+      createContext(42),
+      new DeterministicRng(1)
+    );
 
     expect(res.leveledUp).toBe(true);
     expect(res.offerPending).toBe(true);
@@ -843,7 +1006,8 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(10)
+      createContext(10),
+      new DeterministicRng(1)
     );
     expect(world.level[playerSlot]).toBe(2);
     expect(lifecycle.phase).toBe('level-up');
@@ -860,7 +1024,8 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(20)
+      createContext(20),
+      new DeterministicRng(1)
     );
 
     expect(res2.leveledUp).toBe(false);
@@ -912,7 +1077,8 @@ describe('Level progression, surplus XP, and pause trigger', () => {
         world,
         player,
         createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-        createContext(10)
+        createContext(10),
+        new DeterministicRng(1)
       )
     ).toThrow('no offerable candidates exist');
 
@@ -935,11 +1101,18 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(10)
+      createContext(10),
+      new DeterministicRng(1)
     );
 
     expect(() =>
-      progression.step(world, player, createEmptyCombatResult(), createContext(11))
+      progression.step(
+        world,
+        player,
+        createEmptyCombatResult(),
+        createContext(11),
+        new DeterministicRng(1)
+      )
     ).toThrow(RangeError);
   });
 
@@ -963,7 +1136,8 @@ describe('Level progression, surplus XP, and pause trigger', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(10)
+      createContext(10),
+      new DeterministicRng(1)
     );
     const abilityIndex = findOfferIndex(offerSystem, world, player, 'ability');
 
@@ -1005,7 +1179,8 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
 
     expect(lifecycle.phase).toBe('level-up');
@@ -1072,7 +1247,8 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(25)
+      createContext(25),
+      new DeterministicRng(1)
     );
 
     const restoredPausedTickCommand: RunCommand = {
@@ -1106,7 +1282,8 @@ describe('Upgrade resolution (resolveUpgrade)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(10)
+      createContext(10),
+      new DeterministicRng(1)
     );
 
     const badCommand = {
@@ -1267,7 +1444,8 @@ describe('Reroll (rerollOffer)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
     expect(lifecycle.phase).toBe('level-up');
     // MVP-1's default registries offer four identities (three abilities,
@@ -1302,7 +1480,12 @@ describe('Reroll (rerollOffer)', () => {
     progression.resetPlayer(world, player);
 
     expect(() =>
-      progression.rerollOffer(world, player, { tick: 0, type: 'reroll-offer' })
+      progression.rerollOffer(
+        world,
+        player,
+        { tick: 0, type: 'reroll-offer' },
+        new DeterministicRng(1)
+      )
     ).toThrow('cannot reroll offer when lifecycle is not in level-up phase');
     expect(commandRecorder.count).toBe(0);
   });
@@ -1323,7 +1506,8 @@ describe('Reroll (rerollOffer)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
     progression.rerollOffer(
       world,
@@ -1363,7 +1547,8 @@ describe('Banish (banishOffer)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
     expect(lifecycle.phase).toBe('level-up');
     const targetIndex = findOfferIndex(offerSystem, world, player, 'ability');
@@ -1406,11 +1591,16 @@ describe('Banish (banishOffer)', () => {
     progression.resetPlayer(world, player);
 
     expect(() =>
-      progression.banishOffer(world, player, {
-        tick: 0,
-        type: 'banish-offer',
-        choiceIndex: 0,
-      })
+      progression.banishOffer(
+        world,
+        player,
+        {
+          tick: 0,
+          type: 'banish-offer',
+          choiceIndex: 0,
+        },
+        new DeterministicRng(1)
+      )
     ).toThrow('cannot banish offer when lifecycle is not in level-up phase');
     expect(commandRecorder.count).toBe(0);
   });
@@ -1444,7 +1634,8 @@ describe('Banish (banishOffer)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
     const emptyIndex = offerSystem
       .candidatesAt(world, player)
@@ -1452,11 +1643,16 @@ describe('Banish (banishOffer)', () => {
     expect(emptyIndex).toBeGreaterThanOrEqual(0);
 
     expect(() =>
-      progression.banishOffer(world, player, {
-        tick: 15,
-        type: 'banish-offer',
-        choiceIndex: emptyIndex,
-      })
+      progression.banishOffer(
+        world,
+        player,
+        {
+          tick: 15,
+          type: 'banish-offer',
+          choiceIndex: emptyIndex,
+        },
+        new DeterministicRng(1)
+      )
     ).toThrow('offer candidate slot is empty');
     expect(commandRecorder.count).toBe(0);
     expect(offerSystem.banishChargesOf(world, player)).toBe(1);
@@ -1478,7 +1674,8 @@ describe('Banish (banishOffer)', () => {
       world,
       player,
       createCombatResultWithKills([{ x: 0, y: 0, xp: LEVEL_2_XP_THRESHOLD }]),
-      createContext(15)
+      createContext(15),
+      new DeterministicRng(1)
     );
     const firstIndex = findOfferIndex(offerSystem, world, player, 'ability');
     progression.banishOffer(
@@ -1606,7 +1803,13 @@ describe('End-to-end real production path integration test', () => {
         enemy1ProjectileHits += 1;
       }
       enemy1HealthBeforeTick = enemy1HealthAfterCombat;
-      const progRes = progressionSystem.step(world, player, combatRes, ctx);
+      const progRes = progressionSystem.step(
+        world,
+        player,
+        combatRes,
+        ctx,
+        new DeterministicRng(1)
+      );
 
       if (combatRes.killCount === 1) {
         enemy1Died = true;
@@ -1644,7 +1847,13 @@ describe('End-to-end real production path integration test', () => {
       movementSystem.step(world, player, ctx);
       weaponSystem.step(world, player, ctx);
       const combatRes = combatSystem.step(world, player, ctx);
-      const progRes = progressionSystem.step(world, player, combatRes, ctx);
+      const progRes = progressionSystem.step(
+        world,
+        player,
+        combatRes,
+        ctx,
+        new DeterministicRng(1)
+      );
 
       if (progRes.leveledUp) {
         levelUpTick = tick;
@@ -1701,7 +1910,7 @@ describe('End-to-end real production path integration test', () => {
         enemy2ProjectileHits += 1;
       }
       enemy2HealthBeforeTick = enemy2HealthAfterCombat;
-      progressionSystem.step(world, player, combatRes, ctx);
+      progressionSystem.step(world, player, combatRes, ctx, new DeterministicRng(1));
 
       if (combatRes.killCount === 1) {
         enemy2Died = true;

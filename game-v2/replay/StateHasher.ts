@@ -16,6 +16,75 @@ import { RUN_IDENTITY_SCHEMA_VERSION } from '@/game-v2/contracts/RunIdentity';
 import { RNG_SNAPSHOT_SCHEMA_VERSION } from '@/game-v2/runtime/DeterministicRng';
 import { validateAuthoritativeWorldState } from '@/game-v2/replay/WorldStateValidator';
 
+/**
+ * Compile-time-only coverage guard for `hashWorld` (review finding on
+ * `V2-109`): the hash is a hand-written function that must call the exact
+ * `hash.f32`/`hash.u8`/etc. method for each field's real byte layout, so it
+ * cannot iterate `WorldSnapshot` generically the way
+ * `WorldStateValidator`'s schema-array validation does. This list exists
+ * purely so adding a new `WorldSnapshot` field without a corresponding
+ * `hashWorld` line fails `tsc`, instead of silently shipping a field the
+ * anti-cheat replay hash never covers. It asserts coverage only — not hash
+ * order or byte-type correctness, which still lives in `hashWorld` itself
+ * and its golden-hash tests.
+ */
+export const HASHED_WORLD_FIELDS = [
+  'schemaVersion',
+  'capacity',
+  'activeCount',
+  'freeSlotCount',
+  'freeSlots',
+  'generations',
+  'masks',
+  'x',
+  'y',
+  'previousX',
+  'previousY',
+  'velocityX',
+  'velocityY',
+  'radius',
+  'health',
+  'maxHealth',
+  'faction',
+  'lastFacingX',
+  'lastFacingY',
+  'dashDirectionX',
+  'dashDirectionY',
+  'dashRemainingSeconds',
+  'invulnerabilityTicksRemaining',
+  'dashCooldownTicksRemaining',
+  'dashCharges',
+  'movementOverride',
+  'enemySpeed',
+  'contactDamage',
+  'contactCooldownTicksRemaining',
+  'xpValue',
+  'projectileDamage',
+  'projectileLifetimeTicksRemaining',
+  'weaponCooldownTicksRemaining',
+  'xp',
+  'level',
+  'xpPickupValue',
+  'convergence',
+  'convergenceReached',
+  'abilitySlotIdentity',
+  'abilitySlotTier',
+  'passiveSlotIdentity',
+  'passiveSlotLevel',
+  'offerCandidateKind',
+  'offerCandidateCode',
+  'offerDefaultIndex',
+  'rerollCharges',
+  'banishCharges',
+  'bannedCandidateKind',
+  'bannedCandidateCode',
+] as const satisfies ReadonlyArray<keyof WorldSnapshot>;
+
+type AssertNever<T extends never> = T;
+export type HashedWorldFieldCoverage = AssertNever<
+  Exclude<keyof WorldSnapshot, (typeof HASHED_WORLD_FIELDS)[number]>
+>;
+
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 const UINT32_MAX = 0xffffffff;

@@ -246,6 +246,20 @@ test.describe('Game V2 walking skeleton', () => {
       page.getByRole('button', { name: /ability: starter-projectile/i })
     ).toBeVisible();
 
+    // Reroll and per-card banish controls (V2-105) render and are enabled
+    // with an unspent charge. Not clicked here: either would regenerate the
+    // offer from the full ability pool, which is not guaranteed to still
+    // contain `starter-projectile`, and every assertion for the rest of
+    // this scripted run depends on that specific identity being chosen.
+    await expect(page.getByTestId('level-up-reroll')).toBeVisible();
+    await expect(page.getByTestId('level-up-reroll')).toBeEnabled();
+    const banishButtons = page.locator('[data-testid^="level-up-banish-"]');
+    await expect(banishButtons.first()).toBeVisible();
+    expect(await banishButtons.count()).toBeGreaterThan(0);
+    for (let index = 0; index < (await banishButtons.count()); index += 1) {
+      await expect(banishButtons.nth(index)).toBeEnabled();
+    }
+
     await page.getByRole('button', { name: /ability: starter-projectile/i }).click();
     await expect(page.getByTestId('level-up-overlay')).toBeHidden();
 
