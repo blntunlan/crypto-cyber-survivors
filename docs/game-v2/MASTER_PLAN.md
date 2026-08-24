@@ -61,7 +61,7 @@ and the boundary-guard inversion.
 Goal: prove that constrained builds create meaningful play before market
 complexity is introduced.
 
-Status: `In Progress`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
+Status: `Done`. `V2-100` is accepted and closed at `677e1d24`. `V2-101`
 is accepted and closed at `b7a5c07a`. `V2-102` is accepted and closed at
 `22a00d14`. `V2-103` is accepted and closed at `357ef443`. `V2-104` is
 accepted and closed at `7116c729`. `V2-105` is accepted and closed at
@@ -70,17 +70,15 @@ accepted and closed at `a43d8c1c`. `V2-108` is accepted and closed at
 `94a48e7a`; briefs and outcomes are in `docs/game-v2/tasks/`. `V2-109`
 (market-independent Convergence) is accepted and closed at `3dfd5f06`; its
 post-acceptance code-review cleanup is committed at `374cec0e`. `V2-111`
-(concurrent autonomous weapon slots) is briefed and is the active task: it
-closes the V2-ADR-068 deferral that left seven of the eight ability
-identities unable to fire, and `V2-110` now depends on it because build
-diversity cannot be evidenced until it lands. `V2-112` (repeating level curve)
-follows it: `ProgressionSystem` granted exactly one level-up per run, so
-design §5.1/§5.2/§5.3's slot, tier, and passive-level limits were reachable
-only through injected-registry contract tests, never through play — which
-made MVP-1's own goal, "constrained builds create meaningful play,"
-unevidenceable. `V2-111` and `V2-112` are numbered after `V2-110` because
-task IDs are stable identifiers, not an ordering — the dependency column
-governs execution order (Operating Rule 1).
+(concurrent autonomous weapon slots, `e26dc604`) closed the V2-ADR-068
+deferral that left seven of the eight ability identities unable to fire.
+`V2-112` (repeating level curve, `a5ae6d60`) closed the single-level-up-per-run
+defect that made design §5.1/§5.2/§5.3's slot, tier, and passive-level limits
+unreachable through play. `V2-111` and `V2-112` are numbered after `V2-110`
+because task IDs are stable identifiers, not an ordering — the dependency
+column governs execution order (Operating Rule 1). `V2-110` (MVP-1 evidence
+gate) is accepted and closed: see `docs/game-v2/tasks/V2-110-mvp1-evidence-gate.md`
+and `PROGRESS.md` for the evidence.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

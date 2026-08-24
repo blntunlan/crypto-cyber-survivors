@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 11 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
-| Phase | MVP-1 combat and build core |
-| Active task | `V2-111` and `V2-112` are implemented and verified; `V2-110` is the last remaining MVP-1 task and has no brief yet |
-| Status | `V2-111` and `V2-112` briefed in `docs/game-v2/tasks/` and implemented; `V2-110` is `Not Started` |
-| Closed | `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
+| Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) not started |
+| Active task | None. `V2-110` (MVP-1 evidence gate) is accepted and closed, completing MVP-1. The next task is whichever MVP-2 block the user selects to open (`V2-200`+). |
+| Status | MVP-1 fully closed: `V2-100` through `V2-112` all accepted. |
+| Closed | `V2-110` accepted (this checkpoint); `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2331,24 +2331,122 @@ surfaced that its Done-When could not be met. Brief:
   (2 passed). `npm run lint`'s only errors remain the pre-existing
   `.delegate/**` parsing errors described under `V2-111`.
 
+## V2-110 — MVP-1 Evidence Gate
+
+Brief: `docs/game-v2/tasks/V2-110-mvp1-evidence-gate.md`. Every MVP-1 LEGO
+block (`V2-100`..`V2-109`, `V2-111`, `V2-112`) was already individually
+accepted; this task is the master plan's own evidence gate (Operating Rule 4:
+"a milestone closes only with a playable build and evidence"), not new
+gameplay.
+
+- **Two real evidence gaps, both surfaced while scoping this task.** Build
+  diversity had been proven only through hand-assembled systems —
+  `FullBuild.test.ts` (`V2-112`) drives `ProgressionSystem` directly with
+  synthetic kill batches, and `ConcurrentWeapons.test.ts` (`V2-111`)
+  hand-composes `CombatSystem`/`WeaponSystem`/`ProgressionSystem` in a bespoke
+  loop — neither drives `GameV2Runtime`/`createMvp0Runtime` itself. And
+  `e2e/game-v2-walking-skeleton.spec.ts` proved only the *first* level-up in a
+  real browser, never a second, so `V2-112`'s repeating curve was unproven
+  outside headless tests.
+- New `tests/game-v2/integration/Mvp1CoreLoop.test.ts` drives the real
+  production tick order with an empirically-tuned survival/collection policy
+  (nearest-XP-pickup seeking, falling back to `ConvergenceEnvelope.test.ts`'s
+  already-proven drift-and-defensive-dash survival policy when nothing is
+  dropped) until `playerLevel === MVP1_MAX_PLAYER_LEVEL`. The scenario
+  (seed `1110`) reaches the cap at tick `29815`; `FRAME_SAFETY_CAP = 45_000`
+  is a documented ~1.5x safety net against a genuine stall, not a derived
+  value. One canonical run is cached and shared across the build-diversity and
+  replay assertions (mirroring `ReplayRunner.test.ts`'s own
+  `buildScenarioRecording` cache), since the scenario itself takes several
+  seconds; a fresh run drives the separate reset assertion.
+- **A real ordering defect was found and fixed while writing this test, not
+  assumed away.** The level counter advances the instant the XP threshold is
+  crossed, at the same tick the run pauses for that level's card — so a
+  cap check placed *before* the pending-offer resolution check exits one
+  command short of `MVP1_TOTAL_BUILD_PICKS`, leaving the final ability/passive
+  slot unresolved. This is a test-harness ordering bug, not a production
+  defect: `ProgressionSystem`'s own contract (`V2-ADR-081`) is unaffected. RED
+  reproduced it directly: `moveSpeedLevel` reached `4` instead of
+  `PASSIVE_MAX_LEVEL = 5`, and `ReplayRunner.run` threw `run recording is
+  missing the upgrade command for paused tick 29815`. The fix resolves any
+  pending level-up offer before evaluating the cap-break condition. A
+  deliberate mutation restoring the buggy order reproduced both failures
+  exactly; restoring the fix returned the file to green.
+- A second mutation check disabled the periodic live-projectile-damage
+  sampling (`occupiedAbilitySlots >= 99` instead of `>= 2`) and confirmed
+  `observedDistinctDamageSignatures.size` drops to `0`, failing the
+  build-diversity assertion — proving that assertion is load-bearing rather
+  than vacuously true.
+- Concurrent-firing evidence reads `runtime.checkpoint().world` (a
+  `WorldSnapshot`, already exposed for replay/hash purposes — no new runtime
+  API was added) and filters live `Projectile`-masked slots by
+  `ComponentMask`, mirroring `ConcurrentWeapons.test.ts`'s own
+  `liveProjectileDamages` technique but applied to the real runtime's
+  snapshot instead of a hand-built `World`. Sampling is throttled to every
+  20th tick once at least two ability slots are occupied, since `checkpoint()`
+  copies the whole world and the scenario runs ~30,000 ticks; unthrottled
+  sampling made the file take ~66s instead of ~16s with no change in what the
+  assertion proves.
+- `e2e/game-v2-walking-skeleton.spec.ts`'s existing seeded-run test was
+  extended (not forked into a second spec) to resolve a second level-up after
+  the first, deliberately toward a *new* ability identity — the offer button
+  is matched by `/^ability: (?!starter-projectile)/i` rather than any
+  offerable candidate, so the resumed HUD genuinely gains a second occupied
+  `game-v2-hud-ability-1` slot rather than only advancing the starter's tier.
+  A production-legitimate reroll (the run's one unspent charge) is the
+  fallback if the drawn offer happens to contain no non-starter ability
+  candidate. A headless peek at the real production offer for the existing
+  seed `50` confirmed the second offer already contains two non-starter
+  ability candidates (`cannon-projectile`, `flicker-projectile`) alongside the
+  passive, so the reroll fallback path is not expected to fire for this seed,
+  but is real production behavior rather than a theoretical guard.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (45 files, 905
+  tests, up from 44 files/902 tests by exactly the three new
+  `Mvp1CoreLoop.test.ts` tests), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files — nothing new was
+  added), `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt,
+  unchanged), `npm run check:ui-contract`, `npm run check:event-contract`,
+  focused ESLint on every changed file (one `no-unnecessary-condition`
+  warning found and fixed — an unnecessary optional-chain on an
+  already-non-null value), focused Prettier (clean), `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed, the extended seeded-run test included).
+- No `game-v2/**` production file was modified: every gap this task closed
+  was a test/evidence gap, not a gameplay defect, matching the brief's scope
+  decision.
+- All six acceptance criteria in the task brief are met with the evidence
+  above: (1) a real `GameV2Runtime` run reaches a fully capped build through
+  play; (2) two-or-more distinct AUTO identities are proven firing
+  concurrently within that run via the live-projectile-damage sampling; (3)
+  the full-build recording replays to the identical final state hash
+  (`ReplayRunner.run(recording, 60).finalHash === runtime.snapshotHash()`);
+  (4) a reset after a full-build run leaves no residual ability, passive,
+  offer, or Convergence state (`readout()` matches `EMPTY_READOUT` exactly);
+  (5) a real browser session reaches a second level-up and a second HUD
+  ability slot becomes visible; (6) every Step 5 gate passes and both
+  mutation checks confirm their assertions are load-bearing. `V2-110` is
+  accepted, closing MVP-1.
+
 ## Exact Next Action
 
-`V2-111` and `V2-112` are implemented and fully verified. `V2-110` (MVP-1
-evidence gate) is the last remaining MVP-1 task; per `MASTER_PLAN.md` it now
-depends on `V2-100`..`V2-109` plus `V2-111` and `V2-112`, all of which are
-complete, and it has no brief yet. Build diversity is now genuinely
-evidenceable: a run reaches a fully capped build through play.
+MVP-1 (Combat and Build Core) is fully closed: `V2-100` through `V2-112`,
+including the `V2-110` evidence gate above, are all accepted. The next work
+is MVP-2 (Market Vertical Slice, `V2-200`+ in `MASTER_PLAN.md`) — prove that
+real market evidence changes gameplay identity without becoming an
+uncontrolled difficulty multiplier. No MVP-2 task has been briefed yet; the
+next session should open with the user to select and scope the first MVP-2
+block (`V2-200`, canonical market snapshot, is the only block with no
+dependency).
 
-All 9 findings from `V2-109`'s `/code-review high` pass are now resolved
-and none remain open: 6 were fixed in the `374cec0e` cleanup,
-`WeaponSystem`'s single-fixed-slot firing gap became `V2-111` above, and
-the remaining 2 stay closed as correct standing decisions rather than
-defects — `AbilitySlot.startEligible` has no reader because the pre-run
-selection UI it serves is deferred to MVP-4 (V2-ADR-062), and
-`LevelUpOverlay`'s wall-clock timer is deliberately outside simulation
-authority so a live timeout never consumes RNG at an instant replay
-cannot reproduce (V2-ADR-050, V2-ADR-054). Both were re-examined at the
-user's request before being left alone.
+All 9 findings from `V2-109`'s `/code-review high` pass are resolved and none
+remain open: 6 were fixed in the `374cec0e` cleanup, `WeaponSystem`'s
+single-fixed-slot firing gap became `V2-111`, and the remaining 2 stay closed
+as correct standing decisions rather than defects — `AbilitySlot.startEligible`
+has no reader because the pre-run selection UI it serves is deferred to MVP-4
+(V2-ADR-062), and `LevelUpOverlay`'s wall-clock timer is deliberately outside
+simulation authority so a live timeout never consumes RNG at an instant
+replay cannot reproduce (V2-ADR-050, V2-ADR-054).
 
 Do not deploy, cut over production, or replace the legacy demo. Do not
 push the branch without explicit instruction.

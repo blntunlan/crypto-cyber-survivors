@@ -271,6 +271,40 @@ test.describe('Game V2 walking skeleton', () => {
     await expect
       .poll(async () => (await readSnapshot(page)).tick, { timeout: 10_000 })
       .toBeGreaterThan(pausedTick);
+
+    // `V2-110` acceptance evidence: MVP-1's repeating curve (`V2-112`) is
+    // reachable in a real browser session, not only headlessly. A second
+    // level-up, resolved toward a *new* ability identity rather than another
+    // starter-projectile tier, makes build diversity visible in the real
+    // HUD: a second AUTO slot occupied at once.
+    const secondPaused = await playUntilLevelUp(page);
+    const secondPausedTick = secondPaused.tick;
+    await expect(page.getByTestId('level-up-overlay')).toBeVisible();
+
+    const newIdentityOption = page.getByRole('button', {
+      name: /^ability: (?!starter-projectile)/i,
+    });
+
+    if ((await newIdentityOption.count()) === 0) {
+      // Production-legitimate fallback: consumes the one reroll charge this
+      // run still holds, exactly as a real player would.
+      await page.getByTestId('level-up-reroll').click();
+    }
+
+    await expect(newIdentityOption.first()).toBeVisible();
+    await newIdentityOption.first().click();
+    await expect(page.getByTestId('level-up-overlay')).toBeHidden();
+
+    const afterSecondPick = await readSnapshot(page);
+    expect(afterSecondPick.phase).toBe('playing');
+    expect(afterSecondPick.playerLevel).toBe(3);
+
+    // Build diversity, visible in the real HUD: a second occupied AUTO slot.
+    await expect(page.getByTestId('game-v2-hud-ability-1')).toBeVisible();
+
+    await expect
+      .poll(async () => (await readSnapshot(page)).tick, { timeout: 10_000 })
+      .toBeGreaterThan(secondPausedTick);
   });
 
   test('leaves the legacy surface untouched', async ({ page }) => {
