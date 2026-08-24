@@ -23,6 +23,7 @@ import {
 import { GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
+import { ConvergenceSystem } from '@/game-v2/systems/ConvergenceSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
@@ -117,6 +118,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     enemyComposer: new EnemyComposer(),
     weaponSystem,
     combatSystem: new CombatSystem(),
+    convergenceSystem: new ConvergenceSystem(),
     progressionSystem: new ProgressionSystem(
       lifecycle,
       commandRecorder,

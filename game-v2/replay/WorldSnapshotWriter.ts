@@ -132,6 +132,8 @@ const copyWorld = (world: World, capacity: number): WorldSnapshot => ({
   xp: world.xp.slice(),
   level: world.level.slice(),
   xpPickupValue: world.xpPickupValue.slice(),
+  convergence: world.convergence.slice(),
+  convergenceReached: world.convergenceReached.slice(),
   abilitySlotIdentity: world.abilitySlotIdentity.slice(),
   abilitySlotTier: world.abilitySlotTier.slice(),
   passiveSlotIdentity: world.passiveSlotIdentity.slice(),

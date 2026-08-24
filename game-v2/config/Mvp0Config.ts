@@ -266,3 +266,36 @@ export const MVP0_ENEMY_SPAWN_BUDGET = GRUNT_ENEMY_COST;
 export const MVP0_ENEMY_COMPOSITION_MAX_PICKS = Math.ceil(
   MVP0_ENEMY_SPAWN_BUDGET / SWARMLING_ENEMY_COST
 );
+
+/**
+ * `V2-109` market-independent Convergence envelope (V2-ADR-072). Design line
+ * 63 targets an 8-12 minute first boss cycle; that ratio (`12 / 8 = 1.5`)
+ * already equals the existing starter-weapon Tier 1 / Tier 2 kill-period
+ * ratio (`90 / 60 = 1.5`), so one derived kill-count target satisfies both
+ * envelope bounds exactly with no free parameter: sustaining the post-
+ * upgrade Tier 2 cadence from tick 1 reaches `CONVERGENCE_KILLS_TO_THRESHOLD`
+ * kills at exactly `CONVERGENCE_MIN_CYCLE_TICKS`, and never upgrading past
+ * Tier 1 reaches the identical kill count at exactly
+ * `CONVERGENCE_MAX_CYCLE_TICKS`. Both identities are pinned in
+ * `Mvp0Config.test.ts`.
+ */
+export const CONVERGENCE_MIN_CYCLE_SECONDS = 8 * 60;
+export const CONVERGENCE_MAX_CYCLE_SECONDS = 12 * 60;
+export const CONVERGENCE_MIN_CYCLE_TICKS =
+  CONVERGENCE_MIN_CYCLE_SECONDS * SIMULATION_HZ;
+export const CONVERGENCE_MAX_CYCLE_TICKS =
+  CONVERGENCE_MAX_CYCLE_SECONDS * SIMULATION_HZ;
+
+const CONVERGENCE_TIER_TWO_KILL_TICKS =
+  WEAPON_COOLDOWN_TICKS * Math.ceil(ENEMY_HEALTH / STARTER_WEAPON_DAMAGE_TIER_2);
+
+export const CONVERGENCE_KILLS_TO_THRESHOLD =
+  CONVERGENCE_MIN_CYCLE_TICKS / CONVERGENCE_TIER_TWO_KILL_TICKS;
+
+/**
+ * Convergence accrues XP-equivalent points, not a flat per-kill count
+ * (V2-ADR-075), because `V2-108` composition means kills are not uniform.
+ * `ENEMY_XP_VALUE` is `grunt`'s own XP, the archetype the kill-count target
+ * above was derived against.
+ */
+export const CONVERGENCE_THRESHOLD = CONVERGENCE_KILLS_TO_THRESHOLD * ENEMY_XP_VALUE;

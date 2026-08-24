@@ -48,6 +48,7 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'projectileDamage',
     'xp',
     'xpPickupValue',
+    'convergence',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint32: Object.freeze([
     'generations',
@@ -64,6 +65,7 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'banishCharges',
     'bannedCandidateKind',
     'bannedCandidateCode',
+    'convergenceReached',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint16: Object.freeze([
     'invulnerabilityTicksRemaining',
@@ -334,6 +336,22 @@ const validateBanishState = (
   }
 };
 
+/**
+ * Validates the Convergence latch (`V2-109`): the reached flag is `0` or `1`.
+ * Unlike reroll/banish charges, Convergence carries no component-ownership
+ * requirement (V2-ADR-073) — it lives unconditionally on the player's row.
+ */
+const validateConvergenceState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.convergenceReached[slot] ?? 0) > 1) {
+      throw new RangeError('convergenceReached must be 0 or 1');
+    }
+  }
+};
+
 export const validateAuthoritativeWorldState = (
   state: AuthoritativeWorldState,
   candidateCapacity: number
@@ -416,4 +434,5 @@ export const validateAuthoritativeWorldState = (
   validateLevelUpOffer(state, capacity);
   validateOfferCharges(state, capacity);
   validateBanishState(state, capacity);
+  validateConvergenceState(state, capacity);
 };

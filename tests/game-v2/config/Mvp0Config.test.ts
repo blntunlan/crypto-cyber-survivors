@@ -33,6 +33,10 @@ import {
   BRUTE_ENEMY_MOVE_SPEED,
   BRUTE_ENEMY_RADIUS,
   BRUTE_ENEMY_XP_VALUE,
+  CONVERGENCE_KILLS_TO_THRESHOLD,
+  CONVERGENCE_MAX_CYCLE_TICKS,
+  CONVERGENCE_MIN_CYCLE_TICKS,
+  CONVERGENCE_THRESHOLD,
   ENEMY_CONTACT_DAMAGE,
   ENEMY_MOVE_SPEED,
   ENEMY_XP_VALUE,
@@ -399,5 +403,39 @@ describe('basic enemy composition (V2-108, V2-ADR-070)', () => {
     expect(SWARMLING_ENEMY_HEALTH * 2).toBe(ENEMY_HEALTH);
     expect(SWARMLING_ENEMY_CONTACT_DAMAGE * 2).toBe(ENEMY_CONTACT_DAMAGE);
     expect(SWARMLING_ENEMY_COST * 2).toBe(GRUNT_ENEMY_COST);
+  });
+});
+
+describe('market-independent Convergence envelope (V2-109, V2-ADR-072)', () => {
+  it('derives the min/max cycle ticks from the 8/12-minute design envelope', () => {
+    expect(CONVERGENCE_MIN_CYCLE_TICKS).toBe(8 * 60 * SIMULATION_HZ);
+    expect(CONVERGENCE_MAX_CYCLE_TICKS).toBe(12 * 60 * SIMULATION_HZ);
+    expect(CONVERGENCE_MIN_CYCLE_TICKS).toBe(28_800);
+    expect(CONVERGENCE_MAX_CYCLE_TICKS).toBe(43_200);
+  });
+
+  it('derives one kill-count target that exactly satisfies both envelope bounds', () => {
+    // The 8-12 minute ratio (1.5) already equals the existing Tier 1/Tier 2
+    // kill-period ratio (90/60 = 1.5), so a single integer kill-count target
+    // reproduces both bounds exactly with no free parameter.
+    expect(CONVERGENCE_KILLS_TO_THRESHOLD).toBe(
+      CONVERGENCE_MIN_CYCLE_TICKS / tierTwoKillTicks
+    );
+    expect(CONVERGENCE_KILLS_TO_THRESHOLD * tierTwoKillTicks).toBe(
+      CONVERGENCE_MIN_CYCLE_TICKS
+    );
+    expect(CONVERGENCE_KILLS_TO_THRESHOLD * tierOneKillTicks).toBe(
+      CONVERGENCE_MAX_CYCLE_TICKS
+    );
+    expect(CONVERGENCE_KILLS_TO_THRESHOLD).toBe(480);
+  });
+
+  it('derives the XP-equivalent threshold from the kill-count target and grunt XP', () => {
+    expect(CONVERGENCE_THRESHOLD).toBe(CONVERGENCE_KILLS_TO_THRESHOLD * ENEMY_XP_VALUE);
+    expect(CONVERGENCE_THRESHOLD).toBe(2400);
+  });
+
+  it('keeps the max bound strictly above the min bound', () => {
+    expect(CONVERGENCE_MAX_CYCLE_TICKS).toBeGreaterThan(CONVERGENCE_MIN_CYCLE_TICKS);
   });
 });

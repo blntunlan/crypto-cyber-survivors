@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 5 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 6 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -37,6 +37,9 @@ export type WorldSnapshot = Readonly<{
   xp: Float32Array;
   level: Uint16Array;
   xpPickupValue: Float32Array;
+  /** Market-independent Convergence: XP-equivalent points and the latched reached flag (`V2-109`). */
+  convergence: Float32Array;
+  convergenceReached: Uint8Array;
   /** `ABILITY_SLOT_COUNT` entries per world slot (V2-ADR-036). */
   abilitySlotIdentity: Uint8Array;
   abilitySlotTier: Uint8Array;

@@ -188,6 +188,8 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.f32(world.xp[slot] ?? 0);
     hash.u16(world.level[slot] ?? 0);
     hash.f32(world.xpPickupValue[slot] ?? 0);
+    hash.f32(world.convergence[slot] ?? 0);
+    hash.u8(world.convergenceReached[slot] ?? 0);
 
     for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
       const abilityIndex = abilityStoreIndex(slot, index);

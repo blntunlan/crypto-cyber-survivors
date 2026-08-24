@@ -64,6 +64,13 @@ export type GameV2RuntimeReadout = Readonly<{
   /** `1` while the run's single reroll/banish charge is unspent (V2-105). */
   rerollCharges: 0 | 1;
   banishCharges: 0 | 1;
+  /**
+   * Market-independent Convergence (`V2-109`), clamped to `[0, 1]` for
+   * display even though the underlying accumulator can exceed the threshold
+   * while gated by the minimum-cycle floor.
+   */
+  convergenceProgress: number;
+  convergenceReached: boolean;
 }>;
 
 /**

@@ -19,6 +19,7 @@ import { GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import { CombatSystem } from '@/game-v2/systems/CombatSystem';
+import { ConvergenceSystem } from '@/game-v2/systems/ConvergenceSystem';
 import { DashSystem } from '@/game-v2/systems/DashSystem';
 import { EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { EnemySystem } from '@/game-v2/systems/EnemySystem';
@@ -78,6 +79,7 @@ const composeRuntime = (world: World): GameV2Runtime => {
     enemyComposer: new EnemyComposer(),
     weaponSystem,
     combatSystem: new CombatSystem(),
+    convergenceSystem: new ConvergenceSystem(),
     progressionSystem: new ProgressionSystem(
       lifecycle,
       commandRecorder,

@@ -188,10 +188,10 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    // V2-105: the golden shifted because `hashWorld` now hashes four new
-    // per-slot bytes (rerollCharges, banishCharges, bannedCandidateKind,
-    // bannedCandidateCode); recomputed and pinned to the new schema.
-    expect(hashA).toBe('ccf580c0');
+    // V2-109: the golden shifted again because `hashWorld` now hashes two
+    // more per-slot bytes (convergence f32, convergenceReached u8);
+    // recomputed and pinned to the new schema.
+    expect(hashA).toBe('c72df511');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });
@@ -343,6 +343,8 @@ describe('canonical runtime checkpoint', () => {
         (world, slot) => (world.bannedCandidateKind[slot] = OFFER_KIND_PASSIVE),
       ],
       ['banned candidate code', (world, slot) => (world.bannedCandidateCode[slot] = 4)],
+      ['convergence', (world, slot) => (world.convergence[slot] = 12.5)],
+      ['convergence reached', (world, slot) => (world.convergenceReached[slot] = 1)],
     ];
 
     for (const [name, mutate] of cases) {

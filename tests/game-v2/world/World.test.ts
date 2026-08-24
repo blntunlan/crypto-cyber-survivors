@@ -301,6 +301,31 @@ describe('World', () => {
     expect(world.bannedCandidateCode.every(value => value === 0)).toBe(true);
   });
 
+  it('clears Convergence state when a slot is destroyed or the world resets (V2-109)', () => {
+    const world = new World(4);
+    const entity = world.createEntity(ComponentMask.Player);
+    const slot = world.slotOf(entity);
+    const neighbour = world.createEntity(ComponentMask.Player);
+    const neighbourSlot = world.slotOf(neighbour);
+
+    world.convergence[slot] = 1234.5;
+    world.convergenceReached[slot] = 1;
+    world.convergence[neighbourSlot] = 6.5;
+    world.convergenceReached[neighbourSlot] = 1;
+
+    world.destroyEntity(entity);
+
+    expect(world.convergence[slot]).toBe(0);
+    expect(world.convergenceReached[slot]).toBe(0);
+    expect(world.convergence[neighbourSlot]).toBe(6.5);
+    expect(world.convergenceReached[neighbourSlot]).toBe(1);
+
+    world.reset();
+
+    expect(world.convergence.every(value => value === 0)).toBe(true);
+    expect(world.convergenceReached.every(value => value === 0)).toBe(true);
+  });
+
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4097])(
     'rejects invalid capacity %s before a world exists',
     capacity => {

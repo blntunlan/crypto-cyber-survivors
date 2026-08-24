@@ -1,4 +1,5 @@
 import {
+  CONVERGENCE_THRESHOLD,
   MVP0_CONFIG_VERSION,
   MVP0_ENEMY_SPAWN_BUDGET,
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
@@ -47,6 +48,7 @@ import {
 import { type GameV2Lifecycle } from '@/game-v2/runtime/GameV2Lifecycle';
 import { type SimulationClock } from '@/game-v2/runtime/SimulationClock';
 import { type CombatSystem } from '@/game-v2/systems/CombatSystem';
+import { type ConvergenceSystem } from '@/game-v2/systems/ConvergenceSystem';
 import { type DashSystem } from '@/game-v2/systems/DashSystem';
 import { type EnemyComposer } from '@/game-v2/systems/EnemyComposer';
 import { type EnemySystem } from '@/game-v2/systems/EnemySystem';
@@ -109,6 +111,8 @@ const EMPTY_READOUT: GameV2RuntimeReadout = Object.freeze({
   levelUpOffer: null,
   rerollCharges: 0,
   banishCharges: 0,
+  convergenceProgress: 0,
+  convergenceReached: false,
 });
 
 /**
@@ -156,6 +160,7 @@ export type GameV2RuntimeDependencies = {
   weaponSystem: WeaponSystem;
   combatSystem: CombatSystem;
   progressionSystem: ProgressionSystem;
+  convergenceSystem: ConvergenceSystem;
   /** Read-only from the runtime's perspective: fills `readout().abilitySlots`. */
   abilityLoadoutSystem: AbilityLoadoutSystem;
   /** Read-only from the runtime's perspective: fills `readout().levelUpOffer`. */
@@ -188,6 +193,7 @@ export class GameV2Runtime {
   private readonly weaponSystem: WeaponSystem;
   private readonly combatSystem: CombatSystem;
   private readonly progressionSystem: ProgressionSystem;
+  private readonly convergenceSystem: ConvergenceSystem;
   private readonly abilityLoadoutSystem: AbilityLoadoutSystem;
   private readonly offerSystem: LevelUpOfferSystem;
   private readonly presentation: RuntimePresentation | null;
@@ -240,6 +246,7 @@ export class GameV2Runtime {
     this.weaponSystem = dependencies.weaponSystem;
     this.combatSystem = dependencies.combatSystem;
     this.progressionSystem = dependencies.progressionSystem;
+    this.convergenceSystem = dependencies.convergenceSystem;
     this.abilityLoadoutSystem = dependencies.abilityLoadoutSystem;
     this.offerSystem = dependencies.offerSystem;
     this.presentation = dependencies.presentation;
@@ -521,6 +528,11 @@ export class GameV2Runtime {
       levelUpOffer: this.readLevelUpOffer(),
       rerollCharges: this.offerSystem.rerollChargesOf(this.world, this.playerEntity),
       banishCharges: this.offerSystem.banishChargesOf(this.world, this.playerEntity),
+      convergenceProgress: Math.min(
+        1,
+        (this.world.convergence[playerSlot] ?? 0) / CONVERGENCE_THRESHOLD
+      ),
+      convergenceReached: this.world.convergenceReached[playerSlot] === 1,
     };
   }
 
@@ -630,6 +642,7 @@ export class GameV2Runtime {
       this.stepContext,
       this.rng
     );
+    this.convergenceSystem.step(this.world, player, combat, this.stepContext);
 
     // Terminal death dominates the tick; progression already cleared its output
     // for this case (V2-ADR-027), so there is no offer left to honour.
@@ -700,6 +713,7 @@ export class GameV2Runtime {
     this.weaponSystem.resetPlayer(this.world, player);
     this.combatSystem.resetPlayer(this.world, player);
     this.progressionSystem.resetPlayer(this.world, player);
+    this.convergenceSystem.resetPlayer(this.world, player);
 
     return player;
   }

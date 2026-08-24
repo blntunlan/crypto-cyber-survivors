@@ -9,8 +9,8 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 7 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-108` is accepted and closed. No task brief exists yet for the next MVP-1 task |
-| Status | `V2-108` accepted at `94a48e7a`; MVP-1's next task is `Not Started` |
+| Active task | None in progress; `V2-109` is implemented, reviewed, and accepted but not yet committed — see the `V2-109` entry below |
+| Status | `V2-109` implemented and reviewed on top of `10c521d4`, not yet committed. All Step 5 gates, the Step 6 mutation pass, and an independent review are green |
 | Closed | `V2-108` accepted at `94a48e7a`; `V2-107` accepted at `a43d8c1c` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1859,6 +1859,119 @@
     `EnemyComposition.test.ts` and its own mutation spot-check; (5) every
     Step 5 gate passes with no mutation survivor. `V2-108` is accepted.
 
+- `V2-109` (market-independent Convergence): the task brief was written to
+  `docs/game-v2/tasks/V2-109-market-independent-convergence.md` after the
+  user confirmed three scope decisions in conversation — kill-only progress
+  source, a signal-only threshold action (no boss/run-state transition,
+  since no boss exists yet), and enforcing both the minimum and maximum
+  envelope bounds. Four proposed decisions were recorded:
+  `V2-ADR-072` (the 8-12 minute envelope and the existing Tier 1/Tier 2
+  kill-period ratio both equal 1.5, so one derived kill-count target,
+  `CONVERGENCE_KILLS_TO_THRESHOLD = 480`, satisfies both bounds exactly with
+  no free parameter), `V2-ADR-073` (Convergence state lives directly on the
+  player's `World` row, mirroring `xp`/`level`, not a new component or a
+  second checkpoint authority), `V2-ADR-074` (the reached signal is
+  `(tick >= MIN) && (convergence >= THRESHOLD || tick >= MAX)`, latched
+  once true — the meter stays kill-only honest while the gate still gets an
+  unconditional ceiling override), and `V2-ADR-075` (accrual uses
+  `combatResult.killXp`, not a flat per-kill count, so `V2-108` composition
+  variance cannot break the derived envelope).
+- Step 1 added the four derived config constants to `Mvp0Config.ts`
+  (`CONVERGENCE_MIN_CYCLE_TICKS = 28_800`, `CONVERGENCE_MAX_CYCLE_TICKS =
+  43_200`, `CONVERGENCE_KILLS_TO_THRESHOLD = 480`, `CONVERGENCE_THRESHOLD =
+  2400`). RED command
+  `npx vitest run tests/game-v2/config/Mvp0Config.test.ts --pool=forks --maxWorkers=1`
+  failed 4 of 53 with the constants undefined; GREEN passed 53/53.
+- Step 2 bumped `WORLD_SNAPSHOT_SCHEMA_VERSION` from 5 to 6 and added
+  `convergence: Float32Array` / `convergenceReached: Uint8Array` to `World`,
+  `WorldSnapshot`, `WorldSnapshotWriter`, `WorldStateValidator` (a new
+  `validateConvergenceState` pins the reached flag to `0`/`1`, with no
+  component-ownership requirement per V2-ADR-073), and `StateHasher`. TypeScript's
+  existing exhaustiveness check on `AUTHORITATIVE_WORLD_STORE_SCHEMA` caught
+  every ripple point at compile time. The one golden-hash pin in
+  `WorldSnapshot.test.ts` shifted from `ccf580c0` to `c72df511` (two new
+  hashed per-slot bytes) and was recomputed and pinned, with a mutation-
+  sensitivity case added per new field so a future no-op hash regression is
+  caught. Full suite after this step: 39 files, 846 tests (1 pre-existing
+  golden-hash assertion updated deliberately).
+- Step 3 added `ConvergenceSystem` (`game-v2/systems/ConvergenceSystem.ts`)
+  and `ConvergenceStepResult`. RED command
+  `npx vitest run tests/game-v2/systems/ConvergenceSystem.test.ts --pool=forks --maxWorkers=1`
+  failed on module resolution; GREEN passed 18/18, covering `resetPlayer`
+  validation, XP-batch accumulation, multi-tick accrual, the lethal-tick
+  exemption (mirroring `ProgressionSystem`'s V2-ADR-027 precedent), the
+  min-tick floor at its exact boundary tick, the max-tick ceiling firing
+  unconditionally even with convergence far below threshold, latch
+  idempotency (no re-fire), scratch-object reuse, and malformed-input
+  rejection (non-integer/negative/over-capacity `killCount`, non-finite XP,
+  invalid context, missing `Player` component).
+- Step 4 wired `ConvergenceSystem` into `GameV2Runtime`'s fixed tick order
+  (after `ProgressionSystem.step`, reading the same `combat` result both
+  already consume), added `resetPlayer` alongside the other four, added
+  `convergenceProgress`/`convergenceReached` to `GameV2RuntimeReadout`, and
+  wired construction in `createMvp0Runtime.ts`. Two existing runtime-fixture
+  test files (`GameV2RuntimeBounds.test.ts`, `GameV2RuntimeOffer.test.ts`)
+  needed a `convergenceSystem` dependency added, caught by `tsc`.
+  `tests/game-v2/integration/ConvergenceEnvelope.test.ts` proves the
+  envelope through the real production tick order, not just the isolated
+  system: (1) a short real scripted run (`driveScriptedRun`) shows
+  `convergenceProgress > 0` after a real kill; (2) that same short run's
+  tick stays under the min-cycle floor with `convergenceReached` still
+  false; (3) a dedicated production-path run survives the full
+  `CONVERGENCE_MAX_CYCLE_TICKS` (43,200 ticks) and observes
+  `convergenceReached` flip via the real tick order. The first survival
+  policy tried (flee directly away from the nearest enemy every tick) died
+  around tick 1,940-2,600 from encirclement — reacting only to the single
+  nearest enemy can walk the player into a second one, and `readout()`
+  exposes no other enemy positions to plan around. The policy that
+  survives the full 43,200 ticks is a continuous slow-rotating drift
+  (`PLAYER_MOVE_SPEED` exceeds every archetype's speed, so nothing spawned
+  behind ever catches up) plus a defensive dash when something closes to
+  `1.3` units, verified empirically the same way `SCENARIO_SEED` was
+  (V2-108's own precedent). Full suite after this step: 40 files, 867 tests.
+- Step 5 verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (40 files, 867
+  tests), `npm run typecheck`, `npm run check:architecture` (89 baseline
+  singleton files — `ConvergenceSystem` is constructed per-runtime, not a
+  singleton, so no whitelist entry was needed), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run build`, and
+  `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+  (2 passed). Focused ESLint on every changed/new file: 0 errors, 0 warnings.
+- Step 6 mutation pass: five mutants, each applied to the real
+  `ConvergenceSystem.ts`, confirmed to fail the focused 18-test suite, then
+  restored and reverified green. Dropping the min-tick AND-condition failed
+  1 test; dropping the max-tick OR-condition failed 2; replacing the
+  `killXp` summation with a flat per-kill increment failed 3; removing the
+  lethal-tick early return failed 1; letting the latch re-fire after
+  already being reached failed 1. The file was re-read after every restore
+  to confirm it matched the pre-mutation implementation.
+- An independent review (`/code-review high`, 8 parallel finder agents,
+  ~19 minutes, 203k tokens, 324 tool calls) ran against the branch diff.
+  Its scope was the whole branch rather than only the `V2-109` working-tree
+  change, so most of its 10 findings are pre-existing debt in already-closed
+  `V2-100`-`V2-108` work — none are defects in `ConvergenceSystem.ts`,
+  `ConvergenceStepResult.ts`, the Convergence config constants,
+  `GameV2Runtime`'s Convergence wiring, or the new test files. The one
+  finding that touches a file `V2-109` extended (`StateHasher.ts`) is a
+  structural observation, not a bug: `hashWorld` hand-lists every field with
+  no compile-time exhaustiveness check the way `WorldStateValidator`'s
+  `AssertNever` mechanism has, so a future field could be silently left out
+  of the anti-cheat hash. `V2-109`'s own two fields are present and
+  mutation-tested into the hash; the risk is about future drift, not this
+  task's addition. The other 9 findings are logged for triage separately
+  and are out of `V2-109`'s scope: a real unacknowledged duplicate-offer bug
+  in `LevelUpOfferSystem.banish()` (and `WorldStateValidator` not catching
+  the resulting duplicate state), `WeaponSystem`'s single-fixed-slot firing
+  gap (already documented as V2-ADR-068), `ProgressionSystem`'s defaulted
+  (rather than required) RNG parameters (already documented as deferred), a
+  weakened `ReplayRunner.test.ts` assertion, a narrowed e2e smoke spec, an
+  unread `AbilitySlot.startEligible` field, a double-scan inefficiency in
+  `ProgressionSystem.step`, and `LevelUpOverlay`'s wall-clock timer
+  (deliberate per V2-ADR-050, not an oversight). `V2-109` is considered
+  reviewed and accepted; nothing has been committed yet, pending the user's
+  go-ahead.
+
 ## Verification Required
 
 1. Nothing from MVP-0 remains open. Every Critical and Important review finding
@@ -1911,13 +2024,18 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-108` is accepted and closed at `94a48e7a` (current local `HEAD`, not yet
-pushed). No task brief exists yet for the next MVP-1 task; per
-`MASTER_PLAN.md`'s table, `V2-109` (market-independent Convergence, depends
-on `V2-108`) is the next candidate by ID and has its dependency already
-satisfied. Confirm scope, generate its task brief, then start Step 1. Do not
-deploy, cut over production, or replace the legacy demo. Do not push the
-branch without explicit instruction.
+`V2-109` (market-independent Convergence) has completed Steps 1-6 (brief,
+config constants, `World`/`WorldSnapshot` schema bump, `ConvergenceSystem`,
+runtime wiring, full Step 5 gate, Step 6 mutation pass) on top of `10c521d4`,
+and an independent review found no defects in it (see the changelog entry
+above; the review's other 9 findings are pre-existing debt on already-closed
+tasks, out of `V2-109`'s scope). **Nothing is committed yet** — commits are
+only made on explicit user instruction. A new session should confirm with
+the user whether to commit `V2-109` now (the working tree already isolates
+its files from the pre-existing unrelated changes listed below), or whether
+to first triage any of the 9 out-of-scope findings as separate follow-up
+work. Do not deploy, cut over production, or replace the legacy demo. Do not
+push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

@@ -72,6 +72,14 @@ export class World {
   public readonly level: Uint16Array;
   public readonly xpPickupValue: Float32Array;
   /**
+   * Market-independent Convergence (`V2-109`, V2-ADR-073): accumulated
+   * XP-equivalent kill points and the latched "reached" edge flag (`0` or
+   * `1`). Lives directly on the player's `World` row with no separate
+   * component gate, mirroring `xp`/`level`.
+   */
+  public readonly convergence: Float32Array;
+  public readonly convergenceReached: Uint8Array;
+  /**
    * Ability loadout state, `ABILITY_SLOT_COUNT` entries per world slot
    * (V2-ADR-036). Address them only through `abilitySlotIndexOf`; an empty slot
    * stores identity code `0` and tier `0`.
@@ -149,6 +157,8 @@ export class World {
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
     this.xpPickupValue = new Float32Array(capacity);
+    this.convergence = new Float32Array(capacity);
+    this.convergenceReached = new Uint8Array(capacity);
     this.abilitySlotIdentity = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
     this.abilitySlotTier = new Uint8Array(capacity * ABILITY_SLOT_COUNT);
     this.passiveSlotIdentity = new Uint8Array(capacity * PASSIVE_SLOT_COUNT);
@@ -444,6 +454,8 @@ export class World {
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;
+    this.convergence[slot] = 0;
+    this.convergenceReached[slot] = 0;
 
     const abilityBase = abilityStoreIndex(slot, 0);
     for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
