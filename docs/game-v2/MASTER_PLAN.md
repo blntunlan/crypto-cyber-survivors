@@ -120,7 +120,11 @@ and `RunRecording` now carries `positionContext` (schema version `1 → 2`)
 so replay reconstructs the exact locked position instead of defaulting to
 leverage `1` — closing the `V2-ADR-089` deferral without a `World`/
 `WorldSnapshot` schema bump; see
-`docs/game-v2/tasks/V2-202-five-lethality-profiles.md`.
+`docs/game-v2/tasks/V2-202-five-lethality-profiles.md`. `V2-203` is
+accepted and closed: the generic `ARMED → CONFIRMING → ACTIVE → COOLDOWN`
+mechanism (`IndicatorEventStateMachine`) exists, mechanism only — no
+concrete indicator family or wiring into any runtime; see
+`docs/game-v2/tasks/V2-203-indicator-event-state-machine.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

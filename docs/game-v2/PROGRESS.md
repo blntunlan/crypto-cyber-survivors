@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-202` (five lethality profiles) is accepted and closed. The next task is `V2-203` (indicator-event state machine) — the only remaining unblocked MVP-2 block (`V2-204`..`V2-206` depend on it; `V2-211` depends on `V2-200`/`V2-207`). |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202` accepted; `V2-203`..`V2-213` not started. |
-| Closed | `V2-202` accepted (this checkpoint); `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-203` (indicator-event state machine) is accepted and closed. The next task is one of `V2-204`/`V2-205`/`V2-206` (Trend/Breakout, Volatility Surge, Volume/Whale — each depends only on `V2-203` and any may be opened next; no ordering between them is mandated). |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203` accepted; `V2-204`..`V2-213` not started. |
+| Closed | `V2-203` accepted (this checkpoint); `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2819,17 +2819,144 @@ Brief: `docs/game-v2/tasks/V2-202-five-lethality-profiles.md`.
   and all five mutation checks confirm their assertions are load-bearing.
   `V2-202` is accepted.
 
+## V2-203 — Indicator-Event State Machine
+
+Brief: `docs/game-v2/tasks/V2-203-indicator-event-state-machine.md`.
+
+- **Mechanism only, no concrete content — deliberately, and unlike
+  `V2-202`'s placeholder fields, with no invented numbers at all.** Design
+  §7.4 lists Trend/Breakout, Volatility Surge, and Volume/Whale as the
+  first three indicator families (`V2-204`/`V2-205`/`V2-206`, not yet
+  built) and a primary/support composer (`V2-207`, not yet built) that
+  would give a profile's `priority`/`outputKind`/`compatibleWith` fields a
+  real reader. This mirrors `V2-100`'s ability-slot mechanism existing
+  before `V2-102`/`V2-106`/`V2-107` authored real abilities, and
+  `EnemyComposer`'s mechanism existing before `EnemyRegistry`'s
+  archetypes. Unlike `V2-202`'s four placeholder fields (which needed
+  numbers derived from *something* real because they were meant to be
+  gameplay-affecting quantities), `priority`/`outputKind`/`compatibleWith`
+  here need no invented values — they are plain carried metadata a
+  concrete profile's future author sets meaningfully; this task authors no
+  concrete profile at all (V2-ADR-102).
+- **The state machine is built with real, concrete numeric
+  threshold/hysteresis math, not injected boolean-predicate callbacks**
+  (V2-ADR-099) — unlike `V2-200`/`V2-201`'s real infrastructure blockers
+  (single-asset `SSEMarketService`, no full SSE dev/e2e server), threshold
+  crossing is pure arithmetic on a `number`, so there was no reason to
+  abstract it away. This lets the state machine's own test suite directly
+  prove design's own worked example rather than deferring that proof to a
+  later task.
+- `game-v2/contracts/IndicatorEventProfile.ts`: `IndicatorEventDirection`
+  (`'below' | 'above'`) and the frozen `IndicatorEventProfile` type
+  covering every design-listed field, with `assertIndicatorEventProfile`
+  enforcing the `entryThreshold`/`exitThreshold`/`direction` relationship
+  (e.g. `'below'` requires `exitThreshold >= entryThreshold`) so a profile
+  cannot be authored with an internally contradictory recovery direction.
+- `game-v2/market/IndicatorEventStateMachine.ts`: the derived mechanism.
+  `CONFIRMING` failing its entry condition reverts directly to `ARMED`
+  with no cooldown (V2-ADR-100) — no event was ever confirmed, so there is
+  nothing to protect against re-triggering. `COOLDOWN → ARMED` requires
+  both `cooldownTicks` to have elapsed *and* the sample to have crossed
+  the rearm threshold (`exitThreshold ± hysteresis`), whichever gate
+  resolves later (V2-ADR-101) — this dual gate is the literal mechanism
+  that prevents design's own worked example
+  (`26 → 24 → 28 → 23` cannot spam a second activation) from spamming: the
+  second dip below the entry threshold at `23` is simply irrelevant, since
+  `COOLDOWN` only watches for the timer and the rearm threshold, never the
+  entry condition again. `step(sample, tick)` takes a raw `(number,
+  number)` pair rather than the ECS `StepContext`, which carries
+  `intent: PlayerIntent` — a false dependency for a market-domain
+  mechanism with no player/`World` relationship (V2-ADR-103).
+- A same-tick fallthrough (each stage's `if` block, not `else if`) lets a
+  fresh `ARMED → CONFIRMING` transition be evaluated against the same
+  tick's sample immediately, which is what makes `confirmationTicks: 0`
+  promote to `ACTIVE` on the very tick it arms. This is provably safe for
+  every adjacent stage pair: entry and exit conditions are mutually
+  exclusive by the validated threshold relationship for any single sample
+  (a sample that satisfies entry for `'below'`, i.e.
+  `sample < entryThreshold`, can never also satisfy exit,
+  `sample >= exitThreshold >= entryThreshold`, in the same step), so a
+  fresh `CONFIRMING → ACTIVE` promotion can never immediately re-satisfy
+  the exit condition on the same sample.
+- Test coverage: `IndicatorEventProfile.test.ts` (22 tests — valid input
+  for both directions; one rejection per invalid field, including the
+  entry/exit/direction relationship; a wider active window where
+  `exitThreshold` differs from `entryThreshold`; caller mutation of the
+  input `compatibleWith` array does not leak into the frozen output);
+  `IndicatorEventStateMachine.test.ts` (16 tests, organized one `describe`
+  per named Done-When property — arm/stay-armed; confirm/confirmation-
+  failure/instant-promotion; active-to-cooldown; design's own worked
+  example; the dual-gate cooldown property proven both ways (timer alone
+  insufficient, rearm alone insufficient, both together sufficient); the
+  full cycle mirrored for the `'above'` direction; reset; malformed-input
+  rejection including the monotonic-tick guard).
+- **Two test-authoring bugs were found and fixed while writing the test
+  suite, not implementation bugs.** The first "promotes to ACTIVE..." test
+  and the "above-direction" test both had miscounted tick arithmetic
+  (an extra unneeded `step()` call in one case, a boundary-value
+  misunderstanding in the other — the rearm threshold comparison is
+  inclusive, `sample <= exitThreshold - hysteresis` for `'above'`, so a
+  sample landing exactly on the boundary does satisfy rearm, contrary to
+  the test's original comment). Both were corrected to match the real,
+  verified behavior rather than the implementation being bent to match a
+  wrong test expectation.
+- **Mutation pass, 5 mutants, 4 killed, 1 confirmed genuinely
+  unreachable and honestly reported rather than claimed killed.**
+  `CONFIRMING` failure entering `COOLDOWN` instead of `ARMED` failed 1
+  test. Dropping the rearm term from the `COOLDOWN → ARMED` gate (timer
+  alone) failed 3 tests. Dropping the timer term (rearm alone) failed 2
+  tests. Reintroducing an entry-condition check inside `COOLDOWN` (spam
+  protection removed) failed exactly the dedicated worked-example test —
+  the state after the second dip became `CONFIRMING` instead of staying
+  `COOLDOWN`. Removing `reset()`'s explicit clearing of
+  `confirmationTicksHeld`/`cooldownTicksElapsed` **survived** the full
+  suite: both counters are already unconditionally re-zeroed at their own
+  natural transition entry points (arming, and entering `COOLDOWN`)
+  regardless of what `reset()` does, so no external call sequence can ever
+  observe a stale value — `reset()`'s only externally observable effect is
+  returning to `ARMED` and clearing the monotonic-tick guard, which a
+  separate test does verify. The explicit clears were kept anyway as a
+  defensive guard against a future refactor of those entry points
+  silently turning this into a real bug, mirroring `CombatSystem`'s own
+  documented `health <= 0` defensive-guard precedent, rather than being
+  silently deleted or the finding being hidden.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (55 files,
+  1035 tests, up from 53 files/997 tests before this task by the two new
+  test files' 38 tests), `npm run typecheck`, `npm run check:architecture`
+  (89 baseline singleton files — nothing new was added, the state machine
+  is constructed per-caller, not a singleton), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all four changed/new
+  files (clean), focused Prettier (clean), and `npm run build`. No e2e run
+  was needed: this task touches nothing under `game-v2/GameV2App.tsx` or
+  `game-v2/runtime/**`.
+- All six acceptance criteria in the task brief are met with the evidence
+  above: (1) `IndicatorEventProfile` validates every design-listed field
+  and the threshold/direction relationship; (2) the five-stage cycle is
+  implemented with both gates independently required to leave `COOLDOWN`;
+  (3) design's own worked example is proven by a dedicated property test;
+  (4) `reset()` returns the machine to a state indistinguishable from
+  fresh, verified by the observable state/tick-guard behavior (the
+  counter-clearing itself is unreachable, honestly reported above, not
+  claimed as proven); (5) nothing outside
+  `game-v2/contracts/**`/`game-v2/market/**` was touched, confirmed by the
+  file diff; (6) every gate passes and 4 of 5 mutation checks confirm
+  load-bearing assertions, with the 5th's unreachability independently
+  confirmed rather than assumed. `V2-203` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
 `V2-200` (canonical market snapshot, BTC-only), `V2-201` (locked position
-context), and `V2-202` (five lethality profiles) are all accepted. Per
-`MASTER_PLAN.md`, `V2-203` (indicator-event state machine) depends only on
-`V2-200` and is the only remaining MVP-2 block with no unmet dependency —
-`V2-204`/`V2-205`/`V2-206` (the three indicator-event families) each
-depend on `V2-203`, and `V2-211` (stale/reconnect degradation) depends on
-`V2-200` and `V2-207`, which is not yet reachable. The next session should
-open `V2-203`.
+context), `V2-202` (five lethality profiles), and `V2-203` (indicator-event
+state machine) are all accepted. Per `MASTER_PLAN.md`, `V2-204`
+(Trend/Breakout), `V2-205` (Volatility Surge), and `V2-206` (Volume/Whale)
+each depend only on `V2-203` and are all now unblocked — no ordering
+between them is mandated by the dependency graph, so the next session
+should confirm which family the user wants first (or whether to interleave
+them). `V2-207` (the primary/support composer) depends on all three and
+remains blocked until at least enough of them exist to compose.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
