@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 8 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 9 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-109` is accepted and closed. No task brief exists yet for the next MVP-1 task |
-| Status | `V2-109` accepted at `3dfd5f06`; MVP-1's next task is `Not Started` |
-| Closed | `V2-109` accepted at `3dfd5f06`; `V2-108` accepted at `94a48e7a` |
+| Active task | None in progress; `V2-109` is accepted and closed, and its post-acceptance code-review cleanup is committed. No task brief exists yet for the next MVP-1 task (`V2-110`) |
+| Status | `V2-109` accepted at `3dfd5f06`; its review-finding cleanup committed at `374cec0e`; MVP-1's next task is `Not Started` |
+| Closed | `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2127,11 +2127,17 @@ already-closed `V2-100`-`V2-108` work, fixed directly rather than briefed.
   an unexported type-only-used `const` and one `prefer-optional-chain`
   suggestion), `npm run build`, and
   `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
-  (2 passed). Nothing has been committed yet.
+  (2 passed). Committed as `374cec0e`, "fix(game-v2): close 6 code-review
+  findings from V2-109 review pass" (current local `HEAD`, not yet pushed).
+  Re-verified before commit: all six checks above rerun clean plus
+  `npm run typecheck`, `npm run check:architecture`,
+  `npm run check:reset-coverage`, `npm run check:ui-contract` all passing,
+  and pre-commit hooks (ESLint fix, Prettier, `vitest related --run`,
+  `check:ui-contract`) passed during the commit itself.
 
 ## Exact Next Action
 
-`V2-109` is accepted and closed at `3dfd5f06` (current local `HEAD`, not yet
+The `374cec0e` cleanup commit is closed (current local `HEAD`, not yet
 pushed). No task brief exists yet for the next MVP-1 task; per
 `MASTER_PLAN.md`'s table, `V2-110` (MVP-1 evidence gate) depends on
 `V2-100`..`V2-109`, all of which are now closed, so it is the only
