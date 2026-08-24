@@ -7,11 +7,11 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 7 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 8 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-109` is implemented, reviewed, and accepted but not yet committed — see the `V2-109` entry below |
-| Status | `V2-109` implemented and reviewed on top of `10c521d4`, not yet committed. All Step 5 gates, the Step 6 mutation pass, and an independent review are green |
-| Closed | `V2-108` accepted at `94a48e7a`; `V2-107` accepted at `a43d8c1c` |
+| Active task | None in progress; `V2-109` is accepted and closed. No task brief exists yet for the next MVP-1 task |
+| Status | `V2-109` accepted at `3dfd5f06`; MVP-1's next task is `Not Started` |
+| Closed | `V2-109` accepted at `3dfd5f06`; `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -1968,9 +1968,12 @@
   weakened `ReplayRunner.test.ts` assertion, a narrowed e2e smoke spec, an
   unread `AbilitySlot.startEligible` field, a double-scan inefficiency in
   `ProgressionSystem.step`, and `LevelUpOverlay`'s wall-clock timer
-  (deliberate per V2-ADR-050, not an oversight). `V2-109` is considered
-  reviewed and accepted; nothing has been committed yet, pending the user's
-  go-ahead.
+  (deliberate per V2-ADR-050, not an oversight).
+- `V2-109` is accepted. The commit is `3dfd5f06` — 22 files, exactly the
+  task's own set, staged deliberately to exclude every pre-existing
+  unrelated working-tree change listed below. Pre-commit hooks (ESLint
+  fix, Prettier, `vitest related --run`, `check:ui-contract`) all passed
+  during the commit.
 
 ## Verification Required
 
@@ -2024,18 +2027,26 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-109` (market-independent Convergence) has completed Steps 1-6 (brief,
-config constants, `World`/`WorldSnapshot` schema bump, `ConvergenceSystem`,
-runtime wiring, full Step 5 gate, Step 6 mutation pass) on top of `10c521d4`,
-and an independent review found no defects in it (see the changelog entry
-above; the review's other 9 findings are pre-existing debt on already-closed
-tasks, out of `V2-109`'s scope). **Nothing is committed yet** — commits are
-only made on explicit user instruction. A new session should confirm with
-the user whether to commit `V2-109` now (the working tree already isolates
-its files from the pre-existing unrelated changes listed below), or whether
-to first triage any of the 9 out-of-scope findings as separate follow-up
-work. Do not deploy, cut over production, or replace the legacy demo. Do not
-push the branch without explicit instruction.
+`V2-109` is accepted and closed at `3dfd5f06` (current local `HEAD`, not yet
+pushed). No task brief exists yet for the next MVP-1 task; per
+`MASTER_PLAN.md`'s table, `V2-110` (MVP-1 evidence gate) depends on
+`V2-100`..`V2-109`, all of which are now closed, so it is the only
+remaining MVP-1 task and the next candidate. Separately, the `/code-review
+high` pass run during `V2-109` surfaced 9 findings that are pre-existing
+debt on already-closed tasks, out of scope for `V2-109` itself and not
+acted on: a real unacknowledged duplicate-offer bug in
+`LevelUpOfferSystem.banish()` (and `WorldStateValidator` not catching the
+resulting duplicate state), `WeaponSystem`'s single-fixed-slot firing gap
+(already tracked as V2-ADR-068), `ProgressionSystem`'s defaulted RNG
+parameters (already tracked as deferred), a weakened
+`ReplayRunner.test.ts` assertion, a narrowed e2e smoke spec, an unread
+`AbilitySlot.startEligible` field, a double-scan inefficiency in
+`ProgressionSystem.step`, `StateHasher.ts`'s lack of compile-time
+exhaustiveness against `WorldSnapshot`'s field list, and
+`LevelUpOverlay`'s wall-clock timer (deliberate per V2-ADR-050). The user
+should decide whether any of these become their own tracked task before or
+alongside `V2-110`. Do not deploy, cut over production, or replace the
+legacy demo. Do not push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

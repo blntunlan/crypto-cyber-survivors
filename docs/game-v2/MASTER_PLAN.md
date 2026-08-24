@@ -68,11 +68,8 @@ accepted and closed at `7116c729`. `V2-105` is accepted and closed at
 `841160a2`. `V2-106` is accepted and closed at `ecd2f13f`. `V2-107` is
 accepted and closed at `a43d8c1c`. `V2-108` is accepted and closed at
 `94a48e7a`; briefs and outcomes are in `docs/game-v2/tasks/`. `V2-109`
-(market-independent Convergence, brief at
-`docs/game-v2/tasks/V2-109-market-independent-convergence.md`) is
-implemented, all gates pass, and an independent review found no defects in
-it — but nothing is committed yet pending explicit user instruction. See
-`PROGRESS.md`'s `V2-109` entry and its `Exact Next Action`.
+(market-independent Convergence) is accepted and closed at `3dfd5f06`.
+No task brief exists yet for the next MVP-1 task.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
