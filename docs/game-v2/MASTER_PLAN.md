@@ -190,6 +190,18 @@ both structurally and by a source-scan test with a verified positive
 control, per `CLAUDE.md`'s anti-cheat guardrail against new optimistic
 credit paths; not wired into `GameV2Runtime` yet; see
 `docs/game-v2/tasks/V2-210-loot-event-consumer.md`.
+`V2-211` is accepted and closed: `isMarketSnapshotStale` classifies
+freshness against a real anchor
+(`DataResilienceService`'s `STALE_THRESHOLD_MS = 30000ms`, copied as a
+literal value); `StaleAwareMarketEncounterDirector` wraps `V2-207`'s
+`MarketEncounterDirector` unmodified — a stale tick never calls the
+wrapped director's `step` and instead `reset()`s it (every family back
+to `ARMED`, design's "existing market effects transition to neutral"),
+a fresh tick delegates normally; "reconnect does not replay missed
+events" is proven structurally (no snapshot queue exists anywhere) with
+a test driving a long stale outage followed by resumption producing
+exactly one activation, not a burst; not wired into `GameV2Runtime` yet;
+see `docs/game-v2/tasks/V2-211-stale-reconnect-degradation.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

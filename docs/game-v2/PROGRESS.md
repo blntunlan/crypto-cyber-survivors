@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-210` (Loot-Event Consumer) is accepted and closed — all three `SPAWN`/`WORLD_EVENT`/`LOOT_EVENT` consumption paths now exist (`V2-208`/`V2-209`/`V2-210`), none wired into `GameV2Runtime`. The next reachable tasks are `V2-211` (Stale/reconnect degradation, depends on `V2-200`+`V2-207`) and `V2-212` (Market Convergence contribution, depends on `V2-207`+`V2-109`), both larger runtime-integration tasks. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-210` accepted; `V2-211`..`V2-213` not started. |
-| Closed | `V2-210` accepted (this checkpoint); `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-211` (Stale/Reconnect Degradation) is accepted and closed — market encounter composition now degrades safely under stale/reconnect conditions, though not wired into `GameV2Runtime`. The next reachable task is `V2-212` (Market Convergence contribution, depends on `V2-207`+`V2-109`), the last task before `V2-213`'s MVP-2 evidence gate. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-211` accepted; `V2-212`..`V2-213` not started. |
+| Closed | `V2-211` accepted (this checkpoint); `V2-210` accepted at `6b4327ba`; `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3654,29 +3654,131 @@ three indicator families.
   gate passes and the mutation pass leaves no survivor. `V2-210` is
   accepted.
 
+## V2-211 — Stale/Reconnect Degradation
+
+- Task brief: `docs/game-v2/tasks/V2-211-stale-reconnect-degradation.md`.
+  Governing decisions: V2-ADR-141 through V2-ADR-145.
+- Correcting the prior checkpoint's prediction: `V2-211` did **not**
+  need to touch `GameV2Runtime.ts` — it stayed an isolated
+  `game-v2/market/**` mechanism, matching `V2-208`/`V2-209`/`V2-210`'s
+  own precedent rather than departing from it. Design §7.5's three
+  properties ("stale data cannot author new market events or market
+  reward premiums," "existing market effects transition to neutral,"
+  "reconnect does not replay missed events") turned out to be provable
+  entirely at the `MarketEncounterDirector` composition boundary,
+  without needing runtime wiring — the "genuinely larger
+  runtime-integration task" framing from the prior checkpoint was not
+  borne out once actually scoped.
+- `game-v2/config/MarketFreshness.ts`: `MARKET_STALE_THRESHOLD_MS =
+  30_000`, copied as a literal value from
+  `services/market/DataResilienceService.ts`'s real
+  `STALE_THRESHOLD_MS` (V2-ADR-141) — independently re-confirmed still
+  `30000` in that file before copying. `V2-ADR-085`'s exclusion covers
+  legacy gameplay-multiplier *outputs*; a raw data-freshness threshold
+  is a different category, the same class of value `V2-206`'s
+  `whaleCooldownMs` reuse already established as fair game.
+- `game-v2/market/MarketFreshness.ts`: `isMarketSnapshotStale(snapshot,
+  nowMs, staleThresholdMs?)` is pure, taking `nowMs` as an explicit
+  caller-supplied parameter rather than calling `Date.now()` internally
+  (V2-ADR-142) — a deliberate, narrow exception to `CLAUDE.md`'s
+  `TimeService`-driven-timers rule: staleness measures real SSE network
+  latency, not simulation-tick gameplay timing, so the rule's own stated
+  purpose ("timers freeze during pause/level-up") does not apply, while
+  the function still stays injectable and testable rather than reaching
+  for a global clock.
+- `game-v2/market/StaleAwareMarketEncounterDirector.ts`: wraps `V2-207`'s
+  `MarketEncounterDirector` unmodified (V2-ADR-143) rather than changing
+  its shipped contract. A stale tick never calls the wrapped director's
+  `step` — proven directly with a spy, not just inferred from the
+  result — and instead calls its `reset()`, forcing every real family's
+  `IndicatorEventStateMachine` back to `ARMED`, the one state
+  representing "no effect" and the most literal mapping this codebase's
+  real vocabulary offers to design's "existing market effects transition
+  to neutral." A fresh tick delegates to `step` unchanged, proven
+  identical to a bare `MarketEncounterDirector` driven the same way.
+- "Reconnect does not replay missed events" needed no new anti-replay
+  bookkeeping (V2-ADR-144): neither this wrapper nor
+  `MarketEncounterDirector` ever buffers a snapshot, so there is
+  structurally nothing to replay. Proven with a test simulating a
+  1000-tick stale outage followed by resumption: exactly one activation
+  fires, not a catch-up burst.
+- `tests/game-v2/config/MarketFreshness.test.ts` (1 test): pins
+  `MARKET_STALE_THRESHOLD_MS`.
+- `tests/game-v2/market/MarketFreshness.test.ts` (7 tests): not stale
+  exactly at the threshold; stale one unit past it; not stale for a
+  snapshot that appears to be from the future (clock skew); a custom
+  `staleThresholdMs` overrides the default; the real default threshold
+  is used when none is supplied; invalid `nowMs`/`staleThresholdMs`
+  throw.
+- `tests/game-v2/market/StaleAwareMarketEncounterDirector.test.ts` (6
+  tests): a fresh cycle delegates to the wrapped director identically to
+  a bare `MarketEncounterDirector`; a stale tick reports no encounter
+  and a subsequent fresh cycle needs the full confirmation duration
+  again (proving a genuine reset, not just a suppressed result); a spy
+  directly proves the wrapped director's `step` is never called while
+  stale and `reset` is called exactly once; a calm fresh tick composes
+  nulls; the long-stale-outage-then-resume no-replay-burst property; the
+  injected director is genuinely used (`reset()` delegation proven with
+  a fresh-cycle-after-reset check). All passed on first attempt.
+- **Mutation pass, 4 mutants, all caught — one caught only after
+  strengthening the test suite mid-task.** A staleness boundary
+  off-by-one (`>=` instead of `>`) failed 2 tests. Skipping the
+  `reset()` call on a stale tick failed 1 test. Calling the wrapped
+  director's `step` anyway while stale (in addition to still calling
+  `reset()`) was caught, but not by the assertion expected going in —
+  the immediate-tick result equality check did not fail, since the
+  re-armed machine's `activatedThisTick` still happened to be `false` on
+  that exact call; it was instead caught downstream by the "fresh cycle
+  needs the full duration again" timing assertion, one tick early. This
+  was a real gap: the mutant genuinely violates "stale data cannot
+  author new market events" (a stale sample did influence machine
+  state) even though the immediate return value looked correct — so a
+  direct spy-based test (`step` never called while stale, `reset` called
+  exactly once) was added to close it, and re-verified to catch the same
+  mutant directly rather than incidentally. The constructor ignoring its
+  injected `MarketEncounterDirector` failed the new spy test.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (71 files,
+  1153 tests, up from 68 files/1139 tests before this task by the three
+  new test files), `npm run typecheck`, `npm run check:architecture` (89
+  baseline singleton files — nothing new was added), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, ~34s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `isMarketSnapshotStale` correctly classifies
+  freshness at and around the real threshold, injectable and pure; (2)
+  `StaleAwareMarketEncounterDirector` reports no encounter and resets
+  every wrapped family to neutral while stale, and delegates normally
+  while fresh, both proven directly; (3) a long stale period followed by
+  resumption produces no replay burst; (4)
+  `MarketEncounterDirector`/`EncounterComposer` are unmodified,
+  confirmed by the file diff, and nothing is wired into `GameV2Runtime`;
+  (5) every gate passes and the mutation pass leaves no survivor.
+  `V2-211` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-210` are all accepted. All three indicator-event
-families compose together (`V2-207`), and all three of their outputs now
-have a real, tested consumer — `SPAWN` (`SpawnEncounterConsumer`,
-`V2-208`), `WORLD_EVENT` (`HazardLifecycle`/`WorldEventEncounterConsumer`,
-`V2-209`), `LOOT_EVENT` (`LootEventEncounterConsumer`, `V2-210`) — none
-wired into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, the two remaining
-MVP-2 tasks before the evidence gate are `V2-211` (Stale/reconnect
-degradation, depends on `V2-200`+`V2-207`) and `V2-212` (Market
-Convergence contribution, depends on `V2-207`+`V2-109`) — both are
-reachable now and, unlike `V2-208`/`V2-209`/`V2-210`, are genuinely
-larger runtime-integration tasks rather than isolated `game-v2/market/**`
-mechanisms: `V2-211` needs to define what "stale" means for
-`MarketSnapshot`'s SSE cadence and how a reconnect burst is prevented
-from replaying missed events, and `V2-212` needs to actually touch
-`ConvergenceSystem` (`V2-109`)'s real API to add bonus progress. Both
-will likely be the first MVP-2 tasks since `V2-201` to require reading
-and possibly modifying `GameV2Runtime.ts` itself — worth scoping each
-carefully before starting, including checking whether either needs a new
-event-contract entry or singleton registration this milestone hasn't
-needed yet.
+`V2-200` through `V2-211` are all accepted. All three indicator-event
+families compose together (`V2-207`) with safe stale/reconnect
+degradation (`V2-211`), and all three real outputs have a tested
+consumer (`V2-208`/`V2-209`/`V2-210`) — none of this is wired into
+`GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-212` (Market Convergence
+contribution, depends on `V2-207`+`V2-109`) is the only remaining MVP-2
+task before `V2-213`'s evidence gate, and is reachable now. Given
+`V2-211`'s own experience — a task predicted to need runtime wiring
+turned out not to — `V2-212` should be scoped freshly rather than
+assumed: it needs to actually touch `ConvergenceSystem`'s (`V2-109`)
+real API to add bonus progress for completed market encounters, which
+may or may not require reading `GameV2Runtime.ts` depending on whether
+`ConvergenceSystem` already exposes an injectable bonus-progress entry
+point or needs one added — check `game-v2/systems/ConvergenceSystem.ts`
+before assuming either way. After `V2-212`, `V2-213` (the MVP-2 evidence
+gate: golden fixtures, edge cases, playable market feel, performance
+evidence) closes the milestone.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
