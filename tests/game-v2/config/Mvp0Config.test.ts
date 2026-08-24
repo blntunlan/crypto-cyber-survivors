@@ -1,20 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  CANNON_PROJECTILE_DAMAGE_TIER_1,
+  CANNON_PROJECTILE_DAMAGE_TIER_2,
+  CANNON_PROJECTILE_RADIUS_TIER_1,
+  CANNON_PROJECTILE_RADIUS_TIER_3,
   ENEMY_HEALTH,
   ENEMY_RADIUS,
+  FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  FLICKER_PROJECTILE_DAMAGE_TIER_1,
+  FLICKER_PROJECTILE_DAMAGE_TIER_2,
+  FLICKER_PROJECTILE_RADIUS_TIER_1,
+  FLICKER_PROJECTILE_RADIUS_TIER_3,
   HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
   HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
   HEAVY_PROJECTILE_DAMAGE_TIER_1,
   HEAVY_PROJECTILE_DAMAGE_TIER_2,
   HEAVY_PROJECTILE_RADIUS_TIER_1,
   HEAVY_PROJECTILE_RADIUS_TIER_3,
+  LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  LANCE_PROJECTILE_DAMAGE_TIER_1,
+  LANCE_PROJECTILE_DAMAGE_TIER_2,
+  LANCE_PROJECTILE_RADIUS_TIER_1,
+  LANCE_PROJECTILE_RADIUS_TIER_3,
   MAX_WORLD_CAPACITY,
   MVP0_ENEMY_SPAWN_INTERVAL_TICKS,
   MVP0_ENEMY_SPAWN_RING_RADIUS,
   MVP0_MAX_LIVE_ENEMIES,
   MVP0_MAX_LIVE_PROJECTILES,
   MVP0_WORLD_CAPACITY,
+  NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+  NEEDLE_PROJECTILE_DAMAGE_TIER_2,
+  NEEDLE_PROJECTILE_RADIUS_TIER_1,
+  NEEDLE_PROJECTILE_RADIUS_TIER_3,
   PLAYER_RADIUS,
   PROJECTILE_DAMAGE,
   PROJECTILE_LIFETIME_TICKS,
@@ -28,6 +52,12 @@ import {
   RAPID_PROJECTILE_RADIUS_TIER_3,
   SIMULATION_HZ,
   STARTER_PROJECTILE_RADIUS_TIER_3,
+  SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  SIEGE_PROJECTILE_DAMAGE_TIER_1,
+  SIEGE_PROJECTILE_DAMAGE_TIER_2,
+  SIEGE_PROJECTILE_RADIUS_TIER_1,
+  SIEGE_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
   STARTER_WEAPON_DAMAGE_TIER_2,
   TOP_DOWN_CAMERA_VISIBLE_HEIGHT,
@@ -185,5 +215,133 @@ describe('heavy-projectile and rapid-projectile (V2-106, V2-ADR-063)', () => {
       expect(Number.isInteger(cooldownTicks)).toBe(true);
       expect(cooldownTicks).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * V2-107, V2-ADR-066: the five mid-run-only identities, each `N` times
+ * `starter-projectile`'s own Tier 1 damage and cooldown. One parametrized
+ * block proves the single shared formula for all five, rather than five
+ * independent bespoke assertions.
+ */
+const MID_RUN_ONLY_FAMILIES = [
+  {
+    name: 'needle-projectile',
+    n: 1 / 10,
+    damageTier1: NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+    cooldownTier1: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    radiusTier1: NEEDLE_PROJECTILE_RADIUS_TIER_1,
+    damageTier2: NEEDLE_PROJECTILE_DAMAGE_TIER_2,
+    radiusTier3: NEEDLE_PROJECTILE_RADIUS_TIER_3,
+    cooldownTier3: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  },
+  {
+    name: 'flicker-projectile',
+    n: 1 / 5,
+    damageTier1: FLICKER_PROJECTILE_DAMAGE_TIER_1,
+    cooldownTier1: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    radiusTier1: FLICKER_PROJECTILE_RADIUS_TIER_1,
+    damageTier2: FLICKER_PROJECTILE_DAMAGE_TIER_2,
+    radiusTier3: FLICKER_PROJECTILE_RADIUS_TIER_3,
+    cooldownTier3: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  },
+  {
+    name: 'lance-projectile',
+    n: 1.5,
+    damageTier1: LANCE_PROJECTILE_DAMAGE_TIER_1,
+    cooldownTier1: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    radiusTier1: LANCE_PROJECTILE_RADIUS_TIER_1,
+    damageTier2: LANCE_PROJECTILE_DAMAGE_TIER_2,
+    radiusTier3: LANCE_PROJECTILE_RADIUS_TIER_3,
+    cooldownTier3: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  },
+  {
+    name: 'cannon-projectile',
+    n: 2.5,
+    damageTier1: CANNON_PROJECTILE_DAMAGE_TIER_1,
+    cooldownTier1: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    radiusTier1: CANNON_PROJECTILE_RADIUS_TIER_1,
+    damageTier2: CANNON_PROJECTILE_DAMAGE_TIER_2,
+    radiusTier3: CANNON_PROJECTILE_RADIUS_TIER_3,
+    cooldownTier3: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  },
+  {
+    name: 'siege-projectile',
+    n: 4,
+    damageTier1: SIEGE_PROJECTILE_DAMAGE_TIER_1,
+    cooldownTier1: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    radiusTier1: SIEGE_PROJECTILE_RADIUS_TIER_1,
+    damageTier2: SIEGE_PROJECTILE_DAMAGE_TIER_2,
+    radiusTier3: SIEGE_PROJECTILE_RADIUS_TIER_3,
+    cooldownTier3: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  },
+];
+
+describe('mid-run-only projectile family (V2-107, V2-ADR-066)', () => {
+  it.each(MID_RUN_ONLY_FAMILIES)(
+    '$name derives Tier 1 as exactly $n times starter-projectile Tier 1',
+    ({ n, damageTier1, cooldownTier1, radiusTier1 }) => {
+      expect(damageTier1).toBeCloseTo(PROJECTILE_DAMAGE * n, 10);
+      expect(cooldownTier1).toBeCloseTo(WEAPON_COOLDOWN_TICKS * n, 10);
+      expect(radiusTier1).toBeCloseTo(PROJECTILE_RADIUS * n, 10);
+    }
+  );
+
+  it.each(MID_RUN_ONLY_FAMILIES)(
+    '$name opens at the identical Tier 1 damage-per-tick baseline as starter-projectile',
+    ({ damageTier1, cooldownTier1 }) => {
+      expect(damageTier1 / cooldownTier1).toBeCloseTo(
+        PROJECTILE_DAMAGE / WEAPON_COOLDOWN_TICKS,
+        10
+      );
+    }
+  );
+
+  it.each(MID_RUN_ONLY_FAMILIES)(
+    '$name raises damage 1.5x at Tier 2, radius 1.5x and cooldown to two thirds at Tier 3, damage held',
+    ({
+      damageTier1,
+      cooldownTier1,
+      radiusTier1,
+      damageTier2,
+      radiusTier3,
+      cooldownTier3,
+    }) => {
+      expect(damageTier2).toBeCloseTo(damageTier1 * 1.5, 10);
+      expect(radiusTier3).toBeCloseTo(radiusTier1 * 1.5, 10);
+      expect(cooldownTier3).toBeCloseTo((cooldownTier1 * 2) / 3, 10);
+    }
+  );
+
+  it.each(MID_RUN_ONLY_FAMILIES)(
+    '$name keeps every Tier cooldown a positive integer',
+    family => {
+      for (const cooldownTicks of [family.cooldownTier1, family.cooldownTier3]) {
+        expect(Number.isInteger(cooldownTicks)).toBe(true);
+        expect(cooldownTicks).toBeGreaterThan(0);
+      }
+    }
+  );
+
+  it.each(MID_RUN_ONLY_FAMILIES)(
+    '$name keeps every Tier hitbox inside the tunnel-safety margin',
+    ({ radiusTier1, radiusTier3 }) => {
+      expect(PROJECTILE_SPEED * FIXED_DELTA_SECONDS).toBeLessThan(
+        2 * (radiusTier1 + ENEMY_RADIUS)
+      );
+      expect(PROJECTILE_SPEED * FIXED_DELTA_SECONDS).toBeLessThan(
+        2 * (radiusTier3 + ENEMY_RADIUS)
+      );
+    }
+  );
+
+  it('keeps the five N multipliers pairwise distinct and distinct from starter/heavy/rapid (1, 2, 0.5)', () => {
+    const reserved = [1, 2, 0.5];
+    const ns = MID_RUN_ONLY_FAMILIES.map(family => family.n);
+
+    for (const n of ns) {
+      expect(reserved).not.toContain(n);
+    }
+    expect(new Set(ns).size).toBe(ns.length);
   });
 });

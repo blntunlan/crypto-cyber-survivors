@@ -39,20 +39,67 @@ export type RapidProjectileTierEffect = Readonly<{
   cooldownTicks: number;
 }>;
 
+/**
+ * The five mid-run-only identities (`V2-107`, V2-ADR-066): each extends
+ * V2-ADR-063's precedent — the same unchanged single-target auto-fire
+ * pipeline, tuned as a multiple of `starter-projectile`'s own Tier 1 numbers
+ * so every projectile-family identity opens at the identical Tier 1
+ * damage-per-tick baseline.
+ */
+export type NeedleProjectileTierEffect = Readonly<{
+  ability: 'needle-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+export type FlickerProjectileTierEffect = Readonly<{
+  ability: 'flicker-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+export type LanceProjectileTierEffect = Readonly<{
+  ability: 'lance-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+export type CannonProjectileTierEffect = Readonly<{
+  ability: 'cannon-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
+export type SiegeProjectileTierEffect = Readonly<{
+  ability: 'siege-projectile';
+  damage: number;
+  projectileRadius: number;
+  cooldownTicks: number;
+}>;
+
 export type AbilityTierEffect =
   | StarterProjectileTierEffect
   | HeavyProjectileTierEffect
-  | RapidProjectileTierEffect;
+  | RapidProjectileTierEffect
+  | NeedleProjectileTierEffect
+  | FlickerProjectileTierEffect
+  | LanceProjectileTierEffect
+  | CannonProjectileTierEffect
+  | SiegeProjectileTierEffect;
 
 const isFinitePositive = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0;
 
 /**
- * The three single-target projectile identities (starter/heavy/rapid) share
- * this exact validation rule; only the `ability` tag differs (V2-ADR-063).
+ * All eight single-target projectile identities share this exact validation
+ * rule; only the `ability` tag differs (V2-ADR-063, V2-ADR-066).
  */
 const assertProjectileTierEffectFields = (
-  ability: 'starter-projectile' | 'heavy-projectile' | 'rapid-projectile',
+  ability: AbilityTierEffect['ability'],
   candidate: Partial<{
     damage: number;
     projectileRadius: number;
@@ -115,6 +162,61 @@ export const assertAbilityTierEffect = (value: unknown): AbilityTierEffect => {
 
       return {
         ability: 'rapid-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'needle-projectile': {
+      const effect = candidate as Partial<NeedleProjectileTierEffect>;
+      assertProjectileTierEffectFields('needle-projectile', effect);
+
+      return {
+        ability: 'needle-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'flicker-projectile': {
+      const effect = candidate as Partial<FlickerProjectileTierEffect>;
+      assertProjectileTierEffectFields('flicker-projectile', effect);
+
+      return {
+        ability: 'flicker-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'lance-projectile': {
+      const effect = candidate as Partial<LanceProjectileTierEffect>;
+      assertProjectileTierEffectFields('lance-projectile', effect);
+
+      return {
+        ability: 'lance-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'cannon-projectile': {
+      const effect = candidate as Partial<CannonProjectileTierEffect>;
+      assertProjectileTierEffectFields('cannon-projectile', effect);
+
+      return {
+        ability: 'cannon-projectile',
+        damage: effect.damage as number,
+        projectileRadius: effect.projectileRadius as number,
+        cooldownTicks: effect.cooldownTicks as number,
+      };
+    }
+    case 'siege-projectile': {
+      const effect = candidate as Partial<SiegeProjectileTierEffect>;
+      assertProjectileTierEffectFields('siege-projectile', effect);
+
+      return {
+        ability: 'siege-projectile',
         damage: effect.damage as number,
         projectileRadius: effect.projectileRadius as number,
         cooldownTicks: effect.cooldownTicks as number,

@@ -20,23 +20,22 @@ import {
   createFakeRenderer,
   createManualIntentSource,
   driveScriptedRun,
+  resolveOfferChoiceIndex,
   type FakeRenderer,
 } from '../support/scriptedRun';
 
 /**
  * Chooses the ability candidate of the currently open offer, matching
- * `driveScriptedRun`'s default kind so a replay of its recording sees the
- * same offer (same seed) and can resolve it the same way.
+ * `driveScriptedRun`'s default kind so a live re-drive of its recorded
+ * frames (not a recorded-command replay — see `replayAfterReset` below)
+ * reaches the same offer and resolves it the identical way.
+ * `resolveOfferChoiceIndex` is the single shared policy `driveScriptedRun`
+ * itself also uses, which matters here: two different policies would
+ * consume RNG differently between a live run and a live re-drive of its own
+ * frames, desyncing entity-generation counts between them.
  */
 const chooseAbilityUpgrade = (runtime: GameV2Runtime): void => {
-  const candidates = runtime.readout().levelUpOffer?.candidates ?? [];
-  const index = candidates.findIndex(candidate => candidate?.kind === 'ability');
-
-  if (index < 0) {
-    throw new Error('no ability candidate in the current offer');
-  }
-
-  runtime.chooseUpgrade(index as 0 | 1 | 2);
+  runtime.chooseUpgrade(resolveOfferChoiceIndex(runtime, 'ability'));
 };
 
 /**

@@ -85,12 +85,18 @@ describe('ReplayRunner', () => {
     run.runtime.dispose();
 
     expect(run.upgradeApplied).toBe(true);
-    const firstCommand = recording.commands[0];
-    if (firstCommand?.type !== 'choose-upgrade') {
+    // The single passive identity can be crowded out of the offer by
+    // V2-107's eight abilities, in which case `driveScriptedRun` rerolls
+    // once (a real, recorded command) before choosing — so the
+    // `choose-upgrade` command is not necessarily first.
+    const upgradeCommand = recording.commands.find(
+      command => command.type === 'choose-upgrade'
+    );
+    if (upgradeCommand === undefined) {
       throw new Error('expected a choose-upgrade command');
     }
-    expect(firstCommand.choiceIndex).toBeGreaterThanOrEqual(0);
-    expect(firstCommand.choiceIndex).toBeLessThanOrEqual(2);
+    expect(upgradeCommand.choiceIndex).toBeGreaterThanOrEqual(0);
+    expect(upgradeCommand.choiceIndex).toBeLessThanOrEqual(2);
 
     const replayRunner = new ReplayRunner();
     const at30 = replayRunner.run(recording, 30);

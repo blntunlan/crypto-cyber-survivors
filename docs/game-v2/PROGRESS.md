@@ -7,10 +7,10 @@
 
 | Field | Value |
 |---|---|
-| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 4 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
+| Branch | `codex/threejs-gameplay-v2` (local `HEAD` is 5 commits ahead of `origin/codex/threejs-gameplay-v2`; not pushed) |
 | Phase | MVP-1 combat and build core |
-| Active task | None in progress; `V2-106` is accepted and closed. No task brief exists yet for the next MVP-1 task |
-| Status | `V2-106` accepted at `ecd2f13f`; MVP-1's next task is `Not Started` |
+| Active task | `V2-107` (initial ability set): implementation and tests complete, Step 5 gates green, **not yet committed** — awaiting explicit instruction to commit |
+| Status | `V2-107` implemented on top of `V2-106` (`ecd2f13f`); `V2-106` itself remains accepted and closed |
 | Closed | `V2-106` accepted at `ecd2f13f`; `V2-105` accepted at `841160a2` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
@@ -1626,6 +1626,115 @@
     starter-projectile/`resetPlayer`/MVP-0 e2e behavior — proved by the full
     green suite and e2e run; (5) every Step 4 gate passes with no mutation
     survivor among the brief's named mutants. `V2-106` is accepted.
+- Scope decision for `V2-107`: the user chose a narrow "registry + loadout
+  only" scope (over a medium option adding real active-ability input plus
+  one new AUTO mechanic, and a full option building five distinct new
+  mechanics), confirmed via `AskUserQuestion`. The task brief
+  (`docs/game-v2/tasks/V2-107-initial-ability-set.md`) records this and the
+  resulting preflight decisions (V2-ADR-066…V2-ADR-068).
+- `V2-107` (initial ability set) implemented per its task brief:
+  - `AbilityIdentityId` grew to eight members; `AbilityTierEffect` gained
+    five new discriminated union members
+    (`NeedleProjectileTierEffect`/`FlickerProjectileTierEffect`/`LanceProjectileTierEffect`/`CannonProjectileTierEffect`/`SiegeProjectileTierEffect`),
+    all sharing the same validation rule as the existing three (factored
+    into one `assertProjectileTierEffectFields` helper).
+  - Five new mid-run-only `AbilityDefinition`s (`needle-projectile`,
+    `flicker-projectile`, `lance-projectile`, `cannon-projectile`,
+    `siege-projectile`), all `activation: 'auto'`, `startEligible: false`,
+    reusing `WeaponSystem`'s unchanged single-target pipeline exactly as
+    `heavy-projectile`/`rapid-projectile` already do (V2-ADR-063, extended
+    by V2-ADR-066). Each is `starter-projectile`'s own Tier 1 damage and
+    cooldown scaled by one multiplier `N` (`1/10`, `1/5`, `3/2`, `5/2`, `4`),
+    so all eight identities open at the identical Tier 1 damage-per-tick
+    baseline by construction — pinned once for all eight in
+    `Mvp0Config.test.ts` rather than five independent bespoke proofs.
+    `MVP1_ABILITY_REGISTRY` grew from three identities to the full eight
+    design §6.1 specifies.
+  - No `activation: 'active'` content was added (V2-ADR-067) and
+    `WeaponSystem`/`resetPlayer`/`World.weaponCooldownTicksRemaining` are
+    unchanged (V2-ADR-068) — both deliberate narrow-scope boundaries, not
+    oversights. While scoping this task, a previously unstated latent risk
+    surfaced and is now recorded in V2-ADR-068: because the offer system
+    does not exclude a second `auto`-activation identity from being offered
+    once one is already held, a player could already pick up e.g.
+    `heavy-projectile` mid-run (a `V2-106` capability) and have it sit
+    permanently un-fired in a non-zero slot. This was always latent in
+    `V2-106`'s design (`weaponCooldownTicksRemaining` was already
+    entity-scoped, not per-ability-slot), not introduced by `V2-107`, and is
+    covered by the same deferral V2-ADR-064 already recorded.
+  - Test coverage added: `AbilityRegistry.test.ts` (five new identities'
+    registry content, plus a combined "all eight identities" describe block
+    covering pairwise distinctness and the shared Tier 1 DPS-baseline
+    invariant), `Mvp0Config.test.ts` (one parametrized block proving the
+    single V2-ADR-066 formula for all five, rather than five bespoke
+    blocks), `AbilityLoadoutSystem.test.ts` (a real four-ability-slot
+    combination test drawing from the full eight-identity production
+    registry — the actual "four-slot combination" proof `V2-100`'s own
+    combination test could only give generically with five synthetic test
+    identities), `WeaponSystem.test.ts` (parametrized firing proof for all
+    five new identities, tier 1 through tier 3).
+  - Ripple fixes from the offerable-ability pool growing from three to
+    eight (same category as `V2-106`'s own ripple, compounded):
+    - `ProgressionSystem.test.ts`: `excludeNonStarterAbilitiesFromOffer`
+      changed from holding-and-maxing two identities to holding-and-maxing
+      three, because with eight registered identities only filling *all
+      four* ability slots (not merely holding two of them) closes the
+      free-slot escape hatch `isOfferable` grants any un-held identity; the
+      "nothing offerable" exhaustion test and the "empty choiceIndex"
+      banish test needed the same fix; one test seeding an offer directly
+      via `DeterministicRng(1)` needed the same exclusion helper so its
+      passive assertion stays reachable regardless of RNG.
+    - `tests/game-v2/support/scriptedRun.ts`: rather than continuing to hunt
+      for a `SCENARIO_SEED` whose natural offer draw happens to contain
+      specific identities (empirically no longer tractable — most seeds now
+      miss the single passive identity entirely in a 3-of-9 draw), the
+      fixture itself was made robust: a new exported
+      `resolveOfferChoiceIndex(runtime, desiredKind)` prefers
+      `starter-projectile` for the ability path and rerolls once
+      (production-legitimate, consumes the real charge) if the preferred
+      candidate is missing, and the "an ability upgrade happened" check is
+      now a generic `abilitySlots` before/after diff instead of a hardcoded
+      `weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2` comparison. This is a
+      permanent fix, not a seed re-pick: it stays correct as the registry
+      keeps growing in later tasks. `Mvp0Runtime.test.ts`'s own
+      `chooseAbilityUpgrade` helper (a separate live re-drive path, not a
+      recorded-command replay) was changed to delegate to the same shared
+      `resolveOfferChoiceIndex`, because two different offer-choice policies
+      between a live run and a live re-drive of its own frames would
+      consume RNG differently and desync entity-generation counts between
+      them — this was caught by a real test failure
+      (`replays an identical world after reset...` expected 17, got 13)
+      before being fixed this way.
+    - `ReplayRunner.test.ts`: the "replays a recorded passive choice" test's
+      assumption that `commands[0]` is always `choose-upgrade` no longer
+      holds when a reroll precedes it; fixed to find the `choose-upgrade`
+      command generically.
+    - `e2e/game-v2-walking-skeleton.spec.ts`: the fixed-seed (`12345`)
+      browser test's assertion that both an ability and a passive candidate
+      are simultaneously visible in the same offer no longer holds; the
+      passive-specific assertion was dropped (starter-projectile's own
+      visibility assertion, and the subsequent click/weaponDamage
+      assertions, still hold for this seed).
+  - Verification: `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1`
+    (34 files, 801 tests, all green), full root `npx vitest run` (376 files,
+    4072 tests, all green), `npm run typecheck`, `npm run check:architecture`,
+    `npm run check:reset-coverage`, `npm run check:ui-contract`,
+    `npm run check:event-contract`, `npm run check:director-manifest`,
+    `npm run lint` (clean on every file this task touched; pre-existing
+    `.delegate/` parsing errors are unrelated and untouched), `npm run
+    format` (no unwanted changes), `npm run build`, and
+    `npx playwright test e2e/game-v2-walking-skeleton.spec.ts --project=chromium --workers=1 --reporter=list`
+    (2 passed, after the offer-assertion fix above).
+  - Manual mutation spot-checks: a duplicated ability code
+    (`needle-projectile` mutated to code `1`, colliding with
+    `starter-projectile`) is caught at module load by
+    `createAbilityRegistry`'s duplicate-code guard; a non-integer Tier 3
+    cooldown (`siege-projectile`'s formula mutated from `* 2/3` to `/ 7`) is
+    caught at module load by `assertAbilityTierEffect`'s integer guard.
+    Restoring both fixes returns the suite to green.
+  - Not yet committed. Working tree holds exactly the files the task brief
+    lists plus this checkpoint/decision-log/master-plan documentation and
+    the e2e ripple fix; verified scoped via `git status --short`.
 
 ## Verification Required
 
@@ -1679,13 +1788,17 @@ Accepted as real, deliberately out of V2-014 scope, and carried forward:
 
 ## Exact Next Action
 
-`V2-106` is accepted and closed at `ecd2f13f` (current local `HEAD`, not yet
-pushed). No task brief exists yet for the next MVP-1 task; per
-`MASTER_PLAN.md`'s table, `V2-107` (initial ability set, depends on
-`V2-102`) is the next candidate by ID and has its dependency already
-satisfied. Confirm scope, generate its task brief, then start Step 1. Do not
-deploy, cut over production, or replace the legacy demo. Do not push the
-branch without explicit instruction.
+`V2-106` remains accepted and closed at `ecd2f13f` (current local `HEAD`, not
+yet pushed). `V2-107` (initial ability set) is implemented and fully verified
+on top of that commit per its task brief
+(`docs/game-v2/tasks/V2-107-initial-ability-set.md`), but **not yet
+committed** — commit only on explicit instruction. Once committed, update
+this file's `Current State` table and this section to record the real
+commit hash, matching the pattern `V2-100`..`V2-106` already established.
+`V2-108` (basic enemy composition, depends on `V2-010`, already satisfied)
+and `V2-109`/`V2-110` (MVP-1's remaining tasks) are the candidates after
+that. Do not deploy, cut over production, or replace the legacy demo. Do not
+push the branch without explicit instruction.
 
 ## Known Pre-existing Working-tree Changes
 

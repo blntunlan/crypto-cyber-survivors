@@ -5,7 +5,6 @@ import {
   PLAYER_MAX_HEALTH,
   PLAYER_RADIUS,
   SIMULATION_STEP_MS,
-  STARTER_WEAPON_DAMAGE_TIER_2,
   WEAPON_COOLDOWN_TICKS,
 } from '@/game-v2/config/Mvp0Config';
 import { type GameV2RuntimeReadout } from '@/game-v2/contracts/GameV2Debug';
@@ -27,12 +26,16 @@ export const CONTACT_RANGE = PLAYER_RADIUS + ENEMY_RADIUS;
 export const DASH_TRIGGER_MARGIN = 0.5;
 export const STEER_MAGNITUDE = 0.999;
 /**
- * An arbitrary but fixed seed. Chosen (over other arbitrary values, e.g. the
- * prior `0x5eed`) so the default `desiredKind: 'ability'` path's first-offer
- * RNG draw includes `starter-projectile` — the only identity the player
- * already holds at that point — without needing a reroll: V2-106 grew the
- * offerable ability pool from one to three, so a random 3-of-N draw no longer
- * always contains the held identity by construction.
+ * An arbitrary but fixed seed. Earlier registry sizes (one, then three,
+ * ability identities) made specific seed values line up with specific offer
+ * content; V2-107 grew the registry to eight abilities plus one passive, at
+ * which point hunting for a seed whose offer happens to contain a specific
+ * identity stopped being tractable (most seeds miss the single passive
+ * identity entirely in a 3-of-9 draw). `driveScriptedRun` below no longer
+ * depends on offer content matching a specific identity — it recognizes
+ * "an ability was upgraded" generically and self-heals a missing passive
+ * candidate through a real reroll — so this value has no significance
+ * beyond being fixed and reproducible.
  */
 export const SCENARIO_SEED = 9;
 
@@ -120,6 +123,55 @@ export const distanceToNearestEnemy = (readout: GameV2RuntimeReadout): number =>
   );
 };
 
+/**
+ * Resolves which offer slot to choose for `desiredKind`, rerolling once
+ * (production-legitimate, consumes the real charge) when the preferred
+ * candidate is missing from the current offer. Exported so every caller that
+ * drives a level-up to completion — `driveScriptedRun` itself and
+ * `Mvp0Runtime.test.ts`'s own live re-drive helpers — applies the identical
+ * policy; two different policies would consume RNG differently and desync
+ * entity-generation counts between a live run and a live re-drive of its own
+ * recorded frames (as opposed to a true recorded-command replay).
+ *
+ * For `'ability'`, prefers `starter-projectile` — the only identity the
+ * player already holds at this point — so callers that assert the *held*
+ * slot's tier advances (rather than a new slot being filled) stay
+ * meaningful. V2-107 grew the offerable ability pool to eight, so a random
+ * 3-of-9 draw no longer always contains it. For `'passive'`, the single
+ * passive identity can be crowded out the same way.
+ */
+export const resolveOfferChoiceIndex = (
+  runtime: GameV2Runtime,
+  desiredKind: OfferCandidate['kind']
+): 0 | 1 | 2 => {
+  let readout = runtime.readout();
+  const candidatesOf = (): readonly (OfferCandidate | null)[] =>
+    readout.levelUpOffer?.candidates ?? [];
+  const preferredIndex = (): number =>
+    candidatesOf().findIndex(
+      candidate =>
+        candidate?.kind === desiredKind &&
+        (desiredKind !== 'ability' || candidate.identity === 'starter-projectile')
+    );
+
+  if (preferredIndex() < 0 && readout.rerollCharges > 0) {
+    runtime.rerollOffer();
+    readout = runtime.readout();
+  }
+
+  const preferred = preferredIndex();
+  const fallback = candidatesOf().findIndex(
+    candidate => candidate?.kind === desiredKind
+  );
+  const chosen = preferred >= 0 ? preferred : fallback;
+
+  if (chosen < 0) {
+    throw new Error(`no ${desiredKind} candidate in the current offer`);
+  }
+
+  return chosen as 0 | 1 | 2;
+};
+
 export type ScriptedRun = {
   runtime: GameV2Runtime;
   renderer: FakeRenderer;
@@ -146,11 +198,10 @@ export const driveScriptedRun = (
   /**
    * When true, the run rerolls and banishes once before choosing (V2-105),
    * so a recording exercises both new command types for replay-determinism
-   * tests. MVP-1's registries offer exactly one ability and one passive
-   * identity, so after a reroll both are always present and it is always
-   * safe to banish the slot NOT holding `desiredKind` — banishing
-   * `desiredKind` itself would make it permanently unofferable and break
-   * the very choice this run is scripted to make.
+   * tests. Which candidate gets banished does not matter (`banish` redraws a
+   * replacement from the remaining offerable pool), since the upgrade
+   * `desiredKind` is recognized generically afterward rather than by a
+   * specific identity's numbers (V2-107 grew the ability pool to eight).
    */
   useRerollAndBanish = false
 ): ScriptedRun => {
@@ -202,30 +253,32 @@ export const driveScriptedRun = (
       if (useRerollAndBanish && !rerollAndBanishDone) {
         rerollAndBanishDone = true;
         runtime.rerollOffer();
-        const afterReroll = runtime.readout();
-        const rerolledCandidates = afterReroll.levelUpOffer?.candidates ?? [];
-        const banishIndex = rerolledCandidates.findIndex(
-          candidate => candidate !== null && candidate.kind !== desiredKind
-        );
-        if (banishIndex < 0) {
-          throw new Error(`no non-${desiredKind} candidate to banish`);
-        }
-        runtime.banishOffer(banishIndex as 0 | 1 | 2);
+        // Which specific candidate is banished does not matter: `banish`
+        // redraws a replacement from the remaining offerable pool (or
+        // leaves the slot empty if that pool is exhausted), and this run
+        // only needs *some* `desiredKind` candidate to remain afterward,
+        // checked generically below rather than by identity.
+        runtime.banishOffer(0);
         readout = runtime.readout();
       }
 
-      const candidates = readout.levelUpOffer?.candidates ?? [];
-      const chosenIndex = candidates.findIndex(
-        candidate => candidate?.kind === desiredKind
-      );
-      if (chosenIndex < 0) {
-        throw new Error(`no ${desiredKind} candidate in the current offer`);
-      }
-      runtime.chooseUpgrade(chosenIndex as 0 | 1 | 2);
+      const beforeUpgrade = readout;
+      const chosenIndex = resolveOfferChoiceIndex(runtime, desiredKind);
+      runtime.chooseUpgrade(chosenIndex);
       const afterUpgrade = runtime.readout();
+      // Recognized generically rather than by a specific identity's numbers,
+      // since V2-107 grew the ability pool to eight and any of them may be
+      // the one actually offered and chosen: an ability upgrade either adds
+      // a new occupied slot or advances an already-held slot's tier; a
+      // passive upgrade raises the move-speed level and speed by definition
+      // (only one passive identity is registered).
+      const abilityEffectApplied = beforeUpgrade.abilitySlots.some((before, index) => {
+        const after = afterUpgrade.abilitySlots[index];
+        return (before === null) !== (after === null) || before?.tier !== after?.tier;
+      });
       const effectApplied =
         desiredKind === 'ability'
-          ? afterUpgrade.weaponDamage === STARTER_WEAPON_DAMAGE_TIER_2
+          ? abilityEffectApplied
           : afterUpgrade.moveSpeedLevel === 1 &&
             afterUpgrade.moveSpeed === PASSIVE_MOVE_SPEED_BY_LEVEL[1];
       upgradeApplied =

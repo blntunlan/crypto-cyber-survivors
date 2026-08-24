@@ -35,6 +35,7 @@ import { MovementSystem } from '@/game-v2/systems/MovementSystem';
 import { ProgressionSystem } from '@/game-v2/systems/ProgressionSystem';
 import {
   HEAVY_PROJECTILE,
+  NEEDLE_PROJECTILE,
   RAPID_PROJECTILE,
   STARTER_PROJECTILE,
 } from '@/game-v2/config/AbilityRegistry';
@@ -165,17 +166,25 @@ const findOfferIndex = (
 
 /**
  * Maxes `heavy-projectile` and `rapid-projectile` so `starter-projectile` is
- * the only offerable ability identity (V2-106 grew the pool to three).
- * Tests that assert a specific offer resolution affects the starter weapon
- * use this to make its inclusion in the next offer deterministic rather than
- * RNG-dependent.
+ * the only offerable ability identity. Filling and maxing the other three
+ * ability slots (whichever non-starter identities are chosen) closes the
+ * free-slot escape hatch `isOfferable` grants any *un-held* identity, which
+ * is what actually excludes the remaining four registered identities
+ * (V2-107 grew the pool to eight) without needing to hold all seven at
+ * once — only four ability slots exist. Tests that assert a specific offer
+ * resolution affects the starter weapon use this to make its inclusion in
+ * the next offer deterministic rather than RNG-dependent.
  */
 const excludeNonStarterAbilitiesFromOffer = (
   abilityLoadout: AbilityLoadoutSystem,
   world: World,
   player: EntityId
 ): void => {
-  for (const identity of [HEAVY_PROJECTILE.id, RAPID_PROJECTILE.id]) {
+  for (const identity of [
+    HEAVY_PROJECTILE.id,
+    RAPID_PROJECTILE.id,
+    NEEDLE_PROJECTILE.id,
+  ]) {
     abilityLoadout.addOrAdvanceTier(world, player, identity);
     abilityLoadout.addOrAdvanceTier(world, player, identity);
     abilityLoadout.addOrAdvanceTier(world, player, identity);
@@ -875,16 +884,20 @@ describe('Level progression, surplus XP, and pause trigger', () => {
     progression.resetPlayer(world, player);
     combatResetPlayerHelper(world, player);
 
-    // Exhaust the entire MVP-1 offerable pool: all three registered abilities
-    // to their tier ceiling (V2-106 grew this pool from one to three), the
-    // move-speed passive to its level ceiling. Once nothing is offerable,
-    // `generateOffer` throws before `resolveUpgrade` can ever run, so this
-    // proves the level-up branch does not commit `level`/`xp` ahead of that
-    // throw.
+    // Exhaust the entire MVP-1 offerable pool. Only four ability slots exist,
+    // so filling and maxing all four (rather than holding all eight
+    // registered identities, which would not fit) closes the free-slot
+    // escape hatch `isOfferable` grants any un-held identity — that is what
+    // actually excludes the four abilities never held here (V2-107 grew the
+    // registry to eight) — plus the move-speed passive to its level ceiling.
+    // Once nothing is offerable, `generateOffer` throws before
+    // `resolveUpgrade` can ever run, so this proves the level-up branch does
+    // not commit `level`/`xp` ahead of that throw.
     for (const abilityId of [
       STARTER_PROJECTILE.id,
       HEAVY_PROJECTILE.id,
       RAPID_PROJECTILE.id,
+      NEEDLE_PROJECTILE.id,
     ]) {
       abilityLoadout.addOrAdvanceTier(world, player, abilityId);
       abilityLoadout.addOrAdvanceTier(world, player, abilityId);
@@ -1121,7 +1134,7 @@ describe('Passive upgrade resolution', () => {
     const lifecycle = new GameV2Lifecycle();
     const commandRecorder = new CommandRecorder();
     const weaponSystem = new WeaponSystem();
-    const { progression, passiveLoadout, offerSystem } = createHarness(
+    const { progression, passiveLoadout, offerSystem, abilityLoadout } = createHarness(
       lifecycle,
       commandRecorder
     );
@@ -1129,6 +1142,12 @@ describe('Passive upgrade resolution', () => {
     weaponSystem.resetPlayer(world, player);
     progression.resetPlayer(world, player);
     lifecycle.start();
+    // Leave only starter-projectile offerable as an ability, so the
+    // three-slot draw is guaranteed to include the passive candidate
+    // regardless of RNG (V2-107 grew the ability pool to eight, crowding
+    // out the single passive identity often enough that seed 1 alone no
+    // longer guarantees it).
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
     // A real offer requires a real level-up trigger, which the offer-index
     // tests below drive through `step`; this test only needs an open offer
     // to resolve against, so it seeds one directly.
@@ -1412,14 +1431,11 @@ describe('Banish (banishOffer)', () => {
     combatResetPlayerHelper(world, player);
 
     // Leave only starter-projectile offerable, so the offer always has an
-    // empty slot: V2-106 grew the offerable ability pool to three, which by
-    // itself now fills every offer slot (`OFFER_CANDIDATE_COUNT`).
-    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, HEAVY_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
-    abilityLoadout.addOrAdvanceTier(world, player, RAPID_PROJECTILE.id);
+    // empty slot: fill and max the other three ability slots to close the
+    // free-slot escape hatch `isOfferable` grants any un-held identity
+    // (V2-107 grew the pool to eight, so simply holding two of them, as
+    // V2-106 originally did, is no longer enough on its own).
+    excludeNonStarterAbilitiesFromOffer(abilityLoadout, world, player);
     for (let i = 0; i < PASSIVE_MAX_LEVEL; i += 1) {
       passiveLoadout.addOrLevelUp(world, player, MOVE_SPEED_PASSIVE.id);
     }

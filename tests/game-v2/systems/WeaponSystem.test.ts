@@ -1,18 +1,35 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CANNON_PROJECTILE,
+  FLICKER_PROJECTILE,
   HEAVY_PROJECTILE,
+  LANCE_PROJECTILE,
+  NEEDLE_PROJECTILE,
   RAPID_PROJECTILE,
+  SIEGE_PROJECTILE,
   STARTER_PROJECTILE,
 } from '@/game-v2/config/AbilityRegistry';
 import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
 import {
+  CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  CANNON_PROJECTILE_DAMAGE_TIER_1,
+  CANNON_PROJECTILE_RADIUS_TIER_1,
   ENEMY_FACTION,
   ENEMY_HEALTH,
   ENEMY_RADIUS,
+  FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  FLICKER_PROJECTILE_DAMAGE_TIER_1,
+  FLICKER_PROJECTILE_RADIUS_TIER_1,
   HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
   HEAVY_PROJECTILE_DAMAGE_TIER_1,
   HEAVY_PROJECTILE_RADIUS_TIER_1,
+  LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  LANCE_PROJECTILE_DAMAGE_TIER_1,
+  LANCE_PROJECTILE_RADIUS_TIER_1,
+  NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+  NEEDLE_PROJECTILE_RADIUS_TIER_1,
   PROJECTILE_DAMAGE,
   PROJECTILE_LIFETIME_SECONDS,
   PROJECTILE_LIFETIME_TICKS,
@@ -21,6 +38,9 @@ import {
   RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
   RAPID_PROJECTILE_DAMAGE_TIER_1,
   RAPID_PROJECTILE_RADIUS_TIER_1,
+  SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  SIEGE_PROJECTILE_DAMAGE_TIER_1,
+  SIEGE_PROJECTILE_RADIUS_TIER_1,
   SIMULATION_HZ,
   STARTER_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
@@ -733,4 +753,97 @@ describe('WeaponSystem firing a non-starter start-eligible identity (V2-106)', (
     expect(world.radius[slot]).toBeCloseTo(PROJECTILE_RADIUS, 6);
     expect(loadoutIdentity(world, player)).toBe(STARTER_PROJECTILE.id);
   });
+});
+
+/**
+ * V2-107 Step 3: proves `WeaponSystem` fires each of the five mid-run-only
+ * identities correctly when directly constructed in ability slot 0,
+ * mirroring V2-106's non-starter firing proof. `resetPlayer` itself is
+ * unchanged (V2-ADR-068) — these worlds place the identity via the same
+ * production `AbilityLoadoutSystem.add` path `resetPlayer` uses.
+ */
+const MID_RUN_ONLY_TIER_1_CASES = [
+  {
+    identity: NEEDLE_PROJECTILE.id,
+    damage: NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+    radius: NEEDLE_PROJECTILE_RADIUS_TIER_1,
+    cooldown: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  },
+  {
+    identity: FLICKER_PROJECTILE.id,
+    damage: FLICKER_PROJECTILE_DAMAGE_TIER_1,
+    radius: FLICKER_PROJECTILE_RADIUS_TIER_1,
+    cooldown: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  },
+  {
+    identity: LANCE_PROJECTILE.id,
+    damage: LANCE_PROJECTILE_DAMAGE_TIER_1,
+    radius: LANCE_PROJECTILE_RADIUS_TIER_1,
+    cooldown: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  },
+  {
+    identity: CANNON_PROJECTILE.id,
+    damage: CANNON_PROJECTILE_DAMAGE_TIER_1,
+    radius: CANNON_PROJECTILE_RADIUS_TIER_1,
+    cooldown: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  },
+  {
+    identity: SIEGE_PROJECTILE.id,
+    damage: SIEGE_PROJECTILE_DAMAGE_TIER_1,
+    radius: SIEGE_PROJECTILE_RADIUS_TIER_1,
+    cooldown: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  },
+];
+
+describe('WeaponSystem firing a mid-run-only identity (V2-107)', () => {
+  it.each(MID_RUN_ONLY_TIER_1_CASES)(
+    'fires $identity Tier 1 with its own damage, radius, and cooldown',
+    ({ identity, damage, radius, cooldown }) => {
+      const world = new World(8);
+      const player = createPlayer(world, 0, 0);
+      const playerSlot = world.slotOf(player);
+      createEnemy(world, 4, 0);
+      const weapon = new WeaponSystem();
+      const loadout = new AbilityLoadoutSystem();
+      loadout.resetOwner(world, player);
+      loadout.add(world, player, identity);
+      world.weaponCooldownTicksRemaining[playerSlot] = 0;
+
+      weapon.step(world, player, context(0));
+      const slot = projectileSlots(world)[0] as number;
+
+      expect(world.projectileDamage[slot]).toBe(damage);
+      expect(world.radius[slot]).toBeCloseTo(radius, 6);
+      expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(cooldown);
+    }
+  );
+
+  it.each(MID_RUN_ONLY_TIER_1_CASES.map(({ identity }) => identity))(
+    'advances %s through all three tiers and fires each with the held tier effect',
+    identity => {
+      const world = new World(8);
+      const player = createPlayer(world, 0, 0);
+      const playerSlot = world.slotOf(player);
+      createEnemy(world, 4, 0);
+      const weapon = new WeaponSystem();
+      const loadout = new AbilityLoadoutSystem();
+      loadout.resetOwner(world, player);
+      loadout.add(world, player, identity);
+
+      expect(weapon.advanceStarterTier(world, player)).toBe(2);
+      expect(weapon.advanceStarterTier(world, player)).toBe(3);
+
+      const expectedTier3 = loadout.tierEffectAt(world, player, 0);
+      world.weaponCooldownTicksRemaining[playerSlot] = 0;
+
+      weapon.step(world, player, context(0));
+      const slot = projectileSlots(world)[0] as number;
+
+      expect(world.projectileDamage[slot]).toBe(expectedTier3?.damage);
+      expect(world.radius[slot]).toBeCloseTo(expectedTier3?.projectileRadius ?? -1, 6);
+      expect(world.weaponCooldownTicksRemaining[playerSlot]).toBe(
+        expectedTier3?.cooldownTicks
+      );
+    }
+  );
 });

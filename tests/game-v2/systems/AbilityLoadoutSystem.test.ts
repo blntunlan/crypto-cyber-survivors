@@ -461,8 +461,18 @@ describe('AbilityLoadoutSystem', () => {
  * production `MVP1_ABILITY_REGISTRY` rather than the local test registry
  * above.
  */
-describe('AbilityLoadoutSystem with the production registry (V2-106)', () => {
-  it.each(['heavy-projectile', 'rapid-projectile'] as const)(
+const NON_STARTER_IDENTITIES = [
+  'heavy-projectile',
+  'rapid-projectile',
+  'needle-projectile',
+  'flicker-projectile',
+  'lance-projectile',
+  'cannon-projectile',
+  'siege-projectile',
+] as const;
+
+describe('AbilityLoadoutSystem with the production registry (V2-106, V2-107)', () => {
+  it.each(NON_STARTER_IDENTITIES)(
     'adds, advances through all three tiers, and reads back %s exactly like starter-projectile',
     identity => {
       const world = new World(CAPACITY);
@@ -495,7 +505,7 @@ describe('AbilityLoadoutSystem with the production registry (V2-106)', () => {
     }
   );
 
-  it.each(['heavy-projectile', 'rapid-projectile'] as const)(
+  it.each(NON_STARTER_IDENTITIES)(
     '%s is offerable exactly like starter-projectile: free-slot new, below-ceiling held',
     identity => {
       const world = new World(CAPACITY);
@@ -526,5 +536,82 @@ describe('AbilityLoadoutSystem with the production registry (V2-106)', () => {
     expect(system.indexOf(world, owner, 'starter-projectile')).toBe(0);
     expect(system.indexOf(world, owner, 'heavy-projectile')).toBe(1);
     expect(system.indexOf(world, owner, 'rapid-projectile')).toBe(2);
+  });
+
+  /**
+   * V2-107 Step 2: the real four-slot combination proof design §5.1 and the
+   * master plan's Done-When require — filling all four slots from the full
+   * eight-identity registry, not the five-identity synthetic fixture
+   * `AbilityLoadoutSystem.test.ts`'s top-level describe already used for
+   * V2-100's generic combination proof.
+   */
+  it('fills all four ability slots with four distinct identities drawn from the full eight, each independently advanced', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+    const chosen = [
+      'starter-projectile',
+      'needle-projectile',
+      'lance-projectile',
+      'siege-projectile',
+    ] as const;
+
+    expect(system.add(world, owner, chosen[0])).toBe(0);
+    expect(system.add(world, owner, chosen[1])).toBe(1);
+    expect(system.add(world, owner, chosen[2])).toBe(2);
+    expect(system.add(world, owner, chosen[3])).toBe(3);
+    expect(system.occupiedCount(world, owner)).toBe(4);
+
+    for (const [index, identity] of chosen.entries()) {
+      const slot = index as AbilitySlotIndex;
+
+      expect(system.identityAt(world, owner, slot)).toBe(identity);
+      expect(system.indexOf(world, owner, identity)).toBe(slot);
+      expect(system.activationAt(world, owner, slot)).toBe('auto');
+      expect(system.tierAt(world, owner, slot)).toBe(1);
+    }
+
+    expect(system.advanceTier(world, owner, 0)).toBe(2);
+    expect(system.advanceTier(world, owner, 2)).toBe(2);
+    expect(system.advanceTier(world, owner, 2)).toBe(3);
+
+    expect(system.tierAt(world, owner, 0)).toBe(2);
+    expect(system.tierAt(world, owner, 1)).toBe(1);
+    expect(system.tierAt(world, owner, 2)).toBe(3);
+    expect(system.tierAt(world, owner, 3)).toBe(1);
+
+    expect(() => system.add(world, owner, 'rapid-projectile')).toThrow(
+      'ability loadout has no free slot'
+    );
+  });
+
+  it('mixes any four of the eight identities without cross-slot interference (spot-check permutation)', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+    const chosen = [
+      'flicker-projectile',
+      'heavy-projectile',
+      'cannon-projectile',
+      'rapid-projectile',
+    ] as const;
+
+    for (const identity of chosen) {
+      system.add(world, owner, identity);
+    }
+
+    system.advanceTier(world, owner, 1);
+    system.remove(world, owner, 0);
+
+    expect(system.identityAt(world, owner, 0)).toBeNull();
+    expect(system.identityAt(world, owner, 1)).toBe('heavy-projectile');
+    expect(system.tierAt(world, owner, 1)).toBe(2);
+    expect(system.identityAt(world, owner, 2)).toBe('cannon-projectile');
+    expect(system.tierAt(world, owner, 2)).toBe(1);
+    expect(system.identityAt(world, owner, 3)).toBe('rapid-projectile');
+    expect(system.occupiedCount(world, owner)).toBe(3);
+
+    expect(system.add(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.occupiedCount(world, owner)).toBe(4);
   });
 });

@@ -7,12 +7,36 @@ import {
   type AbilityIdentityId,
 } from '@/game-v2/contracts/AbilitySlot';
 import {
+  CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  CANNON_PROJECTILE_DAMAGE_TIER_1,
+  CANNON_PROJECTILE_DAMAGE_TIER_2,
+  CANNON_PROJECTILE_RADIUS_TIER_1,
+  CANNON_PROJECTILE_RADIUS_TIER_3,
+  FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  FLICKER_PROJECTILE_DAMAGE_TIER_1,
+  FLICKER_PROJECTILE_DAMAGE_TIER_2,
+  FLICKER_PROJECTILE_RADIUS_TIER_1,
+  FLICKER_PROJECTILE_RADIUS_TIER_3,
   HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1,
   HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3,
   HEAVY_PROJECTILE_DAMAGE_TIER_1,
   HEAVY_PROJECTILE_DAMAGE_TIER_2,
   HEAVY_PROJECTILE_RADIUS_TIER_1,
   HEAVY_PROJECTILE_RADIUS_TIER_3,
+  LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  LANCE_PROJECTILE_DAMAGE_TIER_1,
+  LANCE_PROJECTILE_DAMAGE_TIER_2,
+  LANCE_PROJECTILE_RADIUS_TIER_1,
+  LANCE_PROJECTILE_RADIUS_TIER_3,
+  NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+  NEEDLE_PROJECTILE_DAMAGE_TIER_2,
+  NEEDLE_PROJECTILE_RADIUS_TIER_1,
+  NEEDLE_PROJECTILE_RADIUS_TIER_3,
   PROJECTILE_DAMAGE,
   PROJECTILE_RADIUS,
   RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1,
@@ -21,6 +45,12 @@ import {
   RAPID_PROJECTILE_DAMAGE_TIER_2,
   RAPID_PROJECTILE_RADIUS_TIER_1,
   RAPID_PROJECTILE_RADIUS_TIER_3,
+  SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+  SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+  SIEGE_PROJECTILE_DAMAGE_TIER_1,
+  SIEGE_PROJECTILE_DAMAGE_TIER_2,
+  SIEGE_PROJECTILE_RADIUS_TIER_1,
+  SIEGE_PROJECTILE_RADIUS_TIER_3,
   STARTER_PROJECTILE_RADIUS_TIER_3,
   STARTER_WEAPON_COOLDOWN_TICKS_TIER_3,
   STARTER_WEAPON_DAMAGE_TIER_2,
@@ -234,8 +264,178 @@ export const RAPID_PROJECTILE: AbilityDefinition = Object.freeze({
   ]),
 });
 
+/**
+ * A mid-run-only weapon (`V2-107`, V2-ADR-066/067/068): same single-target
+ * auto-fire pipeline, tuned to one tenth of `starter-projectile`'s own Tier 1
+ * damage and cooldown — the fastest, lightest identity in the family.
+ */
+export const NEEDLE_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'needle-projectile',
+  code: 4,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: false,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'needle-projectile',
+      damage: NEEDLE_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: NEEDLE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'needle-projectile',
+      damage: NEEDLE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: NEEDLE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'needle-projectile',
+      damage: NEEDLE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: NEEDLE_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+/**
+ * A mid-run-only weapon (`V2-107`, V2-ADR-066/067/068): same single-target
+ * auto-fire pipeline, tuned to one fifth of `starter-projectile`'s own Tier 1
+ * damage and cooldown.
+ */
+export const FLICKER_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'flicker-projectile',
+  code: 5,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: false,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'flicker-projectile',
+      damage: FLICKER_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: FLICKER_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'flicker-projectile',
+      damage: FLICKER_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: FLICKER_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'flicker-projectile',
+      damage: FLICKER_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: FLICKER_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+/**
+ * A mid-run-only weapon (`V2-107`, V2-ADR-066/067/068): same single-target
+ * auto-fire pipeline, tuned to one and a half times `starter-projectile`'s
+ * own Tier 1 damage and cooldown.
+ */
+export const LANCE_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'lance-projectile',
+  code: 6,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: false,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'lance-projectile',
+      damage: LANCE_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: LANCE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'lance-projectile',
+      damage: LANCE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: LANCE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'lance-projectile',
+      damage: LANCE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: LANCE_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+/**
+ * A mid-run-only weapon (`V2-107`, V2-ADR-066/067/068): same single-target
+ * auto-fire pipeline, tuned to two and a half times `starter-projectile`'s
+ * own Tier 1 damage and cooldown.
+ */
+export const CANNON_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'cannon-projectile',
+  code: 7,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: false,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'cannon-projectile',
+      damage: CANNON_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: CANNON_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'cannon-projectile',
+      damage: CANNON_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: CANNON_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'cannon-projectile',
+      damage: CANNON_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: CANNON_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
+/**
+ * A mid-run-only weapon (`V2-107`, V2-ADR-066/067/068): same single-target
+ * auto-fire pipeline, tuned to four times `starter-projectile`'s own Tier 1
+ * damage and cooldown — the slowest, heaviest identity in the family.
+ */
+export const SIEGE_PROJECTILE: AbilityDefinition = Object.freeze({
+  id: 'siege-projectile',
+  code: 8,
+  activation: 'auto',
+  authoredTiers: 3,
+  startEligible: false,
+  tierEffects: Object.freeze([
+    Object.freeze({
+      ability: 'siege-projectile',
+      damage: SIEGE_PROJECTILE_DAMAGE_TIER_1,
+      projectileRadius: SIEGE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'siege-projectile',
+      damage: SIEGE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: SIEGE_PROJECTILE_RADIUS_TIER_1,
+      cooldownTicks: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1,
+    }),
+    Object.freeze({
+      ability: 'siege-projectile',
+      damage: SIEGE_PROJECTILE_DAMAGE_TIER_2,
+      projectileRadius: SIEGE_PROJECTILE_RADIUS_TIER_3,
+      cooldownTicks: SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3,
+    }),
+  ]),
+});
+
 export const MVP1_ABILITY_REGISTRY = createAbilityRegistry([
   STARTER_PROJECTILE,
   HEAVY_PROJECTILE,
   RAPID_PROJECTILE,
+  NEEDLE_PROJECTILE,
+  FLICKER_PROJECTILE,
+  LANCE_PROJECTILE,
+  CANNON_PROJECTILE,
+  SIEGE_PROJECTILE,
 ]);

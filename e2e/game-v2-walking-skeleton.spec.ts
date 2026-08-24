@@ -230,13 +230,13 @@ test.describe('Game V2 walking skeleton', () => {
     await page.waitForTimeout(300);
     expect((await readSnapshot(page)).tick).toBe(pausedTick);
 
-    // The real offer: MVP-1 has exactly one ability and one passive identity,
-    // so the seeded offer fills both slots (design §5.4, V2-ADR-049/-050).
+    // The real offer (design §5.4, V2-ADR-049/-050): V2-107 grew the
+    // offerable ability pool to eight, so the seeded offer is no longer
+    // guaranteed to also include the single passive identity. It is
+    // guaranteed to include `starter-projectile` — the only identity the
+    // player already holds at this point.
     await expect(
       page.getByRole('button', { name: /ability: starter-projectile/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: /passive: move-speed/i })
     ).toBeVisible();
 
     await page.getByRole('button', { name: /ability: starter-projectile/i }).click();

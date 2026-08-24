@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CANNON_PROJECTILE,
+  FLICKER_PROJECTILE,
   HEAVY_PROJECTILE,
+  LANCE_PROJECTILE,
   MVP1_ABILITY_REGISTRY,
+  NEEDLE_PROJECTILE,
   RAPID_PROJECTILE,
+  SIEGE_PROJECTILE,
   STARTER_PROJECTILE,
   createAbilityRegistry,
 } from '@/game-v2/config/AbilityRegistry';
@@ -54,7 +59,7 @@ describe('AbilityRegistry', () => {
     expect(MVP1_ABILITY_REGISTRY.byCode(STARTER_PROJECTILE.code)).toEqual(
       STARTER_PROJECTILE
     );
-    expect(MVP1_ABILITY_REGISTRY.size).toBe(3);
+    expect(MVP1_ABILITY_REGISTRY.size).toBe(8);
   });
 
   it('exposes every registered identity through ids, in insertion order', () => {
@@ -62,6 +67,11 @@ describe('AbilityRegistry', () => {
       'starter-projectile',
       'heavy-projectile',
       'rapid-projectile',
+      'needle-projectile',
+      'flicker-projectile',
+      'lance-projectile',
+      'cannon-projectile',
+      'siege-projectile',
     ]);
     expect(Object.isFrozen(MVP1_ABILITY_REGISTRY.ids)).toBe(true);
 
@@ -318,5 +328,107 @@ describe('AbilityRegistry V2-106 start-eligible weapons', () => {
     expect(tier1.projectileRadius).toBe(tier2.projectileRadius);
     expect(tier3.projectileRadius).toBeGreaterThan(tier2.projectileRadius);
     expect(tier3.cooldownTicks).toBeLessThan(tier2.cooldownTicks);
+  });
+});
+
+const MID_RUN_ONLY_WEAPONS = [
+  NEEDLE_PROJECTILE,
+  FLICKER_PROJECTILE,
+  LANCE_PROJECTILE,
+  CANNON_PROJECTILE,
+  SIEGE_PROJECTILE,
+] as const;
+
+const ALL_EIGHT_WEAPONS = [
+  STARTER_PROJECTILE,
+  HEAVY_PROJECTILE,
+  RAPID_PROJECTILE,
+  ...MID_RUN_ONLY_WEAPONS,
+] as const;
+
+describe('AbilityRegistry V2-107 mid-run-only weapons', () => {
+  it('registers all five as non-start-eligible AUTO weapons with three tiers', () => {
+    for (const weapon of MID_RUN_ONLY_WEAPONS) {
+      expect(weapon.startEligible).toBe(false);
+      expect(weapon.activation).toBe('auto');
+      expect(weapon.authoredTiers).toBe(3);
+      expect(weapon.tierEffects).toHaveLength(3);
+      expect(weapon.code).toBeGreaterThanOrEqual(1);
+      expect(weapon.code).toBeLessThanOrEqual(MAX_ABILITY_CODE);
+    }
+  });
+
+  it('gives every tier effect a distinct ability tag matching its own identity', () => {
+    for (const weapon of MID_RUN_ONLY_WEAPONS) {
+      for (const effect of weapon.tierEffects) {
+        expect(effect.ability).toBe(weapon.id);
+      }
+    }
+  });
+
+  it.each(MID_RUN_ONLY_WEAPONS)(
+    'raises $id damage at Tier 2 and holds it at Tier 3, coverage and cadence improve at Tier 3',
+    weapon => {
+      const [tier1, tier2, tier3] = weapon.tierEffects as [
+        AbilityTierEffect,
+        AbilityTierEffect,
+        AbilityTierEffect,
+      ];
+
+      expect(tier1.damage).toBeLessThan(tier2.damage);
+      expect(tier3.damage).toBe(tier2.damage);
+      expect(tier1.projectileRadius).toBe(tier2.projectileRadius);
+      expect(tier3.projectileRadius).toBeGreaterThan(tier2.projectileRadius);
+      expect(tier3.cooldownTicks).toBeLessThan(tier2.cooldownTicks);
+    }
+  );
+});
+
+describe('AbilityRegistry all eight identities (V2-106, V2-107)', () => {
+  it('registers exactly eight identities in MVP1_ABILITY_REGISTRY, in this exact order', () => {
+    expect(ALL_EIGHT_WEAPONS).toHaveLength(8);
+    expect(MVP1_ABILITY_REGISTRY.ids).toEqual(
+      ALL_EIGHT_WEAPONS.map(weapon => weapon.id)
+    );
+  });
+
+  it('keeps every identity pairwise distinct by code and by ability tag', () => {
+    for (let i = 0; i < ALL_EIGHT_WEAPONS.length; i += 1) {
+      for (let j = i + 1; j < ALL_EIGHT_WEAPONS.length; j += 1) {
+        const a = ALL_EIGHT_WEAPONS[i] as AbilityDefinition;
+        const b = ALL_EIGHT_WEAPONS[j] as AbilityDefinition;
+
+        expect(a.code).not.toBe(b.code);
+        expect(a.id).not.toBe(b.id);
+      }
+    }
+  });
+
+  it('keeps every identity distinct by at least one numeric value per tier', () => {
+    for (let tier = 0; tier < 3; tier += 1) {
+      for (let i = 0; i < ALL_EIGHT_WEAPONS.length; i += 1) {
+        for (let j = i + 1; j < ALL_EIGHT_WEAPONS.length; j += 1) {
+          const a = ALL_EIGHT_WEAPONS[i]?.tierEffects[tier] as AbilityTierEffect;
+          const b = ALL_EIGHT_WEAPONS[j]?.tierEffects[tier] as AbilityTierEffect;
+
+          const differsOnAtLeastOneField =
+            a.damage !== b.damage ||
+            a.projectileRadius !== b.projectileRadius ||
+            a.cooldownTicks !== b.cooldownTicks;
+
+          expect(differsOnAtLeastOneField).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('opens every identity at the identical Tier 1 damage-per-tick baseline (V2-ADR-066)', () => {
+    const starterTier1 = STARTER_PROJECTILE.tierEffects[0] as AbilityTierEffect;
+    const baselineDps = starterTier1.damage / starterTier1.cooldownTicks;
+
+    for (const weapon of ALL_EIGHT_WEAPONS) {
+      const tier1 = weapon.tierEffects[0] as AbilityTierEffect;
+      expect(tier1.damage / tier1.cooldownTicks).toBeCloseTo(baselineDps, 10);
+    }
   });
 });

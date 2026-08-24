@@ -29,13 +29,19 @@ export type AbilityActivation = 'active' | 'auto';
 export type AbilityTier = 1 | 2 | 3;
 
 /**
- * The registered ability identities. V2-107 adds the remaining five of the
- * eight vertical-slice identities.
+ * The registered ability identities: the full eight-identity vertical slice
+ * (design §6.1). Three are start-eligible (`V2-106`); the remaining five
+ * (`V2-107`) are mid-run-only offers.
  */
 export type AbilityIdentityId =
   | 'starter-projectile'
   | 'heavy-projectile'
-  | 'rapid-projectile';
+  | 'rapid-projectile'
+  | 'needle-projectile'
+  | 'flicker-projectile'
+  | 'lance-projectile'
+  | 'cannon-projectile'
+  | 'siege-projectile';
 
 export type AbilityDefinition = Readonly<{
   id: AbilityIdentityId;

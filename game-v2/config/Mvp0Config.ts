@@ -167,3 +167,58 @@ export const RAPID_PROJECTILE_DAMAGE_TIER_2 = RAPID_PROJECTILE_DAMAGE_TIER_1 * 1
 export const RAPID_PROJECTILE_RADIUS_TIER_3 = RAPID_PROJECTILE_RADIUS_TIER_1 * 1.5;
 export const RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
   (RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * The five `V2-107` mid-run-only identities (V2-ADR-066): each is
+ * `starter-projectile`'s own Tier 1 damage and cooldown scaled by one
+ * multiplier `N`, so every projectile-family identity opens at the same
+ * Tier 1 damage-per-tick baseline (`10 / 30`) as `starter-projectile`,
+ * `heavy-projectile` (`N=2`), and `rapid-projectile` (`N=0.5`) — differing
+ * only in burst/cadence/coverage shape, not raw Tier 1 power
+ * (`Mvp0Config.test.ts` pins this for all eight). Tier 2 and Tier 3 follow
+ * the identical formula already established for heavy/rapid: Tier 2 raises
+ * damage 1.5x with radius/cooldown held; Tier 3 raises radius 1.5x and cuts
+ * cooldown to two thirds, holding damage at its Tier 2 value (V2-ADR-045
+ * precedent). `N` is chosen so `30N` (Tier 1 cooldown) and `20N` (Tier 3
+ * cooldown) are both integers, and is pairwise distinct from `1`, `2`, and
+ * `0.5`.
+ */
+export const NEEDLE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 10;
+export const NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 10;
+export const NEEDLE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS / 10;
+export const NEEDLE_PROJECTILE_DAMAGE_TIER_2 = NEEDLE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const NEEDLE_PROJECTILE_RADIUS_TIER_3 = NEEDLE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const FLICKER_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 5;
+export const FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 5;
+export const FLICKER_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS / 5;
+export const FLICKER_PROJECTILE_DAMAGE_TIER_2 = FLICKER_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const FLICKER_PROJECTILE_RADIUS_TIER_3 = FLICKER_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const LANCE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 1.5;
+export const LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 1.5;
+export const LANCE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 1.5;
+export const LANCE_PROJECTILE_DAMAGE_TIER_2 = LANCE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const LANCE_PROJECTILE_RADIUS_TIER_3 = LANCE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const CANNON_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 2.5;
+export const CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 2.5;
+export const CANNON_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 2.5;
+export const CANNON_PROJECTILE_DAMAGE_TIER_2 = CANNON_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const CANNON_PROJECTILE_RADIUS_TIER_3 = CANNON_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const SIEGE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 4;
+export const SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 4;
+export const SIEGE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 4;
+export const SIEGE_PROJECTILE_DAMAGE_TIER_2 = SIEGE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const SIEGE_PROJECTILE_RADIUS_TIER_3 = SIEGE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
