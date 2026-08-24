@@ -18,10 +18,22 @@ import { IndicatorEventStateMachine } from '@/game-v2/market/IndicatorEventState
  * defensive-guard precedent for an invariant that is real but unreachable
  * through the live pipeline.
  */
-const THEME_BY_DIRECTION: Readonly<Record<'UP' | 'DOWN', string>> = {
+export const TREND_BREAKOUT_THEME_BY_DIRECTION: Readonly<
+  Record<'UP' | 'DOWN', string>
+> = {
   UP: 'bullish-breakout',
   DOWN: 'bearish-breakout',
 };
+
+/**
+ * Every real `themeId` any `SPAWN`-producing family currently emits
+ * (`V2-208`, V2-ADR-129) — `Trend/Breakout` is the only such family
+ * (V2-ADR-104). Consumers validate against this rather than accepting an
+ * arbitrary string.
+ */
+export const TREND_BREAKOUT_THEME_IDS: readonly string[] = Object.freeze(
+  Object.values(TREND_BREAKOUT_THEME_BY_DIRECTION)
+);
 
 /**
  * The Trend/Breakout family's concrete encounter (`V2-204`). Wraps one
@@ -51,7 +63,7 @@ export class TrendBreakoutEncounter {
     return assertSpawnEncounterOutput({
       kind: 'SPAWN',
       enemyBudget: TREND_BREAKOUT_SPAWN_BUDGET,
-      themeId: THEME_BY_DIRECTION[snapshot.trendDirection],
+      themeId: TREND_BREAKOUT_THEME_BY_DIRECTION[snapshot.trendDirection],
     });
   }
 

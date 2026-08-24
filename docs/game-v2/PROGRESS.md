@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-207` (primary/support composer) is accepted and closed — all three indicator families now compose together, though not yet wired into `GameV2Runtime`. The next reachable tasks are `V2-208` (Spawn output) and `V2-209` (World-event output), both now unblocked. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-207` accepted; `V2-208`..`V2-213` not started. |
-| Closed | `V2-207` accepted (this checkpoint); `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-208` (Spawn Encounter Consumer) is accepted and closed — `SpawnEncounterOutput` now composes real enemy content, though not yet wired into `GameV2Runtime`. The next reachable tasks are `V2-209` (World-event output) and `V2-210` (Loot-event output), both unblocked since `V2-207`. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-208` accepted; `V2-209`..`V2-213` not started. |
+| Closed | `V2-208` accepted (this checkpoint); `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3361,22 +3361,120 @@ three indicator families.
   every gate passes and the mutation pass leaves no survivor.
   `V2-207` is accepted.
 
+## V2-208 — Spawn Encounter Consumer
+
+- Task brief: `docs/game-v2/tasks/V2-208-spawn-encounter-consumer.md`.
+  Governing decisions: V2-ADR-128 through V2-ADR-131.
+- Corrected an inaccuracy from the `V2-207` task brief/checkpoint: the
+  `LOOT_EVENT`-consumption task is not actually unassigned — `MASTER_PLAN.md`
+  already lists it as `V2-210` ("Loot-event output"), depending on `V2-207`
+  exactly like `V2-208`/`V2-209`. The earlier "unassigned" phrasing in the
+  `V2-207` task brief predates a careful re-read of the full task table;
+  it does not misstate scope (V2-210 is still unimplemented either way),
+  only the label.
+- `game-v2/systems/SpawnEncounterConsumer.ts`: `SpawnEncounterConsumer`
+  turns a `SpawnEncounterOutput` into an enemy composition. Its `compose`
+  method takes only `(output: SpawnEncounterOutput, rng, out)` — never a
+  `MarketSnapshot` or raw indicator value — which is the literal,
+  structural proof of the master-plan "Done when" property ("market
+  intent selects composition without raw indicator reads in enemies"),
+  enforced by the type signature rather than by convention alone
+  (V2-ADR-128). An unrecognized `themeId` throws (V2-ADR-129), matching
+  `EnemyComposer`'s constructor and every `assertX` validator's fail-loud
+  convention in this project — giving `themeId` a real reader for the
+  first time since `V2-204`, mirroring `V2-207`'s own precedent for
+  `priority`/`compatibleWith`.
+- `enemyBudget` is spent by delegating to an injected `EnemyComposer`
+  (defaulting to `MVP1_ENEMY_REGISTRY`) unmodified — no composition logic
+  is reimplemented, mirroring `CombatSystem`'s own optional-injected-
+  dependency pattern (V2-ADR-098).
+- Both known theme ids (`bullish-breakout`/`bearish-breakout`, exported
+  from `TrendBreakoutEncounter.ts` as `TREND_BREAKOUT_THEME_IDS` — the
+  only real `SPAWN`-producing family per V2-ADR-104) resolve to the same
+  registry today (V2-ADR-130). Building a themeId → distinct-registry
+  mapping was deliberately not done: only one enemy registry with no
+  directional tagging exists (`V2-300`, Six enemy archetypes, is where
+  that content would be authored), so differentiating today would be
+  indirection with no behavioral difference — the same "mechanism before
+  content" discipline every MVP-2 task since `V2-204` has followed
+  (`WORLD_EVENT`/`LOOT_EVENT` shapes, `HYBRID`, `compatibleWith`
+  content). The constructor-injected `EnemyComposer` already gives a
+  future task a seam to add real per-theme differentiation through.
+- `TrendBreakoutEncounter.ts` (`V2-204`) was touched to export its
+  existing local `THEME_BY_DIRECTION` (renamed
+  `TREND_BREAKOUT_THEME_BY_DIRECTION`) and a new derived
+  `TREND_BREAKOUT_THEME_IDS` constant — no behavior change, confirmed by
+  re-running `TrendBreakoutEncounter.test.ts` unmodified and green.
+- Not wired into `GameV2Runtime` (V2-ADR-131): the fixed
+  `MVP0_ENEMY_SPAWN_BUDGET`/`MVP0_ENEMY_SPAWN_INTERVAL_TICKS` spawn
+  cadence is unchanged; replacing it with `MarketEncounterDirector`-driven
+  spawning is a larger runtime-wiring change, matching every
+  `game-v2/market/**`/`game-v2/systems/**`-only MVP-2 task since `V2-203`.
+- `tests/game-v2/systems/SpawnEncounterConsumer.test.ts` (5 tests): a
+  real `bullish-breakout` output composes the identical batch a bare
+  `EnemyComposer.compose` call would for the same budget/rng seed
+  (proving delegation, not reimplementation); a real `bearish-breakout`
+  output composes correctly; an unrecognized `themeId` throws; an
+  injected mock `EnemyComposer` receives the exact
+  `(enemyBudget, rng, out)` call via a spy; an injected custom
+  known-theme-id set is honoured over the default (rejecting a normally
+  known id, accepting a normally unknown one). All 5 passed on first
+  attempt.
+- **Mutation pass, 3 mutants, all caught — the third caught by `tsc`
+  itself rather than a test, confirmed empirically rather than assumed
+  (mirroring `V2-206`'s own honest-reporting precedent).** Removing the
+  `themeId` validation failed 2 tests. Making the constructor ignore its
+  injected `composer`/`knownThemeIds` arguments (always building the
+  defaults) failed 2 tests. Swapping the `enemyBudget`/`rng` argument
+  order forwarded to the injected composer — tried honestly without a
+  type-erasing cast, to see whether `tsc` alone would catch it — does not
+  even compile: `Argument of type 'Pick<DeterministicRng, "nextInt">' is
+  not assignable to parameter of type 'number'`, since `EnemyComposer.compose`'s
+  first parameter is `number` and its second is an RNG-shaped object with
+  no structural overlap; `npm run typecheck` itself is the gate that
+  catches this mutant.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (65 files,
+  1120 tests, up from 64 files/1115 tests before this task by the one new
+  test file), `npm run typecheck`, `npm run check:architecture` (89
+  baseline singleton files — nothing new was added, `SpawnEncounterConsumer`
+  is not a singleton), `npm run check:reset-coverage` (89 singletons: 29
+  wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all three
+  changed/new files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, 37s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the
+  evidence above: (1) `SpawnEncounterConsumer.compose` produces the same
+  composition `EnemyComposer.compose` would for the same real
+  budget/rng, driven only by a `SpawnEncounterOutput`; (2) an
+  unrecognized `themeId` throws; (3) `EnemyComposer`/`EnemySystem`/
+  `EnemyRegistry.ts` are unmodified, confirmed by the file diff; (4)
+  nothing outside `game-v2/systems/SpawnEncounterConsumer.ts` and the one
+  documented export addition in `TrendBreakoutEncounter.ts` was touched,
+  and no wiring into `GameV2Runtime` was added; (5) every gate passes and
+  the mutation pass leaves no survivor, one caught by `tsc` itself.
+  `V2-208` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-207` are all accepted — all three indicator-event
-families are done and now compose together through
-`MarketEncounterDirector`/`EncounterComposer`, though neither is wired
-into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-208` (Spawn output
-consumption) and `V2-209` (World-event output consumption) both depend
-on `V2-207` and are now reachable for the first time, as is the
-still-unassigned `LOOT_EVENT`-consumption task. These are the first
-MVP-2 tasks that have to reach into `GameV2Runtime`/the ECS world rather
-than staying isolated under `game-v2/market/**` and
-`game-v2/contracts/**` — worth scoping carefully, including confirming
-how each consumption path locates or spawns the relevant ECS entities
-and whether any new singleton needs `check:architecture`/
-`check:reset-coverage` registration.
+`V2-200` through `V2-208` are all accepted. All three indicator-event
+families compose together through `MarketEncounterDirector`/
+`EncounterComposer` (`V2-207`), and `SPAWN` outputs now compose real
+enemy content through `SpawnEncounterConsumer` (`V2-208`) — none of this
+is wired into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, `V2-209`
+(World-event output) and `V2-210` (Loot-event output) both depend only
+on `V2-207` (already closed) and are reachable now; `V2-209` is the more
+natural next pick following `V2-208`'s established
+mechanism-before-runtime-wiring pattern, since `V2-205`'s
+`WorldEventEncounterOutput` (`hazardId`/`telegraphTicks`) has no consumer
+yet and no hazard system exists at all in `game-v2/**` — this will be the
+first MVP-2 task to design a genuinely new system (a hazard/telegraph
+lifecycle) rather than reuse an existing one (`EnemyComposer` for
+`V2-208`), worth scoping carefully against design's "Telegraph and
+lifecycle are simulation-time controlled" Done-When and `TimeService`/
+simulation-clock conventions already established by `SimulationClock.ts`.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks

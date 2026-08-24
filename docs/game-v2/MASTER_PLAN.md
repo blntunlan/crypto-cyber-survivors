@@ -159,6 +159,18 @@ compatible support per tick, first giving `IndicatorEventProfile`'s
 here), so today's real behavior always resolves primary-only; not wired
 into `GameV2Runtime` yet; see
 `docs/game-v2/tasks/V2-207-primary-support-composer.md`.
+`V2-208` is accepted and closed: `SpawnEncounterConsumer` turns a
+`SpawnEncounterOutput` into an enemy composition by delegating
+`enemyBudget` to the existing, unmodified `EnemyComposer` — its only
+input is the already-composed output, never `MarketSnapshot` or a raw
+indicator value, proving "market intent selects composition without raw
+indicator reads in enemies" by construction; an unrecognized `themeId`
+throws, giving that field a real reader for the first time since
+`V2-204`. Both known theme ids (`bullish-breakout`/`bearish-breakout`)
+resolve to the same `MVP1_ENEMY_REGISTRY` — no themeId-differentiated
+registry exists yet, deferred to `V2-300`+ once themed archetype content
+is authored; not wired into `GameV2Runtime` yet; see
+`docs/game-v2/tasks/V2-208-spawn-encounter-consumer.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
