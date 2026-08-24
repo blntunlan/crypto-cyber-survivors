@@ -124,7 +124,13 @@ leverage `1` — closing the `V2-ADR-089` deferral without a `World`/
 accepted and closed: the generic `ARMED → CONFIRMING → ACTIVE → COOLDOWN`
 mechanism (`IndicatorEventStateMachine`) exists, mechanism only — no
 concrete indicator family or wiring into any runtime; see
-`docs/game-v2/tasks/V2-203-indicator-event-state-machine.md`.
+`docs/game-v2/tasks/V2-203-indicator-event-state-machine.md`. `V2-204` is
+accepted and closed: the first concrete indicator family, `Trend/Breakout`,
+authors a real `IndicatorEventProfile` sampling `MarketSnapshot.trendStrength`
+and produces a bounded, themed `SpawnEncounterOutput` on activation; also
+defines the shared `EncounterOutput` contract `V2-205`/`V2-206` will extend
+with their own variant; not wired into any runtime yet; see
+`docs/game-v2/tasks/V2-204-trend-breakout-family.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

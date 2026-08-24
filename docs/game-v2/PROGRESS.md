@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-203` (indicator-event state machine) is accepted and closed. The next task is one of `V2-204`/`V2-205`/`V2-206` (Trend/Breakout, Volatility Surge, Volume/Whale — each depends only on `V2-203` and any may be opened next; no ordering between them is mandated). |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203` accepted; `V2-204`..`V2-213` not started. |
-| Closed | `V2-203` accepted (this checkpoint); `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-204` (Trend/Breakout family) is accepted and closed. The next task is one of `V2-205`/`V2-206` (Volatility Surge, Volume/Whale — each depends only on `V2-203` and either may be opened next; no ordering between them is mandated). |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`, `V2-201`, `V2-202`, `V2-203`, `V2-204` accepted; `V2-205`..`V2-213` not started. |
+| Closed | `V2-204` accepted (this checkpoint); `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2945,18 +2945,125 @@ Brief: `docs/game-v2/tasks/V2-203-indicator-event-state-machine.md`.
   load-bearing assertions, with the 5th's unreachability independently
   confirmed rather than assumed. `V2-203` is accepted.
 
+## V2-204 — Trend/Breakout Family
+
+Brief: `docs/game-v2/tasks/V2-204-trend-breakout-family.md`.
+
+- **The first concrete content family, so it also defines the shared
+  `EncounterOutput` contract other families extend.** Design §6.2 names
+  the full output taxonomy (`SPAWN | WORLD_EVENT | LOOT_EVENT | HYBRID`)
+  but no family had authored any concrete profile or output shape yet.
+  `V2-208`/`V2-209`/`V2-210` (the tasks that actually wire an output into a
+  real spawn/hazard/loot system) are listed *after* `V2-207` in the master
+  plan, confirming this task's job is the family's data only — mirrors how
+  `V2-108`'s enemy archetypes existed before `EnemyComposer` wired them
+  into a live spawn cadence.
+- **Every authored numeric constant traces to a real existing value, none
+  invented, matching every prior MVP-2 task's rigor.** The load-bearing
+  find: `trendStrength` is provably bounded `[0, 1]`, not assumed —
+  `railway-market-aggregator/src/services/indicatorService.ts` computes it
+  as `Math.abs((rsi - 50) / 50)`, and `rsi` is validated to `[0, 100]` by
+  `V2-200`'s own `normalizeMarketUpdate`. The entry threshold
+  (`TREND_BREAKOUT_ENTRY_THRESHOLD = 0.5`) is the literal midpoint of that
+  proven range, and hysteresis (`0.25`) is derived as half of it. This
+  meant no `AskUserQuestion` was needed for the core trigger math, unlike
+  `V2-202`'s leverage-profile derivation, which had no comparable anchor
+  to work from until `PLAYER_MAX_HEALTH` was chosen as the `1×` reference
+  point.
+- `TREND_BREAKOUT_CONFIRMATION_TICKS`/`TREND_BREAKOUT_COOLDOWN_TICKS` (1
+  and 10 real seconds) derive from `SIMULATION_HZ`, matching every other
+  tick-count constant in this codebase. `TREND_BREAKOUT_SPAWN_BUDGET` is
+  `MVP0_ENEMY_SPAWN_BUDGET` times a stated multiplier (`4`) — the
+  multiplier itself, like the 10-second cooldown, is chosen with stated
+  reasoning rather than derived by pure arithmetic (mirrors `V2-108`'s own
+  archetype-multiplier precedent); `V2-405` (MVP-4) owns final tuning.
+- `game-v2/contracts/EncounterOutput.ts`: `EncounterOutputKind` (the full
+  four-member design enum) and the one concrete variant this task
+  authors, `SpawnEncounterOutput`. `EncounterOutput` is a union starting
+  with just this variant — `WORLD_EVENT`/`LOOT_EVENT`/`HYBRID` get their
+  own shape only when `V2-205`/`V2-206` need one, rather than this task
+  guessing their content.
+- `game-v2/config/TrendBreakoutFamily.ts`: the derived constants and
+  `TREND_BREAKOUT_PROFILE`, an `IndicatorEventProfile` built on `V2-203`'s
+  mechanism (`direction: 'above'`, since a breakout is `trendStrength`
+  crossing above the threshold).
+- `game-v2/market/TrendBreakoutEncounter.ts`: wraps one
+  `IndicatorEventStateMachine`, samples `MarketSnapshot.trendStrength` each
+  step, and produces a `SpawnEncounterOutput` themed by `trendDirection`
+  exactly on the activation tick. A real, provable invariant guards
+  against a `'NEUTRAL'` direction at activation:
+  `trendStrength > 0.5 ⇒ |rsi - 50| > 25 ⇒ rsi < 25 ∨ rsi > 75`, both far
+  outside the `[45, 55]` band `indicatorService.ts` uses to derive
+  `'NEUTRAL'` — unreachable through the real pipeline, guarded defensively
+  anyway, mirroring `CombatSystem`'s own `health <= 0` precedent.
+- Test coverage: `EncounterOutput.test.ts` (10 tests — valid input, one
+  rejection per invalid field); `TrendBreakoutFamily.test.ts` (6 tests —
+  every derivation formula pinned by exact equality, the profile itself
+  validates); `TrendBreakoutEncounter.test.ts` (7 tests — no output while
+  `ARMED`; exactly one bullish-themed output for `'UP'`; bearish-themed for
+  `'DOWN'`; no output on any tick before or after the exact activation
+  tick; no output while `COOLDOWN` even when the entry condition is met
+  again — re-verifying `V2-203`'s own anti-spam property through the real
+  wrapper, not just the raw mechanism; the `'NEUTRAL'`-direction guard;
+  `reset()`).
+- One test-authoring bug was found and fixed while writing the suite (not
+  an implementation bug): the first "no output while ARMED" test called a
+  `stayArmed` helper covering ticks 0-9, then re-drove ticks 0-9 again in
+  a second loop — the state machine's monotonic-tick guard correctly
+  rejected the tick reuse. Fixed by removing the redundant first pass.
+- **Mutation pass, 4 mutants, all caught — one caught via a different,
+  less-clear exception type than intended, confirming the value of the
+  explicit guard it targeted.** Producing output on every `ACTIVE` tick
+  instead of only the activation tick failed 1 test. Reversing the
+  `'UP'`/`'DOWN'` theme mapping failed 2 tests. Reverting
+  `TREND_BREAKOUT_SPAWN_BUDGET` to the raw `MVP0_ENEMY_SPAWN_BUDGET`
+  (multiplier dropped) failed the dedicated constant-derivation test (the
+  encounter-level test didn't catch it, since it imports the same mutated
+  constant and compares against itself — the derivation test is what's
+  actually supposed to catch this class of mutant, and it did). Removing
+  the explicit `'NEUTRAL'`-direction guard still threw — `assertSpawnEncounterOutput`'s
+  own `themeId` validation caught the resulting `undefined` theme lookup
+  downstream — but as a generic `TypeError` rather than the intended
+  diagnostic `RangeError`, which the test's specific exception-type
+  assertion correctly flagged as a mismatch. This confirmed the explicit
+  guard earns its place: defense-in-depth exists without it, but with a
+  materially worse error message for whoever would hit it.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (58 files,
+  1058 tests, up from 55 files/1035 tests before this task by the three
+  new test files' 23 tests), `npm run typecheck`,
+  `npm run check:architecture` (89 baseline singleton files — nothing new
+  was added, the encounter is constructed per-caller), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean), focused Prettier (clean), and `npm run build`. No e2e run
+  was needed: this task touches nothing under `game-v2/GameV2App.tsx` or
+  `game-v2/runtime/**`.
+- All five acceptance criteria in the task brief are met with the evidence
+  above: (1) `EncounterOutput`/`SpawnEncounterOutput` validate and freeze
+  correctly; (2) `TREND_BREAKOUT_PROFILE` and every derived constant are
+  pinned by exact-equality tests tracing to a real existing value; (3)
+  `TrendBreakoutEncounter` produces exactly one themed, bounded output per
+  activation and `null` otherwise, including through `COOLDOWN`'s
+  anti-spam property; (4) nothing outside
+  `game-v2/contracts/**`/`game-v2/config/**`/`game-v2/market/**` was
+  touched, confirmed by the file diff; (5) every gate passes and all four
+  mutation checks confirm load-bearing assertions. `V2-204` is accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
 `V2-200` (canonical market snapshot, BTC-only), `V2-201` (locked position
-context), `V2-202` (five lethality profiles), and `V2-203` (indicator-event
-state machine) are all accepted. Per `MASTER_PLAN.md`, `V2-204`
-(Trend/Breakout), `V2-205` (Volatility Surge), and `V2-206` (Volume/Whale)
-each depend only on `V2-203` and are all now unblocked — no ordering
+context), `V2-202` (five lethality profiles), `V2-203` (indicator-event
+state machine), and `V2-204` (Trend/Breakout family) are all accepted. Per
+`MASTER_PLAN.md`, `V2-205` (Volatility Surge) and `V2-206` (Volume/Whale)
+each depend only on `V2-203` and are both still unblocked — no ordering
 between them is mandated by the dependency graph, so the next session
 should confirm which family the user wants first (or whether to interleave
-them). `V2-207` (the primary/support composer) depends on all three and
-remains blocked until at least enough of them exist to compose.
+them). `V2-207` (the primary/support composer) depends on all three
+families and remains blocked until `V2-205`/`V2-206` also exist.
+`EncounterOutput.ts` (this checkpoint's own new contract) is where each of
+those two families will add their own `WORLD_EVENT`/`LOOT_EVENT` variant.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
