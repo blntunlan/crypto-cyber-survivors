@@ -101,9 +101,18 @@ and `PROGRESS.md` for the evidence.
 Goal: prove that real market evidence changes gameplay identity without becoming
 an uncontrolled difficulty multiplier.
 
+Status: `In Progress`. `V2-200` is accepted and closed, scoped to BTC only
+after checking the real infrastructure:
+`SSEMarketService` and every `railway-market-aggregator` service are
+single-asset today, with no `asset`/`symbol` parameter anywhere. ETH/SOL
+multi-asset support (this row's original Done-When) is deferred to an
+unassigned follow-up task that first extends `railway-market-aggregator`;
+see `docs/game-v2/tasks/V2-200-canonical-market-snapshot.md` for the
+user-confirmed scope decision.
+
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|
-| V2-200 | Canonical market snapshot | V2-110 | BTC/ETH/SOL normalize to one finite, versioned contract. |
+| V2-200 | Canonical market snapshot | V2-110 | BTC normalizes to one finite, versioned contract. (Amended from BTC/ETH/SOL — see Status above.) |
 | V2-201 | Locked position context | V2-200 | Asset, side, entry, and leverage cannot mutate during a run. |
 | V2-202 | Five lethality profiles | V2-201 | 1×/5×/10×/25×/50× resolve through one composer with no double scaling. |
 | V2-203 | Indicator-event state machine | V2-200 | Confirm, hysteresis, cooldown, rearm, and reset pass property tests. |

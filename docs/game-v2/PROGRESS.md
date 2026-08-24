@@ -8,10 +8,10 @@
 | Field | Value |
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
-| Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) not started |
-| Active task | None. `V2-110` (MVP-1 evidence gate) is accepted and closed, completing MVP-1. The next task is whichever MVP-2 block the user selects to open (`V2-200`+). |
-| Status | MVP-1 fully closed: `V2-100` through `V2-112` all accepted. |
-| Closed | `V2-110` accepted (this checkpoint); `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
+| Active task | None. `V2-200` (canonical market snapshot, BTC only) is accepted and closed. The next task is `V2-201` (locked position context) or `V2-203` (indicator-event state machine) — both depend only on `V2-200` and either may be opened next. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200` accepted; `V2-201`..`V2-213` not started. |
+| Closed | `V2-200` accepted (this checkpoint, BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -2428,16 +2428,116 @@ gameplay.
   mutation checks confirm their assertions are load-bearing. `V2-110` is
   accepted, closing MVP-1.
 
+## V2-200 — Canonical Market Snapshot
+
+Brief: `docs/game-v2/tasks/V2-200-canonical-market-snapshot.md`. First MVP-2
+task, opened after `V2-110`.
+
+- **A real infrastructure constraint was checked before scoping, not
+  assumed.** The master plan's Done-When read "BTC/ETH/SOL normalize to one
+  finite, versioned contract," but `services/market/SSEMarketService.ts` and
+  every service under `railway-market-aggregator/src/` are single-asset
+  (BTC) today — no `asset`/`symbol` parameter exists anywhere in the
+  Binance/Coinbase subscriptions, indicator calculation, or SSE payload
+  shape. Building real ETH/SOL live streams is a separate
+  `railway-market-aggregator` change (new WS subscriptions, new indicator
+  instances, a new payload shape, a separate deploy), not a client-side Game
+  V2 task. Put to the user directly via `AskUserQuestion`; chosen: **BTC
+  only**, reusing `SSEMarketService` unchanged. ETH/SOL is deferred to an
+  unassigned follow-up task that first extends `railway-market-aggregator`.
+  New decision: `V2-ADR-084`.
+- `game-v2/contracts/MarketSnapshot.ts` adds the frozen, versioned
+  `MarketSnapshot` contract (`MARKET_SNAPSHOT_SCHEMA_VERSION = 1`):
+  `MarketAsset` (`'BTC'` today), `RsiState`
+  (`'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT'`, matching
+  `railway-market-aggregator`'s `RSICalculator`), `TrendDirection`
+  (`'UP' | 'DOWN' | 'NEUTRAL'`, matching `indicatorService.ts`'s own
+  server-side derivation), `WhaleTier` (`0 | 1 | 2 | 3`, matching
+  `VolumeAnalyzer`), and the snapshot fields themselves. It deliberately
+  excludes every legacy gameplay-multiplier field `SSEMarketUpdate` carries
+  (`spawnRateMultiplier`, `enemyAggroMultiplierLong`,
+  `enemyAggroMultiplierShort`) — design §7.1: "old frontend gameplay
+  multipliers, difficulty services, and Director ownership are not reused."
+  New decision: `V2-ADR-085`.
+- `game-v2/market/MarketFeedSource.ts` declares the raw `MarketFeedUpdate`
+  shape and the injected `MarketFeedSource` port
+  (`connect(onUpdate)`/`disconnect()`), mirroring the existing
+  `RendererPort`/`IntentSource` pattern. `game-v2/market/MarketSnapshotAdapter.ts`
+  adds the pure `normalizeMarketUpdate(update, asset)` — returns `null`
+  rather than throwing on any field that cannot be represented validly — and
+  the `MarketSnapshotAdapter` class (`start()`/`stop()`/`latest()`/
+  `subscribe()`) that drives a `MarketFeedSource`, publishes normalized
+  snapshots, and silently keeps the last known valid snapshot when a raw
+  update is rejected. New decision: `V2-ADR-086` — every other Game V2
+  validator (`WorldStateValidator`, `assertEnemyDefinition`,
+  `assertAbilityTierEffect`) throws on invalid input because invalid
+  internal state is a defect that must not run; a live external feed is
+  different, and one malformed SSE payload is an expected, recoverable
+  condition (design §7.5's "existing market effects transition to
+  neutral"), not a broken invariant.
+- `game-v2/market/BtcMarketFeedSource.ts` is the single production wrapper —
+  `createBtcMarketFeedSource(): MarketFeedSource` — and the only file under
+  `game-v2/**` importing `SSEMarketService`/`types/crypto`, confirmed via a
+  direct `grep` sweep of `game-v2/**` rather than assumed.
+- `TrendDirection` normalizes the client-side synthetic-fallback's
+  inconsistent `'SIDEWAYS'` spelling (a pre-existing legacy quirk:
+  `SSEMarketService.emitSyntheticUpdate` uses `'SIDEWAYS'` while the real
+  server path in `indicatorService.ts` only ever emits `'UP'`/`'DOWN'`/
+  `'NEUTRAL'`) to `'NEUTRAL'`, rather than propagating a fourth enum member
+  for the same concept. New decision: `V2-ADR-087`.
+- Test coverage: `tests/game-v2/market/MarketSnapshotAdapter.test.ts` (28
+  tests — one valid-input case, `isSynthetic` defaulting, the
+  `'SIDEWAYS'` → `'NEUTRAL'` normalization, one independent rejection case
+  per invalid field via a parametrized `it.each`, and the adapter's
+  publish/keep-last-valid/unsubscribe/stop behavior against a fake injected
+  `MarketFeedSource`) and `tests/game-v2/market/BtcMarketFeedSource.test.ts`
+  (3 tests — the wrapper delegates to a mocked `SSEMarketService`
+  correctly; `SSEMarketService`'s own reconnect/fallback/data-gap behavior
+  is already covered by `tests/services/market/SSEMarketService.test.ts` and
+  not re-tested here).
+- Mutation spot-check: temporarily removing the `price` finite/positive
+  check from `normalizeMarketUpdate` failed exactly the 3 price-rejection
+  `it.each` rows plus the adapter's keep-last-valid-snapshot test (4 of 28),
+  with every other test unaffected — confirming each field's rejection
+  branch is independently proven rather than incidentally covered.
+  Production restored byte-identically and reverified green.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (47 files, 936
+  tests, up from 45 files/905 tests by exactly the two new market test
+  files), `npx vitest run tests/services/market/SSEMarketService.test.ts --pool=forks --maxWorkers=1`
+  (26 tests, unaffected), `npm run typecheck`, `npm run check:architecture`
+  (89 baseline singleton files — `MarketSnapshotAdapter` is constructed
+  per-caller, not a singleton, so no whitelist entry was needed),
+  `npm run check:reset-coverage` (89 singletons: 29 wired, 60 exempt,
+  unchanged — nothing in this task is wired into `GameV2Runtime`'s reset
+  path, matching the brief's explicit out-of-scope), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all six changed/new
+  files (clean), focused Prettier (clean), and `npm run build`.
+- All six acceptance criteria in the task brief are met with the evidence
+  above: (1) `MarketSnapshot` is frozen, versioned, and every field is
+  validated before construction; (2) `normalizeMarketUpdate` rejects
+  invalid input by returning `null`, proven per field; (3) `MarketSnapshot`
+  excludes every legacy gameplay-multiplier field; (4) exactly one file
+  (`BtcMarketFeedSource.ts`) imports `SSEMarketService`/`types/crypto`,
+  confirmed by `grep`; (5) no `game-v2/systems/**`/`game-v2/runtime/**` file
+  imports `game-v2/market/**` or `MarketSnapshot`, confirmed by `grep`; (6)
+  every Step 5 gate passes and the mutation check confirms load-bearing
+  assertions. `V2-200` is accepted.
+
 ## Exact Next Action
 
-MVP-1 (Combat and Build Core) is fully closed: `V2-100` through `V2-112`,
-including the `V2-110` evidence gate above, are all accepted. The next work
-is MVP-2 (Market Vertical Slice, `V2-200`+ in `MASTER_PLAN.md`) — prove that
-real market evidence changes gameplay identity without becoming an
-uncontrolled difficulty multiplier. No MVP-2 task has been briefed yet; the
-next session should open with the user to select and scope the first MVP-2
-block (`V2-200`, canonical market snapshot, is the only block with no
-dependency).
+MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is open: `V2-200`
+(canonical market snapshot, BTC-only) is accepted. Per `MASTER_PLAN.md`,
+both `V2-201` (locked position context) and `V2-203` (indicator-event state
+machine) depend only on `V2-200`, so either may be opened next — no
+ordering between them is mandated by the dependency graph; the next session
+should confirm which one the user wants first (or whether to interleave
+both). ETH/SOL multi-asset support remains a real, unassigned gap: it is not
+on the critical path for `V2-201`..`V2-213` since every one of those blocks
+can be evidenced against BTC alone, but it must be opened before MVP-2's own
+Done-When ("BTC/ETH/SOL normalize...") can be called fully met at the
+milestone level — flag this to the user rather than silently letting it slip
+through MVP-2's evidence gate (`V2-213`).
 
 All 9 findings from `V2-109`'s `/code-review high` pass are resolved and none
 remain open: 6 were fixed in the `374cec0e` cleanup, `WeaponSystem`'s
