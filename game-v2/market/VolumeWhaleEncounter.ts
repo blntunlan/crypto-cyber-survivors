@@ -12,10 +12,25 @@ import { IndicatorEventStateMachine } from '@/game-v2/market/IndicatorEventState
  * `2` (`WHALE`) or `3` (`MEGA_WHALE`). Guarded defensively anyway rather
  * than assumed, mirroring `V2-204`'s `'NEUTRAL'`-direction guard.
  */
-const LOOT_TIER_BY_WHALE_TIER: Readonly<Record<2 | 3, string>> = {
+export const LOOT_TIER_BY_WHALE_TIER: Readonly<Record<2 | 3, string>> = {
   2: 'whale-loot',
   3: 'mega-whale-loot',
 };
+
+/**
+ * Every real `(lootTierId, lootValue)` pair any `LOOT_EVENT`-producing
+ * family currently emits (`V2-210`) — `Volume/Whale` is the only such
+ * family (V2-ADR-116). Consumers validate both the id and its paired
+ * value against this rather than accepting an arbitrary combination,
+ * mirroring `V2-208`'s `TREND_BREAKOUT_THEME_IDS`/`V2-209`'s
+ * `VOLATILITY_SURGE_HAZARD_ID` precedent.
+ */
+export const VOLUME_WHALE_LOOT_VALUE_BY_TIER_ID: ReadonlyMap<string, number> = new Map(
+  Object.entries(LOOT_TIER_BY_WHALE_TIER).map(([whaleTier, tierId]) => [
+    tierId,
+    Number(whaleTier),
+  ])
+);
 
 /**
  * The Volume/Whale family's concrete encounter (`V2-206`). Wraps one

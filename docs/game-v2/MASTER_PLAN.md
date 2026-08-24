@@ -181,6 +181,15 @@ provable zero-gap non-overlap derivation) and throws on an unrecognized
 `hazardId`. No ECS hazard component, gameplay effect, or `GameV2Runtime`
 wiring was added — this task proves the lifecycle timing mechanism only;
 see `docs/game-v2/tasks/V2-209-world-event-consumer.md`.
+`V2-210` is accepted and closed: `LootEventEncounterConsumer` validates a
+`LootEventEncounterOutput`'s `lootTierId` against the real known set and
+cross-checks `lootValue` against that tier's own fixed value, then
+returns a bounded, inert, frozen `LootOpportunity` record — no currency,
+coin, wallet, or reward service is imported or called anywhere, proven
+both structurally and by a source-scan test with a verified positive
+control, per `CLAUDE.md`'s anti-cheat guardrail against new optimistic
+credit paths; not wired into `GameV2Runtime` yet; see
+`docs/game-v2/tasks/V2-210-loot-event-consumer.md`.
 
 | ID | LEGO block | Depends on | Done when |
 |---|---|---|---|

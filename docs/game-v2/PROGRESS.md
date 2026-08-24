@@ -9,9 +9,9 @@
 |---|---|
 | Branch | `codex/threejs-gameplay-v2` (local `HEAD`, not yet pushed) |
 | Phase | MVP-1 `Done`; MVP-2 (Market Vertical Slice) `In Progress` |
-| Active task | None. `V2-209` (World-Event Consumer) is accepted and closed — hazard telegraph/lifecycle timing is now simulation-tick-driven and proven, though no ECS component or `GameV2Runtime` wiring exists yet. The next reachable task is `V2-210` (Loot-event output), unblocked since `V2-207`. |
-| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-209` accepted; `V2-210`..`V2-213` not started. |
-| Closed | `V2-209` accepted (this checkpoint); `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
+| Active task | None. `V2-210` (Loot-Event Consumer) is accepted and closed — all three `SPAWN`/`WORLD_EVENT`/`LOOT_EVENT` consumption paths now exist (`V2-208`/`V2-209`/`V2-210`), none wired into `GameV2Runtime`. The next reachable tasks are `V2-211` (Stale/reconnect degradation, depends on `V2-200`+`V2-207`) and `V2-212` (Market Convergence contribution, depends on `V2-207`+`V2-109`), both larger runtime-integration tasks. |
+| Status | MVP-1 fully closed (`V2-100`..`V2-112`). MVP-2: `V2-200`..`V2-210` accepted; `V2-211`..`V2-213` not started. |
+| Closed | `V2-210` accepted (this checkpoint); `V2-209` accepted at `8fad6e03`; `V2-208` accepted at `9151c9f6`; `V2-207` accepted at `2b7d408a`; `V2-206` accepted at `039a6402`; `V2-205` accepted at `478035a8`; `V2-204` accepted at `055c3ae3`; `V2-203` accepted at `fedbf7e9`; `V2-202` accepted at `a1609b2b`; `V2-201` accepted at `4119e380`; `V2-200` accepted at `246733ce` (BTC-only scope); `V2-110` accepted at `fa52e413`; `V2-112` accepted at `a5ae6d60`; `V2-111` accepted at `e26dc604`; `V2-109` accepted at `3dfd5f06` (cleanup committed `374cec0e`); `V2-108` accepted at `94a48e7a` |
 | MVP-0 | `Done` — accepted 2026-08-22 at `085697b5`; V2-000 through V2-014 closed |
 | Baseline commit | `12edc510` |
 | Last verified design/content commit | `e0b22817` |
@@ -3570,29 +3570,113 @@ three indicator families.
   confirmed by the file diff; (5) every gate passes and the mutation pass
   leaves no survivor. `V2-209` is accepted.
 
+## V2-210 — Loot-Event Consumer
+
+- Task brief: `docs/game-v2/tasks/V2-210-loot-event-consumer.md`.
+  Governing decisions: V2-ADR-137 through V2-ADR-140.
+- Scoping confirmed the "likely `RewardCalculator`/`CoinService`-adjacent"
+  guess from the prior checkpoint was the wrong direction: `CLAUDE.md`'s
+  anti-cheat guardrail ("Do not add new optimistic credit paths. Route
+  new rewards through the verified submit.") and the absence of any
+  loot/economy system in `game-v2/**` (`V2-306`, MVP-3, still not
+  landed) together rule out touching any reward/currency service at all
+  in this task — the "minimal lootbox-opportunity record, no economy
+  wiring" option was the correct one (V2-ADR-137).
+- `game-v2/market/LootEventEncounterConsumer.ts`: `LootEventEncounterConsumer.consume(output,
+  tick)` validates `output.lootTierId` against the real known set
+  (`VOLUME_WHALE_LOOT_VALUE_BY_TIER_ID`, derived from
+  `VolumeWhaleEncounter.ts`'s existing `LOOT_TIER_BY_WHALE_TIER`, now
+  exported) and — new relative to `V2-208`/`V2-209`'s id-only validation
+  — cross-checks `output.lootValue` against that tier's own fixed real
+  value (V2-ADR-138). This second check closes a real gap:
+  `assertLootEventEncounterOutput`'s own bound on `lootValue` is only "a
+  positive integer," with no upper limit, so id-only validation would
+  let a known, real `lootTierId` be paired with an arbitrary, unbounded
+  `lootValue` and still pass — the literal reason "bounded" is a
+  meaningful, tested guarantee rather than a documentation-only claim.
+  Both checks throw distinct, specific error messages. Returns a frozen
+  `LootOpportunity` (`lootTierId`, `lootValue`, `tick`) — data only, no
+  side effect.
+- No two-tier mechanism/content split (unlike `V2-208`'s
+  `EnemyComposer`/`SpawnEncounterConsumer` or `V2-209`'s
+  `HazardLifecycle`/`WorldEventEncounterConsumer`): `Volume/Whale` is the
+  only `LOOT_EVENT`-producing family (`V2-ADR-116`), and there is no
+  separate downstream system to delegate to — validation plus an inert
+  record is the whole task, so one class suffices.
+- "Cannot mint settlement value" is proven two ways (V2-ADR-139): the
+  file never imports any economy/coin/wallet/reward service (confirmed
+  by the actual import list — only `EncounterOutput`'s type and the one
+  sibling `market/` export), and a dedicated source-scan test in
+  `tests/game-v2/market/LootEventEncounterConsumer.test.ts` reads the
+  consumer's own source text via `readFileSync` and asserts the absence
+  of `CoinService`/`RewardCalculator`/`WalletService`/`creditCoins`/
+  `GameSessionService`, mirroring
+  `tests/services/gameplay/GameRuntimeDependencyAudit.test.ts`'s
+  established convention for this exact kind of architectural-boundary
+  proof. This scan test's positive-control value was verified manually
+  during implementation (not left as a standing test, since it would
+  need intentionally broken source to pass): temporarily inserting a
+  `// CoinService` comment into the consumer file did make the scan test
+  fail as expected, confirming the check is real rather than vacuous,
+  then the insertion was reverted.
+- `tests/game-v2/market/LootEventEncounterConsumer.test.ts` (6 tests):
+  a real `whale-loot` output (tier 2) and a real `mega-whale-loot` output
+  (tier 3) each consume into the correct frozen record; an unrecognized
+  `lootTierId` throws; a `lootValue` mismatched against its tier's real
+  value throws; an injected custom `lootTierId → lootValue` map is
+  honoured over the default; the source-scan test for "no economy
+  import." All 6 passed on first attempt.
+- **Mutation pass, 3 mutants, all caught.** Removing the `lootTierId`
+  validation (folding it into a fallback that defaults to the supplied
+  value) failed 2 tests. Removing the `lootValue` cross-check failed 1
+  test. The constructor ignoring its injected map (always using the
+  default) failed 1 test.
+- Verification, each run separately and each passing:
+  `npx vitest run tests/game-v2 --pool=forks --maxWorkers=1` (68 files,
+  1139 tests, up from 67 files/1133 tests before this task by the one
+  new test file plus the `VolumeWhaleEncounter.test.ts` export coverage),
+  `npm run typecheck`, `npm run check:architecture` (89 baseline
+  singleton files — nothing new was added), `npm run check:reset-coverage`
+  (89 singletons: 29 wired, 60 exempt, unchanged), `npm run check:ui-contract`,
+  `npm run check:event-contract`, focused ESLint on all three
+  changed/new files (clean), focused Prettier (clean), and `npm run build`
+  (succeeded, ~34s). No e2e run was needed: this task touches nothing
+  under `game-v2/GameV2App.tsx` or `game-v2/runtime/**`.
+- All four acceptance criteria in the task brief are met with the
+  evidence above: (1) `LootEventEncounterConsumer.consume` validates
+  both `lootTierId` and `lootValue` against real, tier-anchored values
+  and returns a frozen, inert record; (2) no currency/economy/reward
+  service is imported or called, proven by the source-scan test with a
+  verified positive control; (3) nothing outside
+  `game-v2/market/LootEventEncounterConsumer.ts` and the one documented
+  export addition in `VolumeWhaleEncounter.ts` was touched, confirmed by
+  the file diff, and no wiring into `GameV2Runtime` was added; (4) every
+  gate passes and the mutation pass leaves no survivor. `V2-210` is
+  accepted.
+
 ## Exact Next Action
 
 MVP-1 is fully closed. MVP-2 (Market Vertical Slice) is in progress:
-`V2-200` through `V2-209` are all accepted. All three indicator-event
-families compose together (`V2-207`), `SPAWN` outputs compose real enemy
-content (`V2-208`), and `WORLD_EVENT` outputs now drive a real,
-tick-controlled hazard lifecycle (`V2-209`) — none of this is wired into
-`GameV2Runtime` yet, and `V2-209` added no ECS hazard component or
-gameplay effect (deliberately deferred, V2-ADR-136). Per `MASTER_PLAN.md`,
-`V2-210` (Loot-event output) is the only remaining `V2-207`-dependent
-consumption task and is reachable now — completing it closes the full
-`SPAWN`/`WORLD_EVENT`/`LOOT_EVENT` consumption set, mirroring `V2-208`'s
-`SpawnEncounterConsumer` shape (a real, already-tested downstream
-mechanism — likely `RewardCalculator`/`CoinService`-adjacent or a new
-minimal lootbox-opportunity record, since MVP-3's `V2-306` "Unbanked
-run-point ledger" is the real economy system and hasn't landed yet) —
-worth checking during scoping whether `V2-210` should stay similarly
-minimal (record the opportunity, no economy wiring) given no loot/reward
-system exists in `game-v2/**` yet, matching `V2-206`'s own
-`lootValue`-is-a-pass-through-tier reasoning. After `V2-210`, `V2-211`
-(Stale/reconnect degradation) and `V2-212` (Market Convergence
-contribution) remain, both larger runtime-integration tasks, before
-`V2-213`'s MVP-2 evidence gate.
+`V2-200` through `V2-210` are all accepted. All three indicator-event
+families compose together (`V2-207`), and all three of their outputs now
+have a real, tested consumer — `SPAWN` (`SpawnEncounterConsumer`,
+`V2-208`), `WORLD_EVENT` (`HazardLifecycle`/`WorldEventEncounterConsumer`,
+`V2-209`), `LOOT_EVENT` (`LootEventEncounterConsumer`, `V2-210`) — none
+wired into `GameV2Runtime` yet. Per `MASTER_PLAN.md`, the two remaining
+MVP-2 tasks before the evidence gate are `V2-211` (Stale/reconnect
+degradation, depends on `V2-200`+`V2-207`) and `V2-212` (Market
+Convergence contribution, depends on `V2-207`+`V2-109`) — both are
+reachable now and, unlike `V2-208`/`V2-209`/`V2-210`, are genuinely
+larger runtime-integration tasks rather than isolated `game-v2/market/**`
+mechanisms: `V2-211` needs to define what "stale" means for
+`MarketSnapshot`'s SSE cadence and how a reconnect burst is prevented
+from replaying missed events, and `V2-212` needs to actually touch
+`ConvergenceSystem` (`V2-109`)'s real API to add bonus progress. Both
+will likely be the first MVP-2 tasks since `V2-201` to require reading
+and possibly modifying `GameV2Runtime.ts` itself — worth scoping each
+carefully before starting, including checking whether either needs a new
+event-contract entry or singleton registration this milestone hasn't
+needed yet.
 
 ETH/SOL multi-asset support remains a real, unassigned gap: it is not on
 the critical path for `V2-201`..`V2-213` since every one of those blocks
