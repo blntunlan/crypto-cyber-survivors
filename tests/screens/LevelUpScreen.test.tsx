@@ -204,6 +204,8 @@ describe('LevelUpScreen', () => {
     expect(audio.playMultiplierChime).toHaveBeenCalledTimes(3);
 
     fireEvent.keyDown(window, { key: 'ArrowDown' });
+    // Allow state/ref flush from ArrowDown before hitting Enter
+    await new Promise(r => setTimeout(r, 10));
     fireEvent.keyDown(window, { key: 'Enter' });
 
     expect(onSelect).toHaveBeenCalledWith(mockChoices[1]);

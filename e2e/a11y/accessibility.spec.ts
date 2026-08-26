@@ -1,6 +1,7 @@
 import { test, expect } from '../test';
 import { goToMainMenuFromHub } from '../support/game-helpers';
 import AxeBuilder from '@axe-core/playwright';
+import { Page } from '@playwright/test';
 
 test.describe('Accessibility (A11y) Checks', () => {
   test('should not have accessibility violations on entry surface', async ({
@@ -32,12 +33,8 @@ test.describe('Accessibility (A11y) Checks', () => {
 
     if (accessibilityScanResults.violations.length > 0) {
       console.log(
-        'Violations:',
-        accessibilityScanResults.violations.map(v => ({
-          id: v.id,
-          description: v.description,
-          nodes: v.nodes.length,
-        }))
+        'A11y Violations (Entry Surface):',
+        JSON.stringify(accessibilityScanResults.violations, null, 2)
       );
     }
 
@@ -56,9 +53,9 @@ test.describe('Accessibility (A11y) Checks', () => {
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
-        'crypto_survivors_user',
+        'mock-user-session',
         JSON.stringify({
-          profileId: '00000000-0000-4000-a000-000000000000',
+          profileId: 'e2e-a11y-uuid',
           nickname: 'A11yTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -68,7 +65,7 @@ test.describe('Accessibility (A11y) Checks', () => {
     await page.goto('/?no-sw=true');
 
     // 2. Handle Hub Menu (Click PLAY)
-    await goToMainMenuFromHub(page);
+    await goToMainMenuFromHub(page as Page);
 
     // 3. Wait for Main Menu
     await expect(page.locator('button', { hasText: 'Long' }).first()).toBeVisible({
@@ -82,12 +79,8 @@ test.describe('Accessibility (A11y) Checks', () => {
 
     if (accessibilityScanResults.violations.length > 0) {
       console.log(
-        'Violations:',
-        accessibilityScanResults.violations.map(v => ({
-          id: v.id,
-          description: v.description,
-          nodes: v.nodes.length,
-        }))
+        'A11y Violations (Main Menu):',
+        JSON.stringify(accessibilityScanResults.violations, null, 2)
       );
     }
 
