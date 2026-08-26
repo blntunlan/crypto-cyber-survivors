@@ -213,14 +213,18 @@ export class EffectRenderer implements IRenderer {
     bounds: ViewportBounds,
     showOrdinaryText = true
   ): void {
-    pool.activeFloatingTexts.forEach(t => {
+    // ⚡ Bolt Performance Optimization: Replaced .forEach with standard for loop to avoid closure allocations
+    for (let i = 0, len = pool.activeFloatingTexts.length; i < len; i++) {
+      const t = pool.activeFloatingTexts[i];
+      if (t === undefined) continue;
+
       if (!showOrdinaryText && t.alwaysVisible !== true) {
-        return;
+        continue;
       }
 
       // Culling (approximate based on size)
       if (!isCircleVisible(t.x, t.y, t.size * 2, bounds)) {
-        return;
+        continue;
       }
 
       ctx.save();
@@ -255,7 +259,7 @@ export class EffectRenderer implements IRenderer {
       ctx.fillText(t.text, displayX, displayY);
 
       ctx.restore();
-    });
+    }
 
     ctx.globalAlpha = 1;
   }
