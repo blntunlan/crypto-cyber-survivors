@@ -149,11 +149,15 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
-    pool.activeEnemies.forEach(e => {
+    // Optimization: Standard for loop to avoid closure allocations in 60 FPS update loop
+    for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
+      const e = pool.activeEnemies[i];
+      if (e === undefined) continue;
+
       if (e.isDying) {
         e.movementSlowTimerMs = 0;
         e.movementSlowMultiplier = 1;
-        return;
+        continue;
       }
 
       // Update spawn animation progress
@@ -197,7 +201,7 @@ export class MovementSystem implements IMovementSystem {
           e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
-    });
+    }
   }
 
   /**
@@ -497,7 +501,11 @@ export class MovementSystem implements IMovementSystem {
    * Update progress for enemies in the 'dying' state (death animation).
    */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
-    pool.activeEnemies.forEach(enemy => {
+    // Optimization: Standard for loop to avoid closure allocations in 60 FPS update loop
+    for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
+      const enemy = pool.activeEnemies[i];
+      if (enemy === undefined) continue;
+
       if (enemy.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
@@ -508,7 +516,7 @@ export class MovementSystem implements IMovementSystem {
           enemy.deathProgress = 0;
         }
       }
-    });
+    }
   }
 
   /**

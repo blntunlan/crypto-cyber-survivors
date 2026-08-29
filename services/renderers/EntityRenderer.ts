@@ -407,13 +407,17 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
-    pool.activeGems.forEach(g => {
+    // Optimization: Standard for loop to avoid closure allocations in 60 FPS render loop
+    for (let i = 0, len = pool.activeGems.length; i < len; i++) {
+      const g = pool.activeGems[i];
+      if (g === undefined) continue;
+
       if (!g.active) {
-        return;
+        continue;
       }
 
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        return;
+        continue;
       }
 
       // Calculate fade-out alpha based on lifetime
@@ -447,7 +451,7 @@ export class EntityRenderer implements IRenderer {
       ctx.fill();
 
       ctx.restore();
-    });
+    }
   }
 
   /**
@@ -565,7 +569,11 @@ export class EntityRenderer implements IRenderer {
     const isRetro = ThemeService.isRetro();
     const retroSizeMult = GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
 
-    pool.activeEnemies.forEach(e => {
+    // Optimization: Standard for loop to avoid closure allocations in 60 FPS render loop
+    for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
+      const e = pool.activeEnemies[i];
+      if (e === undefined) continue;
+
       // Visibility Check: Buffer for large spawn glows
       const spawnPadding =
         e.spawnTimer !== undefined &&
@@ -574,7 +582,7 @@ export class EntityRenderer implements IRenderer {
           : 0;
 
       if (!isCircleVisible(e.x, e.y, e.radius + 8 + spawnPadding, bounds)) {
-        return;
+        continue;
       }
 
       if (e.isDying && e.deathProgress !== undefined) {
@@ -582,7 +590,7 @@ export class EntityRenderer implements IRenderer {
       } else {
         this.renderEnemyLiving(ctx, e, isRetro, retroSizeMult);
       }
-    });
+    }
   }
 
   /**
