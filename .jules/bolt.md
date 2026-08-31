@@ -1,0 +1,3 @@
+## 2024-05-15 - Array.forEach to for loop conversion in MovementSystem & EntityRenderer
+**Learning:** `Array.prototype.forEach` creates a new function execution context and closure allocation for every array element. In extremely hot loops running at 60FPS over hundreds of elements (like physics updates and rendering loops in `MovementSystem.ts` and `EntityRenderer.ts`), this causes significant overhead and garbage collection pressure compared to standard `for` loops.
+**Action:** Always replace `.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in high-frequency update paths that iterate over large object pools, preserving `return` statements as `continue`.
