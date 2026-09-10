@@ -206,7 +206,9 @@ describe('LevelUpScreen', () => {
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'Enter' });
 
-    expect(onSelect).toHaveBeenCalledWith(mockChoices[1]);
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledWith(mockChoices[1]);
+    });
   });
 
   it('should render card icons or emojis', () => {
