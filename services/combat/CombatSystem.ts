@@ -224,7 +224,7 @@ export class CombatSystem implements ICombatSystem {
       }
     }
 
-    const bestCandidate = TARGETING_CONTEXT.bestCandidate;
+    const bestCandidate = TARGETING_CONTEXT.bestCandidate as { x: number; y: number; distSq: number; speed: number } | null;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return bestCandidate
       ? {
