@@ -22,7 +22,11 @@ declare module 'express-serve-static-core' {
  * while legacy profile routes are migrated.
  * Verifies that the account is currently active in the database.
  */
-export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
+  void requireAuthAsync(req, res, next);
+};
+
+export async function requireAuthAsync(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing or invalid Authorization header' });
