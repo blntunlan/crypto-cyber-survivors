@@ -153,6 +153,8 @@ export class MovementSystem implements IMovementSystem {
     const activeEnemies = pool.activeEnemies;
     for (let i = 0, len = activeEnemies.length; i < len; i++) {
       const e = activeEnemies[i];
+      if (e === undefined) continue;
+
       if (e.isDying) {
         e.movementSlowTimerMs = 0;
         e.movementSlowMultiplier = 1;
@@ -211,6 +213,8 @@ export class MovementSystem implements IMovementSystem {
     const activeSpeedLines = pool.activeSpeedLines;
     for (let i = 0, len = activeSpeedLines.length; i < len; i++) {
       const line = activeSpeedLines[i];
+      if (line === undefined) continue;
+
       line.x += line.vx * dtFactor;
       line.y += line.vy * dtFactor;
       line.opacity -= line.decay * dtFactor;
@@ -226,6 +230,8 @@ export class MovementSystem implements IMovementSystem {
     const activeImpactRings = pool.activeImpactRings;
     for (let i = 0, len = activeImpactRings.length; i < len; i++) {
       const ring = activeImpactRings[i];
+      if (ring === undefined) continue;
+
       ring.life -= GAME_ENGINE.IMPACT_RING_LIFE_DECAY * dtFactor;
       if (ring.life <= 0) {
         ring.active = false;
@@ -472,6 +478,8 @@ export class MovementSystem implements IMovementSystem {
     const activeParticles = pool.activeParticles;
     for (let i = 0, len = activeParticles.length; i < len; i++) {
       const part = activeParticles[i];
+      if (part === undefined) continue;
+
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
 
@@ -494,6 +502,8 @@ export class MovementSystem implements IMovementSystem {
     const activeFloatingTexts = pool.activeFloatingTexts;
     for (let i = 0, len = activeFloatingTexts.length; i < len; i++) {
       const text = activeFloatingTexts[i];
+      if (text === undefined) continue;
+
       if (text.stationary !== true) {
         text.x += (text.vx ?? 0) * dtFactor;
         text.y +=
@@ -516,6 +526,8 @@ export class MovementSystem implements IMovementSystem {
     const activeEnemies = pool.activeEnemies;
     for (let i = 0, len = activeEnemies.length; i < len; i++) {
       const enemy = activeEnemies[i];
+      if (enemy === undefined) continue;
+
       if (enemy.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
