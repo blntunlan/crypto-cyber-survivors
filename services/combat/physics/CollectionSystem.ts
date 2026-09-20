@@ -118,9 +118,14 @@ export class CollectionSystem implements ICollectionSystem {
     dtFactor: number,
     effectiveMagnet: number
   ): void {
-    pool.activeGems.forEach(gem => {
+    // Optimization: Standard for-loop to prevent closure allocation per gem
+    const gems = pool.activeGems;
+    for (let i = 0, len = gems.length; i < len; i++) {
+      const gem = gems[i];
+      if (gem === undefined) continue;
+
       if (!gem.active) {
-        return;
+        continue;
       }
 
       // 1. Lifetime check - gems despawn if not collected
@@ -129,7 +134,7 @@ export class CollectionSystem implements ICollectionSystem {
 
       if (gem.elapsedLifetime >= ECONOMY_CONFIG.GEMS.LIFETIME_MS) {
         gem.active = false;
-        return;
+        continue;
       }
 
       const dx = player.x - gem.x;
@@ -139,7 +144,7 @@ export class CollectionSystem implements ICollectionSystem {
       const pickupDist = player.radius + gem.radius;
       if (distSq < pickupDist * pickupDist) {
         this.collectGem(pool, player, gem, state);
-        return;
+        continue;
       }
 
       if (gem.magnetized) {
@@ -148,7 +153,7 @@ export class CollectionSystem implements ICollectionSystem {
 
         const dist = Math.sqrt(distSq);
         if (dist < 0.001) {
-          return;
+          continue;
         }
         const tx = (dx / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
         const ty = (dy / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
@@ -172,7 +177,7 @@ export class CollectionSystem implements ICollectionSystem {
           gem.vy = Math.sin(popAngle) * popSpeed;
         }
       }
-    });
+    }
   }
 
   /**
