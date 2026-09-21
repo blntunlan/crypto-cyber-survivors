@@ -481,12 +481,24 @@ function findNearestEnemy(
   TARGETING_CONTEXT.found = false;
 
   // Step 1: SpatialGrid 3x3 (immediate surroundings)
-  enemyGrid.forEachInRangeWithContext(playerX, playerY, 1, TARGETING_CONTEXT, checkEnemyWithContext);
+  enemyGrid.forEachInRangeWithContext(
+    playerX,
+    playerY,
+    1,
+    TARGETING_CONTEXT,
+    checkEnemyWithContext
+  );
 
   // Step 2: SpatialGrid 7x7 (extended range)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!TARGETING_CONTEXT.found) {
-    enemyGrid.forEachInRangeWithContext(playerX, playerY, 3, TARGETING_CONTEXT, checkEnemyWithContext);
+    enemyGrid.forEachInRangeWithContext(
+      playerX,
+      playerY,
+      3,
+      TARGETING_CONTEXT,
+      checkEnemyWithContext
+    );
   }
 
   // Step 3: Fallback brute-force for edge-of-viewport enemies
