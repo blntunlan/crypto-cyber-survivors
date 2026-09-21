@@ -138,12 +138,7 @@ export class CombatSystem implements ICombatSystem {
   private static readonly TARGETING_CONTEXT = {
     playerX: 0,
     playerY: 0,
-    viewportBounds: null as {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-    } | null,
+    viewportBounds: null as { left: number; right: number; top: number; bottom: number } | null,
     bestX: 0,
     bestY: 0,
     bestDistSq: Infinity,
@@ -209,24 +204,12 @@ export class CombatSystem implements ICombatSystem {
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
     // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRangeWithContext(
-      player.x,
-      player.y,
-      1,
-      ctx,
-      CombatSystem.checkEnemyWithContext
-    );
+    enemyGrid.forEachInRangeWithContext(player.x, player.y, 1, ctx, CombatSystem.checkEnemyWithContext);
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!ctx.found) {
-      enemyGrid.forEachInRangeWithContext(
-        player.x,
-        player.y,
-        3,
-        ctx,
-        CombatSystem.checkEnemyWithContext
-      );
+      enemyGrid.forEachInRangeWithContext(player.x, player.y, 3, ctx, CombatSystem.checkEnemyWithContext);
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
