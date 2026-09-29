@@ -1,4 +1,4 @@
-import { type Player, type GameState } from '../../types';
+import { type Player, type GameState, type Enemy } from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type IAudioService } from '../interfaces/IAudioService';
 import { audio as defaultAudio } from '../audio';
@@ -6,7 +6,7 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { createViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -17,6 +17,55 @@ import { Logger } from '../system/Logger';
 // Debug: track first N fires to diagnose "5 bullets at start" report
 let __debugFireCount = 0;
 const __DEBUG_FIRE_LOG_LIMIT = 10;
+
+// Shared context for zero-allocation enemy targeting
+interface TargetingContext {
+  playerX: number;
+  playerY: number;
+  viewportBounds: ViewportBounds | null;
+  found: boolean;
+  bestX: number;
+  bestY: number;
+  bestDistSq: number;
+  bestSpeed: number;
+}
+
+const TARGETING_CONTEXT: TargetingContext = {
+  playerX: 0,
+  playerY: 0,
+  viewportBounds: null,
+  found: false,
+  bestX: 0,
+  bestY: 0,
+  bestDistSq: 0,
+  bestSpeed: 0,
+};
+
+const targetingCallback = (enemy: Enemy, ctx: TargetingContext) => {
+  if (enemy.isDying || !enemy.active) {
+    return;
+  }
+
+  if (ctx.viewportBounds) {
+    const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, ctx.viewportBounds)) {
+      return;
+    }
+  }
+
+  const dx = enemy.x - ctx.playerX;
+  const dy = enemy.y - ctx.playerY;
+  const distSq = dx * dx + dy * dy;
+
+
+  if (!ctx.found || distSq < ctx.bestDistSq) {
+    ctx.found = true;
+    ctx.bestX = enemy.x;
+    ctx.bestY = enemy.y;
+    ctx.bestDistSq = distSq;
+    ctx.bestSpeed = enemy.speed;
+  }
+};
 
 /**
  * Interface representing target candidates for weapon auto-aiming.
@@ -154,55 +203,56 @@ export class CombatSystem implements ICombatSystem {
       null;
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
+    // Zero-allocation iteration: reuse TARGETING_CONTEXT instead of closures
+    TARGETING_CONTEXT.playerX = player.x;
+    TARGETING_CONTEXT.playerY = player.y;
+    TARGETING_CONTEXT.viewportBounds = viewportBounds;
+    TARGETING_CONTEXT.found = false;
+
     // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRange(player.x, player.y, 1, enemy => {
-      // Skip dead or dying enemies
-      if (enemy.isDying || !enemy.active) {
-        return;
-      }
+    enemyGrid.forEachInRangeWithContext(
+      player.x,
+      player.y,
+      1,
+      TARGETING_CONTEXT,
+      targetingCallback
+    );
 
-      // Optimized viewport check - only calculate if bounds exist
-      if (viewportBounds) {
-        const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-        if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
-          return;
-        }
-      }
-
-      const dx = enemy.x - player.x;
-      const dy = enemy.y - player.y;
-      const distSq = dx * dx + dy * dy;
-
-      if (!bestCandidate || distSq < bestCandidate.distSq) {
-        bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-      }
-    });
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (TARGETING_CONTEXT.found) {
+      bestCandidate = {
+        x: TARGETING_CONTEXT.bestX,
+        y: TARGETING_CONTEXT.bestY,
+        distSq: TARGETING_CONTEXT.bestDistSq,
+        speed: TARGETING_CONTEXT.bestSpeed,
+      };
+    }
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
     if (!bestCandidate) {
-      enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
-        if (enemy.isDying || !enemy.active) return;
+      enemyGrid.forEachInRangeWithContext(
+        player.x,
+        player.y,
+        3,
+        TARGETING_CONTEXT,
+        targetingCallback
+      );
 
-        if (viewportBounds) {
-          const enemyRadius =
-            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) return;
-        }
-
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distSq = dx * dx + dy * dy;
-
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-        }
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (TARGETING_CONTEXT.found) {
+        bestCandidate = {
+          x: TARGETING_CONTEXT.bestX,
+          y: TARGETING_CONTEXT.bestY,
+          distSq: TARGETING_CONTEXT.bestDistSq,
+          speed: TARGETING_CONTEXT.bestSpeed,
+        };
+      }
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
     // This handles edge cases where enemies are at the very edges of wide viewports.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
     if (!bestCandidate) {
       const enemies = pool.activeEnemies;
       for (let i = 0; i < enemies.length; i++) {
