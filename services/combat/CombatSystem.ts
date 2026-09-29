@@ -6,7 +6,11 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
+import {
+  createViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -56,7 +60,6 @@ const targetingCallback = (enemy: Enemy, ctx: TargetingContext) => {
   const dx = enemy.x - ctx.playerX;
   const dy = enemy.y - ctx.playerY;
   const distSq = dx * dx + dy * dy;
-
 
   if (!ctx.found || distSq < ctx.bestDistSq) {
     ctx.found = true;
