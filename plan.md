@@ -1,0 +1,6 @@
+1. **Analyze existing code**: `WeaponFiringPipeline.ts` has a function `findNearestEnemy` that uses `enemyGrid.forEachInRange` passing an inline closure (`checkEnemy`). `CombatSystem.ts` has a similar method `findNearestEnemy` that also allocates an inline closure for `enemyGrid.forEachInRange`.
+2. **Refactor `WeaponFiringPipeline.ts`**: Replace `forEachInRange` with `forEachInRangeWithContext` and use a static context object (e.g. `TARGETING_CONTEXT`) and a static handler function to eliminate the closure allocation per frame. Since the fallback brute-force loop also uses `checkEnemy`, I'll update it to iterate using a `for` loop without allocating a closure.
+3. **Refactor `CombatSystem.ts`**: Replace `forEachInRange` with `forEachInRangeWithContext` using a static context object (e.g. `TARGETING_CONTEXT`) and a static handler function to eliminate closure allocations per frame. Update the fallback brute force loop to eliminate closure usage.
+4. **Run Tests**: `npm run test tests/services/CombatSystem.test.ts` (and potentially other tests if there is any for `WeaponFiringPipeline`).
+5. **Pre-commit**: Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+6. **Submit**: Create PR.
