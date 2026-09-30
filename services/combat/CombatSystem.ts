@@ -157,7 +157,7 @@ export class CombatSystem implements ICombatSystem {
     if (enemy.isDying || !enemy.active) return;
 
     if (ctx.viewportBounds) {
-      const r = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+      const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
       if (!isCircleVisible(enemy.x, enemy.y, r, ctx.viewportBounds)) return;
     }
 
@@ -201,12 +201,24 @@ export class CombatSystem implements ICombatSystem {
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
     // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRangeWithContext(player.x, player.y, 1, ctx, CombatSystem.handleTargetCandidate);
+    enemyGrid.forEachInRangeWithContext(
+      player.x,
+      player.y,
+      1,
+      ctx,
+      CombatSystem.handleTargetCandidate
+    );
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!ctx.found) {
-      enemyGrid.forEachInRangeWithContext(player.x, player.y, 3, ctx, CombatSystem.handleTargetCandidate);
+      enemyGrid.forEachInRangeWithContext(
+        player.x,
+        player.y,
+        3,
+        ctx,
+        CombatSystem.handleTargetCandidate
+      );
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
