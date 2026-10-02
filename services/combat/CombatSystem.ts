@@ -57,13 +57,20 @@ export class CombatSystem implements ICombatSystem {
    * Eliminates the need for inline functions/closures.
    */
   private static handleEnemyTargeting(
-    enemy: { x: number; y: number; active: boolean; isDying?: boolean; radius?: number; speed: number },
+    enemy: {
+      x: number;
+      y: number;
+      active: boolean;
+      isDying?: boolean;
+      radius?: number;
+      speed: number;
+    },
     ctx: typeof CombatSystem.TARGETING_CONTEXT
   ): void {
     if (enemy.isDying || !enemy.active) return;
 
     if (ctx.viewportBounds) {
-      const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+      const enemyRadius = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
       if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, ctx.viewportBounds)) {
         return;
       }
@@ -73,7 +80,6 @@ export class CombatSystem implements ICombatSystem {
     const dy = enemy.y - ctx.player.y;
     const distSq = dx * dx + dy * dy;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!ctx.found || distSq < ctx.bestDistSq) {
       ctx.bestX = enemy.x;
       ctx.bestY = enemy.y;
@@ -232,6 +238,7 @@ export class CombatSystem implements ICombatSystem {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return ctx.found
       ? {
           x: ctx.bestX,
