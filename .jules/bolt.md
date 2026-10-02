@@ -1,0 +1,3 @@
+## 2025-05-18 - SpatialGrid Zero-Allocation Lookups
+**Learning:** In a highly hot loop like `findNearestEnemy` inside `CombatSystem`, using `enemyGrid.forEachInRange` forces the creation of inline closure functions, which allocates memory and causes GC pressure. Moreover, updating an inline object `bestCandidate = { x: ..., y: ..., ... }` repeatedly on every iteration creates a significant amount of temporary object allocations.
+**Action:** Replace `forEachInRange` with `forEachInRangeWithContext` and pass a reusable static context object (`TARGETING_CONTEXT`) pre-allocated with primitive properties (`bestX, bestY, bestDistSq, found`). This eliminates both the closure allocations and the secondary object allocations inside the loop.
