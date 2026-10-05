@@ -57,7 +57,7 @@ function checkEnemyWithContext(
   if (enemy.isDying || !enemy.active) return;
 
   if (ctx.viewportBounds) {
-    const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    const enemyRadius = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
     if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, ctx.viewportBounds)) {
       return;
     }
