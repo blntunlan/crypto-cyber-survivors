@@ -1,0 +1,3 @@
+## 2024-10-05 - Targeting Closure Allocations
+**Learning:** High-frequency paths like `findNearestEnemy` in `CombatSystem` and `WeaponFiringPipeline` were allocating dynamic closures (`checkEnemy`) inside the game loop to track state (`bestDistSq`, `found`, etc.) while querying the `SpatialGrid`. This generated excessive garbage collection pressure.
+**Action:** When iterating over generic containers or spatial grids in the game loop, use context-aware variants (e.g., `forEachInRangeWithContext`) alongside a pre-allocated static context object (`TARGETING_CONTEXT`) to track state without creating dynamic functions or objects.
