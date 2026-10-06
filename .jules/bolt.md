@@ -1,0 +1,3 @@
+## 2024-10-06 - Eliminate Closure Allocations in High-Frequency Paths
+**Learning:** In high-frequency game loops (like combat auto-targeting), iterators that create new closures per frame (e.g., `enemyGrid.forEachInRange(..., enemy => { ... })`) cause significant GC pressure due to repeated function and scope allocations.
+**Action:** When extracting state into a static context object to eliminate closures, flatten nested object structures into primitive fields on the context object. Use context-aware spatial grid methods (like `forEachInRangeWithContext`) alongside static callback functions to prevent dynamic allocation.
