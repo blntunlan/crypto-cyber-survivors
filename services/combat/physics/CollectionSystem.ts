@@ -118,9 +118,14 @@ export class CollectionSystem implements ICollectionSystem {
     dtFactor: number,
     effectiveMagnet: number
   ): void {
-    pool.activeGems.forEach(gem => {
+    const activeGems = pool.activeGems;
+    // Performance Optimization: Replaced .forEach with for loop to eliminate closure allocation
+    for (let i = 0, len = activeGems.length; i < len; i++) {
+      const gem = activeGems[i];
+      if (gem === undefined) continue;
+
       if (!gem.active) {
-        return;
+        continue;
       }
 
       // 1. Lifetime check - gems despawn if not collected
@@ -129,7 +134,7 @@ export class CollectionSystem implements ICollectionSystem {
 
       if (gem.elapsedLifetime >= ECONOMY_CONFIG.GEMS.LIFETIME_MS) {
         gem.active = false;
-        return;
+        continue;
       }
 
       const dx = player.x - gem.x;
@@ -172,7 +177,7 @@ export class CollectionSystem implements ICollectionSystem {
           gem.vy = Math.sin(popAngle) * popSpeed;
         }
       }
-    });
+    }
   }
 
   /**
