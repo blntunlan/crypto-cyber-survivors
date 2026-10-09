@@ -421,7 +421,7 @@ const TARGETING_CONTEXT = {
   found: false,
   playerX: 0,
   playerY: 0,
-  viewportBounds: null as { minX: number; maxX: number; minY: number; maxY: number } | null
+  viewportBounds: null as { left: number; right: number; top: number; bottom: number } | null
 };
 
 const checkEnemyContext = (enemy: {
