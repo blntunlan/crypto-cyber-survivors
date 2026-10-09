@@ -411,7 +411,49 @@ function spawnProjectileFan(
 
 // ─── Shared: Targeting (SpatialGrid + Viewport) ─────────────────────────
 
+
+// Context object used to avoid allocating a closure in findNearestEnemy
+const TARGETING_CONTEXT = {
+  bestX: 0,
+  bestY: 0,
+  bestDistSq: Infinity,
+  bestSpeed: 0,
+  found: false,
+  playerX: 0,
+  playerY: 0,
+  viewportBounds: null as { left: number; right: number; top: number; bottom: number } | null
+};
+
+const checkEnemyContext = (enemy: {
+  x: number;
+  y: number;
+  speed: number;
+  radius?: number;
+  isDying?: boolean;
+  active?: boolean;
+}, ctx: typeof TARGETING_CONTEXT) => {
+  if (enemy.isDying || !enemy.active) return;
+
+  if (ctx.viewportBounds) {
+    const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    if (!isCircleVisible(enemy.x, enemy.y, r, ctx.viewportBounds)) return;
+  }
+
+  const dx = enemy.x - ctx.playerX;
+  const dy = enemy.y - ctx.playerY;
+  const distSq = dx * dx + dy * dy;
+
+  if (distSq < ctx.bestDistSq) {
+    ctx.bestX = enemy.x;
+    ctx.bestY = enemy.y;
+    ctx.bestDistSq = distSq;
+    ctx.bestSpeed = enemy.speed;
+    ctx.found = true;
+  }
+};
+
 function findNearestEnemy(
+
   pool: IPoolManager,
   playerX: number,
   playerY: number,
@@ -423,60 +465,35 @@ function findNearestEnemy(
       ? createViewportBounds(screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
       : null;
 
-  let bestX = 0;
-  let bestY = 0;
-  let bestDistSq = Infinity;
-  let bestSpeed = 0;
-  let found = false;
-
-  const checkEnemy = (enemy: {
-    x: number;
-    y: number;
-    speed: number;
-    radius?: number;
-    isDying?: boolean;
-    active?: boolean;
-  }) => {
-    if (enemy.isDying || !enemy.active) return;
-
-    if (viewportBounds) {
-      const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-      if (!isCircleVisible(enemy.x, enemy.y, r, viewportBounds)) return;
-    }
-
-    const dx = enemy.x - playerX;
-    const dy = enemy.y - playerY;
-    const distSq = dx * dx + dy * dy;
-
-    if (distSq < bestDistSq) {
-      bestX = enemy.x;
-      bestY = enemy.y;
-      bestDistSq = distSq;
-      bestSpeed = enemy.speed;
-      found = true;
-    }
-  };
+  TARGETING_CONTEXT.bestX = 0;
+  TARGETING_CONTEXT.bestY = 0;
+  TARGETING_CONTEXT.bestDistSq = Infinity;
+  TARGETING_CONTEXT.bestSpeed = 0;
+  TARGETING_CONTEXT.found = false;
+  TARGETING_CONTEXT.playerX = playerX;
+  TARGETING_CONTEXT.playerY = playerY;
+  TARGETING_CONTEXT.viewportBounds = viewportBounds;
 
   // Step 1: SpatialGrid 3x3 (immediate surroundings)
-  enemyGrid.forEachInRange(playerX, playerY, 1, checkEnemy);
+  enemyGrid.forEachInRangeWithContext(playerX, playerY, 1, TARGETING_CONTEXT, checkEnemyContext);
 
   // Step 2: SpatialGrid 7x7 (extended range)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
-    enemyGrid.forEachInRange(playerX, playerY, 3, checkEnemy);
+  if (!TARGETING_CONTEXT.found) {
+    enemyGrid.forEachInRangeWithContext(playerX, playerY, 3, TARGETING_CONTEXT, checkEnemyContext);
   }
 
   // Step 3: Fallback brute-force for edge-of-viewport enemies
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!found) {
+  if (!TARGETING_CONTEXT.found) {
     const enemies = pool.activeEnemies;
     for (let i = 0; i < enemies.length; i++) {
-      checkEnemy(enemies[i]!);
+      checkEnemyContext(enemies[i]!, TARGETING_CONTEXT);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return found
-    ? { x: bestX, y: bestY, dist: Math.sqrt(bestDistSq), speed: bestSpeed }
+  return TARGETING_CONTEXT.found
+    ? { x: TARGETING_CONTEXT.bestX, y: TARGETING_CONTEXT.bestY, dist: Math.sqrt(TARGETING_CONTEXT.bestDistSq), speed: TARGETING_CONTEXT.bestSpeed }
     : null;
 }
