@@ -51,7 +51,7 @@ const checkEnemyContext = (enemy: {
   if (enemy.isDying || !enemy.active) return;
 
   if (ctx.viewportBounds) {
-    const r = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+    const r = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
     if (!isCircleVisible(enemy.x, enemy.y, r, ctx.viewportBounds)) return;
   }
 
@@ -219,6 +219,7 @@ export class CombatSystem implements ICombatSystem {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return TARGETING_CONTEXT.found
       ? {
           x: TARGETING_CONTEXT.bestX,
