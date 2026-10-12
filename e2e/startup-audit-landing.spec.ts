@@ -155,7 +155,7 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   const teamSection = page.locator('#team');
   await teamSection.scrollIntoViewIfNeeded();
   await expect(page.getByText('ONE DEVELOPER, FULL STACK')).toBeVisible();
-  await expect(page.getByText('Bulent Unalan')).toBeVisible();
+  await expect(page.getByText(/B[uü]lent\s+[UÜ]nalan/).first()).toBeVisible();
   await expect(page.getByText('Solo Developer & Founder')).toBeVisible();
   await expect(page.getByText('@blntunlan on GitHub')).toBeVisible();
 
