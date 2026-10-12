@@ -66,7 +66,11 @@
     "security:check": "node scripts/security-check.js",
     "indexnow:submit": "node scripts/submit-indexnow.mjs",
     "deploy": "git push origin main",
-    "agy:delegate": "node scripts/agy-delegate.mjs"
+    "agy:delegate": "node scripts/agy-delegate.mjs",
+    "delegate": "node scripts/delegate/index.mjs",
+    "delegate:report": "node scripts/delegate/index.mjs report",
+    "delegate:quota": "node scripts/delegate/index.mjs quota",
+    "delegate:discover": "node scripts/delegate/index.mjs discover"
   },
   "dependencies": {
     "clsx": "^2.1.1",

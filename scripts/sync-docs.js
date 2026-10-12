@@ -8,12 +8,17 @@ const __dirname = path.dirname(__filename);
 const SRC_DIR = path.resolve(__dirname, '../docs');
 const DEST_DIR = path.resolve(__dirname, '../public/docs');
 
+// Vault-only files that must not reach the public in-app doc viewer.
+const SKIP_NAMES = new Set(['.obsidian', '_templates']);
+
 /**
  * Recursively copy folder
  */
 function copyRecursiveSync(src, dest) {
   const exists = fs.existsSync(src);
   if (!exists) return;
+
+  if (SKIP_NAMES.has(path.basename(src))) return;
 
   const stats = fs.statSync(src);
   const isDirectory = stats.isDirectory();
