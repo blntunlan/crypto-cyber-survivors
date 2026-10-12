@@ -38,6 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Root Vitest also discovers railway-market-server/test/**.
+      - name: Install market server test dependencies
+        working-directory: railway-market-server
+        run: npm ci
+
       - name: Run Director release gate
         run: npm run check:release-gate
 
