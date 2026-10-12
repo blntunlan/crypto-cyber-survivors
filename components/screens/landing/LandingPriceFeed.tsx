@@ -10,7 +10,7 @@ import {
   type SSEMarketUpdate,
 } from '../../../services/market/SSEMarketService';
 
-type FeedStatus = 'connecting' | 'live' | 'cached';
+type FeedStatus = 'connecting' | 'live' | 'cached' | 'unavailable';
 
 export type LandingMarketPoint = {
   price: number;
@@ -41,6 +41,7 @@ type Forecast = {
 const MAX_FEED_POINTS = 48;
 const HISTORY_FETCH_LIMIT = 300;
 const HISTORY_WINDOW_HOURS = 24;
+const FEED_WAIT_MS = 12_000;
 const MAX_HISTORY_AGE_MS = HISTORY_WINDOW_HOURS * 60 * 60 * 1000;
 const FULL_DAY_TOLERANCE_MS = 45 * 60 * 1000; // 45 min tolerance for 24h label
 
@@ -48,6 +49,7 @@ const FEED_STATUS_COPY: Record<FeedStatus, string> = {
   connecting: 'SYNCING',
   live: 'LIVE',
   cached: 'CACHED',
+  unavailable: 'OFFLINE',
 };
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -129,9 +131,13 @@ const formatDisplayPrice = (
   status: FeedStatus,
   isSimulated: boolean = false
 ): string =>
-  (status === 'connecting' && !isSimulated) || price <= 0
-    ? 'SYNCING'
-    : formatFullPrice(price);
+  price <= 0
+    ? status === 'unavailable' && !isSimulated
+      ? 'UNAVAILABLE'
+      : 'SYNCING'
+    : status === 'connecting' && !isSimulated
+      ? 'SYNCING'
+      : formatFullPrice(price);
 
 const formatPercent = (value: number): string =>
   `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -680,6 +686,11 @@ export const LandingPriceFeed: React.FC = () => {
 
   useEffect(() => {
     let isCancelled = false;
+    const feedWaitTimer = setTimeout(() => {
+      if (!isCancelled && !hasLiveDataRef.current) {
+        setFeedStatus('unavailable');
+      }
+    }, FEED_WAIT_MS);
 
     void marketApiClient
       .getHistory('BTC', HISTORY_FETCH_LIMIT, HISTORY_WINDOW_HOURS)
@@ -707,6 +718,7 @@ export const LandingPriceFeed: React.FC = () => {
     const service = new SSEMarketService({
       pair: 'BTC',
       onData: update => {
+        clearTimeout(feedWaitTimer);
         const nextPoint = fromSseUpdate(update);
         if (!nextPoint.isSynthetic) {
           hasLiveDataRef.current = true;
@@ -718,6 +730,9 @@ export const LandingPriceFeed: React.FC = () => {
       },
       onStatusChange: (status: SSEConnectionStatus) => {
         if (status.state === 'connected') {
+          if (feedStatusRef.current === 'unavailable' && !hasLiveDataRef.current) {
+            return;
+          }
           setFeedStatus(
             status.isUsingFallbackData
               ? 'cached'
@@ -728,7 +743,11 @@ export const LandingPriceFeed: React.FC = () => {
           return;
         }
 
-        if (feedStatusRef.current !== 'live' && feedStatusRef.current !== 'cached') {
+        if (
+          feedStatusRef.current !== 'live' &&
+          feedStatusRef.current !== 'cached' &&
+          feedStatusRef.current !== 'unavailable'
+        ) {
           setFeedStatus('connecting');
         }
       },
@@ -738,6 +757,7 @@ export const LandingPriceFeed: React.FC = () => {
 
     return () => {
       isCancelled = true;
+      clearTimeout(feedWaitTimer);
       service.disconnect();
     };
   }, []);
@@ -914,10 +934,16 @@ export const LandingPriceFeed: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start border border-[#22c55e]/30 bg-[#22c55e]/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#6ee7b7]">
+          <div
+            className={`flex items-center gap-2 self-start border px-3 py-2 text-[10px] font-black uppercase tracking-widest ${simMode === 'live' && feedStatus === 'unavailable' ? 'border-[#ff7777]/30 bg-[#ff7777]/10 text-[#ff7777]' : 'border-[#22c55e]/30 bg-[#22c55e]/10 text-[#6ee7b7]'}`}
+          >
             <span className="relative flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22c55e] opacity-75 motion-reduce:animate-none" />
-              <span className="relative inline-flex size-2 rounded-full bg-[#22c55e]" />
+              {feedStatus !== 'unavailable' && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22c55e] opacity-75 motion-reduce:animate-none" />
+              )}
+              <span
+                className={`relative inline-flex size-2 rounded-full ${feedStatus === 'unavailable' && simMode === 'live' ? 'bg-[#ff7777]' : 'bg-[#22c55e]'}`}
+              />
             </span>
             <span data-testid="landing-feed-status">
               {simMode !== 'live'
@@ -1320,7 +1346,9 @@ export const LandingPriceFeed: React.FC = () => {
                     transition: hoveredPoint ? 'none' : glideTransition,
                   }}
                 >
-                  {feedStatus === 'connecting' || activePoint.price <= 0
+                  {feedStatus === 'connecting' ||
+                  feedStatus === 'unavailable' ||
+                  activePoint.price <= 0
                     ? '···'
                     : formatAxisPrice(activePoint.price, chartModel.axisRange)}
                 </span>
@@ -1342,7 +1370,9 @@ export const LandingPriceFeed: React.FC = () => {
         <div className="landing-forecast-panel border border-[#d6b85c]/25 bg-black/40 p-3.5">
           {!latestPoint.hasIndicators && (
             <div className="border border-[#d6b85c]/30 bg-[#d6b85c]/10 p-3 text-[10px] font-black uppercase tracking-widest text-[#ffd86a]">
-              WARMING UP — waiting for live market indicators
+              {feedStatus === 'unavailable'
+                ? 'Live market data is unavailable. Try again later.'
+                : 'WARMING UP — waiting for live market indicators'}
             </div>
           )}
 

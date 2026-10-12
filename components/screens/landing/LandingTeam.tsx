@@ -5,6 +5,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { fadeInUp } from './motionVariants';
 
 const REPO_URL = 'https://github.com/blntunlan/crypto-cyber-survivors';
+const LINKEDIN_URL = 'https://tr.linkedin.com/in/b%C3%BClent-%C3%BCnalan';
 
 export const LandingTeam: React.FC = () => {
   trackRender('LandingTeam');
@@ -50,20 +51,28 @@ export const LandingTeam: React.FC = () => {
               <p className="text-xs font-black uppercase tracking-widest text-[#d6b85c]">
                 Solo Developer &amp; Founder
               </p>
-              <p className="text-2xl font-bold text-white">Bulent Unalan</p>
+              <p className="text-2xl font-bold text-white">Bülent Ünalan</p>
               <p className="mt-3 font-mono text-sm leading-relaxed text-slate-300">
                 Designs and builds the whole stack — from the object-pooled game loop to
                 the live market pipeline and release infrastructure.
               </p>
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group mt-4 inline-flex min-h-[44px] items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-slate-300 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
-              >
-                @blntunlan on GitHub
-                <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </a>
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1">
+                {[
+                  { href: REPO_URL, label: '@blntunlan on GitHub' },
+                  { href: LINKEDIN_URL, label: 'Bülent Ünalan on LinkedIn' },
+                ].map(link => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex min-h-[44px] items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-slate-300 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  >
+                    {link.label}
+                    <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
