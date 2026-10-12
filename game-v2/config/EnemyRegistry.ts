@@ -70,6 +70,7 @@ export const GRUNT_ENEMY: EnemyDefinition = Object.freeze(
     xpValue: ENEMY_XP_VALUE,
     cost: GRUNT_ENEMY_COST,
     telegraph: { behavior: 'none' },
+    eliteEligible: true,
   })
 );
 
@@ -84,6 +85,7 @@ export const SWARMLING_ENEMY: EnemyDefinition = Object.freeze(
     xpValue: SWARMLING_ENEMY_XP_VALUE,
     cost: SWARMLING_ENEMY_COST,
     telegraph: { behavior: 'none' },
+    eliteEligible: true,
   })
 );
 
@@ -101,6 +103,7 @@ export const BRUTE_ENEMY: EnemyDefinition = Object.freeze(
     xpValue: BRUTE_ENEMY_XP_VALUE,
     cost: BRUTE_ENEMY_COST,
     telegraph: { behavior: 'none' },
+    eliteEligible: true,
   })
 );
 
@@ -128,6 +131,7 @@ export const CHARGER_ENEMY: EnemyDefinition = Object.freeze(
       dashSpeed: CHARGER_DASH_SPEED,
       triggerRange: CHARGER_TRIGGER_RANGE,
     },
+    eliteEligible: true,
   })
 );
 
@@ -151,6 +155,12 @@ export const BLOATER_ENEMY: EnemyDefinition = Object.freeze(
       burstDamage: BLOATER_BURST_DAMAGE,
       burstRadius: BLOATER_BURST_RADIUS,
     },
+    /**
+     * Never elite-eligible (`V2-301`, V2-ADR-169): none of `tough`/`swift`/
+     * `volatile` fit a one-shot archetype whose own burst already is an
+     * on-death AoE.
+     */
+    eliteEligible: false,
   })
 );
 
@@ -178,6 +188,7 @@ export const SNIPER_ENEMY: EnemyDefinition = Object.freeze(
       lineTolerance: SNIPER_LINE_TOLERANCE,
       lineRange: SNIPER_ENGAGE_RANGE,
     },
+    eliteEligible: true,
   })
 );
 

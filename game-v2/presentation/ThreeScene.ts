@@ -6,16 +6,20 @@ import {
   ConeGeometry,
   DirectionalLight,
   DynamicDrawUsage,
-  IcosahedronGeometry,
   InstancedMesh,
   Mesh,
   MeshStandardMaterial,
   OctahedronGeometry,
   Scene,
+  type Material,
 } from 'three';
 
 import { type RenderSnapshotCapacities } from '@/game-v2/contracts/RenderSnapshot';
 import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
+import {
+  createCyberTraderCharacter,
+  type CyberTraderCharacter,
+} from '@/game-v2/presentation/CyberTraderCharacter';
 
 export type RendererPort = {
   render(scene: Scene, camera: Camera): void;
@@ -38,7 +42,7 @@ const assertCapacity = (capacity: number, name: string): void => {
 
 export class ThreeScene {
   public readonly scene: Scene;
-  public readonly playerMesh: Mesh<IcosahedronGeometry, MeshStandardMaterial>;
+  public readonly playerMesh: CyberTraderCharacter;
   public readonly enemyMesh: InstancedMesh<OctahedronGeometry, MeshStandardMaterial>;
   public readonly projectileMesh: InstancedMesh<ConeGeometry, MeshStandardMaterial>;
   public readonly xpPickupMesh: InstancedMesh<BoxGeometry, MeshStandardMaterial>;
@@ -62,10 +66,7 @@ export class ThreeScene {
     this.scene = new Scene();
     this.scene.background = new Color(0x050812);
 
-    this.playerMesh = new Mesh(
-      new IcosahedronGeometry(1, 1),
-      new MeshStandardMaterial({ color: 0x35f4ff })
-    );
+    this.playerMesh = createCyberTraderCharacter();
     this.enemyMesh = new InstancedMesh(
       new OctahedronGeometry(1),
       new MeshStandardMaterial({ color: 0xff315f }),
@@ -127,8 +128,27 @@ export class ThreeScene {
     }
     this.disposed = true;
 
-    this.playerMesh.geometry.dispose();
-    this.playerMesh.material.dispose();
+    const geometries = new Set<{ dispose: () => void }>();
+    const materials = new Set<Material>();
+    this.playerMesh.traverse(node => {
+      if (node instanceof Mesh) {
+        geometries.add(node.geometry);
+        const material = node.material;
+        if (Array.isArray(material)) {
+          for (const entry of material) {
+            materials.add(entry);
+          }
+        } else {
+          materials.add(material);
+        }
+      }
+    });
+    for (const geometry of geometries) {
+      geometry.dispose();
+    }
+    for (const material of materials) {
+      material.dispose();
+    }
     this.enemyMesh.geometry.dispose();
     this.enemyMesh.material.dispose();
     this.projectileMesh.geometry.dispose();

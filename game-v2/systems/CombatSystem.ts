@@ -9,8 +9,10 @@ import {
 } from '@/game-v2/config/Mvp0Config';
 import { type CombatLethalityProfile } from '@/game-v2/contracts/CombatLethalityProfile';
 import { type CombatStepResult } from '@/game-v2/contracts/CombatStepResult';
+import { ELITE_MODIFIER_VOLATILE } from '@/game-v2/contracts/EliteModifier';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
 import { type StepContext } from '@/game-v2/contracts/StepContext';
+import { isWithinBurstRadius } from '@/game-v2/systems/AreaBurstResolver';
 import { assertStepContext } from '@/game-v2/systems/StepContextValidator';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
@@ -233,7 +235,7 @@ export class CombatSystem {
     this.result.killCount = 0;
 
     // 1. Projectile-to-enemy collisions
-    this.resolveProjectiles(world);
+    this.resolveProjectiles(world, playerSlot, playerX, playerY, playerRadius);
 
     // 2. Enemy-to-player contact damage
     this.resolveContactDamage(world, playerSlot, playerX, playerY, playerRadius);
@@ -245,7 +247,13 @@ export class CombatSystem {
     return this.result;
   }
 
-  private resolveProjectiles(world: World): void {
+  private resolveProjectiles(
+    world: World,
+    playerSlot: number,
+    playerX: number,
+    playerY: number,
+    playerRadius: number
+  ): void {
     for (let slot = 0; slot < world.masks.length; slot += 1) {
       const mask = world.masks[slot];
       if (
@@ -284,11 +292,58 @@ export class CombatSystem {
         this.result.killXp[killIndex] = killXp;
         this.result.killCount += 1;
 
+        this.applyVolatileEliteBurst(
+          world,
+          enemySlot,
+          playerSlot,
+          playerX,
+          playerY,
+          playerRadius
+        );
+
         world.destroyEntity(targetEnemy);
       }
 
       world.destroyEntity(world.entityIdOf(slot));
     }
+  }
+
+  /**
+   * A `volatile` elite's on-death AoE burst (`V2-301`) — resolved on the
+   * exact same lethal edge a normal kill uses, so the burst's damage
+   * folds into this tick's `finalPlayerHealth` death-edge check without
+   * any special-casing. Skipped while the player is invulnerable,
+   * mirroring `resolveContactDamage`'s own rule.
+   */
+  private applyVolatileEliteBurst(
+    world: World,
+    enemySlot: number,
+    playerSlot: number,
+    playerX: number,
+    playerY: number,
+    playerRadius: number
+  ): void {
+    if ((world.enemyEliteModifier[enemySlot] ?? 0) !== ELITE_MODIFIER_VOLATILE) {
+      return;
+    }
+    if ((world.invulnerabilityTicksRemaining[playerSlot] ?? 0) > 0) {
+      return;
+    }
+
+    const enemyX = world.x[enemySlot] ?? 0;
+    const enemyY = world.y[enemySlot] ?? 0;
+    const burstRadius = world.enemyEliteBurstRadius[enemySlot] ?? 0;
+
+    if (
+      !isWithinBurstRadius(enemyX, enemyY, burstRadius, playerX, playerY, playerRadius)
+    ) {
+      return;
+    }
+
+    const rawBurstDamage = world.enemyEliteBurstDamage[enemySlot] ?? 0;
+    const burstDamage = resolveIncomingDamage(this.profile, rawBurstDamage);
+    const currentHealth = world.health[playerSlot] ?? 0;
+    world.health[playerSlot] = Math.max(0, currentHealth - burstDamage);
   }
 
   private resolveContactDamage(

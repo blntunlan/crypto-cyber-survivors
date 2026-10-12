@@ -190,10 +190,10 @@ describe('canonical runtime checkpoint', () => {
     const hashA = checkpointHash(createRuntimeInput('forward'));
     const hashB = checkpointHash(createRuntimeInput('reverse'));
 
-    // V2-300: twelve new per-slot fields for telegraphed enemy attacks
-    // shifted the golden again. Recomputed and pinned to schema 8.
-    expect(WORLD_SNAPSHOT_SCHEMA_VERSION).toBe(8);
-    expect(hashA).toBe('1133df99');
+    // V2-301: three new per-slot fields for elite modifiers shifted the
+    // golden again. Recomputed and pinned to schema 9.
+    expect(WORLD_SNAPSHOT_SCHEMA_VERSION).toBe(9);
+    expect(hashA).toBe('7cb17eba');
     expect(hashB).toBe(hashA);
     expect(hashA).toMatch(/^[0-9a-f]{8}$/);
   });

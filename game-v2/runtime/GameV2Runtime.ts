@@ -21,6 +21,10 @@ import {
 } from '@/game-v2/contracts/GameV2Debug';
 import { type GameV2Phase } from '@/game-v2/contracts/GameV2Phase';
 import { NO_ENTITY, type EntityId } from '@/game-v2/contracts/EntityId';
+import {
+  ELITE_MODIFIER_NONE,
+  type EliteModifierId,
+} from '@/game-v2/contracts/EliteModifier';
 import { type OfferCandidateIndex } from '@/game-v2/contracts/LevelUpOffer';
 import { type PlayerIntent } from '@/game-v2/contracts/PlayerIntent';
 import { type PositionContext } from '@/game-v2/contracts/PositionContext';
@@ -194,6 +198,19 @@ export type GameV2RuntimeDependencies = {
    * for deterministic tests (`V2-ADR-156`).
    */
   nowMsProvider?: () => number;
+  /**
+   * Omit (default `false`, `V2-301`) for zero elite rolling — every
+   * pre-`V2-301` caller/test is byte-for-byte unaffected, since rolling
+   * an elite consumes an extra `rng.nextFloat()` per composition pick
+   * that would otherwise shift every subsequent draw in the run
+   * (enemy composition, spawn positions, offers, …), exactly the
+   * RNG-stream-stability invariant `V2-213`/`V2-300` established. Not
+   * wired into `GameV2App.tsx`'s production `createMvp0Runtime` call
+   * either, mirroring `marketEncounterRuntime`'s own "mechanism and
+   * evidence exist, live-game activation is a separate, later task"
+   * precedent (`V2-213`).
+   */
+  eliteModifiersEnabled?: boolean;
 };
 
 /**
@@ -229,6 +246,7 @@ export class GameV2Runtime {
   private readonly presentation: RuntimePresentation | null;
   private readonly marketEncounterRuntime: MarketEncounterRuntime;
   private readonly nowMsProvider: () => number;
+  private readonly eliteModifiersEnabled: boolean;
 
   private readonly initialRngSnapshot: RngSnapshot;
   private readonly intent: PlayerIntent = { moveX: 0, moveY: 0, dashPressed: false };
@@ -254,6 +272,14 @@ export class GameV2Runtime {
    * first, so a stale entry can never leak into a shorter composition.
    */
   private readonly spawnBatch: EnemyDefinition[] = [];
+
+  /**
+   * Filled in lockstep with `spawnBatch` by `EnemyComposer.compose`
+   * (`V2-301`) — the cadence spawner is the only spawn source that rolls
+   * elites; the market spawn path (`marketSpawnBatch`) deliberately does
+   * not, out of this task's scope.
+   */
+  private readonly spawnBatchElite: EliteModifierId[] = [];
 
   /**
    * Separate from `spawnBatch` (`V2-213`) — the two spawn sources run
@@ -295,6 +321,7 @@ export class GameV2Runtime {
     this.marketEncounterRuntime =
       dependencies.marketEncounterRuntime ?? new MarketEncounterRuntime();
     this.nowMsProvider = dependencies.nowMsProvider ?? Date.now;
+    this.eliteModifiersEnabled = dependencies.eliteModifiersEnabled ?? false;
     this.initialRngSnapshot = this.rng.snapshot();
     this.stepContext = {
       tick: 0,
@@ -749,14 +776,40 @@ export class GameV2Runtime {
     this.spawnRequest.centerX = this.world.x[playerSlot] ?? 0;
     this.spawnRequest.centerY = this.world.y[playerSlot] ?? 0;
 
-    this.enemyComposer.compose(MVP0_ENEMY_SPAWN_BUDGET, this.rng, this.spawnBatch);
+    if (this.eliteModifiersEnabled) {
+      this.enemyComposer.compose(
+        MVP0_ENEMY_SPAWN_BUDGET,
+        this.rng,
+        this.spawnBatch,
+        this.spawnBatchElite
+      );
+    } else {
+      // No `eliteOut` argument: consumes exactly the same `rng` draws as
+      // every pre-`V2-301` call, so a disabled runtime's RNG stream is
+      // byte-for-byte unaffected by this feature's existence.
+      this.enemyComposer.compose(MVP0_ENEMY_SPAWN_BUDGET, this.rng, this.spawnBatch);
+    }
 
-    for (const definition of this.spawnBatch) {
+    for (let index = 0; index < this.spawnBatch.length; index += 1) {
       if (liveEnemies >= MVP0_MAX_LIVE_ENEMIES || this.world.freeSlotCount === 0) {
         return;
       }
 
-      this.enemySystem.spawnEnemy(this.world, this.rng, this.spawnRequest, definition);
+      const definition = this.spawnBatch[index];
+      if (definition === undefined) {
+        throw new Error('spawn batch composition is corrupt');
+      }
+      const eliteModifier = this.eliteModifiersEnabled
+        ? (this.spawnBatchElite[index] ?? ELITE_MODIFIER_NONE)
+        : ELITE_MODIFIER_NONE;
+
+      this.enemySystem.spawnEnemy(
+        this.world,
+        this.rng,
+        this.spawnRequest,
+        definition,
+        eliteModifier
+      );
       liveEnemies += 1;
     }
   }

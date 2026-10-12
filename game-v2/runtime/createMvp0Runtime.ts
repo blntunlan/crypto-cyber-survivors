@@ -81,6 +81,12 @@ export type Mvp0RuntimeOptions = {
   marketEncounterRuntime?: MarketEncounterRuntime;
   /** Omit for the real `Date.now` (`V2-213`, `V2-ADR-156`). */
   nowMsProvider?: () => number;
+  /**
+   * Omit for `false` (`V2-301`) — mirrors `marketEncounterRuntime`'s own
+   * "mechanism and evidence exist, live-game activation is separate"
+   * precedent; not passed by `GameV2App.tsx`'s real production call.
+   */
+  eliteModifiersEnabled?: boolean;
 };
 
 const createPresentation = (
@@ -160,6 +166,7 @@ export const createMvp0Runtime = (options: Mvp0RuntimeOptions): GameV2Runtime =>
     marketEncounterRuntime:
       options.marketEncounterRuntime ?? new MarketEncounterRuntime(),
     nowMsProvider: options.nowMsProvider ?? Date.now,
+    eliteModifiersEnabled: options.eliteModifiersEnabled ?? false,
     presentation:
       options.renderTarget === undefined || options.renderTarget === null
         ? null

@@ -73,6 +73,9 @@ export const HASHED_WORLD_FIELDS = [
   'enemyTelegraphDashSpeed',
   'enemyTelegraphAimX',
   'enemyTelegraphAimY',
+  'enemyEliteModifier',
+  'enemyEliteBurstDamage',
+  'enemyEliteBurstRadius',
   'weaponCooldownTicksRemaining',
   'xp',
   'level',
@@ -277,6 +280,9 @@ const hashWorld = (hash: BinaryFnv1a, world: WorldSnapshot): void => {
     hash.f32(world.enemyTelegraphDashSpeed[slot] ?? 0);
     hash.f32(world.enemyTelegraphAimX[slot] ?? 0);
     hash.f32(world.enemyTelegraphAimY[slot] ?? 0);
+    hash.u8(world.enemyEliteModifier[slot] ?? 0);
+    hash.f32(world.enemyEliteBurstDamage[slot] ?? 0);
+    hash.f32(world.enemyEliteBurstRadius[slot] ?? 0);
     hash.f32(world.xp[slot] ?? 0);
     hash.u16(world.level[slot] ?? 0);
     hash.f32(world.xpPickupValue[slot] ?? 0);

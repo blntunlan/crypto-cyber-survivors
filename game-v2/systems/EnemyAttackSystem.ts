@@ -14,6 +14,7 @@ import {
   TELEGRAPH_PHASE_TELEGRAPHING,
 } from '@/game-v2/contracts/EnemyTelegraphState';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
+import { isWithinBurstRadius } from '@/game-v2/systems/AreaBurstResolver';
 import { ComponentMask } from '@/game-v2/world/ComponentMask';
 import { type World } from '@/game-v2/world/World';
 
@@ -215,12 +216,10 @@ export class EnemyAttackSystem {
     const enemyX = world.x[slot] ?? 0;
     const enemyY = world.y[slot] ?? 0;
     const burstRadius = world.enemyTelegraphEffectRadius[slot] ?? 0;
-    const diffX = playerX - enemyX;
-    const diffY = playerY - enemyY;
-    const distSq = diffX * diffX + diffY * diffY;
-    const combinedRadius = burstRadius + playerRadius;
 
-    if (distSq <= combinedRadius * combinedRadius) {
+    if (
+      isWithinBurstRadius(enemyX, enemyY, burstRadius, playerX, playerY, playerRadius)
+    ) {
       this.applyDamage(world, playerSlot, world.enemyTelegraphEffectDamage[slot] ?? 0);
     }
 

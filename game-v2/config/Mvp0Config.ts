@@ -363,6 +363,40 @@ export const MVP0_ENEMY_COMPOSITION_MAX_PICKS = Math.ceil(
 );
 
 /**
+ * Elite modifiers (`V2-301`, V2-ADR-167..V2-ADR-172). Roster and mechanism
+ * approved via `AskUserQuestion`; no design-spec anchor fixes a concrete
+ * chance/multiplier, so every value here is a first-pass authored value
+ * with stated reasoning, flagged for `V2-405` to tune — matching
+ * `V2-300`'s own "derived, not felt" precedent.
+ *
+ * An elite is a modifier layered onto an already-`EnemyComposer`-budgeted
+ * pick, not an extra spawn: it costs no additional composition budget and
+ * adds no additional live entity, so it is unconditionally inside the
+ * existing threat/render caps by construction (V2-ADR-168) rather than by
+ * a separate surcharge-affordability check.
+ */
+export const ELITE_SPAWN_CHANCE = 0.12;
+/** Baseline XP bump on every elite, on top of any modifier-specific one. */
+export const ELITE_XP_VALUE_MULTIPLIER = 1.4;
+
+export const ELITE_TOUGH_HEALTH_MULTIPLIER = 2.5;
+export const ELITE_TOUGH_CONTACT_DAMAGE_MULTIPLIER = 1.15;
+
+export const ELITE_SWIFT_MOVE_SPEED_MULTIPLIER = 1.6;
+/** Less telegraph time to react to, not a faster attack: multiplies the archetype's own telegraphTicks. */
+export const ELITE_SWIFT_TELEGRAPH_TICKS_MULTIPLIER = 0.7;
+
+/**
+ * `volatile`'s on-death burst reuses `bloater`'s own formula shape
+ * (`BLOATER_BURST_DAMAGE = ENEMY_CONTACT_DAMAGE * 2`, `BLOATER_BURST_RADIUS
+ * = ENEMY_RADIUS * 4`) against the elite's *own* archetype stats, scaled by
+ * a shared elite surcharge — not a separate invented absolute value.
+ */
+export const ELITE_VOLATILE_BURST_DAMAGE_BASE_MULTIPLIER = 2;
+export const ELITE_VOLATILE_BURST_RADIUS_BASE_MULTIPLIER = 4;
+export const ELITE_VOLATILE_SURCHARGE_MULTIPLIER = 1.3;
+
+/**
  * `V2-109` market-independent Convergence envelope (V2-ADR-072). Design line
  * 63 targets an 8-12 minute first boss cycle; that ratio (`12 / 8 = 1.5`)
  * already equals the existing starter-weapon Tier 1 / Tier 2 kill-period

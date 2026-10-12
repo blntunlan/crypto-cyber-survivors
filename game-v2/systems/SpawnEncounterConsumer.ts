@@ -31,7 +31,7 @@ export class SpawnEncounterConsumer {
 
   public compose(
     output: SpawnEncounterOutput,
-    rng: Pick<DeterministicRng, 'nextInt'>,
+    rng: Pick<DeterministicRng, 'nextInt' | 'nextFloat'>,
     out: EnemyDefinition[]
   ): void {
     if (!this.knownThemeIds.has(output.themeId)) {

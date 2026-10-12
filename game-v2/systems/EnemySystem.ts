@@ -1,7 +1,24 @@
-import { ENEMY_FACTION } from '@/game-v2/config/Mvp0Config';
+import {
+  ELITE_SWIFT_MOVE_SPEED_MULTIPLIER,
+  ELITE_SWIFT_TELEGRAPH_TICKS_MULTIPLIER,
+  ELITE_TOUGH_CONTACT_DAMAGE_MULTIPLIER,
+  ELITE_TOUGH_HEALTH_MULTIPLIER,
+  ELITE_VOLATILE_BURST_DAMAGE_BASE_MULTIPLIER,
+  ELITE_VOLATILE_BURST_RADIUS_BASE_MULTIPLIER,
+  ELITE_VOLATILE_SURCHARGE_MULTIPLIER,
+  ELITE_XP_VALUE_MULTIPLIER,
+  ENEMY_FACTION,
+} from '@/game-v2/config/Mvp0Config';
 import { GRUNT_ENEMY } from '@/game-v2/config/EnemyRegistry';
 import { type EntityId } from '@/game-v2/contracts/EntityId';
 import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
+import {
+  ELITE_MODIFIER_NONE,
+  ELITE_MODIFIER_SWIFT,
+  ELITE_MODIFIER_TOUGH,
+  ELITE_MODIFIER_VOLATILE,
+  type EliteModifierId,
+} from '@/game-v2/contracts/EliteModifier';
 import {
   TELEGRAPH_BEHAVIOR_BLOATER,
   TELEGRAPH_BEHAVIOR_CHARGER,
@@ -120,7 +137,16 @@ export class EnemySystem {
      * tests that call `spawnEnemy` directly — produces byte-for-byte
      * identical entity state without passing anything new.
      */
-    definition: EnemyDefinition = GRUNT_ENEMY
+    definition: EnemyDefinition = GRUNT_ENEMY,
+    /**
+     * Defaults to `ELITE_MODIFIER_NONE` (`V2-301`) so every pre-`V2-301`
+     * caller produces byte-for-byte identical entity state without
+     * passing anything new. Ignored (treated as `NONE`) when
+     * `!definition.eliteEligible` — a defensive backstop, since
+     * `EnemyComposer.rollEliteModifier` already never rolls a non-`NONE`
+     * modifier for an ineligible definition.
+     */
+    eliteModifier: EliteModifierId = ELITE_MODIFIER_NONE
   ): EntityId {
     assertSpawnRequest(request);
 
@@ -166,8 +192,72 @@ export class EnemySystem {
     world.contactCooldownTicksRemaining[slot] = 0;
     world.xpValue[slot] = definition.xpValue;
     this.writeTelegraphProfile(world, slot, definition);
+    this.applyEliteModifier(world, slot, definition, eliteModifier);
 
     return enemy;
+  }
+
+  /**
+   * Scales the base stats `spawnEnemy` already wrote and tags
+   * `enemyEliteModifier` (`V2-301`). Applied after `writeTelegraphProfile`
+   * so `swift`'s telegraph-tick reduction overwrites the base duration
+   * `writeTelegraphProfile` just wrote, rather than being overwritten by
+   * it. A no-op when `eliteModifier` is `NONE` or the definition is not
+   * `eliteEligible` — every pre-`V2-301` spawn stays byte-for-byte
+   * unchanged.
+   */
+  private applyEliteModifier(
+    world: World,
+    slot: number,
+    definition: EnemyDefinition,
+    eliteModifier: EliteModifierId
+  ): void {
+    world.enemyEliteModifier[slot] = ELITE_MODIFIER_NONE;
+
+    if (eliteModifier === ELITE_MODIFIER_NONE || !definition.eliteEligible) {
+      return;
+    }
+
+    world.enemyEliteModifier[slot] = eliteModifier;
+    world.xpValue[slot] = definition.xpValue * ELITE_XP_VALUE_MULTIPLIER;
+
+    if (eliteModifier === ELITE_MODIFIER_TOUGH) {
+      const health = definition.health * ELITE_TOUGH_HEALTH_MULTIPLIER;
+      world.health[slot] = health;
+      world.maxHealth[slot] = health;
+      world.contactDamage[slot] =
+        definition.contactDamage * ELITE_TOUGH_CONTACT_DAMAGE_MULTIPLIER;
+      return;
+    }
+
+    if (eliteModifier === ELITE_MODIFIER_SWIFT) {
+      world.enemySpeed[slot] = definition.moveSpeed * ELITE_SWIFT_MOVE_SPEED_MULTIPLIER;
+      const currentDuration = world.enemyTelegraphDurationTicks[slot] ?? 0;
+      if (currentDuration > 0) {
+        world.enemyTelegraphDurationTicks[slot] = Math.max(
+          1,
+          Math.round(currentDuration * ELITE_SWIFT_TELEGRAPH_TICKS_MULTIPLIER)
+        );
+      }
+      return;
+    }
+
+    if (eliteModifier !== ELITE_MODIFIER_VOLATILE) {
+      throw new RangeError('unknown elite modifier');
+    }
+
+    // VOLATILE: reuses `bloater`'s own burst formula shape against this
+    // archetype's own base stats, stored separately from
+    // `enemyTelegraphEffectDamage`/`Radius` so a `volatile sniper`'s own
+    // line-check fields are never overwritten (World.ts's own field docs).
+    world.enemyEliteBurstDamage[slot] =
+      definition.contactDamage *
+      ELITE_VOLATILE_BURST_DAMAGE_BASE_MULTIPLIER *
+      ELITE_VOLATILE_SURCHARGE_MULTIPLIER;
+    world.enemyEliteBurstRadius[slot] =
+      definition.radius *
+      ELITE_VOLATILE_BURST_RADIUS_BASE_MULTIPLIER *
+      ELITE_VOLATILE_SURCHARGE_MULTIPLIER;
   }
 
   /**

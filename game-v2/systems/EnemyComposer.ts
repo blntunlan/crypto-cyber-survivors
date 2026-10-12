@@ -1,6 +1,14 @@
 import { MVP1_ENEMY_REGISTRY } from '@/game-v2/config/EnemyRegistry';
-import { MVP0_ENEMY_COMPOSITION_MAX_PICKS } from '@/game-v2/config/Mvp0Config';
+import {
+  ELITE_SPAWN_CHANCE,
+  MVP0_ENEMY_COMPOSITION_MAX_PICKS,
+} from '@/game-v2/config/Mvp0Config';
 import { type EnemyDefinition } from '@/game-v2/contracts/EnemyArchetype';
+import {
+  ELITE_MODIFIER_KINDS,
+  ELITE_MODIFIER_NONE,
+  type EliteModifierId,
+} from '@/game-v2/contracts/EliteModifier';
 import { type DeterministicRng } from '@/game-v2/runtime/DeterministicRng';
 
 /**
@@ -32,17 +40,32 @@ export class EnemyComposer {
    * strictly decreases each pick and the loop cannot outlive that bound —
    * the cap is a defensive backstop, not a value the loop is expected to
    * reach.
+   *
+   * `eliteOut`, when passed, is filled in lockstep with `out` (V2-301):
+   * for each affordable, `eliteEligible` pick, an independent
+   * `ELITE_SPAWN_CHANCE` roll may upgrade it to a uniformly-chosen elite
+   * modifier. An elite pick spends no more budget and adds no additional
+   * entity — it is the same archetype at the same cost, so it stays
+   * inside the composer's existing threat/render-cap guarantees by
+   * construction, not by a separate affordability check (V2-ADR-168).
+   * Omitted for callers that don't roll elites (e.g. the market spawn
+   * path, V2-ADR-170), leaving every pre-`V2-301` caller byte-for-byte
+   * unaffected.
    */
   public compose(
     budget: number,
-    rng: Pick<DeterministicRng, 'nextInt'>,
-    out: EnemyDefinition[]
+    rng: Pick<DeterministicRng, 'nextInt' | 'nextFloat'>,
+    out: EnemyDefinition[],
+    eliteOut?: EliteModifierId[]
   ): void {
     if (!Number.isInteger(budget) || budget < 0) {
       throw new RangeError('enemy composition budget must be a non-negative integer');
     }
 
     out.length = 0;
+    if (eliteOut !== undefined) {
+      eliteOut.length = 0;
+    }
     let remaining = budget;
 
     for (let pick = 0; pick < MVP0_ENEMY_COMPOSITION_MAX_PICKS; pick += 1) {
@@ -78,6 +101,34 @@ export class EnemyComposer {
 
       out.push(chosen);
       remaining -= chosen.cost;
+
+      if (eliteOut !== undefined) {
+        eliteOut.push(this.rollEliteModifier(chosen, rng));
+      }
     }
+  }
+
+  private rollEliteModifier(
+    definition: EnemyDefinition,
+    rng: Pick<DeterministicRng, 'nextInt' | 'nextFloat'>
+  ): EliteModifierId {
+    if (!definition.eliteEligible) {
+      return ELITE_MODIFIER_NONE;
+    }
+
+    const roll = rng.nextFloat();
+    if (!Number.isFinite(roll) || roll < 0 || roll >= 1) {
+      throw new RangeError('elite RNG sample must be in [0, 1)');
+    }
+    if (roll >= ELITE_SPAWN_CHANCE) {
+      return ELITE_MODIFIER_NONE;
+    }
+
+    const kindIndex = rng.nextInt(ELITE_MODIFIER_KINDS.length);
+    const kind = ELITE_MODIFIER_KINDS[kindIndex];
+    if (kind === undefined) {
+      throw new Error('elite modifier roll is corrupt');
+    }
+    return kind;
   }
 }

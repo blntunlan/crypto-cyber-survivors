@@ -96,6 +96,21 @@ export class World {
   public readonly enemyTelegraphAimX: Float32Array;
   public readonly enemyTelegraphAimY: Float32Array;
   /**
+   * Elite modifiers (`V2-301`). `enemyEliteModifier`: `0`=none, `1`=tough,
+   * `2`=swift, `3`=volatile — set at spawn alongside the definition's own
+   * stat fields, which an elite pick already scales directly (`health`,
+   * `contactDamage`, `enemySpeed`, `enemyTelegraphDurationTicks`); this
+   * tag exists for the `volatile` on-death burst lookup and for a future
+   * visual tell, not to re-derive stats. `enemyEliteBurstDamage`/`Radius`
+   * are `volatile`'s own on-death AoE fields — deliberately separate
+   * from `enemyTelegraphEffectDamage`/`Radius` rather than reused,
+   * since a `volatile sniper` already uses those two fields for its own
+   * line-check and reusing them would corrupt it.
+   */
+  public readonly enemyEliteModifier: Uint8Array;
+  public readonly enemyEliteBurstDamage: Float32Array;
+  public readonly enemyEliteBurstRadius: Float32Array;
+  /**
    * `ABILITY_SLOT_COUNT` entries per world slot, addressed through
    * `abilitySlotIndexOf` (V2-111, V2-ADR-076). A cooldown belongs to the
    * weapon occupying an ability slot, so every occupied `auto` slot advances
@@ -199,6 +214,9 @@ export class World {
     this.enemyTelegraphDashSpeed = new Float32Array(capacity);
     this.enemyTelegraphAimX = new Float32Array(capacity);
     this.enemyTelegraphAimY = new Float32Array(capacity);
+    this.enemyEliteModifier = new Uint8Array(capacity);
+    this.enemyEliteBurstDamage = new Float32Array(capacity);
+    this.enemyEliteBurstRadius = new Float32Array(capacity);
     this.weaponCooldownTicksRemaining = new Uint16Array(capacity * ABILITY_SLOT_COUNT);
     this.xp = new Float32Array(capacity);
     this.level = new Uint16Array(capacity);
@@ -508,6 +526,9 @@ export class World {
     this.enemyTelegraphDashSpeed[slot] = 0;
     this.enemyTelegraphAimX[slot] = 0;
     this.enemyTelegraphAimY[slot] = 0;
+    this.enemyEliteModifier[slot] = 0;
+    this.enemyEliteBurstDamage[slot] = 0;
+    this.enemyEliteBurstRadius[slot] = 0;
     this.xp[slot] = 0;
     this.level[slot] = 0;
     this.xpPickupValue[slot] = 0;

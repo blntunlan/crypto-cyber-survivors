@@ -1,4 +1,4 @@
-export const WORLD_SNAPSHOT_SCHEMA_VERSION = 8 as const;
+export const WORLD_SNAPSHOT_SCHEMA_VERSION = 9 as const;
 
 export type WorldSnapshot = Readonly<{
   schemaVersion: typeof WORLD_SNAPSHOT_SCHEMA_VERSION;
@@ -46,6 +46,10 @@ export type WorldSnapshot = Readonly<{
   enemyTelegraphDashSpeed: Float32Array;
   enemyTelegraphAimX: Float32Array;
   enemyTelegraphAimY: Float32Array;
+  /** Elite modifiers (`V2-301`); see `World.ts`'s own field docs. */
+  enemyEliteModifier: Uint8Array;
+  enemyEliteBurstDamage: Float32Array;
+  enemyEliteBurstRadius: Float32Array;
   xp: Float32Array;
   level: Uint16Array;
   xpPickupValue: Float32Array;

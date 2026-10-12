@@ -55,6 +55,8 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'enemyTelegraphDashSpeed',
     'enemyTelegraphAimX',
     'enemyTelegraphAimY',
+    'enemyEliteBurstDamage',
+    'enemyEliteBurstRadius',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint32: Object.freeze([
     'generations',
@@ -74,6 +76,7 @@ export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
     'convergenceReached',
     'enemyTelegraphBehavior',
     'enemyTelegraphPhase',
+    'enemyEliteModifier',
   ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
   uint16: Object.freeze([
     'invulnerabilityTicksRemaining',
@@ -400,6 +403,22 @@ const validateEnemyTelegraphState = (
   }
 };
 
+/**
+ * Validates the elite-modifier enum (`V2-301`): `enemyEliteModifier` is
+ * `0`-`3` (none/tough/swift/volatile), mirroring
+ * `validateEnemyTelegraphState`'s own enum-bound precedent.
+ */
+const validateEliteModifierState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.enemyEliteModifier[slot] ?? 0) > 3) {
+      throw new RangeError('enemyEliteModifier must be 0-3');
+    }
+  }
+};
+
 export const validateAuthoritativeWorldState = (
   state: AuthoritativeWorldState,
   candidateCapacity: number
@@ -484,4 +503,5 @@ export const validateAuthoritativeWorldState = (
   validateBanishState(state, capacity);
   validateConvergenceState(state, capacity);
   validateEnemyTelegraphState(state, capacity);
+  validateEliteModifierState(state, capacity);
 };

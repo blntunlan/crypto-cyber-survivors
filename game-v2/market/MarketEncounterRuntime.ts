@@ -91,7 +91,7 @@ export class MarketEncounterRuntime {
    * through the real pipeline.
    */
   public step(
-    rng: Pick<DeterministicRng, 'nextInt'>,
+    rng: Pick<DeterministicRng, 'nextInt' | 'nextFloat'>,
     tick: number,
     nowMs: number,
     spawnOut: EnemyDefinition[]

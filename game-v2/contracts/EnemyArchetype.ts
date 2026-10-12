@@ -69,6 +69,16 @@ export type EnemyDefinition = Readonly<{
   /** Positive integer budget cost (V2-ADR-070); `EnemyComposer` spends it. */
   cost: number;
   telegraph: EnemyTelegraphProfile;
+  /**
+   * Whether `EnemyComposer` may roll an elite modifier onto a pick of this
+   * archetype (`V2-301`). `false` for `bloater`: its one-shot burst design
+   * doesn't compose with any of the three modifiers (`tough`'s tankier
+   * read, `swift`'s chase pressure, or `volatile`'s redundant on-death
+   * burst) — an explicit, required field rather than an implicit default,
+   * mirroring `telegraph`'s own exhaustive-classification precedent
+   * (V2-ADR-163).
+   */
+  eliteEligible: boolean;
 }>;
 
 const isFinitePositive = (value: unknown): value is number =>
@@ -200,6 +210,11 @@ export const assertEnemyDefinition = (value: unknown): EnemyDefinition => {
       `${candidate.id} enemy definition cost must be a positive integer`
     );
   }
+  if (typeof candidate.eliteEligible !== 'boolean') {
+    throw new TypeError(
+      `${candidate.id} enemy definition eliteEligible must be a boolean`
+    );
+  }
 
   const telegraph = assertTelegraphProfile(candidate.id, candidate.telegraph);
 
@@ -212,5 +227,6 @@ export const assertEnemyDefinition = (value: unknown): EnemyDefinition => {
     xpValue: candidate.xpValue,
     cost: candidate.cost,
     telegraph,
+    eliteEligible: candidate.eliteEligible,
   };
 };

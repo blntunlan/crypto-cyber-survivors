@@ -13,6 +13,7 @@ const validDefinition = (
   xpValue: 5,
   cost: 2,
   telegraph: { behavior: 'none' },
+  eliteEligible: true,
   ...overrides,
 });
 
@@ -95,6 +96,19 @@ describe('assertEnemyDefinition', () => {
         'enemy definition cost must be a positive integer'
       );
     }
+  });
+
+  it('rejects a non-boolean eliteEligible (V2-301)', () => {
+    for (const eliteEligible of [undefined, 'true', 1, 0, null]) {
+      expect(() => assertEnemyDefinition(validDefinition({ eliteEligible }))).toThrow(
+        'enemy definition eliteEligible must be a boolean'
+      );
+    }
+  });
+
+  it('accepts eliteEligible: false (V2-301)', () => {
+    const result = assertEnemyDefinition(validDefinition({ eliteEligible: false }));
+    expect(result.eliteEligible).toBe(false);
   });
 
   describe('telegraph (V2-300)', () => {
