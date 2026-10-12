@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act } from '@testing-library/react';
 import { render, screen, waitFor, fireEvent } from '../../test-utils';
 import { LandingPriceFeed } from '../../../components/screens/landing/LandingPriceFeed';
 
@@ -48,6 +49,26 @@ describe('LandingPriceFeed', () => {
         '24H +20.00%'
       )
     );
+  });
+
+  it('reports an unavailable feed when no market data arrives', async () => {
+    vi.useFakeTimers();
+    mocks.getHistory.mockResolvedValue([]);
+
+    try {
+      render(<LandingPriceFeed />);
+      await act(async () => {
+        vi.advanceTimersByTime(12_000);
+      });
+
+      expect(screen.getByTestId('landing-feed-status')).toHaveTextContent('OFFLINE');
+      expect(screen.getByTestId('landing-btc-price')).toHaveTextContent('UNAVAILABLE');
+      expect(
+        screen.getByText('Live market data is unavailable. Try again later.')
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('labels a short history span as WINDOW instead of claiming 24H', async () => {

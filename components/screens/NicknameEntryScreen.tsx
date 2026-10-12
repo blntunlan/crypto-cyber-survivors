@@ -194,14 +194,14 @@ const AuthFooter = memo(function AuthFooter({ isRetro }: { isRetro: boolean }) {
           style={{ backgroundColor: COLORS.PUMP_GREEN }}
         />
         <span style={{ color: COLORS.SLOT_SILVER }}>
-          {normalizeText(t('auth.footer_systems_online'), 'Systems online')}
+          {normalizeText(t('common.auth.footer_systems_online'), 'Systems online')}
         </span>
       </div>
       <span
         className={isRetro ? 'font-retro-pixel' : 'font-cyber'}
         style={{ color: withAlpha(COLORS.CASINO_GOLD, 0.82) }}
       >
-        {normalizeText(t('auth.footer_title'), 'Railway auth')}
+        {normalizeText(t('common.auth.footer_title'), 'Railway auth')}
       </span>
     </footer>
   );
@@ -241,10 +241,13 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
         t('common.nickname_screen.system_error'),
         'System error'
       ),
-      signingIn: normalizeText(t('auth.signing_in'), 'Signing in'),
-      ruleLength: normalizeText(t('auth.nickname_rules_length'), '3-16 characters'),
+      signingIn: normalizeText(t('common.auth.signing_in'), 'Signing in'),
+      ruleLength: normalizeText(
+        t('common.auth.nickname_rules_length'),
+        '3-16 characters'
+      ),
       ruleChars: normalizeText(
-        t('auth.nickname_rules_chars'),
+        t('common.auth.nickname_rules_chars'),
         'Letters, numbers, underscores, hyphens'
       ),
     }),
