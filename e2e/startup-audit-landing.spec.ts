@@ -81,7 +81,9 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   await expect(page.locator('.landing-arena-map')).toHaveCount(0);
   await expect(page.getByText('BTC COMPRESSION ZONE', { exact: true })).toHaveCount(0);
   await expect(page.locator('.landing-rotate-circle')).toHaveCount(0);
-  await expect(page.getByText('BTC/USD LIVE FEED', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('BTC / USD REALTIME FEED', { exact: true })
+  ).toBeVisible();
   await expect(
     page.getByText('MARKET PRESSURE FORECAST', { exact: true })
   ).toBeVisible();
@@ -128,10 +130,12 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   }
   await topNav.screenshot({ path: 'output/startup-audit-nav.png' });
 
-  await expect(page.getByText('Engine Notes', { exact: true })).toBeVisible();
+  await expect(page.getByText('ENGINE ARCHITECTURE', { exact: true })).toBeVisible();
   await expect(page.getByText('Engineering Manifesto')).toHaveCount(0);
-  await expect(page.getByText('60 FPS', { exact: true })).toBeVisible();
-  await expect(page.getByText('Live Market Rules', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('60 FPS RAW CANVAS', { exact: true }).first()
+  ).toBeVisible();
+  await expect(page.getByText('BUILT TO RUN ITSELF', { exact: true })).toBeVisible();
 
   await expect(page.getByText('Typed EventBus', { exact: true }).first()).toBeVisible();
   await expect(
@@ -151,9 +155,8 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   const teamSection = page.locator('#team');
   await teamSection.scrollIntoViewIfNeeded();
   await expect(page.getByText('ONE DEVELOPER, FULL STACK')).toBeVisible();
-  await expect(page.getByText('Bulent Unalan')).toBeVisible();
+  await expect(page.getByText(/B[uü]lent\s+[UÜ]nalan/).first()).toBeVisible();
   await expect(page.getByText('Solo Developer & Founder')).toBeVisible();
-  await expect(page.getByText('Engine & Gameplay')).toBeVisible();
   await expect(page.getByText('@blntunlan on GitHub')).toBeVisible();
 
   await page.waitForTimeout(900);

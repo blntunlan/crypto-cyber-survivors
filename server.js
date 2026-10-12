@@ -187,6 +187,7 @@ const DEFAULT_LANGUAGE = 'en';
 const SUPPORTED_LANGUAGES = ['en', 'tr', 'hi', 'vi', 'es', 'pt', 'zh', 'ru'];
 const ROUTE_LANGUAGES = ['tr', 'hi', 'vi', 'es', 'pt', 'zh', 'ru'];
 const PUBLIC_ROUTE_PATHS = ['/', '/privacy', '/terms', '/docs'];
+const PRIVATE_SPA_ROUTE_PATHS = new Set(['/game-v2', '/game-v2/']);
 const PUBLIC_ROUTE_SURFACES = {
   '/': 'home',
   '/privacy': 'privacy',
@@ -543,7 +544,12 @@ function hasBlockedDotPathSegment(normalizedPath) {
 }
 
 function shouldServeSpaFallback(urlPath) {
-  return PUBLIC_SPA_ROUTES.has(normalizeRoutePath(urlPath));
+  const normalizedPath = normalizeRoutePath(urlPath);
+
+  return (
+    PUBLIC_SPA_ROUTES.has(normalizedPath) ||
+    PRIVATE_SPA_ROUTE_PATHS.has(normalizeRoutePath(urlPath))
+  );
 }
 
 function getNormalizedEnvUrl(name) {
@@ -901,7 +907,9 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
       headers['Cache-Control'] = 'no-cache, must-revalidate';
     }
 
-    if (shouldNoIndexStaticResource(urlPath, ext)) {
+    if (PRIVATE_SPA_ROUTE_PATHS.has(normalizeRoutePath(urlPath)) && ext === '.html') {
+      headers['X-Robots-Tag'] = 'noindex, nofollow';
+    } else if (shouldNoIndexStaticResource(urlPath, ext)) {
       headers['X-Robots-Tag'] = 'noindex';
     }
 

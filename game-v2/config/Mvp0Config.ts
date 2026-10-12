@@ -1,0 +1,430 @@
+export const SIMULATION_HZ = 60;
+export const SIMULATION_STEP_MS = 1000 / SIMULATION_HZ;
+export const MAX_RENDER_DELTA_MS = 250;
+export const MAX_CATCH_UP_STEPS = 8;
+export const MVP0_CONFIG_VERSION = 1 as const;
+export const INPUT_RECORDING_CAPACITY = 216_000;
+export const COMMAND_RECORDING_CAPACITY = 64;
+export const MAX_WORLD_CAPACITY = 4096;
+export const TOP_DOWN_CAMERA_VISIBLE_HEIGHT = 18;
+export const TOP_DOWN_CAMERA_NEAR = 0.1;
+export const TOP_DOWN_CAMERA_FAR = 200;
+export const TOP_DOWN_CAMERA_HEIGHT = 40;
+export const TOP_DOWN_CAMERA_UP_X = 0;
+export const TOP_DOWN_CAMERA_UP_Y = 0;
+export const TOP_DOWN_CAMERA_UP_Z = -1;
+export const PLAYER_MOVE_SPEED = 6;
+export const DASH_SPEED = 16;
+export const DASH_DURATION_SECONDS = 0.18;
+export const DASH_INVULNERABILITY_SECONDS = 0.18;
+export const DASH_COOLDOWN_SECONDS = 2.5;
+export const DASH_INVULNERABILITY_TICKS = Math.ceil(
+  DASH_INVULNERABILITY_SECONDS * SIMULATION_HZ
+);
+export const DASH_COOLDOWN_TICKS = Math.ceil(DASH_COOLDOWN_SECONDS * SIMULATION_HZ);
+export const ENEMY_HEALTH = 30;
+export const ENEMY_RADIUS = 0.6;
+export const ENEMY_MOVE_SPEED = 2.2;
+export const ENEMY_CONTACT_DAMAGE = 15;
+export const ENEMY_XP_VALUE = 5;
+export const ENEMY_FACTION = -1;
+export const WEAPON_RANGE = 12;
+export const WEAPON_COOLDOWN_SECONDS = 0.5;
+export const WEAPON_COOLDOWN_TICKS = Math.ceil(WEAPON_COOLDOWN_SECONDS * SIMULATION_HZ);
+export const PROJECTILE_SPEED = 14;
+export const PROJECTILE_DAMAGE = 10;
+export const PROJECTILE_RADIUS = 0.2;
+export const PROJECTILE_LIFETIME_SECONDS = 1.5;
+export const PROJECTILE_LIFETIME_TICKS = Math.ceil(
+  PROJECTILE_LIFETIME_SECONDS * SIMULATION_HZ
+);
+export const PLAYER_RADIUS = 0.5;
+export const PLAYER_MAX_HEALTH = 100;
+export const ENEMY_CONTACT_COOLDOWN_SECONDS = 1.0;
+export const ENEMY_CONTACT_COOLDOWN_TICKS = Math.ceil(
+  ENEMY_CONTACT_COOLDOWN_SECONDS * SIMULATION_HZ
+);
+export const COMBAT_KILL_BUFFER_CAPACITY = 32;
+export const XP_PICKUP_RADIUS = 0.3;
+
+/**
+ * How long a dropped XP pickup stays collectable (`V2-112`, V2-ADR-083).
+ *
+ * Derived as the time it takes the player to cross the full visible arena
+ * height at base move speed: `18 / 6 = 3` seconds. A pickup older than that
+ * was already unreachable from wherever the player stood when it dropped, so
+ * expiring it removes nothing a player could have collected.
+ *
+ * Without a lifetime, pickups accumulated for the whole run — the only bound
+ * was `MVP0_WORLD_CAPACITY`, and `V2-112`'s repeating curve made runs long and
+ * lethal enough to actually reach it, at which point `WeaponSystem` threw
+ * `entity capacity exhausted` mid-frame and ended the run.
+ */
+export const XP_PICKUP_LIFETIME_TICKS = Math.ceil(
+  (TOP_DOWN_CAMERA_VISIBLE_HEIGHT / PLAYER_MOVE_SPEED) * SIMULATION_HZ
+);
+export const LEVEL_2_XP_THRESHOLD = 5;
+export const STARTER_WEAPON_DAMAGE_TIER_2 = 15;
+
+/**
+ * Starter-projectile Tier 3 (V2-ADR-045): design §5.2 assigns Tier 3 "a
+ * stronger area/coverage behavior plus a modest cadence improvement", not a
+ * second damage increase, so damage stays at `STARTER_WEAPON_DAMAGE_TIER_2`
+ * and only radius (coverage) and cooldown (cadence) change.
+ *
+ * `STARTER_PROJECTILE_RADIUS_TIER_3` is half of `ENEMY_RADIUS = 0.6`. The
+ * combined collision radius stays `0.3 + 0.6 = 0.9`, still well above the
+ * `PROJECTILE_SPEED / SIMULATION_HZ ≈ 0.2333` units of per-tick travel the
+ * existing tunnel-safety proof already pins for Tier 1/2, so discrete
+ * collision remains sound (`Mvp0Config.test.ts` locks this inequality).
+ */
+export const STARTER_PROJECTILE_RADIUS_TIER_3 = 0.3;
+
+/**
+ * Two thirds of the base `WEAPON_COOLDOWN_TICKS = 30`. Worked kill-period
+ * comparison at unchanged Tier 2 damage (`ceil(ENEMY_HEALTH / 15) = 2` hits):
+ * Tier 1 is `30 * 3 = 90` ticks, Tier 2 is `30 * 2 = 60` ticks, Tier 3 is
+ * `20 * 2 = 40` ticks — a real, measurable improvement in the same units the
+ * spawn-cadence derivation above already uses.
+ */
+export const STARTER_WEAPON_COOLDOWN_TICKS_TIER_3 = 20;
+
+/**
+ * The level-up card's real-time deadline (design §5.4). The first
+ * `LEVEL_UP_OFFER_REVEAL_SECONDS` are non-interactive; the last
+ * `LEVEL_UP_OFFER_COUNTDOWN_SECONDS` of the total show a visible countdown.
+ * No input during either sub-window is a presentation-only rule
+ * (V2-ADR-054): the runtime accepts a resolution at any point once the
+ * lifecycle is `level-up`.
+ */
+export const LEVEL_UP_OFFER_TOTAL_SECONDS = 13;
+export const LEVEL_UP_OFFER_REVEAL_SECONDS = 4;
+export const LEVEL_UP_OFFER_COUNTDOWN_SECONDS = 5;
+
+export const PLAYER_STARTING_LEVEL = 1;
+
+/**
+ * The repeating level curve lives in `config/LevelCurve.ts` (`V2-112`,
+ * V2-ADR-080 and V2-ADR-082). It cannot live here: it is derived from the
+ * ability and passive registries, and both already import their constants from
+ * this module, so deriving it here would close an import cycle.
+ */
+
+/**
+ * MVP-0 runtime composition (V2-014).
+ *
+ * `MVP0_ENEMY_SPAWN_INTERVAL_TICKS` is derived, not chosen. A tier-1 kill costs
+ * `WEAPON_COOLDOWN_TICKS * ceil(ENEMY_HEALTH / PROJECTILE_DAMAGE)` = 90 ticks and
+ * a tier-2 kill costs 60, so an interval of 60 sits exactly between them: a
+ * player who never upgrades loses ground and eventually dies, and the first
+ * upgrade is what buys back the ability to hold the line. The properties are
+ * pinned in `tests/game-v2/config/Mvp0Config.test.ts`.
+ */
+export const MVP0_ENEMY_SPAWN_INTERVAL_TICKS = 60;
+
+/**
+ * The spawn ring sits inside `WEAPON_RANGE` so auto-fire acquires a new enemy on
+ * its spawn tick, and inside the camera's half-height so a spawn is visible at
+ * every supported aspect ratio.
+ */
+export const MVP0_ENEMY_SPAWN_RING_RADIUS = 8;
+export const MVP0_MAX_LIVE_ENEMIES = 32;
+
+/**
+ * The concurrent projectile bound lives in `config/ProjectileCapacity.ts` as
+ * `MVP1_MAX_LIVE_PROJECTILES` (`V2-111`, V2-ADR-078). It cannot live here: it
+ * is derived from every authored ability cadence, and `AbilityRegistry.ts`
+ * already imports this module, so deriving it here would close an import
+ * cycle.
+ */
+
+export const MVP0_WORLD_CAPACITY = 512;
+export const MVP0_PLAYER_SPAWN_X = 0;
+export const MVP0_PLAYER_SPAWN_Y = 0;
+
+/**
+ * `heavy-projectile` (V2-106, V2-ADR-063): a start-eligible weapon that trades
+ * cadence for burst. Its Tier 1 damage and cooldown are exact multiples of
+ * `starter-projectile`'s own Tier 1 numbers, so both open at the identical
+ * damage-per-tick baseline (`Mvp0Config.test.ts` pins this) and differ only in
+ * burst/cadence shape, not raw power.
+ */
+export const HEAVY_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 2;
+export const HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 2;
+export const HEAVY_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 1.5;
+
+/**
+ * Tier 2 raises damage by the same 1.5x multiplier design already applies to
+ * `starter-projectile`'s own Tier 1 -> Tier 2 step; radius and cooldown hold.
+ */
+export const HEAVY_PROJECTILE_DAMAGE_TIER_2 = HEAVY_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+
+/**
+ * Tier 3 (V2-ADR-045 precedent): radius (coverage) and cooldown (cadence)
+ * improve; damage holds at its Tier 2 value rather than raising again.
+ */
+export const HEAVY_PROJECTILE_RADIUS_TIER_3 = HEAVY_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (HEAVY_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * `rapid-projectile` (V2-106, V2-ADR-063): a start-eligible weapon that trades
+ * burst for cadence. Its Tier 1 damage and cooldown are exact fractions of
+ * `starter-projectile`'s own Tier 1 numbers, so it too opens at the identical
+ * damage-per-tick baseline (`Mvp0Config.test.ts` pins this) and differs only
+ * in burst/cadence shape, not raw power.
+ */
+export const RAPID_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 2;
+export const RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 2;
+export const RAPID_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 0.75;
+
+/**
+ * Tier 2 raises damage by the same 1.5x multiplier design already applies to
+ * `starter-projectile`'s own Tier 1 -> Tier 2 step; radius and cooldown hold.
+ */
+export const RAPID_PROJECTILE_DAMAGE_TIER_2 = RAPID_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+
+/**
+ * Tier 3 (V2-ADR-045 precedent): radius (coverage) and cooldown (cadence)
+ * improve; damage holds at its Tier 2 value rather than raising again.
+ */
+export const RAPID_PROJECTILE_RADIUS_TIER_3 = RAPID_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (RAPID_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * The five `V2-107` mid-run-only identities (V2-ADR-066): each is
+ * `starter-projectile`'s own Tier 1 damage and cooldown scaled by one
+ * multiplier `N`, so every projectile-family identity opens at the same
+ * Tier 1 damage-per-tick baseline (`10 / 30`) as `starter-projectile`,
+ * `heavy-projectile` (`N=2`), and `rapid-projectile` (`N=0.5`) — differing
+ * only in burst/cadence/coverage shape, not raw Tier 1 power
+ * (`Mvp0Config.test.ts` pins this for all eight). Tier 2 and Tier 3 follow
+ * the identical formula already established for heavy/rapid: Tier 2 raises
+ * damage 1.5x with radius/cooldown held; Tier 3 raises radius 1.5x and cuts
+ * cooldown to two thirds, holding damage at its Tier 2 value (V2-ADR-045
+ * precedent). `N` is chosen so `30N` (Tier 1 cooldown) and `20N` (Tier 3
+ * cooldown) are both integers, and is pairwise distinct from `1`, `2`, and
+ * `0.5`.
+ */
+export const NEEDLE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 10;
+export const NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 10;
+export const NEEDLE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS / 10;
+export const NEEDLE_PROJECTILE_DAMAGE_TIER_2 = NEEDLE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const NEEDLE_PROJECTILE_RADIUS_TIER_3 = NEEDLE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (NEEDLE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const FLICKER_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE / 5;
+export const FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS / 5;
+export const FLICKER_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS / 5;
+export const FLICKER_PROJECTILE_DAMAGE_TIER_2 = FLICKER_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const FLICKER_PROJECTILE_RADIUS_TIER_3 = FLICKER_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (FLICKER_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const LANCE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 1.5;
+export const LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 1.5;
+export const LANCE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 1.5;
+export const LANCE_PROJECTILE_DAMAGE_TIER_2 = LANCE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const LANCE_PROJECTILE_RADIUS_TIER_3 = LANCE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (LANCE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const CANNON_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 2.5;
+export const CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 2.5;
+export const CANNON_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 2.5;
+export const CANNON_PROJECTILE_DAMAGE_TIER_2 = CANNON_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const CANNON_PROJECTILE_RADIUS_TIER_3 = CANNON_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (CANNON_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+export const SIEGE_PROJECTILE_DAMAGE_TIER_1 = PROJECTILE_DAMAGE * 4;
+export const SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1 = WEAPON_COOLDOWN_TICKS * 4;
+export const SIEGE_PROJECTILE_RADIUS_TIER_1 = PROJECTILE_RADIUS * 4;
+export const SIEGE_PROJECTILE_DAMAGE_TIER_2 = SIEGE_PROJECTILE_DAMAGE_TIER_1 * 1.5;
+export const SIEGE_PROJECTILE_RADIUS_TIER_3 = SIEGE_PROJECTILE_RADIUS_TIER_1 * 1.5;
+export const SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_3 =
+  (SIEGE_PROJECTILE_COOLDOWN_TICKS_TIER_1 * 2) / 3;
+
+/**
+ * `V2-108` basic enemy composition (V2-ADR-070). `grunt` is the unchanged
+ * MVP-0 baseline (`ENEMY_HEALTH`/`ENEMY_MOVE_SPEED`/`ENEMY_CONTACT_DAMAGE`/
+ * `ENEMY_RADIUS`/`ENEMY_XP_VALUE`, cost `2`). `swarmling` is half its health,
+ * damage, and xp, one and a half times its speed, three quarters its radius,
+ * and half its cost — a cheap, weak, fast archetype. `brute` is one and a
+ * half times its health, damage, and xp, three fifths its speed, and one and
+ * a quarter times its radius, at the *same* cost as `grunt` — an equal-cost
+ * sidegrade, not a strict upgrade. `MVP0_ENEMY_SPAWN_BUDGET` equals `grunt`'s
+ * own cost, so a composition that always draws `grunt` or `brute` reproduces
+ * today's exact one-enemy-per-interval cadence exactly, and a composition
+ * that draws `swarmling` instead spends the identical budget on two weaker
+ * enemies whose combined health and damage equal one `grunt`'s
+ * (`Mvp0Config.test.ts` pins this) — composition varies which archetype(s)
+ * appear without escalating total per-interval threat power.
+ */
+export const SWARMLING_ENEMY_HEALTH = ENEMY_HEALTH / 2;
+export const SWARMLING_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 1.5;
+export const SWARMLING_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE / 2;
+export const SWARMLING_ENEMY_RADIUS = ENEMY_RADIUS * 0.75;
+export const SWARMLING_ENEMY_XP_VALUE = ENEMY_XP_VALUE / 2;
+export const SWARMLING_ENEMY_COST = 1;
+
+export const BRUTE_ENEMY_HEALTH = ENEMY_HEALTH * 1.5;
+export const BRUTE_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.6;
+export const BRUTE_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.5;
+export const BRUTE_ENEMY_RADIUS = ENEMY_RADIUS * 1.25;
+export const BRUTE_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.5;
+export const BRUTE_ENEMY_COST = 2;
+
+export const GRUNT_ENEMY_COST = 2;
+export const MVP0_ENEMY_SPAWN_BUDGET = GRUNT_ENEMY_COST;
+
+/**
+ * `V2-300`'s three telegraphed archetypes (V2-ADR-158..V2-ADR-165). No
+ * external anchor exists for this content the way market thresholds
+ * derived from real indicator math — every constant here is a first-pass
+ * authored value with stated reasoning, derived from `grunt`'s own
+ * baseline where possible, explicitly flagged for `V2-405` to tune.
+ *
+ * `charger` approaches at reduced speed, telegraphs, then dashes at
+ * `CHARGER_DASH_SPEED` — the strike itself reuses the existing,
+ * unmodified contact-damage system (V2-ADR-159), so `charger`'s own
+ * `contactDamage` is what actually resolves on a successful dash.
+ */
+export const CHARGER_ENEMY_HEALTH = ENEMY_HEALTH;
+export const CHARGER_ENEMY_APPROACH_SPEED = ENEMY_MOVE_SPEED * 0.8;
+export const CHARGER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.2;
+export const CHARGER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const CHARGER_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.2;
+export const CHARGER_ENEMY_COST = 3;
+/** A visible pause before the dash: half a real second. */
+export const CHARGER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.5);
+/** The dash itself: a third of a real second at burst speed. */
+export const CHARGER_ACTIVE_TICKS = Math.round(SIMULATION_HZ / 3);
+/** Recovery before the next dash attempt: two real seconds. */
+export const CHARGER_COOLDOWN_TICKS = SIMULATION_HZ * 2;
+export const CHARGER_DASH_SPEED = ENEMY_MOVE_SPEED * 3;
+/** Trigger range for the dash: a few units beyond simple contact. */
+export const CHARGER_TRIGGER_RANGE = ENEMY_RADIUS + PLAYER_RADIUS + 2;
+
+/**
+ * `bloater` is softer than `grunt` (meant to be poppable at range) and
+ * one-shot: no cooldown/re-arm cycle exists for it (V2-ADR-160). Its own
+ * `contactDamage` is a light nominal bump — the real threat is the
+ * burst.
+ */
+export const BLOATER_ENEMY_HEALTH = ENEMY_HEALTH * 0.7;
+export const BLOATER_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.9;
+export const BLOATER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 0.2;
+export const BLOATER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const BLOATER_ENEMY_XP_VALUE = ENEMY_XP_VALUE;
+export const BLOATER_ENEMY_COST = 2;
+/** The fuse: three quarters of a real second, long enough to retreat. */
+export const BLOATER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.75);
+export const BLOATER_BURST_DAMAGE = ENEMY_CONTACT_DAMAGE * 2;
+/** Bigger than its own contact radius: a real area-denial threat. */
+export const BLOATER_BURST_RADIUS = ENEMY_RADIUS * 4;
+
+/**
+ * `sniper` holds at `SNIPER_ENGAGE_RANGE` rather than closing to contact
+ * — reused as both its hold distance and its line-check's own maximum
+ * range (one field, two roles, since they are the same real distance:
+ * how far its threat reaches). Anchored to `WEAPON_RANGE` — the
+ * player's own real weapon range — rather than an unrelated invented
+ * distance.
+ */
+export const SNIPER_ENEMY_HEALTH = ENEMY_HEALTH * 0.6;
+export const SNIPER_ENEMY_MOVE_SPEED = ENEMY_MOVE_SPEED * 0.7;
+export const SNIPER_ENEMY_CONTACT_DAMAGE = ENEMY_CONTACT_DAMAGE * 0.5;
+export const SNIPER_ENEMY_RADIUS = ENEMY_RADIUS;
+export const SNIPER_ENEMY_XP_VALUE = ENEMY_XP_VALUE * 1.2;
+export const SNIPER_ENEMY_COST = 3;
+export const SNIPER_ENGAGE_RANGE = WEAPON_RANGE * 0.6;
+/** The aim tell: six tenths of a real second. */
+export const SNIPER_TELEGRAPH_TICKS = Math.round(SIMULATION_HZ * 0.6);
+/** A brief recovery pose after firing. */
+export const SNIPER_ACTIVE_TICKS = Math.round(SIMULATION_HZ * 0.1);
+/** Recovery before the next shot: two and a half real seconds. */
+export const SNIPER_COOLDOWN_TICKS = Math.round(SIMULATION_HZ * 2.5);
+export const SNIPER_LINE_DAMAGE = ENEMY_CONTACT_DAMAGE * 1.3;
+/** A generous beam width beyond the player's own radius. */
+export const SNIPER_LINE_TOLERANCE = PLAYER_RADIUS + 0.3;
+
+/**
+ * A safety bound on `EnemyComposer`'s pick loop, not a designed value: every
+ * pick costs at least `SWARMLING_ENEMY_COST` (the cheapest archetype), so the
+ * loop already terminates after at most `budget / SWARMLING_ENEMY_COST`
+ * picks by construction. This constant exists only to size the reused output
+ * buffer so composing never allocates.
+ */
+export const MVP0_ENEMY_COMPOSITION_MAX_PICKS = Math.ceil(
+  MVP0_ENEMY_SPAWN_BUDGET / SWARMLING_ENEMY_COST
+);
+
+/**
+ * Elite modifiers (`V2-301`, V2-ADR-167..V2-ADR-172). Roster and mechanism
+ * approved via `AskUserQuestion`; no design-spec anchor fixes a concrete
+ * chance/multiplier, so every value here is a first-pass authored value
+ * with stated reasoning, flagged for `V2-405` to tune — matching
+ * `V2-300`'s own "derived, not felt" precedent.
+ *
+ * An elite is a modifier layered onto an already-`EnemyComposer`-budgeted
+ * pick, not an extra spawn: it costs no additional composition budget and
+ * adds no additional live entity, so it is unconditionally inside the
+ * existing threat/render caps by construction (V2-ADR-168) rather than by
+ * a separate surcharge-affordability check.
+ */
+export const ELITE_SPAWN_CHANCE = 0.12;
+/** Baseline XP bump on every elite, on top of any modifier-specific one. */
+export const ELITE_XP_VALUE_MULTIPLIER = 1.4;
+
+export const ELITE_TOUGH_HEALTH_MULTIPLIER = 2.5;
+export const ELITE_TOUGH_CONTACT_DAMAGE_MULTIPLIER = 1.15;
+
+export const ELITE_SWIFT_MOVE_SPEED_MULTIPLIER = 1.6;
+/** Less telegraph time to react to, not a faster attack: multiplies the archetype's own telegraphTicks. */
+export const ELITE_SWIFT_TELEGRAPH_TICKS_MULTIPLIER = 0.7;
+
+/**
+ * `volatile`'s on-death burst reuses `bloater`'s own formula shape
+ * (`BLOATER_BURST_DAMAGE = ENEMY_CONTACT_DAMAGE * 2`, `BLOATER_BURST_RADIUS
+ * = ENEMY_RADIUS * 4`) against the elite's *own* archetype stats, scaled by
+ * a shared elite surcharge — not a separate invented absolute value.
+ */
+export const ELITE_VOLATILE_BURST_DAMAGE_BASE_MULTIPLIER = 2;
+export const ELITE_VOLATILE_BURST_RADIUS_BASE_MULTIPLIER = 4;
+export const ELITE_VOLATILE_SURCHARGE_MULTIPLIER = 1.3;
+
+/**
+ * `V2-109` market-independent Convergence envelope (V2-ADR-072). Design line
+ * 63 targets an 8-12 minute first boss cycle; that ratio (`12 / 8 = 1.5`)
+ * already equals the existing starter-weapon Tier 1 / Tier 2 kill-period
+ * ratio (`90 / 60 = 1.5`), so one derived kill-count target satisfies both
+ * envelope bounds exactly with no free parameter: sustaining the post-
+ * upgrade Tier 2 cadence from tick 1 reaches `CONVERGENCE_KILLS_TO_THRESHOLD`
+ * kills at exactly `CONVERGENCE_MIN_CYCLE_TICKS`, and never upgrading past
+ * Tier 1 reaches the identical kill count at exactly
+ * `CONVERGENCE_MAX_CYCLE_TICKS`. Both identities are pinned in
+ * `Mvp0Config.test.ts`.
+ */
+export const CONVERGENCE_MIN_CYCLE_SECONDS = 8 * 60;
+export const CONVERGENCE_MAX_CYCLE_SECONDS = 12 * 60;
+export const CONVERGENCE_MIN_CYCLE_TICKS =
+  CONVERGENCE_MIN_CYCLE_SECONDS * SIMULATION_HZ;
+export const CONVERGENCE_MAX_CYCLE_TICKS =
+  CONVERGENCE_MAX_CYCLE_SECONDS * SIMULATION_HZ;
+
+const CONVERGENCE_TIER_TWO_KILL_TICKS =
+  WEAPON_COOLDOWN_TICKS * Math.ceil(ENEMY_HEALTH / STARTER_WEAPON_DAMAGE_TIER_2);
+
+export const CONVERGENCE_KILLS_TO_THRESHOLD =
+  CONVERGENCE_MIN_CYCLE_TICKS / CONVERGENCE_TIER_TWO_KILL_TICKS;
+
+/**
+ * Convergence accrues XP-equivalent points, not a flat per-kill count
+ * (V2-ADR-075), because `V2-108` composition means kills are not uniform.
+ * `ENEMY_XP_VALUE` is `grunt`'s own XP, the archetype the kill-count target
+ * above was derived against.
+ */
+export const CONVERGENCE_THRESHOLD = CONVERGENCE_KILLS_TO_THRESHOLD * ENEMY_XP_VALUE;

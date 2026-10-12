@@ -1,0 +1,617 @@
+import { describe, expect, it } from 'vitest';
+
+import { createAbilityRegistry } from '@/game-v2/config/AbilityRegistry';
+import { type AbilityTierEffect } from '@/game-v2/contracts/AbilityTierEffect';
+import {
+  ABILITY_SLOT_COUNT,
+  type AbilityDefinition,
+  type AbilityIdentityId,
+  type AbilitySlotIndex,
+} from '@/game-v2/contracts/AbilitySlot';
+import { type EntityId } from '@/game-v2/contracts/EntityId';
+import { AbilityLoadoutSystem } from '@/game-v2/systems/AbilityLoadoutSystem';
+import { ComponentMask } from '@/game-v2/world/ComponentMask';
+import { World } from '@/game-v2/world/World';
+
+const OWNER_MASK = ComponentMask.Transform | ComponentMask.AbilityLoadout;
+const CAPACITY = 16;
+
+const id = (value: string): AbilityIdentityId => value as AbilityIdentityId;
+
+/**
+ * These fixtures use local test identities, not real production ones, so
+ * their tier effects are opaque per-tier markers rather than meaningful
+ * gameplay data (V2-ADR-044: the registry does not cross-check an effect's
+ * `ability` tag against the identity that owns it).
+ */
+const tierEffects = (count: number): readonly AbilityTierEffect[] =>
+  Array.from(
+    { length: count },
+    (_, index) =>
+      ({
+        ability: 'starter-projectile',
+        damage: index + 1,
+        projectileRadius: 0.1,
+        cooldownTicks: index + 1,
+      }) as AbilityTierEffect
+  );
+
+const TEST_DEFINITIONS: readonly AbilityDefinition[] = [
+  {
+    id: id('alpha'),
+    code: 11,
+    activation: 'auto',
+    authoredTiers: 3,
+    tierEffects: tierEffects(3),
+    startEligible: false,
+  },
+  {
+    id: id('beta'),
+    code: 12,
+    activation: 'active',
+    authoredTiers: 1,
+    tierEffects: tierEffects(1),
+    startEligible: false,
+  },
+  {
+    id: id('gamma'),
+    code: 13,
+    activation: 'active',
+    authoredTiers: 2,
+    tierEffects: tierEffects(2),
+    startEligible: false,
+  },
+  {
+    id: id('delta'),
+    code: 14,
+    activation: 'auto',
+    authoredTiers: 2,
+    tierEffects: tierEffects(2),
+    startEligible: false,
+  },
+  {
+    id: id('epsilon'),
+    code: 15,
+    activation: 'active',
+    authoredTiers: 3,
+    tierEffects: tierEffects(3),
+    startEligible: false,
+  },
+];
+
+const createSystem = (): AbilityLoadoutSystem =>
+  new AbilityLoadoutSystem(createAbilityRegistry(TEST_DEFINITIONS));
+
+const createOwner = (world: World): EntityId => world.createEntity(OWNER_MASK);
+
+const fill = (
+  system: AbilityLoadoutSystem,
+  world: World,
+  owner: EntityId
+): AbilitySlotIndex[] => [
+  system.add(world, owner, id('alpha')),
+  system.add(world, owner, id('beta')),
+  system.add(world, owner, id('gamma')),
+  system.add(world, owner, id('delta')),
+];
+
+describe('AbilityLoadoutSystem', () => {
+  it('starts every slot empty', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(system.occupiedCount(world, owner)).toBe(0);
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const slotIndex = index as AbilitySlotIndex;
+      expect(system.identityAt(world, owner, slotIndex)).toBeNull();
+      expect(system.tierAt(world, owner, slotIndex)).toBeNull();
+      expect(system.activationAt(world, owner, slotIndex)).toBeNull();
+    }
+    expect(system.indexOf(world, owner, id('alpha'))).toBeNull();
+  });
+
+  it('adds an ability at tier one with its registered activation kind', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(system.add(world, owner, id('alpha'))).toBe(0);
+    expect(system.identityAt(world, owner, 0)).toBe('alpha');
+    expect(system.tierAt(world, owner, 0)).toBe(1);
+    expect(system.activationAt(world, owner, 0)).toBe('auto');
+    expect(system.indexOf(world, owner, id('alpha'))).toBe(0);
+    expect(system.occupiedCount(world, owner)).toBe(1);
+
+    expect(system.add(world, owner, id('beta'))).toBe(1);
+    expect(system.activationAt(world, owner, 1)).toBe('active');
+  });
+
+  it('fills the lowest free slot, including after a removal', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(fill(system, world, owner)).toEqual([0, 1, 2, 3]);
+
+    system.remove(world, owner, 1);
+    expect(system.add(world, owner, id('epsilon'))).toBe(1);
+    expect(system.identityAt(world, owner, 1)).toBe('epsilon');
+    expect(system.identityAt(world, owner, 0)).toBe('alpha');
+    expect(system.identityAt(world, owner, 2)).toBe('gamma');
+    expect(system.identityAt(world, owner, 3)).toBe('delta');
+  });
+
+  it('refuses a fifth ability instead of replacing an occupied slot', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    fill(system, world, owner);
+
+    expect(() => system.add(world, owner, id('epsilon'))).toThrow(
+      'ability loadout has no free slot'
+    );
+    expect(system.occupiedCount(world, owner)).toBe(ABILITY_SLOT_COUNT);
+    expect(system.identityAt(world, owner, 0)).toBe('alpha');
+    expect(system.identityAt(world, owner, 3)).toBe('delta');
+  });
+
+  it('refuses to hold the same identity twice', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    system.add(world, owner, id('alpha'));
+    expect(() => system.add(world, owner, id('alpha'))).toThrow(
+      'ability identity already occupies a slot'
+    );
+    expect(system.occupiedCount(world, owner)).toBe(1);
+  });
+
+  it('refuses an identity the registry does not know', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(() => system.add(world, owner, id('omega'))).toThrow(
+      'unknown ability identity'
+    );
+    expect(system.occupiedCount(world, owner)).toBe(0);
+  });
+
+  it('removes exactly one slot and leaves the others untouched', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    fill(system, world, owner);
+    system.advanceTier(world, owner, 2);
+
+    system.remove(world, owner, 0);
+
+    expect(system.identityAt(world, owner, 0)).toBeNull();
+    expect(system.tierAt(world, owner, 0)).toBeNull();
+    expect(system.occupiedCount(world, owner)).toBe(3);
+    expect(system.identityAt(world, owner, 2)).toBe('gamma');
+    expect(system.tierAt(world, owner, 2)).toBe(2);
+  });
+
+  it('refuses to remove an empty slot', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(() => system.remove(world, owner, 0)).toThrow(
+      'ability slot is already empty'
+    );
+  });
+
+  it('advances a tier up to the authored ceiling of its identity', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    system.add(world, owner, id('alpha'));
+    expect(system.advanceTier(world, owner, 0)).toBe(2);
+    expect(system.advanceTier(world, owner, 0)).toBe(3);
+    expect(() => system.advanceTier(world, owner, 0)).toThrow(
+      'ability has no authored tier above 3'
+    );
+    expect(system.tierAt(world, owner, 0)).toBe(3);
+  });
+
+  it('refuses to advance past an identity with a single authored tier', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    system.add(world, owner, id('beta'));
+    expect(() => system.advanceTier(world, owner, 0)).toThrow(
+      'ability has no authored tier above 1'
+    );
+    expect(system.tierAt(world, owner, 0)).toBe(1);
+  });
+
+  it('refuses to advance an empty slot', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    expect(() => system.advanceTier(world, owner, 1)).toThrow('ability slot is empty');
+  });
+
+  describe('addOrAdvanceTier', () => {
+    it('adds a new identity at tier 1 in the lowest free slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.addOrAdvanceTier(world, owner, id('alpha'))).toBe(1);
+      expect(system.identityAt(world, owner, 0)).toBe('alpha');
+      expect(system.tierAt(world, owner, 0)).toBe(1);
+    });
+
+    it('advances a held identity instead of consuming a second slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.addOrAdvanceTier(world, owner, id('alpha'))).toBe(2);
+
+      expect(system.occupiedCount(world, owner)).toBe(1);
+      expect(system.tierAt(world, owner, 0)).toBe(2);
+    });
+
+    it('throws at the authored tier ceiling exactly like advanceTier', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      expect(() => system.addOrAdvanceTier(world, owner, id('beta'))).toThrow(
+        'ability has no authored tier above 1'
+      );
+    });
+  });
+
+  describe('isOfferable', () => {
+    it('is offerable when a slot is free', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(true);
+    });
+
+    it('is offerable while a held identity is below its tier ceiling', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      expect(system.isOfferable(world, owner, id('beta'))).toBe(false);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(true);
+      system.advanceTier(world, owner, 1);
+      system.advanceTier(world, owner, 1);
+      expect(system.isOfferable(world, owner, id('alpha'))).toBe(false);
+    });
+
+    it('is not offerable as a new identity once every slot is full', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      fill(system, world, owner);
+      expect(system.isOfferable(world, owner, id('epsilon'))).toBe(false);
+    });
+  });
+
+  it('clears every slot of one owner without touching another owner', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const first = createOwner(world);
+    const second = createOwner(world);
+
+    fill(system, world, first);
+    system.add(world, second, id('epsilon'));
+    system.advanceTier(world, second, 0);
+
+    system.resetOwner(world, first);
+
+    expect(system.occupiedCount(world, first)).toBe(0);
+    expect(system.identityAt(world, first, 3)).toBeNull();
+    expect(system.identityAt(world, second, 0)).toBe('epsilon');
+    expect(system.tierAt(world, second, 0)).toBe(2);
+  });
+
+  it('rejects a slot index outside the loadout', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    for (const index of [-1, ABILITY_SLOT_COUNT, 1.5, Number.NaN]) {
+      const invalid = index as AbilitySlotIndex;
+      expect(() => system.identityAt(world, owner, invalid)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+      expect(() => system.remove(world, owner, invalid)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+      expect(() => system.advanceTier(world, owner, invalid)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+    }
+  });
+
+  it('rejects an entity that does not carry the loadout component', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const other = world.createEntity(ComponentMask.Transform);
+
+    expect(() => system.add(world, other, id('alpha'))).toThrow(
+      'entity does not own an ability loadout'
+    );
+    expect(() => system.occupiedCount(world, other)).toThrow(
+      'entity does not own an ability loadout'
+    );
+  });
+
+  it('rejects a stale entity handle', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    system.add(world, owner, id('alpha'));
+    world.destroyEntity(owner);
+
+    expect(() => system.identityAt(world, owner, 0)).toThrow('stale entity');
+  });
+
+  it('hands a recycled world slot an empty loadout', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+    const slot = world.slotOf(owner);
+
+    fill(system, world, owner);
+    world.destroyEntity(owner);
+
+    let recycled = createOwner(world);
+    while (world.slotOf(recycled) !== slot) {
+      recycled = createOwner(world);
+    }
+
+    expect(system.occupiedCount(world, recycled)).toBe(0);
+    expect(system.identityAt(world, recycled, 0)).toBeNull();
+  });
+
+  it('clears every loadout on world reset', () => {
+    const world = new World(CAPACITY);
+    const system = createSystem();
+    const owner = createOwner(world);
+
+    fill(system, world, owner);
+    world.reset();
+
+    const next = createOwner(world);
+    expect(system.occupiedCount(world, next)).toBe(0);
+    for (let index = 0; index < world.abilitySlotIdentity.length; index += 1) {
+      expect(world.abilitySlotIdentity[index]).toBe(0);
+      expect(world.abilitySlotTier[index]).toBe(0);
+    }
+  });
+
+  describe('tierEffectAt', () => {
+    it('returns null for an empty slot', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(system.tierEffectAt(world, owner, 0)).toBeNull();
+    });
+
+    it('resolves the effect matching the currently held tier', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('alpha'));
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[0]);
+
+      system.advanceTier(world, owner, 0);
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[1]);
+
+      system.advanceTier(world, owner, 0);
+      expect(system.tierEffectAt(world, owner, 0)).toEqual(tierEffects(3)[2]);
+    });
+
+    it('throws for a tier byte beyond what the identity authored', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      system.add(world, owner, id('beta'));
+      const storeIndex = world.abilitySlotIndexOf(world.slotOf(owner), 0);
+      world.abilitySlotTier[storeIndex] = 4;
+
+      expect(() => system.tierEffectAt(world, owner, 0)).toThrow(
+        'ability slot tier has no authored effect'
+      );
+    });
+
+    it('rejects a slot index outside the loadout', () => {
+      const world = new World(CAPACITY);
+      const system = createSystem();
+      const owner = createOwner(world);
+
+      expect(() => system.tierEffectAt(world, owner, -1 as AbilitySlotIndex)).toThrow(
+        'ability slot index must be an integer inside the loadout'
+      );
+    });
+  });
+});
+
+/**
+ * V2-106 Step 2: proves `heavy-projectile` and `rapid-projectile` reach every
+ * loadout behavior exactly as `starter-projectile` already does, through the
+ * production `MVP1_ABILITY_REGISTRY` rather than the local test registry
+ * above.
+ */
+const NON_STARTER_IDENTITIES = [
+  'heavy-projectile',
+  'rapid-projectile',
+  'needle-projectile',
+  'flicker-projectile',
+  'lance-projectile',
+  'cannon-projectile',
+  'siege-projectile',
+] as const;
+
+describe('AbilityLoadoutSystem with the production registry (V2-106, V2-107)', () => {
+  it.each(NON_STARTER_IDENTITIES)(
+    'adds, advances through all three tiers, and reads back %s exactly like starter-projectile',
+    identity => {
+      const world = new World(CAPACITY);
+      const system = new AbilityLoadoutSystem();
+      const owner = createOwner(world);
+
+      expect(system.add(world, owner, identity)).toBe(0);
+      expect(system.identityAt(world, owner, 0)).toBe(identity);
+      expect(system.activationAt(world, owner, 0)).toBe('auto');
+      expect(system.tierAt(world, owner, 0)).toBe(1);
+      expect(system.occupiedCount(world, owner)).toBe(1);
+      expect(system.indexOf(world, owner, identity)).toBe(0);
+
+      const tier1Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier1Effect?.ability).toBe(identity);
+
+      expect(system.advanceTier(world, owner, 0)).toBe(2);
+      const tier2Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier2Effect?.ability).toBe(identity);
+      expect(tier2Effect).not.toEqual(tier1Effect);
+
+      expect(system.advanceTier(world, owner, 0)).toBe(3);
+      const tier3Effect = system.tierEffectAt(world, owner, 0);
+      expect(tier3Effect?.ability).toBe(identity);
+      expect(tier3Effect).not.toEqual(tier2Effect);
+
+      expect(() => system.advanceTier(world, owner, 0)).toThrow(
+        'ability has no authored tier above 3'
+      );
+    }
+  );
+
+  it.each(NON_STARTER_IDENTITIES)(
+    '%s is offerable exactly like starter-projectile: free-slot new, below-ceiling held',
+    identity => {
+      const world = new World(CAPACITY);
+      const system = new AbilityLoadoutSystem();
+      const owner = createOwner(world);
+
+      expect(system.isOfferable(world, owner, identity)).toBe(true);
+
+      system.add(world, owner, identity);
+      expect(system.isOfferable(world, owner, identity)).toBe(true);
+
+      system.advanceTier(world, owner, 0);
+      system.advanceTier(world, owner, 0);
+      expect(system.isOfferable(world, owner, identity)).toBe(false);
+    }
+  );
+
+  it('treats starter/heavy/rapid identically for occupiedCount and indexOf when all three are held', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+
+    expect(system.add(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.add(world, owner, 'heavy-projectile')).toBe(1);
+    expect(system.add(world, owner, 'rapid-projectile')).toBe(2);
+
+    expect(system.occupiedCount(world, owner)).toBe(3);
+    expect(system.indexOf(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.indexOf(world, owner, 'heavy-projectile')).toBe(1);
+    expect(system.indexOf(world, owner, 'rapid-projectile')).toBe(2);
+  });
+
+  /**
+   * V2-107 Step 2: the real four-slot combination proof design §5.1 and the
+   * master plan's Done-When require — filling all four slots from the full
+   * eight-identity registry, not the five-identity synthetic fixture
+   * `AbilityLoadoutSystem.test.ts`'s top-level describe already used for
+   * V2-100's generic combination proof.
+   */
+  it('fills all four ability slots with four distinct identities drawn from the full eight, each independently advanced', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+    const chosen = [
+      'starter-projectile',
+      'needle-projectile',
+      'lance-projectile',
+      'siege-projectile',
+    ] as const;
+
+    expect(system.add(world, owner, chosen[0])).toBe(0);
+    expect(system.add(world, owner, chosen[1])).toBe(1);
+    expect(system.add(world, owner, chosen[2])).toBe(2);
+    expect(system.add(world, owner, chosen[3])).toBe(3);
+    expect(system.occupiedCount(world, owner)).toBe(4);
+
+    for (const [index, identity] of chosen.entries()) {
+      const slot = index as AbilitySlotIndex;
+
+      expect(system.identityAt(world, owner, slot)).toBe(identity);
+      expect(system.indexOf(world, owner, identity)).toBe(slot);
+      expect(system.activationAt(world, owner, slot)).toBe('auto');
+      expect(system.tierAt(world, owner, slot)).toBe(1);
+    }
+
+    expect(system.advanceTier(world, owner, 0)).toBe(2);
+    expect(system.advanceTier(world, owner, 2)).toBe(2);
+    expect(system.advanceTier(world, owner, 2)).toBe(3);
+
+    expect(system.tierAt(world, owner, 0)).toBe(2);
+    expect(system.tierAt(world, owner, 1)).toBe(1);
+    expect(system.tierAt(world, owner, 2)).toBe(3);
+    expect(system.tierAt(world, owner, 3)).toBe(1);
+
+    expect(() => system.add(world, owner, 'rapid-projectile')).toThrow(
+      'ability loadout has no free slot'
+    );
+  });
+
+  it('mixes any four of the eight identities without cross-slot interference (spot-check permutation)', () => {
+    const world = new World(CAPACITY);
+    const system = new AbilityLoadoutSystem();
+    const owner = createOwner(world);
+    const chosen = [
+      'flicker-projectile',
+      'heavy-projectile',
+      'cannon-projectile',
+      'rapid-projectile',
+    ] as const;
+
+    for (const identity of chosen) {
+      system.add(world, owner, identity);
+    }
+
+    system.advanceTier(world, owner, 1);
+    system.remove(world, owner, 0);
+
+    expect(system.identityAt(world, owner, 0)).toBeNull();
+    expect(system.identityAt(world, owner, 1)).toBe('heavy-projectile');
+    expect(system.tierAt(world, owner, 1)).toBe(2);
+    expect(system.identityAt(world, owner, 2)).toBe('cannon-projectile');
+    expect(system.tierAt(world, owner, 2)).toBe(1);
+    expect(system.identityAt(world, owner, 3)).toBe('rapid-projectile');
+    expect(system.occupiedCount(world, owner)).toBe(3);
+
+    expect(system.add(world, owner, 'starter-projectile')).toBe(0);
+    expect(system.occupiedCount(world, owner)).toBe(4);
+  });
+});

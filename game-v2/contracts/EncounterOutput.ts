@@ -1,0 +1,156 @@
+/**
+ * The full market-encounter output taxonomy (design §6.2, `V2-204`).
+ * `HYBRID` has no concrete shape yet — it combines the other three under
+ * one budget (design line 187) and has no owning task yet, so this
+ * taxonomy does not guess its content (V2-ADR-105).
+ */
+export type EncounterOutputKind = 'SPAWN' | 'WORLD_EVENT' | 'LOOT_EVENT' | 'HYBRID';
+
+/**
+ * A bounded, themed enemy composition (design line 184). `enemyBudget` is
+ * spent the same way `EnemyComposer` spends `MVP0_ENEMY_SPAWN_BUDGET` — a
+ * positive integer, not itself wired into a spawn system yet (`V2-208`).
+ */
+export type SpawnEncounterOutput = Readonly<{
+  kind: 'SPAWN';
+  enemyBudget: number;
+  themeId: string;
+}>;
+
+/**
+ * A telegraphed arena hazard or environment event (design line 185,
+ * `V2-205`). No hazard-effect payload yet (no arena-region shape, no
+ * damage/DoT numbers) — no hazard system exists to consume one
+ * (`V2-209`), matching `SpawnEncounterOutput`'s own precedent of staying
+ * minimal until a real consumer needs more (V2-ADR-115).
+ */
+export type WorldEventEncounterOutput = Readonly<{
+  kind: 'WORLD_EVENT';
+  hazardId: string;
+  telegraphTicks: number;
+}>;
+
+/**
+ * A lootbox or opportunity event (design line 186, `V2-206`). `lootValue`
+ * is the triggering `whaleTier` itself — a real pass-through value, not an
+ * invented number — since no loot/economy system exists yet to price a
+ * lootbox (`V2-306`+, MVP-3).
+ */
+export type LootEventEncounterOutput = Readonly<{
+  kind: 'LOOT_EVENT';
+  lootTierId: string;
+  lootValue: number;
+}>;
+
+/** `HYBRID` has no owning task yet (design line 187); not modeled. */
+export type EncounterOutput =
+  | SpawnEncounterOutput
+  | WorldEventEncounterOutput
+  | LootEventEncounterOutput;
+
+const isPositiveInteger = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  Number.isInteger(value) &&
+  value > 0;
+
+/** Validates one `SpawnEncounterOutput`'s shape and field ranges. */
+export const assertSpawnEncounterOutput = (value: unknown): SpawnEncounterOutput => {
+  if (typeof value !== 'object' || value === null) {
+    throw new TypeError('spawn encounter output must be an object');
+  }
+
+  const candidate = value as Partial<SpawnEncounterOutput>;
+
+  if (candidate.kind !== 'SPAWN') {
+    throw new RangeError("spawn encounter output kind must be 'SPAWN'");
+  }
+
+  if (!isPositiveInteger(candidate.enemyBudget)) {
+    throw new RangeError(
+      'spawn encounter output enemyBudget must be a positive integer'
+    );
+  }
+
+  if (typeof candidate.themeId !== 'string' || candidate.themeId.trim().length === 0) {
+    throw new TypeError('spawn encounter output themeId must be a non-empty string');
+  }
+
+  return Object.freeze({
+    kind: 'SPAWN',
+    enemyBudget: candidate.enemyBudget,
+    themeId: candidate.themeId,
+  });
+};
+
+/** Validates one `WorldEventEncounterOutput`'s shape and field ranges. */
+export const assertWorldEventEncounterOutput = (
+  value: unknown
+): WorldEventEncounterOutput => {
+  if (typeof value !== 'object' || value === null) {
+    throw new TypeError('world event encounter output must be an object');
+  }
+
+  const candidate = value as Partial<WorldEventEncounterOutput>;
+
+  if (candidate.kind !== 'WORLD_EVENT') {
+    throw new RangeError("world event encounter output kind must be 'WORLD_EVENT'");
+  }
+
+  if (
+    typeof candidate.hazardId !== 'string' ||
+    candidate.hazardId.trim().length === 0
+  ) {
+    throw new TypeError(
+      'world event encounter output hazardId must be a non-empty string'
+    );
+  }
+
+  if (!isPositiveInteger(candidate.telegraphTicks)) {
+    throw new RangeError(
+      'world event encounter output telegraphTicks must be a positive integer'
+    );
+  }
+
+  return Object.freeze({
+    kind: 'WORLD_EVENT',
+    hazardId: candidate.hazardId,
+    telegraphTicks: candidate.telegraphTicks,
+  });
+};
+
+/** Validates one `LootEventEncounterOutput`'s shape and field ranges. */
+export const assertLootEventEncounterOutput = (
+  value: unknown
+): LootEventEncounterOutput => {
+  if (typeof value !== 'object' || value === null) {
+    throw new TypeError('loot event encounter output must be an object');
+  }
+
+  const candidate = value as Partial<LootEventEncounterOutput>;
+
+  if (candidate.kind !== 'LOOT_EVENT') {
+    throw new RangeError("loot event encounter output kind must be 'LOOT_EVENT'");
+  }
+
+  if (
+    typeof candidate.lootTierId !== 'string' ||
+    candidate.lootTierId.trim().length === 0
+  ) {
+    throw new TypeError(
+      'loot event encounter output lootTierId must be a non-empty string'
+    );
+  }
+
+  if (!isPositiveInteger(candidate.lootValue)) {
+    throw new RangeError(
+      'loot event encounter output lootValue must be a positive integer'
+    );
+  }
+
+  return Object.freeze({
+    kind: 'LOOT_EVENT',
+    lootTierId: candidate.lootTierId,
+    lootValue: candidate.lootValue,
+  });
+};

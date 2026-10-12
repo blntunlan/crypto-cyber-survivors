@@ -1,0 +1,237 @@
+.game-v2 {
+  position: relative;
+  min-height: 100dvh;
+  margin: 0;
+  background-color: #050812;
+}
+
+.game-v2 .game-v2-stage {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.game-v2 .game-v2-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.game-v2 .game-v2-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.game-v2 .game-v2-hud-field {
+  min-width: 6ch;
+}
+
+.game-v2 .game-v2-hud-ability-slot {
+  min-width: 4ch;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid #374151;
+  border-radius: 0.25rem;
+  color: #e5e7eb;
+}
+
+.game-v2 .level-up-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+}
+
+.game-v2 .level-up-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  color: #f9fafb;
+}
+
+.game-v2 .level-up-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.game-v2 .level-up-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.game-v2 .level-up-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-v2 .level-up-choice-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.game-v2 .level-up-choice-button:hover {
+  background-color: #1d4ed8;
+}
+
+.game-v2 .level-up-choice-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.game-v2 .level-up-choice-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.game-v2 .level-up-banish-button {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fca5a5;
+  background-color: transparent;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.game-v2 .level-up-banish-button:hover {
+  background-color: rgba(127, 29, 29, 0.3);
+}
+
+.game-v2 .level-up-banish-button:focus-visible {
+  outline: 2px solid #f87171;
+  outline-offset: 2px;
+}
+
+.game-v2 .level-up-banish-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.game-v2 .level-up-reroll-button {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  background-color: transparent;
+  border: 1px solid #374151;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.game-v2 .level-up-reroll-button:hover {
+  background-color: rgba(55, 65, 81, 0.4);
+}
+
+.game-v2 .level-up-reroll-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.game-v2 .level-up-reroll-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.game-v2 .position-select-asset {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.game-v2 .position-select-price {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+}
+
+.game-v2 .position-select-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.game-v2 .position-select-toggle {
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  background-color: transparent;
+  border: 1px solid #374151;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.game-v2 .position-select-toggle:hover {
+  background-color: rgba(55, 65, 81, 0.4);
+}
+
+.game-v2 .position-select-toggle:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.game-v2 .position-select-toggle--active {
+  color: #ffffff;
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.game-v2 .level-up-countdown {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+}
+
+/* The reveal-only entrance animation; reduced-motion mode never applies this
+   class, but the 13-second deadline is identical either way (V2-ADR-054). */
+.game-v2 .level-up-dialog--revealing {
+  animation: game-v2-level-up-reveal 0.4s ease-out;
+}
+
+@keyframes game-v2-level-up-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.game-v2 .game-v2-failure-detail {
+  max-width: 40ch;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: #fca5a5;
+  text-align: center;
+}

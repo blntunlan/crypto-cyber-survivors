@@ -1,0 +1,507 @@
+import { MAX_WORLD_CAPACITY } from '@/game-v2/config/Mvp0Config';
+import {
+  ABILITY_MAX_TIER,
+  ABILITY_SLOT_COUNT,
+  abilityStoreIndex,
+} from '@/game-v2/contracts/AbilitySlot';
+import { RETIRED_ENTITY_GENERATION } from '@/game-v2/contracts/EntityId';
+import {
+  OFFER_CANDIDATE_COUNT,
+  OFFER_KIND_ABILITY,
+  OFFER_KIND_PASSIVE,
+  offerStoreIndex,
+} from '@/game-v2/contracts/LevelUpOffer';
+import {
+  PASSIVE_MAX_LEVEL,
+  PASSIVE_SLOT_COUNT,
+  passiveStoreIndex,
+} from '@/game-v2/contracts/PassiveSlot';
+import { type WorldSnapshot } from '@/game-v2/contracts/WorldSnapshot';
+import { ALL_COMPONENT_MASK, ComponentMask } from '@/game-v2/world/ComponentMask';
+
+const UINT32_MAX = 0xffffffff;
+
+export type AuthoritativeWorldState = Omit<WorldSnapshot, 'schemaVersion' | 'capacity'>;
+
+type AllocatorField = 'activeCount' | 'freeSlotCount' | 'freeSlots';
+type AuthoritativeStoreName = Exclude<keyof AuthoritativeWorldState, AllocatorField>;
+
+export const AUTHORITATIVE_WORLD_STORE_SCHEMA = Object.freeze({
+  float32: Object.freeze([
+    'x',
+    'y',
+    'previousX',
+    'previousY',
+    'velocityX',
+    'velocityY',
+    'radius',
+    'health',
+    'maxHealth',
+    'lastFacingX',
+    'lastFacingY',
+    'dashDirectionX',
+    'dashDirectionY',
+    'dashRemainingSeconds',
+    'enemySpeed',
+    'contactDamage',
+    'xpValue',
+    'projectileDamage',
+    'xp',
+    'xpPickupValue',
+    'convergence',
+    'enemyTelegraphEffectDamage',
+    'enemyTelegraphEffectRadius',
+    'enemyTelegraphEffectRange',
+    'enemyTelegraphDashSpeed',
+    'enemyTelegraphAimX',
+    'enemyTelegraphAimY',
+    'enemyEliteBurstDamage',
+    'enemyEliteBurstRadius',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  uint32: Object.freeze([
+    'generations',
+    'masks',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  int8: Object.freeze([
+    'faction',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  uint8: Object.freeze([
+    'dashCharges',
+    'movementOverride',
+    'offerDefaultIndex',
+    'rerollCharges',
+    'banishCharges',
+    'bannedCandidateKind',
+    'bannedCandidateCode',
+    'convergenceReached',
+    'enemyTelegraphBehavior',
+    'enemyTelegraphPhase',
+    'enemyEliteModifier',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  uint16: Object.freeze([
+    'invulnerabilityTicksRemaining',
+    'dashCooldownTicksRemaining',
+    'contactCooldownTicksRemaining',
+    'lifetimeTicksRemaining',
+    'level',
+    'enemyTelegraphTicksRemaining',
+    'enemyTelegraphDurationTicks',
+    'enemyTelegraphActiveDurationTicks',
+    'enemyTelegraphCooldownTicks',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per ability slot per world slot rather than one per world slot. */
+  stridedUint8: Object.freeze([
+    'abilitySlotIdentity',
+    'abilitySlotTier',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per ability slot per world slot, 16-bit (V2-111, V2-ADR-076). */
+  stridedUint16: Object.freeze([
+    'weaponCooldownTicksRemaining',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per passive slot per world slot. */
+  passiveStridedUint8: Object.freeze([
+    'passiveSlotIdentity',
+    'passiveSlotLevel',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+  /** One entry per offer candidate slot per world slot. */
+  offerStridedUint8: Object.freeze([
+    'offerCandidateKind',
+    'offerCandidateCode',
+  ] as const satisfies ReadonlyArray<AuthoritativeStoreName>),
+});
+
+type ListedStoreName =
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.float32)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint32)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.int8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint16)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8)[number]
+  | (typeof AUTHORITATIVE_WORLD_STORE_SCHEMA.offerStridedUint8)[number];
+type AssertNever<T extends never> = T;
+export type AuthoritativeWorldStoreSchemaCoverage = AssertNever<
+  Exclude<AuthoritativeStoreName, ListedStoreName>
+>;
+
+const assertUint32 = (value: unknown, name: string, allowZero = true): number => {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < (allowZero ? 0 : 1) ||
+    value > UINT32_MAX
+  ) {
+    throw new RangeError(`${name} must be a valid unsigned 32-bit integer`);
+  }
+  return value;
+};
+
+type WorldTypedArray =
+  | Float32Array
+  | Uint32Array
+  | Int8Array
+  | Uint8Array
+  | Uint16Array;
+type WorldTypedArrayConstructor = abstract new (length: number) => WorldTypedArray;
+
+const assertStore = (
+  value: unknown,
+  constructor: WorldTypedArrayConstructor,
+  capacity: number,
+  name: string
+): void => {
+  if (!(value instanceof constructor) || value.length !== capacity) {
+    throw new RangeError(`${name} must be a canonical typed store`);
+  }
+};
+
+const validateStores = (state: AuthoritativeWorldState, capacity: number): void => {
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.float32) {
+    const store = state[name];
+    assertStore(store, Float32Array, capacity, name);
+    for (let slot = 0; slot < capacity; slot += 1) {
+      const value = store[slot];
+      if (value === undefined || !Number.isFinite(value)) {
+        throw new RangeError(`${name} must contain only finite values`);
+      }
+    }
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.uint32) {
+    assertStore(state[name], Uint32Array, capacity, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.int8) {
+    assertStore(state[name], Int8Array, capacity, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.uint8) {
+    assertStore(state[name], Uint8Array, capacity, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.uint16) {
+    assertStore(state[name], Uint16Array, capacity, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * ABILITY_SLOT_COUNT, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.stridedUint16) {
+    assertStore(state[name], Uint16Array, capacity * ABILITY_SLOT_COUNT, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.passiveStridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * PASSIVE_SLOT_COUNT, name);
+  }
+  for (const name of AUTHORITATIVE_WORLD_STORE_SCHEMA.offerStridedUint8) {
+    assertStore(state[name], Uint8Array, capacity * OFFER_CANDIDATE_COUNT, name);
+  }
+};
+
+/**
+ * Ability loadout state is validated without consulting the registry: a
+ * checkpoint must stay readable when V2-106 and V2-107 add identities, so the
+ * invariants here are the structural ones only (V2-ADR-036, V2-ADR-037).
+ */
+const validateAbilityLoadout = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsLoadout = (mask & ComponentMask.AbilityLoadout) !== 0;
+
+    for (let index = 0; index < ABILITY_SLOT_COUNT; index += 1) {
+      const storeIndex = abilityStoreIndex(slot, index);
+      const identity = state.abilitySlotIdentity[storeIndex] ?? 0;
+      const tier = state.abilitySlotTier[storeIndex] ?? 0;
+
+      if (tier > ABILITY_MAX_TIER) {
+        throw new RangeError('ability slot tier is outside the supported range');
+      }
+
+      if ((identity === 0) !== (tier === 0)) {
+        throw new RangeError('ability slot must pair an identity with a tier');
+      }
+
+      if (identity !== 0 && !ownsLoadout) {
+        throw new RangeError('ability loadout requires the AbilityLoadout component');
+      }
+    }
+  }
+};
+
+/** The passive equivalent of `validateAbilityLoadout`, registry-free for the same reason. */
+const validatePassiveLoadout = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsLoadout = (mask & ComponentMask.PassiveLoadout) !== 0;
+
+    for (let index = 0; index < PASSIVE_SLOT_COUNT; index += 1) {
+      const storeIndex = passiveStoreIndex(slot, index);
+      const identity = state.passiveSlotIdentity[storeIndex] ?? 0;
+      const level = state.passiveSlotLevel[storeIndex] ?? 0;
+
+      if (level > PASSIVE_MAX_LEVEL) {
+        throw new RangeError('passive slot level is outside the supported range');
+      }
+
+      if ((identity === 0) !== (level === 0)) {
+        throw new RangeError('passive slot must pair an identity with a level');
+      }
+
+      if (identity !== 0 && !ownsLoadout) {
+        throw new RangeError('passive loadout requires the PassiveLoadout component');
+      }
+    }
+  }
+};
+
+/**
+ * The level-up offer equivalent of `validateAbilityLoadout`/
+ * `validatePassiveLoadout`, registry-free for the same reason (V2-ADR-049).
+ */
+const validateLevelUpOffer = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    let hasCandidate = false;
+    // `offerCandidateCode` is a `Uint8Array` (0..255), so `kind * 256 + code`
+    // is a collision-free composite key for the two small kind constants —
+    // mirrors `LevelUpOfferSystem.banish`'s own sibling-exclusion key.
+    const seenKeys = new Set<number>();
+
+    for (let index = 0; index < OFFER_CANDIDATE_COUNT; index += 1) {
+      const storeIndex = offerStoreIndex(slot, index);
+      const kind = state.offerCandidateKind[storeIndex] ?? 0;
+      const code = state.offerCandidateCode[storeIndex] ?? 0;
+
+      if (kind !== 0 && kind !== OFFER_KIND_ABILITY && kind !== OFFER_KIND_PASSIVE) {
+        throw new RangeError('offer candidate kind is unsupported');
+      }
+
+      if ((kind === 0) !== (code === 0)) {
+        throw new RangeError('offer candidate must pair a kind with a code');
+      }
+
+      if (kind !== 0 && !ownsOffer) {
+        throw new RangeError('offer candidate requires the LevelUpOffer component');
+      }
+
+      if (kind !== 0) {
+        hasCandidate = true;
+        const key = kind * 256 + code;
+        if (seenKeys.has(key)) {
+          throw new RangeError('offer candidates must be pairwise distinct');
+        }
+        seenKeys.add(key);
+      }
+    }
+
+    const defaultIndex = state.offerDefaultIndex[slot] ?? 0;
+    if (defaultIndex >= OFFER_CANDIDATE_COUNT) {
+      throw new RangeError('offer default index is outside the offer');
+    }
+
+    if (hasCandidate) {
+      const defaultStoreIndex = offerStoreIndex(slot, defaultIndex);
+      if ((state.offerCandidateKind[defaultStoreIndex] ?? 0) === 0) {
+        throw new RangeError('offer default index must select an occupied candidate');
+      }
+    }
+  }
+};
+
+/**
+ * Validates the reroll/banish charges (V2-105, V2-ADR-056): each is `0` or
+ * `1`, and a nonzero charge requires the `LevelUpOffer` component, mirroring
+ * `validateLevelUpOffer`'s ownership check.
+ */
+const validateOfferCharges = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    const reroll = state.rerollCharges[slot] ?? 0;
+    const banish = state.banishCharges[slot] ?? 0;
+
+    if (reroll > 1) {
+      throw new RangeError('reroll charges must be 0 or 1');
+    }
+    if (banish > 1) {
+      throw new RangeError('banish charges must be 0 or 1');
+    }
+    if ((reroll !== 0 || banish !== 0) && !ownsOffer) {
+      throw new RangeError('offer charges require the LevelUpOffer component');
+    }
+  }
+};
+
+/**
+ * Validates the single banished-identity slot (V2-105, V2-ADR-058), mirroring
+ * `validateLevelUpOffer`'s kind/code pairing and ownership rules.
+ */
+const validateBanishState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot] ?? 0;
+    const ownsOffer = (mask & ComponentMask.LevelUpOffer) !== 0;
+    const kind = state.bannedCandidateKind[slot] ?? 0;
+    const code = state.bannedCandidateCode[slot] ?? 0;
+
+    if (kind !== 0 && kind !== OFFER_KIND_ABILITY && kind !== OFFER_KIND_PASSIVE) {
+      throw new RangeError('banned candidate kind is unsupported');
+    }
+    if ((kind === 0) !== (code === 0)) {
+      throw new RangeError('banned candidate must pair a kind with a code');
+    }
+    if (kind !== 0 && !ownsOffer) {
+      throw new RangeError('banned candidate requires the LevelUpOffer component');
+    }
+  }
+};
+
+/**
+ * Validates the Convergence latch (`V2-109`): the reached flag is `0` or `1`.
+ * Unlike reroll/banish charges, Convergence carries no component-ownership
+ * requirement (V2-ADR-073) — it lives unconditionally on the player's row.
+ */
+const validateConvergenceState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.convergenceReached[slot] ?? 0) > 1) {
+      throw new RangeError('convergenceReached must be 0 or 1');
+    }
+  }
+};
+
+/**
+ * Validates the telegraphed-enemy enums (`V2-300`): `enemyTelegraphBehavior`
+ * is `0`-`3` (none/charger/bloater/sniper) and `enemyTelegraphPhase` is
+ * `0`-`3` (ready/telegraphing/active/cooldown), mirroring
+ * `validateConvergenceState`'s own enum-bound precedent.
+ */
+const validateEnemyTelegraphState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.enemyTelegraphBehavior[slot] ?? 0) > 3) {
+      throw new RangeError('enemyTelegraphBehavior must be 0-3');
+    }
+    if ((state.enemyTelegraphPhase[slot] ?? 0) > 3) {
+      throw new RangeError('enemyTelegraphPhase must be 0-3');
+    }
+  }
+};
+
+/**
+ * Validates the elite-modifier enum (`V2-301`): `enemyEliteModifier` is
+ * `0`-`3` (none/tough/swift/volatile), mirroring
+ * `validateEnemyTelegraphState`'s own enum-bound precedent.
+ */
+const validateEliteModifierState = (
+  state: AuthoritativeWorldState,
+  capacity: number
+): void => {
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if ((state.enemyEliteModifier[slot] ?? 0) > 3) {
+      throw new RangeError('enemyEliteModifier must be 0-3');
+    }
+  }
+};
+
+export const validateAuthoritativeWorldState = (
+  state: AuthoritativeWorldState,
+  candidateCapacity: number
+): void => {
+  const capacity = assertUint32(candidateCapacity, 'world capacity', false);
+  if (capacity > MAX_WORLD_CAPACITY) {
+    throw new RangeError(
+      `world capacity must be no greater than ${MAX_WORLD_CAPACITY}`
+    );
+  }
+
+  validateStores(state, capacity);
+  if (!(state.freeSlots instanceof Uint16Array)) {
+    throw new RangeError('freeSlots must be a canonical typed store');
+  }
+
+  const activeCount = assertUint32(state.activeCount, 'activeCount');
+  const freeSlotCount = assertUint32(state.freeSlotCount, 'freeSlotCount');
+  if (
+    activeCount > capacity ||
+    freeSlotCount > capacity ||
+    state.freeSlots.length < freeSlotCount
+  ) {
+    throw new RangeError('allocator counts must fit canonical storage');
+  }
+
+  let observedActiveCount = 0;
+  let observedRetiredCount = 0;
+  for (let slot = 0; slot < capacity; slot += 1) {
+    const mask = state.masks[slot];
+    const generation = state.generations[slot];
+    if (mask === undefined || (mask & ~ALL_COMPONENT_MASK) !== 0) {
+      throw new RangeError('world contains an unsupported component mask');
+    }
+    if (mask !== 0) {
+      if (generation === RETIRED_ENTITY_GENERATION) {
+        throw new RangeError('active slot cannot use the retired generation');
+      }
+      observedActiveCount += 1;
+    } else if (generation === RETIRED_ENTITY_GENERATION) {
+      observedRetiredCount += 1;
+    }
+  }
+  if (observedActiveCount !== activeCount) {
+    throw new RangeError('activeCount does not match component masks');
+  }
+
+  const freeSlotSeen = new Uint8Array(capacity);
+  for (let index = 0; index < freeSlotCount; index += 1) {
+    const slot = state.freeSlots[index];
+    if (slot === undefined || slot >= capacity || freeSlotSeen[slot] !== 0) {
+      throw new RangeError('free slot prefix is invalid');
+    }
+    if (state.masks[slot] !== 0) {
+      throw new RangeError('active slot cannot appear in free slot prefix');
+    }
+    if (state.generations[slot] === RETIRED_ENTITY_GENERATION) {
+      throw new RangeError('retired slot cannot appear in free slot prefix');
+    }
+    freeSlotSeen[slot] = 1;
+  }
+
+  for (let slot = 0; slot < capacity; slot += 1) {
+    if (
+      state.masks[slot] === 0 &&
+      state.generations[slot] !== RETIRED_ENTITY_GENERATION &&
+      freeSlotSeen[slot] === 0
+    ) {
+      throw new RangeError('allocator omitted a reusable slot from its free prefix');
+    }
+  }
+  if (observedActiveCount + freeSlotCount + observedRetiredCount !== capacity) {
+    throw new RangeError(
+      'allocator partition must cover every world slot exactly once'
+    );
+  }
+
+  validateAbilityLoadout(state, capacity);
+  validatePassiveLoadout(state, capacity);
+  validateLevelUpOffer(state, capacity);
+  validateOfferCharges(state, capacity);
+  validateBanishState(state, capacity);
+  validateConvergenceState(state, capacity);
+  validateEnemyTelegraphState(state, capacity);
+  validateEliteModifierState(state, capacity);
+};

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-Crypto Survivors is a real-time, market-driven Vampire Survivors game. Live BTC/USD price data (Binance/Coinbase, aggregated server-side) dynamically adjusts difficulty, enemy behavior, and rewards. Built with React 19 + TypeScript 5.8 + Vite 6, targeting a stable 60 FPS on mobile and desktop. Node ≥ 20. Dev server runs on port 3000 (host `0.0.0.0`).
+Crypto Survivors is a real-time, market-driven Vampire Survivors game. Live BTC/USD price data (Binance/Coinbase, aggregated server-side) dynamically adjusts difficulty, enemy behavior, and rewards. Targets a stable 60 FPS on mobile and desktop.
 
 ## Repository Layout (multi-package)
 
@@ -22,20 +22,15 @@ Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` 
 # Development
 npm run dev              # sync-docs + generate-sitemap, then Vite dev server (--open, port 3000)
 npm run build            # production build (terser minify + anti-cheat obfuscation, no sourcemaps)
-npm run preview          # preview the production build
 npm run start            # node server.js — production-style Express server (NOT a vite command)
 
 # Testing (Vitest: jsdom, pool: forks, SKIP_INTEGRATION=true)
 npm run test                                   # all unit/integration tests (incl. railway-market-server/test/**)
-npx vitest run tests/services/SpawnSystem.test.ts   # run a single test file
-npm run test:watch                             # TDD watch mode
 npm run test:coverage                          # V8 coverage; targets services/**, components/**, factories/**
 npm run test:e2e                               # Playwright (auto-starts `npx vite` webServer, reuse-first)
-npm run test:e2e:ui | :debug | :headed         # Playwright UI / debug / headed
 npm run test:e2e:beta:critical                 # smoke gate (chromium + mobile-chrome)
 
 # Code quality / architecture gates
-npm run lint | lint:fix | format | typecheck   # ESLint (expect 0/0) · Prettier · tsc --noEmit
 npm run lint:ui                                # UI consistency audit (typography, colors)
 npm run check:architecture                     # new singletons must be whitelisted or CI fails
 npm run check:reset-coverage                   # every stateful singleton must be reset on game-reset
@@ -93,17 +88,6 @@ Auth is **fully Railway-native**: `services/auth/RailwayAuthService.ts` handles 
 ### Cross-Run State Reset
 Cross-run singleton state must reset through the canonical path — the `gameReset` EventBus event and `services/core/ResetOrchestrator.ts` — **not** via `GameEngine` mount/unmount hooks (those are dead at the MENU state). `check:reset-coverage` enforces that every stateful singleton participates. Prefer `GameRuntime` (`services/gameplay/GameRuntime.ts`) or explicit DI for per-session state instead of adding new singletons.
 
-### Key Design Patterns
-- **EventBus** (Observer): decoupled cross-system messaging via typed events.
-- **Object Pool**: `PoolManager` for zero-GC entity recycling.
-- **Decorator**: `BuffManager` with stackable `BaseDecorator` subclasses for buff/debuff stat modifiers.
-- **State Machine**: `GameStateMachine` (`services/core/`) with validated transitions (MENU → PLAYING → PAUSED/LEVEL_UP/GAMEOVER, plus CYCLE_COMPLETE / DATA_DISCONNECTED).
-- **Spatial Hashing**: `SpatialGrid` for collision.
-- **DI via Context**: `PhysicsContext` for a testable collision system.
-
-### Path Alias
-`@/*` maps to the project root (configured identically in `tsconfig.json`, `vite.config.ts`, and `vitest.config.ts`).
-
 ## Code Conventions
 
 ### TypeScript
@@ -121,7 +105,6 @@ Game code may use bitwise ops, labels, and `++` in for-loops; `no-console` warns
 
 ## Testing
 
-- Unit/integration: `tests/**/*.test.ts(x)` — Vitest, jsdom, `pool: 'forks'`. `tests/setup.ts` mocks Canvas, Howler, localStorage, `matchMedia`, `AudioContext`, `import.meta.env`, `requestAnimationFrame`, `WebSocket`, `fetch`, ResizeObserver. MSW handlers in `tests/mocks/handlers.ts`.
 - Singletons with a `reset()` must call it in `beforeEach` to isolate tests; `check:reset-coverage` enforces coverage. Coverage targets `services/**`, `components/**`, `factories/**` via V8 (no hard threshold configured in `vitest.config.ts`).
 - E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects), `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. The `?no-sw=true` base URL disables the service worker. CI runs the smoke subset on chromium; the full matrix (chromium, mobile-chrome, firefox, webkit) runs locally.
 
@@ -140,10 +123,6 @@ Game code may use bitwise ops, labels, and `++` in for-loops; `no-console` warns
 
 ## Adding Game Elements
 
-**New enemy type**: config in `config/EnemyRegistry.ts` → factory logic in `factories/EnemyFactory.ts` → spawn logic in `services/combat/SpawnSystem.ts` → register a pool in `PoolManager.ts` if needed.
-
-**New buff/debuff**: create a decorator in `services/patterns/decorators/buffs/` or `debuffs/` extending `BaseDecorator` → implement stat modifications → wire into `BuffManager.addBuff()`/`addDebuff()` → emit `buffApplied`/`buffExpired` for UI.
-
 **New character skin**: add the id to `CharacterSkinId` (`types/lootbox.ts`) → metadata in `CHARACTER_SKIN_DEFINITIONS` (`types/inventory.ts`) → palette in `SKIN_VISUAL_REGISTRY` (`config/SkinRegistry.ts`, 6-digit hex only; leave `trailColor`/`accentColor` unset — the LONG/SHORT position color must stay visible). See `docs/architecture/SKIN_SYSTEM.md`.
 
 ## Debug Tools
@@ -160,3 +139,14 @@ Shortcut wiring lives in `hooks/useDevShortcuts.ts`.
 ## Repo Conventions Note
 
 `conductor/` holds agent workflow specs, styleguides, and the product/tech-stack overview used by automation. This file and `AGENTS.md` are the source of truth for backend/auth; if `README.md` or `.github/copilot-instructions.md` ever drift on those topics, prefer this file.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- graphify-out/SEMANTIC_COMMUNITIES.md maps the 80 largest communities to a semantic name + layer + purpose (the report itself only has hub names). Point-in-time snapshot — match rows by hub, not id, after any `graphify update`.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

@@ -30,4 +30,17 @@ describe('server.js hardening script', () => {
     const file = readFileSync(join(process.cwd(), 'server.js'), 'utf8');
     expect(file).toContain('urlPath !== MARKET_STREAM_PATH &&');
   });
+
+  it('keeps Game V2 as a private SPA fallback outside public SEO routes', () => {
+    const file = readFileSync(join(process.cwd(), 'server.js'), 'utf8');
+    const publicRoutePaths = file.match(
+      /const PUBLIC_ROUTE_PATHS = \[([\s\S]*?)\];/
+    )?.[1];
+
+    expect(file).toContain(
+      "const PRIVATE_SPA_ROUTE_PATHS = new Set(['/game-v2', '/game-v2/']);"
+    );
+    expect(file).toContain('PRIVATE_SPA_ROUTE_PATHS.has(normalizeRoutePath(urlPath))');
+    expect(publicRoutePaths).not.toContain('/game-v2');
+  });
 });

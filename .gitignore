@@ -52,6 +52,13 @@ dist-ssr
 *.njsproj
 *.sln
 
+# Obsidian vault (docs/) — commit shared config, ignore per-machine state
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json
+docs/.obsidian/cache
+docs/.obsidian/plugins/*/data.json
+.trash/
+
 # AI Code Agents
 .agent/
 .agents/
@@ -156,3 +163,10 @@ supabase/.temp/
 
 # Antigravity CLI delegation run artifacts
 .agy-runs/
+
+# Delegasyon orkestratoru: ogrenilen veri (ledger.jsonl, outcomes.jsonl, project.json,
+# policy.json) git-e girer; kosu/bench artifaktlari girmez. providers.json ve
+# pricing.json artik burada bile olusmuyor - makineye ait, ~/.agent-orchestrator/'da
+# (tasarim SS5, tasinabilirlik ayrimi).
+.delegate/runs/
+.delegate/bench/
