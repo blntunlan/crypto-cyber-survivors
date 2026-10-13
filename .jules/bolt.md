@@ -1,0 +1,3 @@
+## 2024-10-13 - Eliminate Closure Allocations in Hot Spatial Grid Queries
+**Learning:** Using inline closures inside frequently called methods (like `SpatialGrid.forEachInRange` used every frame by weapon firing and combat systems) causes continuous heap allocations, which adds GC pressure and degrades performance. We have `forEachInRangeWithContext` but it was not being utilized by targeting loops.
+**Action:** When iterating over a spatial grid or array in a hot loop to find an optimal candidate, extract state to a static context object (e.g. `TARGETING_CONTEXT`) with properties like `bestX`, `bestY`, `bestDistSq`, and pass it alongside a static callback to context-aware iterators like `forEachInRangeWithContext`.
