@@ -149,11 +149,16 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
-    pool.activeEnemies.forEach(e => {
+    const activeEnemies = pool.activeEnemies;
+    // Standard for loop avoids closure allocations in the tight update loop
+    for (let i = 0, len = activeEnemies.length; i < len; i++) {
+      const e = activeEnemies[i];
+      if (e === undefined) continue;
+
       if (e.isDying) {
         e.movementSlowTimerMs = 0;
         e.movementSlowMultiplier = 1;
-        return;
+        continue;
       }
 
       // Update spawn animation progress
@@ -197,7 +202,7 @@ export class MovementSystem implements IMovementSystem {
           e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
-    });
+    }
   }
 
   /**
