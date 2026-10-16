@@ -80,7 +80,8 @@ const git = argumentList =>
  * Returns HEAD when everything is already committed, so the diff base is always
  * a valid revision.
  */
-const captureTrackedBaseline = () => git(['stash', 'create']) || git(['rev-parse', 'HEAD']);
+const captureTrackedBaseline = () =>
+  git(['stash', 'create']) || git(['rev-parse', 'HEAD']);
 
 const captureUntracked = () => {
   const output = git(['ls-files', '--others', '--exclude-standard']);
@@ -217,17 +218,23 @@ const main = async () => {
     '',
     '## New untracked files',
     '',
-    newUntracked.length ? newUntracked.map(file => `- \`${file}\``).join('\n') : '_none_',
+    newUntracked.length
+      ? newUntracked.map(file => `- \`${file}\``).join('\n')
+      : '_none_',
   ]
     .filter(line => line !== null)
     .join('\n');
 
   await fs.writeFile(path.join(runDirectory, 'summary.md'), summary + '\n');
   console.error(`\n${summary}\n`);
-  console.error(`[agy-delegate] artifacts in ${path.relative(REPO_ROOT, runDirectory)}`);
+  console.error(
+    `[agy-delegate] artifacts in ${path.relative(REPO_ROOT, runDirectory)}`
+  );
 
   if (timedOut) {
-    console.error('[agy-delegate] killed on timeout — treat any changes as half-finished.');
+    console.error(
+      '[agy-delegate] killed on timeout — treat any changes as half-finished.'
+    );
     process.exit(2);
   }
   if (result?.status !== 'SUCCESS') {
