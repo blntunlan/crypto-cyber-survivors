@@ -1,0 +1,3 @@
+## 2024-03-24 - Zero-Allocation Spatial Grid Queries
+**Learning:** The spatial grid query `forEachInRange` previously required dynamic inline callbacks (closures), generating allocation overhead and garbage collection pressure, particularly when invoked every frame for targeting tasks like `findNearestEnemy`. However, the spatial grid implements context-aware variants (`forEachInRangeWithContext`).
+**Action:** When extracting state into a static context object (e.g., `TARGETING_CONTEXT`) to eliminate closures, flatten nested object structures (like replacing a `bestCandidate` object with primitive `bestX`, `bestY`, `bestDistSq` fields) to prevent secondary object allocations during iteration updates. Pass this context along with a static callback method.
