@@ -1,0 +1,3 @@
+## 2024-05-24 - Array.prototype.forEach to for loop optimization in game loop hot paths
+**Learning:** In the combat/physics system, particularly in hot paths like `MovementSystem.updateEnemies` and `CombatResolutionService.triggerShockwave`, closure allocations created by `Array.prototype.forEach` add overhead during every frame of the game loop.
+**Action:** Replace `Array.prototype.forEach` with a standard `for` loop that caches the array length and avoids creating a new closure. This prevents closure allocation and improves iteration speed. Remember to handle sparse array possibilities where the compiler requires it, e.g., by adding a guard clause `if (item === undefined) continue;`.
