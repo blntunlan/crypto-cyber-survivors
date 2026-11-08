@@ -4,12 +4,13 @@
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",
     "watchPatterns": [
-      "src/**",
-      "package.json",
-      "package-lock.json",
-      "tsconfig.json",
-      "Dockerfile",
-      "railway.json"
+      "/railway-market-aggregator/src/**",
+      "/railway-market-aggregator/package.json",
+      "/railway-market-aggregator/package-lock.json",
+      "/railway-market-aggregator/tsconfig.json",
+      "/railway-market-aggregator/Dockerfile",
+      "/railway-market-aggregator/.dockerignore",
+      "/railway-market-aggregator/railway.json"
     ]
   },
   "deploy": {
@@ -17,6 +18,7 @@
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/health",
     "numReplicas": 1,
-    "region": "europe-west4"
+    "region": "europe-west4",
+    "restartPolicyMaxRetries": 3
   }
 }

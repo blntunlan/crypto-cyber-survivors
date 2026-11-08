@@ -17,6 +17,9 @@
       "tailwind.config.cjs",
       "metadata.json",
       ".railwayignore",
+      "constants.ts",
+      "game-v2/**",
+      "entry/**",
       "public/**",
       "components/**",
       "hooks/**",
@@ -37,6 +40,7 @@
   "deploy": {
     "startCommand": "node server.js",
     "healthcheckPath": "/health",
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
   }
 }
