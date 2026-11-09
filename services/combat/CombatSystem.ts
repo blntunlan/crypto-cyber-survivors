@@ -150,12 +150,20 @@ export class CombatSystem implements ICombatSystem {
         ? createViewportBounds(screenWidth, screenHeight, 0)
         : null;
 
-    let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
-      null;
+    let bestX = 0;
+    let bestY = 0;
+    let bestDistSq = Infinity;
+    let bestSpeed = 0;
+    let found = false;
 
-    // Architectural Optimization: Use SpatialGrid for nearby enemy search
-    // Step 1: Check 3x3 grid (immediate surroundings)
-    enemyGrid.forEachInRange(player.x, player.y, 1, enemy => {
+    const checkEnemy = (enemy: {
+      x: number;
+      y: number;
+      speed: number;
+      radius?: number;
+      isDying?: boolean;
+      active?: boolean;
+    }) => {
       // Skip dead or dying enemies
       if (enemy.isDying || !enemy.active) {
         return;
@@ -163,7 +171,7 @@ export class CombatSystem implements ICombatSystem {
 
       // Optimized viewport check - only calculate if bounds exist
       if (viewportBounds) {
-        const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+        const enemyRadius = enemy.radius ?? COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
         if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
           return;
         }
@@ -173,66 +181,42 @@ export class CombatSystem implements ICombatSystem {
       const dy = enemy.y - player.y;
       const distSq = dx * dx + dy * dy;
 
-      if (!bestCandidate || distSq < bestCandidate.distSq) {
-        bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+      if (distSq < bestDistSq) {
+        bestX = enemy.x;
+        bestY = enemy.y;
+        bestDistSq = distSq;
+        bestSpeed = enemy.speed;
+        found = true;
       }
-    });
+    };
+
+    // Architectural Optimization: Use SpatialGrid for nearby enemy search
+    // Step 1: Check 3x3 grid (immediate surroundings)
+    enemyGrid.forEachInRange(player.x, player.y, 1, checkEnemy);
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
-      enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
-        if (enemy.isDying || !enemy.active) return;
-
-        if (viewportBounds) {
-          const enemyRadius =
-            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) return;
-        }
-
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distSq = dx * dx + dy * dy;
-
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-        }
-      });
+    if (!found) {
+      enemyGrid.forEachInRange(player.x, player.y, 3, checkEnemy);
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
     // This handles edge cases where enemies are at the very edges of wide viewports.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
+    if (!found) {
       const enemies = pool.activeEnemies;
       for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i]!;
-        if (enemy.isDying || !enemy.active) continue;
-
-        // Optimized viewport check in fallback scan
-        if (viewportBounds) {
-          const enemyRadius =
-            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
-            continue;
-          }
-        }
-
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distSq = dx * dx + dy * dy;
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
-        }
+        checkEnemy(enemies[i]!);
       }
     }
 
-    return bestCandidate
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    return found
       ? {
-          x: bestCandidate.x,
-          y: bestCandidate.y,
-          dist: Math.sqrt(bestCandidate.distSq),
-          speed: bestCandidate.speed,
+          x: bestX,
+          y: bestY,
+          dist: Math.sqrt(bestDistSq),
+          speed: bestSpeed,
         }
       : null;
   }

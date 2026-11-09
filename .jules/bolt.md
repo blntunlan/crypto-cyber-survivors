@@ -1,0 +1,3 @@
+## 2024-10-28 - Flattened Best Candidate Objects
+**Learning:** In the `CombatSystem.ts` and `WeaponFiringPipeline.ts`, flattening the `bestCandidate` object structure into separate primitive variables (`bestX`, `bestY`, `bestDistSq`, `bestSpeed`, `found`) inside the target search algorithm (`findNearestEnemy`) prevents secondary object allocations on every better candidate update inside the tight spatial grid loops. Creating object literals during the search impacts garbage collection in very hot paths.
+**Action:** Always flatten wrapper objects into discrete primitive variables when tracking moving extrema/best candidates in high frequency update loops like spatial hashing checks or collision sweeps, extracting into an object only once at the very end of the function.
